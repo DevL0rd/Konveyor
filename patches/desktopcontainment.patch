@@ -1,0 +1,65 @@
+diff --git a/contents/config/main.xml b/contents/config/main.xml
+--- a/contents/config/main.xml
++++ b/contents/config/main.xml
+@@ -6,6 +6,11 @@
+   <kcfgfile name=""/>
+ 
+   <group name="General">
++    <entry name="hideDesktopWidgets" type="Bool" hidden="true">
++      <label>Whether desktop widget containers are temporarily hidden by KWin.</label>
++      <default>false</default>
++    </entry>
++
+     <entry name="icon" type="String">
+       <label>The name of the custom icon to use for the compact representation (e.g. on a small panel) of the Folder View applet. Only used if useCustomIcon is true.</label>
+       <default>folder-symbolic</default>
+diff --git a/contents/ui/main.qml b/contents/ui/main.qml
+--- a/contents/ui/main.qml
++++ b/contents/ui/main.qml
+@@ -318,6 +318,46 @@
+             appletContainerComponent: ContainmentLayoutManager.BasicAppletContainer {
+                 id: appletContainer
+ 
++                // This state is maintained by the companion KWin script. Hiding the
++                // container also hides its separately-rendered blur/background item.
++                function applyAutoHideState(animateReveal: bool): void {
++                    fadeIn.stop();
++
++                    if (Plasmoid.configuration.hideDesktopWidgets) {
++                        opacity = 0;
++                        visible = false;
++                        return;
++                    }
++
++                    opacity = animateReveal ? 0 : 1;
++                    visible = true;
++                    if (animateReveal) {
++                        fadeIn.start();
++                    }
++                }
++
++                Component.onCompleted: {
++                    applyAutoHideState(false);
++                }
++
++                NumberAnimation {
++                    id: fadeIn
++                    target: appletContainer
++                    property: "opacity"
++                    from: 0
++                    to: 1
++                    duration: 250
++                    easing.type: Easing.OutCubic
++                }
++
++                Connections {
++                    target: Plasmoid.configuration
++
++                    function onHideDesktopWidgetsChanged(): void {
++                        appletContainer.applyAutoHideState(true);
++                    }
++                }
++
+                 editModeCondition: Plasmoid.immutable
+                     ? ContainmentLayoutManager.ItemContainer.Locked
+                     : ContainmentLayoutManager.ItemContainer.AfterPressAndHold
