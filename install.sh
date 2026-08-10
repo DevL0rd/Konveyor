@@ -5,7 +5,13 @@
 set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+readonly PLASMA_SERVICE="plasma-plasmashell.service"
+readonly PLASMA_OVERRIDE_DIR="${CONFIG_HOME}/systemd/user/${PLASMA_SERVICE}.d"
+readonly PLASMA_OVERRIDE="${PLASMA_OVERRIDE_DIR}/linux-widget-hider.conf"
+readonly PLASMA_ENV_DIR="${CONFIG_HOME}/environment.d"
+readonly PLASMA_ENV_FILE="${PLASMA_ENV_DIR}/linux-widget-hider.conf"
 readonly SYSTEM_CONTAINMENT="/usr/share/plasma/plasmoids/org.kde.desktopcontainment"
 readonly CONTAINMENT_TARGET="${DATA_HOME}/plasma/plasmoids/org.kde.desktopcontainment"
 readonly KWIN_TARGET="${DATA_HOME}/kwin/scripts/devl0rd-hide-desktop-widgets"
@@ -14,6 +20,19 @@ readonly MANAGED_MARKER=".linux-widget-hider-managed"
 die() {
     printf 'Error: %s\n' "$*" >&2
     exit 1
+}
+
+configure_plasma_local_file_access() {
+    [[ ! -L "${PLASMA_OVERRIDE}" ]] || die "Refusing to overwrite symbolic link ${PLASMA_OVERRIDE}"
+    [[ ! -L "${PLASMA_ENV_FILE}" ]] || die "Refusing to overwrite symbolic link ${PLASMA_ENV_FILE}"
+
+    mkdir -p -- "${PLASMA_OVERRIDE_DIR}" "${PLASMA_ENV_DIR}"
+    printf '[Service]\nEnvironment=QML_XHR_ALLOW_FILE_READ=1\n' > "${PLASMA_OVERRIDE}"
+    printf 'QML_XHR_ALLOW_FILE_READ=1\n' > "${PLASMA_ENV_FILE}"
+    chmod 0644 "${PLASMA_OVERRIDE}" "${PLASMA_ENV_FILE}"
+    systemctl --user set-environment QML_XHR_ALLOW_FILE_READ=1 2>/dev/null || true
+    systemctl --user daemon-reload
+    printf 'Enabled local file access for managed Plasma sessions.\n'
 }
 
 for command_name in patch kwriteconfig6 qdbus6 systemctl; do
@@ -75,6 +94,11 @@ qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript \
     "${KWIN_TARGET}/contents/code/main.js" devl0rd-hide-desktop-widgets >/dev/null
 qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.start
 
-systemctl --user restart plasma-plasmashell.service
+configure_plasma_local_file_access
+if systemctl --user is-active --quiet "${PLASMA_SERVICE}"; then
+    systemctl --user restart "${PLASMA_SERVICE}"
+else
+    printf 'Warning: Plasma was not restarted because %s is inactive; log out and back in to apply the setting.\n' "${PLASMA_SERVICE}" >&2
+fi
 
 printf 'Linux Widget Hider installed successfully.\n'
