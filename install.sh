@@ -10,6 +10,23 @@ fi
 APP="Linux-Log-Monitor"
 BIN_DIR="$HOME/.local/bin"
 PLASMOID_SRC="$REPO_DIR/plasmoids"
+PLASMA_SERVICE="plasma-plasmashell.service"
+PLASMA_OVERRIDE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$PLASMA_SERVICE.d"
+PLASMA_OVERRIDE="$PLASMA_OVERRIDE_DIR/linux-log-monitor.conf"
+
+configure_plasma_local_file_access() {
+    if [ -L "$PLASMA_OVERRIDE" ]; then
+        echo "Error: refusing to overwrite symbolic link $PLASMA_OVERRIDE" >&2
+        exit 1
+    fi
+    mkdir -p "$PLASMA_OVERRIDE_DIR" "$HOME/.config/environment.d"
+    printf '[Service]\nEnvironment=QML_XHR_ALLOW_FILE_READ=1\n' > "$PLASMA_OVERRIDE"
+    chmod 0644 "$PLASMA_OVERRIDE"
+    printf 'QML_XHR_ALLOW_FILE_READ=1\n' > "$HOME/.config/environment.d/linux-log-monitor.conf"
+    systemctl --user set-environment QML_XHR_ALLOW_FILE_READ=1 2>/dev/null || true
+    systemctl --user daemon-reload
+    echo "Enabled local file access for managed Plasma sessions."
+}
 
 # --- sanity check for the tooling we rely on ---
 for bin in journalctl python3 kpackagetool6; do
@@ -59,14 +76,10 @@ systemctl --user enable --now linux-log-monitor.service
 echo "Enabled resident collector service (linux-log-monitor.service)"
 
 # --- 3. allow the widget to read the tmpfs snapshot in-process via QML XHR ---
-# (Qt blocks file:// XHR unless this is set.) Use environment.d so the systemd
-# user manager always provides it -- including a mid-session `systemctl --user
-# restart plasma-plasmashell`, which the login-only plasma-workspace/env misses.
-mkdir -p ~/.config/environment.d
-echo 'QML_XHR_ALLOW_FILE_READ=1' > ~/.config/environment.d/linux-log-monitor.conf
-systemctl --user set-environment QML_XHR_ALLOW_FILE_READ=1 2>/dev/null || true  # apply now, no relogin
+# The environment file covers login sessions; the service override also covers
+# every managed mid-session Plasma restart.
+configure_plasma_local_file_access
 rm -f ~/.config/plasma-workspace/env/linux-log-monitor.sh                       # migrate off old login-only location
-echo "Set QML_XHR_ALLOW_FILE_READ=1 (environment.d; survives plasma restarts)"
 
 # --- 4. install the plasmoid(s) ---
 if [ ! -e "$REPO_DIR/shared/common/FileWatcher.qml" ]; then
@@ -93,13 +106,9 @@ echo "(That restart picks up the QML_XHR flag from environment.d; no logout need
 # reload Plasma at the end -- unless --no-reload (so bulk installs can reload once)
 if ! printf '%s\n' "$@" | grep -qx -- --no-reload; then
     echo "Reloading Plasma…"
-    # plasmashell may be run by plasma-plasmashell.service OR as an app-plasmashell@<hash>
-    # scope (then plasma-plasmashell.service is inactive and "restarting" it just spawns a
-    # doomed duplicate). Restart the unit only when it actually runs the shell; otherwise
-    # quit + relaunch the running instance directly.
-    if systemctl --user --quiet is-active plasma-plasmashell.service; then
-        systemctl --user restart plasma-plasmashell.service
+    if systemctl --user --quiet is-active "$PLASMA_SERVICE"; then
+        systemctl --user restart "$PLASMA_SERVICE"
     else
-        kquitapp6 plasmashell 2>/dev/null; (kstart plasmashell >/dev/null 2>&1 &)
+        echo "  ! Plasma was not restarted because $PLASMA_SERVICE is inactive; log out and back in to apply the setting."
     fi
 fi
