@@ -100,15 +100,7 @@ done
 
 echo ""
 echo "Done! Add it via right-click desktop/panel -> Add Widgets -> search \"System Log\"."
-echo "If it doesn't appear yet, run:  systemctl --user restart plasma-plasmashell.service"
 echo "(That restart picks up the QML_XHR flag from environment.d; no logout needed.)"
 
-# reload Plasma at the end -- unless --no-reload (so bulk installs can reload once)
-if ! printf '%s\n' "$@" | grep -qx -- --no-reload; then
-    echo "Reloading Plasma…"
-    if systemctl --user --quiet is-active "$PLASMA_SERVICE"; then
-        systemctl --user restart "$PLASMA_SERVICE"
-    else
-        echo "  ! Plasma was not restarted because $PLASMA_SERVICE is inactive; log out and back in to apply the setting."
-    fi
-fi
+echo "Restarting Plasma…"
+systemctl --user restart "$PLASMA_SERVICE"
