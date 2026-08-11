@@ -128,15 +128,7 @@ done
 echo ""
 echo "Done! Six widgets are available: System, Network, WiFi, DNS, Clients, Speed Test."
 echo "Add them via right-click desktop/panel -> Add Widgets -> search \"Router\"."
-echo "If they don't appear yet, run:  systemctl --user restart $PLASMA_SERVICE"
 echo "Logs: $HOME/.local/state/$APP/monitor.log"
 
-# reload Plasma at the end -- unless --no-reload (so bulk installs can reload once)
-if ! printf '%s\n' "$@" | grep -qx -- --no-reload; then
-    echo "Reloading Plasma…"
-    if systemctl --user --quiet is-active "$PLASMA_SERVICE"; then
-        systemctl --user restart "$PLASMA_SERVICE"
-    else
-        echo "  ! Plasma was not restarted because $PLASMA_SERVICE is inactive; log out and back in to apply the setting."
-    fi
-fi
+echo "Restarting Plasma…"
+systemctl --user restart "$PLASMA_SERVICE"
