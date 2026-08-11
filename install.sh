@@ -95,10 +95,8 @@ qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript \
 qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.start
 
 configure_plasma_local_file_access
-if systemctl --user is-active --quiet "${PLASMA_SERVICE}"; then
-    systemctl --user restart "${PLASMA_SERVICE}"
-else
-    printf 'Warning: Plasma was not restarted because %s is inactive; log out and back in to apply the setting.\n' "${PLASMA_SERVICE}" >&2
-fi
-
 printf 'Linux Widget Hider installed successfully.\n'
+cleanup
+trap - EXIT
+printf 'Restarting Plasma...\n'
+systemctl --user restart "${PLASMA_SERVICE}"
