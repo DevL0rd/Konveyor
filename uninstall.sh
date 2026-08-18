@@ -7,6 +7,7 @@ set -euo pipefail
 readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly PLASMOID_ID="dev.devl0rd.screenrotate"
 readonly TARGET="${DATA_HOME}/plasma/plasmoids/${PLASMOID_ID}"
+readonly HELPER_TARGET="${HOME}/.local/bin/linux-plasma-screen-rotate"
 
 die() {
     printf 'Error: %s\n' "$*" >&2
@@ -24,6 +25,11 @@ case "${TARGET}" in
     */plasma/plasmoids/"${PLASMOID_ID}") ;;
     *) die "Refusing unexpected uninstall target: ${TARGET}" ;;
 esac
+
+if [[ -f "${HELPER_TARGET}" && ! -L "${HELPER_TARGET}" ]]; then
+    rm -f -- "${HELPER_TARGET}"
+    printf 'Removed helper %s\n' "${HELPER_TARGET}"
+fi
 
 kpackagetool6 --type Plasma/Applet --remove "${PLASMOID_ID}" >/dev/null
 printf 'Removed %s\n' "${PLASMOID_ID}"

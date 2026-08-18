@@ -8,6 +8,8 @@ readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 readonly PLASMOID_ID="dev.devl0rd.screenrotate"
 readonly TARGET="${DATA_HOME}/plasma/plasmoids/${PLASMOID_ID}"
+readonly HELPER_NAME="linux-plasma-screen-rotate"
+readonly HELPER_TARGET="${HOME}/.local/bin/${HELPER_NAME}"
 
 die() {
     printf 'Error: %s\n' "$*" >&2
@@ -19,6 +21,8 @@ for command_name in kscreen-doctor jq kpackagetool6; do
 done
 
 [[ -d "${SCRIPT_DIR}/plasmoid" ]] || die "Plasmoid source was not found at ${SCRIPT_DIR}/plasmoid"
+[[ -f "${SCRIPT_DIR}/bin/${HELPER_NAME}" ]] || die "Helper was not found at ${SCRIPT_DIR}/bin/${HELPER_NAME}"
+[[ ! -L "${HELPER_TARGET}" ]] || die "Refusing to overwrite symbolic link ${HELPER_TARGET}"
 [[ ! -L "${TARGET}" ]] || die "Refusing to overwrite symbolic link ${TARGET}"
 
 case "${TARGET}" in
@@ -33,5 +37,9 @@ else
     kpackagetool6 --type Plasma/Applet --install "${SCRIPT_DIR}/plasmoid" >/dev/null
     printf 'Installed %s\n' "${PLASMOID_ID}"
 fi
+
+mkdir -p -- "${HOME}/.local/bin"
+install -m 755 "${SCRIPT_DIR}/bin/${HELPER_NAME}" "${HELPER_TARGET}"
+printf 'Installed helper %s\n' "${HELPER_TARGET}"
 
 printf 'Add "Screen Rotate" to a panel from the widget list.\n'

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 DevL0rd <dmhzmxn@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+enabled_outputs() {
+    kscreen-doctor -j | jq -r '.outputs[] | select(.enabled == true) | .name'
+}
+
+current_rotation() {
+    kscreen-doctor -j | jq -r '[.outputs[] | select(.enabled == true) | .rotation] | first'
+}
+
+case "${1:-state}" in
+    state)
+        if [[ "$(current_rotation)" == "1" ]]; then printf 'landscape\n'; else printf 'portrait\n'; fi
+        ;;
+    toggle)
+        if [[ "$(current_rotation)" == "1" ]]; then rotation=left; else rotation=none; fi
+        while read -r output; do
+            [[ -n "$output" ]] || continue
+            kscreen-doctor "output.${output}.rotation.${rotation}" >/dev/null
+        done < <(enabled_outputs)
+        printf 'done\n'
+        ;;
+    *)
+        printf 'Usage: %s [state|toggle]\n' "${0##*/}" >&2
+        exit 2
+        ;;
+esac
