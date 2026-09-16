@@ -36,7 +36,40 @@ cd Linux-Process-Mon
 ./install.sh
 ```
 
-Then add **Process Monitor** from *Add Widgets*. Uninstall with `./uninstall.sh`.
+Then add **Process Monitor** or **Process Monitor (Panel)** from *Add Widgets*.
+Uninstall with `./uninstall.sh`.
+
+## Panel widget
+
+**Process Monitor (Panel)** shows the app you're using right in the panel: its
+icon and name, how much CPU and GPU it and its child processes use, and its frame
+rate while it's drawing (green at 60 and up, amber from 30, red below). With no
+app focused it shows the busiest process instead. Middle-click jumps straight to
+that app in the popup.
+
+Click it for the full view:
+
+- **Focused app card** with live graphs for CPU, GPU, frame time, RAM, VRAM, disk
+  and threads, plus buttons to end, force kill, pause, resume, open its folder or
+  copy its command
+- **Process table** as a tree or a flat list, sortable by any column, with a
+  small history graph behind every row
+- **Filters** for apps, processes using the GPU and processes using the disk
+- **Search** by name or PID
+- **Click a process** to see what it and its children use, its frame rate and
+  command line, and every action; right-click for the full menu
+- **Columns** menu to show GPU, video encode and decode, VRAM, disk, threads and
+  PID
+
+### Frame rates
+
+Frame rates come from [MangoHud](https://github.com/flightlessmango/MangoHud).
+When MangoHud is installed, `install.sh` adds a few lines to
+`~/.config/MangoHud/MangoHud.conf` so it logs frame times to a folder in memory
+that the collector reads. Your MangoHud overlay looks and behaves the same, even
+when it's hidden. Any game or app you run with MangoHud (`mangohud %command%` in
+Steam, or `MANGOHUD=1`) then shows its frame rate. `uninstall.sh` puts your
+previous MangoHud settings back.
 
 ## Settings
 

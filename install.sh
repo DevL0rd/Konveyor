@@ -35,7 +35,7 @@ python3 -c "import pynvml" >/dev/null 2>&1 || echo "Note: install python-nvidia-
 
 # --- 1. collector onto PATH (symlinked back to the repo) ---
 mkdir -p "$BIN_DIR"
-chmod +x "$REPO_DIR/bin/procmon-collect" "$REPO_DIR/bin/procmon-ecores"
+chmod +x "$REPO_DIR/bin/procmon-collect" "$REPO_DIR/bin/procmon-ecores" "$REPO_DIR/bin/procmon-mangohud"
 ln -sf "$REPO_DIR/bin/procmon-collect" "$BIN_DIR/procmon-collect"
 echo "Linked procmon-collect into $BIN_DIR"
 
@@ -43,12 +43,15 @@ echo "Linked procmon-collect into $BIN_DIR"
 mkdir -p "$CFG_DIR"
 [ -f "$CFG_DIR/config.json" ] || cp "$REPO_DIR/config.example.json" "$CFG_DIR/config.json"
 
-# --- 3. let the widget read the tmpfs snapshot in-process via QML XHR ---
+# --- 3. let MangoHud report frame rates to the collector ---
+python3 "$REPO_DIR/bin/procmon-mangohud" --configure
+
+# --- 4. let the widget read the tmpfs snapshot in-process via QML XHR ---
 # The environment file covers login sessions; the service override also covers
 # every managed mid-session Plasma restart.
 configure_plasma_local_file_access
 
-# --- 4. resident collector service, pinned to the E-cores ---
+# --- 5. resident collector service, pinned to the E-cores ---
 mkdir -p "$HOME/.config/systemd/user"
 AFFINITY=""
 ECORES=$(python3 -S "$REPO_DIR/bin/procmon-ecores" 2>/dev/null)
@@ -74,7 +77,7 @@ systemctl --user enable --now linux-process-mon.service >/dev/null 2>&1 \
     && echo "Enabled resident collector (linux-process-mon.service)" \
     || echo "  (could not enable linux-process-mon.service -- enable it manually)"
 
-# --- 5. install the widget ---
+# --- 6. install the widgets ---
 if [ ! -e "$REPO_DIR/shared/common/FileWatcher.qml" ]; then
     echo "  ! shared/common (Linux-Plasma-Shared submodule) is empty." >&2
     echo "    Run: git submodule update --init --recursive" >&2
@@ -83,6 +86,8 @@ fi
 echo "Installing widget..."
 for d in "$PLASMOID_SRC"/org.devl0rd.procmon*; do
     cp "$REPO_DIR/shared/common/FileWatcher.qml" "$REPO_DIR/shared/common/Sparkline.qml" "$d/contents/ui/"  # shared (submodule) components
+    mkdir -p "$d/contents/ui/lib"
+    cp "$REPO_DIR/shared/common/"*.qml "$REPO_DIR/shared/common/"*.js "$d/contents/ui/lib/"
     if kpackagetool6 -t Plasma/Applet -u "$d" >/dev/null 2>&1; then
         echo "  upgraded $(basename "$d")"
     else

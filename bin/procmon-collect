@@ -20,12 +20,13 @@ Modes:
   procmon-collect --snapshot   print the cached snapshot (debug / fallback)
   procmon-collect --once       one sample to stdout (debug)
 """
-import os, sys, json, time, glob
+import os, sys, json, time, glob, socket
 
 APP = "Linux-Process-Mon"
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 DATA = os.path.join(RUNDIR, "data.json")
 CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+MANGO_DIR = os.path.join(RUNDIR, "mangohud")
 
 CLK = os.sysconf("SC_CLK_TCK")
 PAGE = os.sysconf("SC_PAGE_SIZE")
@@ -257,6 +258,132 @@ def gpu_usage():
         return {}
 
 
+_fps = {"files": frozenset(), "owners": {}, "samples": {}, "logging": set()}
+MANGOHUD_SOCKET_PREFIX = "@mangohud-"
+FPS_STALE_SECONDS = 3
+FPS_LOW_WINDOW_SECONDS = 30
+ORPHAN_LOG_SECONDS = 10
+
+
+def _log_owners(paths):
+    owners = {}
+    if not paths:
+        return owners
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        fd_dir = f"/proc/{pid}/fd"
+        try:
+            fds = os.listdir(fd_dir)
+        except OSError:
+            continue
+        for fd in fds:
+            try:
+                target = os.readlink(f"{fd_dir}/{fd}")
+            except OSError:
+                continue
+            if target in paths:
+                owners[target] = int(pid)
+    return owners
+
+
+def _last_frame(path):
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 2048))
+            chunk = f.read().decode(errors="replace")
+    except OSError:
+        return None
+    for line in reversed(chunk.splitlines()):
+        parts = line.split(",")
+        if len(parts) < 16:
+            continue
+        try:
+            return float(parts[0]), float(parts[1])
+        except ValueError:
+            continue
+    return None
+
+
+def _remove_orphan_logs(names, owners, now):
+    for name in names:
+        path = os.path.join(MANGO_DIR, name)
+        log = path[:-len("_summary.csv")] + ".csv" if name.endswith("_summary.csv") else path
+        if log in owners:
+            continue
+        try:
+            if now - os.path.getmtime(path) > ORPHAN_LOG_SECONDS:
+                os.remove(path)
+        except OSError:
+            continue
+
+
+def _mangohud_pids():
+    pids = set()
+    try:
+        with open("/proc/net/unix") as f:
+            next(f, None)
+            for line in f:
+                name = line.rstrip("\n").rsplit(" ", 1)[-1]
+                if name.startswith(MANGOHUD_SOCKET_PREFIX) and name[len(MANGOHUD_SOCKET_PREFIX):].isdigit():
+                    pids.add(int(name[len(MANGOHUD_SOCKET_PREFIX):]))
+    except OSError:
+        pass
+    return pids
+
+
+def start_mangohud_logging():
+    running = _mangohud_pids()
+    started = _fps["logging"]
+    started &= running
+    for pid in running - started:
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as conn:
+                conn.settimeout(0.2)
+                conn.connect("\0" + MANGOHUD_SOCKET_PREFIX[1:] + str(pid))
+                conn.sendall(b":logging=1;")
+            started.add(pid)
+        except OSError:
+            continue
+
+
+def mangohud_frames(now):
+    try:
+        names = [n for n in os.listdir(MANGO_DIR) if n.endswith(".csv")]
+    except OSError:
+        return {}
+    logs = frozenset(os.path.join(MANGO_DIR, n) for n in names if not n.endswith("_summary.csv"))
+    owners = _fps["owners"]
+    if logs != _fps["files"] or any(not os.path.exists(f"/proc/{pid}") for pid in owners.values()):
+        owners = _log_owners(logs)
+        _fps["files"] = logs
+        _fps["owners"] = owners
+    _remove_orphan_logs(names, owners, now)
+    frames = {}
+    samples = _fps["samples"]
+    for path in list(samples):
+        if path not in owners:
+            del samples[path]
+    for path, pid in owners.items():
+        try:
+            if now - os.path.getmtime(path) > FPS_STALE_SECONDS:
+                continue
+        except OSError:
+            continue
+        frame = _last_frame(path)
+        if frame is None:
+            continue
+        fps, frametime = frame
+        window = [(t, v) for t, v in samples.get(path, []) if now - t <= FPS_LOW_WINDOW_SECONDS]
+        window.append((now, fps))
+        samples[path] = window
+        ordered = sorted(v for _, v in window)
+        low = ordered[int(len(ordered) * 0.01)]
+        frames[pid] = {"fps": round(fps), "frametime": round(frametime, 2), "fps_low": round(low)}
+    return frames
+
+
 _prev = {"t": {}, "io": {}, "when": None}
 
 
@@ -265,6 +392,8 @@ def build():
     procs = read_procs()
     io = read_io()
     gpu = gpu_usage()
+    start_mangohud_logging()
+    frames = mangohud_frames(now)
     dt = (now - _prev["when"]) if _prev["when"] else 0
     pt, pio = _prev["t"], _prev["io"]
     rows = []
@@ -283,6 +412,7 @@ def build():
             "gpu": g.get("gpu", 0), "enc": g.get("enc", 0), "dec": g.get("dec", 0),
             "vram": g.get("vram", 0), "disk": round(disk),
             "kernel": pid == 2 or p["ppid"] == 2,
+            **frames.get(pid, {}),
         })
     aggregate(rows)
     compact(rows)
@@ -350,6 +480,7 @@ def write_snapshot(snap):
 
 
 def cmd_serve():
+    os.makedirs(MANGO_DIR, exist_ok=True)
     build()                                                # prime CPU/disk deltas
     time.sleep(0.5)                                        # real delta before first write
     write_snapshot(build())

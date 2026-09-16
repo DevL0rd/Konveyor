@@ -14,3 +14,6 @@ __pycache__/
 # Shared QML components synced from the shared/common submodule by install.sh
 plasmoids/org.devl0rd.procmon/contents/ui/FileWatcher.qml
 plasmoids/org.devl0rd.procmon/contents/ui/Sparkline.qml
+plasmoids/org.devl0rd.procmon.panel/contents/ui/FileWatcher.qml
+plasmoids/org.devl0rd.procmon.panel/contents/ui/Sparkline.qml
+plasmoids/*/contents/ui/lib/
