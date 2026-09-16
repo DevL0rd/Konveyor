@@ -15,6 +15,30 @@ Item {
     Layout.preferredWidth: Kirigami.Units.gridUnit * 36
     Layout.preferredHeight: Kirigami.Units.gridUnit * 38
 
+    readonly property var tabItems: [allTab, infoTab, warningsTab, errorsTab]
+    QtObject {
+        id: allTab
+        readonly property string key: "all"
+        readonly property string label: i18n("All")
+    }
+    QtObject {
+        id: infoTab
+        readonly property string key: "info"
+        readonly property string label: i18n("Info")
+    }
+    QtObject {
+        id: warningsTab
+        readonly property string key: "warnings"
+        readonly property string label: i18n("Warnings")
+        readonly property string badge: root.warningCount > 0 ? root.warningCount + "" : ""
+    }
+    QtObject {
+        id: errorsTab
+        readonly property string key: "errors"
+        readonly property string label: i18n("Errors")
+        readonly property string badge: root.errorCount > 0 ? root.errorCount + "" : ""
+    }
+
     Loader {
         id: loader
         anchors.fill: parent
@@ -97,12 +121,7 @@ Item {
             statusText: root.stateKey === "live" ? i18n("Following the journal") : root.stateKey === "paused" ? i18n("Paused") : i18n("Collector not running")
             searchPlaceholder: i18n("Search messages and apps in the whole journal…")
             matchCount: root.search === "" || root.querying ? -1 : root.rows.count
-            tabs: [
-                { key: "all", label: i18n("All") },
-                { key: "info", label: i18n("Info") },
-                { key: "warnings", label: i18n("Warnings"), badge: root.levelCounts[2] > 0 ? root.levelCounts[2] + "" : "" },
-                { key: "errors", label: i18n("Errors"), badge: root.levelCounts[3] > 0 ? root.levelCounts[3] + "" : "" }
-            ]
+            tabs: full.tabItems
             showTabs: true
             currentTab: root.level
             onTabActivated: index => root.level = index
@@ -189,7 +208,7 @@ Item {
                 Flickable {
                     Layout.fillWidth: true
                     Layout.preferredHeight: sources.implicitHeight
-                    visible: root.topSources.length > 0 || root.mutedList.length > 0
+                    visible: root.topSources.count > 0 || root.mutedList.length > 0
                     contentWidth: sources.implicitWidth
                     flickableDirection: Flickable.HorizontalFlick
                     boundsBehavior: Flickable.StopAtBounds
@@ -212,13 +231,14 @@ Item {
                         Repeater {
                             model: root.topSources
                             SourceChip {
-                                required property var modelData
-                                text: modelData.app
-                                count: modelData.count + ""
-                                active: root.search.toLowerCase() === modelData.app.toLowerCase()
-                                onClicked: shell.searchText = active ? "" : modelData.app
+                                required property string app
+                                required property int hits
+                                text: app
+                                count: hits + ""
+                                active: root.search.toLowerCase() === app.toLowerCase()
+                                onClicked: shell.searchText = active ? "" : app
                                 QQC2.ToolTip.visible: containsMouse
-                                QQC2.ToolTip.text: active ? i18n("Show everything again") : i18n("Show only %1", modelData.app)
+                                QQC2.ToolTip.text: active ? i18n("Show everything again") : i18n("Show only %1", app)
                                 QQC2.ToolTip.delay: 500
                             }
                         }
@@ -336,7 +356,6 @@ Item {
                         anchors.bottomMargin: Kirigami.Units.largeSpacing
                         visible: opacity > 0
                         opacity: !root.atBottom && !root.paused && root.rows.count > 0 && (root.hasNew || root.farFromEnd) ? 1 : 0
-                        Behavior on opacity { NumberAnimation { duration: 180 } }
                         width: jumpRow.implicitWidth + Kirigami.Units.largeSpacing * 2
                         height: jumpRow.implicitHeight + Kirigami.Units.smallSpacing * 2
                         radius: height / 2

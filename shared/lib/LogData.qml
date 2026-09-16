@@ -1,12 +1,3 @@
-/*
- * Linux-Log-Monitor :: shared data source.
- *
- * Reads the journal ring buffer kept in tmpfs by the resident `--serve`
- * collector (the systemd --user service), fully IN-PROCESS via XMLHttpRequest
- * (file://) -- no process is spawned per poll. Requires QML_XHR_ALLOW_FILE_READ=1
- * in the Plasma session (set by install.sh). No fallback: if the read can't
- * happen (service down / flag unset) the widget simply shows no data.
- */
 import QtQuick
 import org.kde.plasma.plasma5support as P5Support
 
@@ -14,17 +5,17 @@ Item {
     id: root
 
     property int interval: 1000
-    property bool paused: false           // when paused, stop reading the file
+    property bool paused: false
+    property bool active: true
 
-    property var lines: []                // newest-last array of log records
-    property double ts: 0                 // wall clock of the collector's last write
-    property bool online: false           // collector alive and fresh
+    property var lines: []
+    property double ts: 0
+    property bool online: false
     property bool ready: false
     signal updated()
 
     property string cachePath: ""
 
-    // one-shot: resolve the runtime cache path (cheap shell echo), then poll via XHR
     P5Support.DataSource {
         id: helper
         engine: "executable"
@@ -36,7 +27,7 @@ Item {
     }
 
     function read() {
-        if (!root.cachePath || root.paused)
+        if (!root.cachePath || root.paused || !root.active)
             return
         var xhr = new XMLHttpRequest()
         xhr.open("GET", "file://" + root.cachePath)
@@ -44,13 +35,12 @@ Item {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return
             if (!xhr.responseText) {
-                root.online = false      // no data -> show nothing (no fallback)
+                root.online = false
                 return
             }
             try {
                 var parsed = JSON.parse(xhr.responseText)
                 root.ts = parsed.ts || 0
-                // alive AND fresh: a dead collector leaves a stale `ts` behind
                 root.online = parsed.alive !== false
                     && (Date.now() / 1000 - root.ts) < 15
                 root.lines = parsed.lines || []
@@ -61,8 +51,7 @@ Item {
         xhr.send()
     }
 
-    // event-driven: re-read the instant the collector rewrites the snapshot (no polling)
-    FileWatcher { path: root.cachePath; onChanged: root.read() }
+    FileWatcher { path: root.active ? root.cachePath : ""; onChanged: root.read() }
 
     Component.onCompleted: helper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Linux-Log-Monitor/log.json\"")
 }

@@ -23,7 +23,6 @@ Rectangle {
 
     readonly property bool wrap: expanded || Plasmoid.configuration.wrapMessages
     readonly property color mark: Kirigami.Theme.highlightColor
-    readonly property var lineModel: ({ time: time, app: app, pid: pid, msg: msg })
 
     implicitHeight: body.implicitHeight + Kirigami.Units.smallSpacing * 2
     color: expanded ? Qt.alpha(Kirigami.Theme.highlightColor, 0.1)
@@ -50,7 +49,7 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: function(event) {
             if (event.button === Qt.RightButton)
-                menu.popup()
+                menuComponent.createObject(row).popup()
             else
                 root.toggleExpand(row.index)
         }
@@ -79,8 +78,8 @@ Rectangle {
             }
             PlasmaComponents.Label {
                 visible: Plasmoid.configuration.showApp
-                text: Highlight.mark(row.app, row.query, row.mark)
-                textFormat: Text.StyledText
+                text: row.query === "" ? row.app : Highlight.mark(row.app, row.query, row.mark)
+                textFormat: row.query === "" ? Text.PlainText : Text.StyledText
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                 font.weight: Font.DemiBold
                 color: root.accent
@@ -91,9 +90,10 @@ Rectangle {
             }
             PlasmaComponents.Label {
                 id: message
-                text: row.expanded ? Highlight.mark(row.msg.replace(/\s+$/, ""), row.query, row.mark).replace(/\n/g, "<br>")
-                                   : Highlight.mark(row.msg.replace(/\s*\n[\s\S]*$/, " …"), row.query, row.mark)
-                textFormat: Text.StyledText
+                text: row.query === "" ? (row.expanded ? row.msg.replace(/\s+$/, "") : row.msg.replace(/\s*\n[\s\S]*$/, " …"))
+                    : row.expanded ? Highlight.mark(row.msg.replace(/\s+$/, ""), row.query, row.mark).replace(/\n/g, "<br>")
+                    : Highlight.mark(row.msg.replace(/\s*\n[\s\S]*$/, " …"), row.query, row.mark)
+                textFormat: row.query === "" ? Text.PlainText : Text.StyledText
                 color: root.prioColor(row.prio)
                 font.family: "monospace"
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
@@ -105,82 +105,88 @@ Rectangle {
             }
         }
 
-        ColumnLayout {
-            visible: row.expanded
+        Loader {
+            active: row.expanded
+            visible: active
             Layout.fillWidth: true
             Layout.bottomMargin: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing * 2
+            sourceComponent: ColumnLayout {
+                spacing: Kirigami.Units.smallSpacing * 2
 
-            Flow {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.largeSpacing * 1.5
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.largeSpacing * 1.5
 
-                PopStat {
-                    label: i18n("Level")
-                    value: root.priorityNames[row.prio] || row.prio + ""
-                    color: root.prioColor(row.prio)
-                    scale: 0.95
+                    PopStat {
+                        label: i18n("Level")
+                        value: root.priorityNames[row.prio] || row.prio + ""
+                        color: root.prioColor(row.prio)
+                        scale: 0.95
+                    }
+                    PopStat {
+                        label: i18n("When")
+                        value: row.date + "  " + row.time
+                        scale: 0.95
+                    }
+                    PopStat {
+                        visible: row.pid !== ""
+                        label: i18n("PID")
+                        value: row.pid
+                        scale: 0.95
+                    }
+                    PopStat {
+                        visible: row.unit !== ""
+                        label: i18n("Unit")
+                        value: row.unit
+                        scale: 0.95
+                    }
                 }
-                PopStat {
-                    label: i18n("When")
-                    value: row.date + "  " + row.time
-                    scale: 0.95
-                }
-                PopStat {
-                    visible: row.pid !== ""
-                    label: i18n("PID")
-                    value: row.pid
-                    scale: 0.95
-                }
-                PopStat {
-                    visible: row.unit !== ""
-                    label: i18n("Unit")
-                    value: row.unit
-                    scale: 0.95
-                }
-            }
 
-            PopActions {
-                showText: row.width > Kirigami.Units.gridUnit * 26
-                model: [
-                    { text: i18n("Copy line"), icon: "edit-copy", run: () => root.copyText(root.lineText(row.lineModel)) },
-                    { text: i18n("Copy message"), icon: "edit-copy", run: () => root.copyText(row.msg) },
-                    { text: root.search.toLowerCase() === row.app.toLowerCase() ? i18n("Show all apps") : i18n("Only %1", row.app), icon: "view-filter",
-                      run: () => root.search.toLowerCase() === row.app.toLowerCase() ? root.searchRequested("") : root.searchRequested(row.app) },
-                    { text: i18n("Mute %1", row.app), icon: "audio-volume-muted", run: () => root.muteApp(row.app) },
-                    { text: i18n("Ask Claude"), icon: "help-hint", run: () => root.askClaude(row.time, row.app, row.pid, row.msg, row.prio) }
-                ]
+                PopActions {
+                    showText: row.width > Kirigami.Units.gridUnit * 26
+                    model: [
+                        { text: i18n("Copy line"), icon: "edit-copy", run: () => root.copyText(root.lineText(row)) },
+                        { text: i18n("Copy message"), icon: "edit-copy", run: () => root.copyText(row.msg) },
+                        { text: root.search.toLowerCase() === row.app.toLowerCase() ? i18n("Show all apps") : i18n("Only %1", row.app), icon: "view-filter",
+                          run: () => root.search.toLowerCase() === row.app.toLowerCase() ? root.searchRequested("") : root.searchRequested(row.app) },
+                        { text: i18n("Mute %1", row.app), icon: "audio-volume-muted", run: () => root.muteApp(row.app) },
+                        { text: i18n("Ask Claude"), icon: "help-hint", run: () => root.askClaude(row.time, row.app, row.pid, row.msg, row.prio) }
+                    ]
+                }
             }
         }
     }
 
-    QQC2.Menu {
-        id: menu
-        QQC2.MenuItem {
-            text: i18n("Copy line")
-            icon.name: "edit-copy"
-            onTriggered: root.copyText(root.lineText(row.lineModel))
-        }
-        QQC2.MenuItem {
-            text: i18n("Copy all")
-            icon.name: "edit-copy-all"
-            onTriggered: root.copyAll()
-        }
-        QQC2.MenuSeparator {}
-        QQC2.MenuItem {
-            text: i18n("Only \"%1\"", row.app)
-            icon.name: "view-filter"
-            onTriggered: root.searchRequested(row.app)
-        }
-        QQC2.MenuItem {
-            text: i18n("Mute \"%1\"", row.app)
-            icon.name: "audio-volume-muted"
-            onTriggered: root.muteApp(row.app)
-        }
-        QQC2.MenuItem {
-            text: i18n("Ask Claude")
-            icon.name: "help-hint"
-            onTriggered: root.askClaude(row.time, row.app, row.pid, row.msg, row.prio)
+    Component {
+        id: menuComponent
+        QQC2.Menu {
+            onClosed: destroy()
+            QQC2.MenuItem {
+                text: i18n("Copy line")
+                icon.name: "edit-copy"
+                onTriggered: root.copyText(root.lineText(row))
+            }
+            QQC2.MenuItem {
+                text: i18n("Copy all")
+                icon.name: "edit-copy-all"
+                onTriggered: root.copyAll()
+            }
+            QQC2.MenuSeparator {}
+            QQC2.MenuItem {
+                text: i18n("Only \"%1\"", row.app)
+                icon.name: "view-filter"
+                onTriggered: root.searchRequested(row.app)
+            }
+            QQC2.MenuItem {
+                text: i18n("Mute \"%1\"", row.app)
+                icon.name: "audio-volume-muted"
+                onTriggered: root.muteApp(row.app)
+            }
+            QQC2.MenuItem {
+                text: i18n("Ask Claude")
+                icon.name: "help-hint"
+                onTriggered: root.askClaude(row.time, row.app, row.pid, row.msg, row.prio)
+            }
         }
     }
 }
