@@ -70,7 +70,8 @@ $AFFINITY
 WantedBy=default.target
 EOF
 systemctl --user daemon-reload
-systemctl --user enable --now linux-system-monitor.service >/dev/null 2>&1 \
+systemctl --user enable linux-system-monitor.service >/dev/null 2>&1 \
+    && systemctl --user restart linux-system-monitor.service \
     && echo "Enabled resident collector (linux-system-monitor.service)" \
     || echo "  (could not enable linux-system-monitor.service -- enable it manually)"
 
