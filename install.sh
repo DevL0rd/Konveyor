@@ -87,10 +87,11 @@ if [ ! -e "$REPO_DIR/shared/common/FileWatcher.qml" ]; then
     echo "    Run: git submodule update --init --recursive" >&2
     exit 1
 fi
-# shared (submodule) component — only the friends widget uses it
-cp "$REPO_DIR/shared/common/FileWatcher.qml" "$PLASMOID_SRC/org.devl0rd.portal.friends/contents/ui/"
 echo "Installing widget(s)..."
 for d in "$PLASMOID_SRC"/org.devl0rd.portal*; do
+    rm -rf "$d/contents/ui/lib"
+    mkdir -p "$d/contents/ui/lib"
+    cp "$REPO_DIR/shared/common/"*.qml "$REPO_DIR/shared/common/"*.js "$d/contents/ui/lib/"
     if kpackagetool6 -t Plasma/Applet -u "$d" >/dev/null 2>&1; then
         echo "  upgraded $(basename "$d")"
     else

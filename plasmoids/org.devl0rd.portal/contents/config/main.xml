@@ -15,5 +15,7 @@
         <entry name="showAppLabels" type="Bool"><default>true</default></entry>
         <entry name="showGameTitles" type="Bool"><default>true</default></entry>
         <entry name="gamesFriendsOnly" type="Bool"><default>false</default></entry>
+        <entry name="lastAppCategory" type="String"><default></default></entry>
+        <entry name="showFriendsBadge" type="Bool"><default>true</default></entry>
     </group>
 </kcfg>

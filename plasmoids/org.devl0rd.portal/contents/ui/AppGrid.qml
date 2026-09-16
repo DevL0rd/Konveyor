@@ -1,33 +1,27 @@
-/*
- * App view for a kicker AbstractModel (favourites or a category). Grid or list,
- * with search + sort (incl. last-opened). Launches and shows native right-click
- * actions via the original model row, plus a direct Add/Remove Favourite item
- * wired to the shared favourites model.
- */
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
+import "lib/Highlight.js" as Highlight
 
 Item {
     id: root
     property var appModel: null
-    property var favSet: ({})               // desktop-id -> true
-    property bool excludeFavorites: false   // hide favourites (they're pinned elsewhere)
-    property string viewMode: "grid"       // grid | list
+    property var favSet: ({})
+    property bool excludeFavorites: false
+    property string viewMode: "grid"
     property string searchText: ""
     property string sortMode: "recent"
     property var usage: ({})
-    property bool sectionMode: false        // size to content, no own scroll
+    property bool sectionMode: false
     signal launchedKey(string key)
     signal favToggle(string resource, bool add)
     function favKey(id) { return String(id || "").replace(/^applications:/, "") }
 
     readonly property int iconSize: Plasmoid.configuration.iconSize
 
-    // content-derived metrics (width + count only) so a caller can size a section
     readonly property int cellSize: iconSize + Kirigami.Units.gridUnit * 2
     readonly property int gridCellHeight: iconSize + (Plasmoid.configuration.showAppLabels ? Kirigami.Units.gridUnit * 2.4 : Kirigami.Units.smallSpacing * 3)
     readonly property int listRowHeight: Math.round(iconSize * 0.8) + Kirigami.Units.smallSpacing * 2
@@ -64,16 +58,14 @@ Item {
             readonly property bool hasActionList: model.hasActionList || false
             readonly property var actionList: model.hasActionList ? model.actionList : []
         }
-        onObjectAdded: root.rebuild()
-        onObjectRemoved: root.rebuild()
+        onObjectAdded: Qt.callLater(root.rebuild)
+        onObjectRemoved: Qt.callLater(root.rebuild)
     }
-    onAppModelChanged: rebuild()
+    onAppModelChanged: Qt.callLater(rebuild)
 
     readonly property var items: {
-        var q = root.searchText.toLowerCase()
+        var q = root.searchText.trim().toLowerCase()
         var a = root.rawItems.filter(function(it) {
-            // on the All Applications page favourites are pinned in their own strip,
-            // so drop them here to avoid showing each one twice
             if (root.excludeFavorites && it.favoriteId && root.favSet[root.favKey(it.favoriteId)]) return false
             return q === "" || it.name.toLowerCase().indexOf(q) >= 0
         })
@@ -94,6 +86,11 @@ Item {
         if (root.appModel && root.appModel.trigger(it.row, "", null))
             root.launchedKey(it.url)
     }
+    function activateFirst() {
+        if (items.length === 0) return false
+        activate(items[0])
+        return true
+    }
     function openMenu(it) {
         ctxMenu.it = it
         ctxMenu.actions = (it.actionList || []).filter(function(a) {
@@ -102,10 +99,8 @@ Item {
         ctxMenu.popup()
     }
 
-    // ---------------- GRID ----------------
     GridView {
         id: grid
-        // centered: fixed-size cells, grid width snapped to the columns actually used
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
@@ -126,8 +121,11 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing / 2
-                radius: Kirigami.Units.smallSpacing
-                color: cellMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.2) : "transparent"
+                radius: Kirigami.Units.cornerRadius * 2
+                color: cellMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14) : "transparent"
+                border.width: cellMa.containsMouse ? 1 : 0
+                border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.35)
+                Behavior on color { ColorAnimation { duration: 120 } }
             }
             ColumnLayout {
                 anchors.fill: parent
@@ -141,17 +139,20 @@ Item {
                 }
                 PlasmaComponents.Label {
                     visible: Plasmoid.configuration.showAppLabels
-                    text: modelData.name
+                    text: Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor)
+                    textFormat: Text.StyledText
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                     maximumLineCount: 2
                     wrapMode: Text.Wrap
-                    font: Kirigami.Theme.smallFont
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    opacity: 0.9
                 }
             }
             MouseArea {
                 id: cellMa
+                cursorShape: Qt.PointingHandCursor
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -161,7 +162,6 @@ Item {
         }
     }
 
-    // ---------------- LIST ----------------
     ListView {
         id: list
         anchors.fill: parent
@@ -175,8 +175,11 @@ Item {
         delegate: Rectangle {
             width: list.width
             height: root.listRowHeight
-            radius: Kirigami.Units.smallSpacing
-            color: rowMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.18) : "transparent"
+            radius: Kirigami.Units.cornerRadius * 2
+            color: rowMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14) : "transparent"
+            border.width: rowMa.containsMouse ? 1 : 0
+            border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.35)
+            Behavior on color { ColorAnimation { duration: 120 } }
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Kirigami.Units.smallSpacing
@@ -189,7 +192,8 @@ Item {
                 }
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: modelData.name
+                    text: Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor)
+                    textFormat: Text.StyledText
                     elide: Text.ElideRight
                 }
             }
@@ -204,7 +208,6 @@ Item {
         }
     }
 
-    // shared context menu: favourite toggle + the entry's native actions
     QQC2.Menu {
         id: ctxMenu
         property var it: null

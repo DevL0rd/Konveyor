@@ -1,9 +1,3 @@
-/*
- * A single game card. Art fallback chain, so every game looks intentional:
- *   portrait (library_600x900)  ->  hero + logo (Steam-library style)
- *   ->  logo on a dark card  ->  app icon + name placeholder.
- * Hover lifts/zooms the card; click launches; right-click for art + actions.
- */
 import QtQuick
 import Qt5Compat.GraphicalEffects
 import org.kde.kirigami as Kirigami
@@ -12,15 +6,15 @@ import org.kde.plasma.components as PlasmaComponents
 Item {
     id: card
     property var game: ({})
-    property int friendCount: 0          // friends currently playing this game
+    property int friendCount: 0
     property bool hovered: hover.hovered
-    property bool showTitle: true        // consistent across all cards (config-driven)
-    property bool armed: false           // a click shows the Play button; leaving clears it
-    property bool disarmOnExit: true     // carousel manages arming itself, so it opts out
+    property bool showTitle: true
+    property bool armed: false
+    property bool disarmOnExit: true
     onHoveredChanged: if (!hovered && disarmOnExit) armed = false
 
-    signal cardClicked()                 // parent decides: arm, or (carousel) centre
-    signal launchRequested()             // the Play button
+    signal cardClicked()
+    signal launchRequested()
     signal menuRequested()
 
     function fileUrl(p) { return p ? "file://" + encodeURI(p) : "" }
@@ -32,7 +26,6 @@ Item {
     z: hovered ? 10 : 0
     Behavior on scale { NumberAnimation { duration: 130; easing.type: Easing.OutCubic } }
 
-    // green glow when a friend is online — makes these cards easy to spot
     RectangularGlow {
         anchors.fill: frame
         visible: card.friendCount > 0
@@ -46,13 +39,12 @@ Item {
     Rectangle {
         id: frame
         anchors.fill: parent
-        radius: Kirigami.Units.smallSpacing
+        radius: Kirigami.Units.cornerRadius * 2
         color: Kirigami.Theme.backgroundColor
         clip: true
         border.width: card.hovered ? 2 : 0
         border.color: Kirigami.Theme.highlightColor
 
-        // --- 1. portrait art (ideal) ---
         Image {
             anchors.fill: parent
             visible: card.hasPortrait
@@ -62,7 +54,6 @@ Item {
             cache: true
         }
 
-        // --- 2. hero background + logo overlay (Steam-library look) ---
         Item {
             anchors.fill: parent
             visible: !card.hasPortrait && card.hasHero
@@ -89,7 +80,6 @@ Item {
             }
         }
 
-        // --- 3 & 4. logo-only / icon placeholder ---
         Item {
             anchors.fill: parent
             visible: !card.hasPortrait && !card.hasHero
@@ -108,7 +98,6 @@ Item {
             }
         }
 
-        // --- name strip (always for placeholders, on hover for art) ---
         Rectangle {
             anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
             height: nameLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
@@ -133,7 +122,6 @@ Item {
         }
     }
 
-    // friends-playing badge — green person bust + count, top-right
     Rectangle {
         id: friendBadge
         anchors.top: frame.top; anchors.right: frame.right
@@ -164,8 +152,6 @@ Item {
         }
     }
 
-    // Play button (confirm) — appears only after you click the card (armed), and
-    // goes away when you move off it; clicking it launches
     Rectangle {
         anchors.centerIn: parent
         visible: card.armed

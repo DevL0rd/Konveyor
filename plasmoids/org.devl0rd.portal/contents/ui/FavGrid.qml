@@ -1,31 +1,23 @@
-/*
- * Favourites view, fed by the backend which reads the shared KActivities store
- * (the same favourites as Plasma's start menu). Plain JSON -> icons; launches via
- * the resolved Exec; right-click removes the favourite. Grid or list, and a
- * "section mode" that sizes to content (non-scrolling) for stacking on the
- * All Applications page.
- */
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
+import "lib/Highlight.js" as Highlight
 import org.kde.plasma.plasma5support as P5Support
 
 Item {
     id: root
     property var favorites: []
     property string searchText: ""
-    property string viewMode: "grid"        // grid | list
-    property bool sectionMode: false        // size to content, no own scroll
+    property string viewMode: "grid"
+    property bool sectionMode: false
     signal launched()
     signal removeFav(string resource)
 
     readonly property int iconSize: Plasmoid.configuration.iconSize
 
-    // metrics derived from config + width only (never the view's own height) so a
-    // caller can size a section without creating a layout binding loop
     readonly property int cellW: iconSize + Kirigami.Units.gridUnit * 2
     readonly property int rowHeight: iconSize + (Plasmoid.configuration.showAppLabels ? Kirigami.Units.gridUnit * 2.4 : Kirigami.Units.smallSpacing * 3)
     readonly property int listRowHeight: Math.round(iconSize * 0.8) + Kirigami.Units.smallSpacing * 2
@@ -39,7 +31,7 @@ Item {
     }
 
     readonly property var items: {
-        var q = root.searchText.toLowerCase()
+        var q = root.searchText.trim().toLowerCase()
         return (root.favorites || []).filter(function(f) {
             return q === "" || (f.name || "").toLowerCase().indexOf(q) >= 0
         })
@@ -50,9 +42,13 @@ Item {
         engine: "executable"
         onNewData: function(source, d) { disconnectSource(source) }
     }
+    function activateFirst() {
+        if (items.length === 0) return false
+        activate(items[0])
+        return true
+    }
     function activate(f) { if (f && f.launch) { runner.connectSource(f.launch); root.launched() } }
 
-    // ---------------- GRID (centered) ----------------
     GridView {
         id: grid
         visible: root.viewMode === "grid"
@@ -75,8 +71,11 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing / 2
-                radius: Kirigami.Units.smallSpacing
-                color: cellMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.2) : "transparent"
+                radius: Kirigami.Units.cornerRadius * 2
+                color: cellMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14) : "transparent"
+                border.width: cellMa.containsMouse ? 1 : 0
+                border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.35)
+                Behavior on color { ColorAnimation { duration: 120 } }
             }
             ColumnLayout {
                 anchors.fill: parent
@@ -90,17 +89,20 @@ Item {
                 }
                 PlasmaComponents.Label {
                     visible: Plasmoid.configuration.showAppLabels
-                    text: modelData.name || ""
+                    text: Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor)
+                    textFormat: Text.StyledText
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                     maximumLineCount: 2
                     wrapMode: Text.Wrap
-                    font: Kirigami.Theme.smallFont
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    opacity: 0.9
                 }
             }
             MouseArea {
                 id: cellMa
+                cursorShape: Qt.PointingHandCursor
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -110,7 +112,6 @@ Item {
         }
     }
 
-    // ---------------- LIST ----------------
     ListView {
         id: list
         visible: root.viewMode === "list"
@@ -124,8 +125,11 @@ Item {
         delegate: Rectangle {
             width: list.width
             height: root.listRowHeight
-            radius: Kirigami.Units.smallSpacing
-            color: rowMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.18) : "transparent"
+            radius: Kirigami.Units.cornerRadius * 2
+            color: rowMa.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14) : "transparent"
+            border.width: rowMa.containsMouse ? 1 : 0
+            border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.35)
+            Behavior on color { ColorAnimation { duration: 120 } }
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Kirigami.Units.smallSpacing
@@ -138,7 +142,8 @@ Item {
                 }
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: modelData.name || ""
+                    text: Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor)
+                    textFormat: Text.StyledText
                     elide: Text.ElideRight
                 }
             }

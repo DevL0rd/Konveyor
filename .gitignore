@@ -11,5 +11,4 @@ __pycache__/
 *.swp
 .DS_Store
 
-# Shared QML component synced from the shared/common submodule by install.sh
-plasmoids/org.devl0rd.portal.friends/contents/ui/FileWatcher.qml
+plasmoids/*/contents/ui/lib/

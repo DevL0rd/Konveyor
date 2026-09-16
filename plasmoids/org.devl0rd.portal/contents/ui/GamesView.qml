@@ -1,9 +1,3 @@
-/*
- * The special Games view. Reads the game library (with resolved Steam art) from
- * the `portal-games` backend and renders it many ways: grid, list (banner rows),
- * shelf (horizontal), carousel, cover flow (3D), and multi-column banners.
- * Search + sorting apply throughout; launching is tracked for "last opened".
- */
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
@@ -11,22 +5,20 @@ import QtQuick.Dialogs
 import Qt5Compat.GraphicalEffects
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.extras as PlasmaExtras
 
 Item {
     id: gv
-    property bool active: false
-    property string viewMode: "grid"          // grid|list|shelf|carousel|coverflow|banner
+    property string viewMode: "grid"
     property int cardWidth: 150
     property string searchText: ""
     property string sortMode: "recent"
     property var usage: ({})
     property bool showTitles: true
-    property string portalBin: "$HOME/.local/bin/portal-games"
-    property var games: []
-    property bool loading: false
-    property bool friendsOnly: false          // filter: only games with a friend online
-    signal launched()
+    readonly property var games: root.games
+    readonly property bool loading: root.gamesLoading
+    readonly property var friendsByAppid: root.friendsByAppid
+    property bool friendsOnly: false
 
     readonly property bool isCarousel: viewMode === "carousel" || viewMode === "carousel3d"
     function browse(step) {
@@ -34,12 +26,19 @@ Item {
         if (v) v.browse(step)
     }
 
-    function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }
     function fileUrl(p) { return p ? "file://" + encodeURI(p) : "" }
+    function friendsFor(g) { return root.friendsFor(g) }
+    function launch(g) { root.launchGame(g) }
+    function steamRun(url) { root.steamRun(url) }
+    function openStore(g) { if (g && g.appid) root.run("steam steam://store/" + g.appid) }
+    function resetArt(g) { root.resetArt(g) }
+    function setArt(g, url) { root.setArt(g, url) }
+    function reload() { root.reloadGames() }
+    function activateFirst() { if (view.length > 0) launch(view[0]) }
     function lastOf(g) { return Math.max(gv.usage[g.id] || 0, g.last || 0) }
 
     readonly property var view: {
-        var q = gv.searchText.toLowerCase()
+        var q = gv.searchText.trim().toLowerCase()
         var a = gv.games.filter(function(g) {
             if (q !== "" && (g.name || "").toLowerCase().indexOf(q) < 0) return false
             if (gv.friendsOnly && gv.friendsFor(g).length === 0) return false
@@ -54,62 +53,6 @@ Item {
         })
         return a
     }
-
-    P5Support.DataSource {
-        id: gamesSrc
-        engine: "executable"
-        onNewData: function(source, d) {
-            disconnectSource(source)
-            gv.loading = false
-            try { gv.games = (JSON.parse(d.stdout || "{}").games) || [] } catch (e) { gv.games = [] }
-        }
-    }
-    function reload() { gv.loading = true; gamesSrc.connectSource(gv.portalBin) }
-    onActiveChanged: {
-        if (active && games.length === 0 && !loading) reload()
-        if (active) loadFriends()
-    }
-
-    P5Support.DataSource {
-        id: runner
-        engine: "executable"
-        property bool reloadAfter: false
-        onNewData: function(source, d) {
-            disconnectSource(source)
-            if (reloadAfter) { reloadAfter = false; gv.reload() }
-        }
-    }
-    function launch(g) {
-        if (!g || !g.launch) return
-        runner.connectSource(g.launch + " ; " + gv.portalBin + " --track " + shq(g.id))
-        gv.launched()
-    }
-    function openStore(g) { if (g && g.appid) runner.connectSource("steam steam://store/" + g.appid) }
-    function resetArt(g) { runner.reloadAfter = true; runner.connectSource(gv.portalBin + " --reset-art " + shq(g.id)) }
-    function setArt(g, url) {
-        var p = decodeURIComponent(String(url).replace(/^file:\/\//, ""))
-        runner.reloadAfter = true
-        runner.connectSource(gv.portalBin + " --set-art " + shq(g.id) + " " + shq(p))
-    }
-
-    // ---- friends presence (cached by the portal-friends --serve service) ----
-    property var friendsByAppid: ({})
-    property string friendsBin: "$HOME/.local/bin/portal-friends --snapshot"
-    function friendsFor(g) {
-        return (g && g.appid && gv.friendsByAppid[g.appid]) ? gv.friendsByAppid[g.appid] : []
-    }
-    function steamRun(url) { if (url) runner.connectSource("steam " + shq(url)) }
-    P5Support.DataSource {
-        id: friendsSrc
-        engine: "executable"
-        onNewData: function(source, d) {
-            disconnectSource(source)
-            try { gv.friendsByAppid = (JSON.parse(d.stdout || "{}").by_appid) || ({}) }
-            catch (e) { gv.friendsByAppid = ({}) }
-        }
-    }
-    function loadFriends() { friendsSrc.connectSource(gv.friendsBin) }
-    Timer { interval: 30000; repeat: true; running: gv.active; onTriggered: gv.loadFriends() }
 
     property var _pendingArtGame: null
     FileDialog {
@@ -133,7 +76,6 @@ Item {
             enabled: gameMenu.game && gameMenu.game.appid
             onTriggered: gv.openStore(gameMenu.game)
         }
-        // ---- friends currently in this game (one submenu each) ----
         QQC2.MenuSeparator {
             visible: gameMenu.friends.length > 0
             height: visible ? implicitHeight : 0
@@ -161,7 +103,6 @@ Item {
     }
     function popMenu(g) { gameMenu.game = g; gameMenu.friends = gv.friendsFor(g); gameMenu.popup() }
 
-    // reusable wide "banner" tile (hero/header art + logo/name), used by list & banner
     component BannerTile: Rectangle {
         id: tile
         property var game: ({})
@@ -208,7 +149,6 @@ Item {
             text: tile.game ? (tile.game.name || "") : ""
             color: "white"; font.weight: Font.Bold
         }
-        // friends-playing badge (green person bust + count), top-right
         Rectangle {
             id: tileBadge
             anchors.top: parent.top; anchors.right: parent.right
@@ -237,7 +177,6 @@ Item {
                 }
             }
         }
-        // Play button (confirm) — appears after a click, hides when you leave
         signal playRequested()
         property bool armed: false
         property bool hovered: tileHover.hovered
@@ -272,7 +211,6 @@ Item {
         }
     }
 
-    // ---------------- GRID (centered) ----------------
     GridView {
         id: gridView
         visible: gv.viewMode === "grid"
@@ -301,7 +239,6 @@ Item {
         }
     }
 
-    // ---------------- LIST (banner rows, one column) ----------------
     ListView {
         id: listView
         visible: gv.viewMode === "list"
@@ -314,7 +251,6 @@ Item {
         delegate: Item {
             width: listView.width
             height: Kirigami.Units.gridUnit * 3.5
-            // green glow when a friend is online
             RectangularGlow {
                 anchors.fill: rowTile
                 visible: gv.friendsFor(modelData).length > 0
@@ -337,7 +273,6 @@ Item {
         }
     }
 
-    // ---------------- CAROUSEL (flat) ----------------
     CoverFlow {
         id: cfFlat
         anchors.fill: parent
@@ -352,7 +287,6 @@ Item {
         onMenuRequested: function(g) { gv.popMenu(g) }
     }
 
-    // ---------------- CAROUSEL 3D (cover flow) ----------------
     CoverFlow {
         id: cf3d
         anchors.fill: parent
@@ -366,7 +300,6 @@ Item {
         onMenuRequested: function(g) { gv.popMenu(g) }
     }
 
-    // ---------------- BANNERS (multi-column; more columns as you zoom down) ----------------
     GridView {
         id: bannerView
         visible: gv.viewMode === "banner"
@@ -381,7 +314,6 @@ Item {
         delegate: Item {
             width: bannerView.cellWidth
             height: bannerView.cellHeight
-            // green glow when a friend is online
             RectangularGlow {
                 anchors.fill: bTile
                 visible: gv.friendsFor(modelData).length > 0
@@ -405,19 +337,21 @@ Item {
         }
     }
 
-    // states
-    PlasmaComponents.Label {
+    PlasmaExtras.PlaceholderMessage {
         anchors.centerIn: parent
-        visible: gv.loading
+        width: parent.width - Kirigami.Units.gridUnit * 4
+        visible: gv.loading && gv.games.length === 0
+        iconName: "applications-games"
         text: i18n("Loading games…")
-        opacity: 0.6
     }
-    PlasmaComponents.Label {
+    PlasmaExtras.PlaceholderMessage {
         anchors.centerIn: parent
+        width: parent.width - Kirigami.Units.gridUnit * 4
         visible: !gv.loading && gv.view.length === 0
-        text: gv.searchText !== "" ? i18n("No matches")
+        iconName: gv.searchText !== "" ? "edit-find" : "applications-games"
+        text: gv.searchText !== "" ? i18n("No games match")
             : gv.friendsOnly ? i18n("No games with friends online")
             : i18n("No games found")
-        opacity: 0.5
+        explanation: gv.friendsOnly && gv.searchText === "" ? i18n("Turn off \"Friends online only\" in the sort menu to see everything.") : ""
     }
 }
