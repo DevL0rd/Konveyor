@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+import json
+import os
+import re
+import signal
+import subprocess
+import sys
+from pathlib import Path
+
+import dbus
+
+KGLOBALSHORTCUTS = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "kglobalshortcutsrc"
+QML = Path(os.environ.get("KONVEYOR_CHEATSHEET_QML", Path(__file__).resolve().parent.parent / "share" / "konveyor" / "cheatsheet" / "Cheatsheet.qml"))
+PID_FILE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "konveyor-cheatsheet.pid"
+
+KONVEYOR_CATEGORIES = [
+    ("Workspaces", re.compile(r"workspace")),
+    ("Monitors", re.compile(r"monitor")),
+    ("Floating & Tabs", re.compile(r"floating|tiling|tabbed|column-display")),
+    ("Sizing", re.compile(r"width|height|maximize|fullscreen|expand|center")),
+    ("Move Windows", re.compile(r"^(move|consume|expel|swap)")),
+    ("Focus", re.compile(r"^focus")),
+]
+
+KDE_SECTIONS = {
+    "kwin": "KDE Windows & Desktops",
+    "plasmashell": "KDE Plasma",
+    "ksmserver": "KDE Session",
+    "mediacontrol": "KDE Media",
+    "kmix": "KDE Volume",
+    "org_kde_powerdevil": "KDE Power",
+}
+
+MODIFIER_ORDER = ["Meta", "Ctrl", "Alt", "Shift"]
+MODIFIER_ALIASES = {"mod": "Meta", "super": "Meta", "win": "Meta", "meta": "Meta", "ctrl": "Ctrl", "control": "Ctrl", "alt": "Alt", "shift": "Shift"}
+KEY_ALIASES = {"page_down": "pgdown", "page_up": "pgup", "bracketleft": "[", "bracketright": "]", "comma": ",", "period": ".", "minus": "-", "equal": "=", "escape": "esc", "slash": "/"}
+
+
+def normalize_key(text):
+    parts = text.split("+")
+    modifiers = sorted({MODIFIER_ALIASES.get(part.lower(), part) for part in parts[:-1]}, key=lambda m: MODIFIER_ORDER.index(m) if m in MODIFIER_ORDER else 99)
+    key = parts[-1].lower()
+    return "+".join(modifiers + [KEY_ALIASES.get(key, key)])
+
+
+def close_running():
+    try:
+        pid = int(PID_FILE.read_text().strip())
+        cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except (FileNotFoundError, ValueError, ProcessLookupError):
+        PID_FILE.unlink(missing_ok=True)
+        return False
+    PID_FILE.unlink(missing_ok=True)
+    if str(QML).encode() not in cmdline:
+        return False
+    os.kill(pid, signal.SIGTERM)
+    return True
+
+
+def konveyor_binds():
+    interface = dbus.Interface(dbus.SessionBus().get_object("org.kde.Konveyor", "/Konveyor"), "org.kde.Konveyor")
+    return json.loads(str(interface.Binds()))
+
+
+def describe_konveyor_bind(bind):
+    if bind.get("title"):
+        return bind["title"]
+    action = bind["action"]
+    words = [action["name"].replace("-", " ").capitalize(), *action.get("arguments", [])]
+    words += [f"{key}={value}" for key, value in action.get("properties", {}).items()]
+    return " ".join(words)
+
+
+def konveyor_category(action_name):
+    return next((name for name, pattern in KONVEYOR_CATEGORIES if pattern.search(action_name)), "Konveyor")
+
+
+def konveyor_sections(binds):
+    sections = {}
+    for bind in binds:
+        if bind.get("hidden"):
+            continue
+        category = konveyor_category(bind["action"]["name"])
+        sections.setdefault(category, []).append({"action": describe_konveyor_bind(bind), "keys": [bind["key"]]})
+    return sections
+
+
+def split_shortcut_value(value):
+    return re.split(r"(?<!\\),", value, maxsplit=2)
+
+
+def kde_entries(taken_keys):
+    group = None
+    for line in KGLOBALSHORTCUTS.read_text().splitlines():
+        header = re.fullmatch(r"\[(.+)\]", line)
+        if header:
+            group = header.group(1)
+            continue
+        if group not in KDE_SECTIONS or "=" not in line or line.startswith("_k_"):
+            continue
+        fields = split_shortcut_value(line.split("=", 1)[1])
+        if len(fields) < 3:
+            continue
+        keys = [k.replace("\\,", ",") for k in fields[0].split("\t") if k and k != "none" and normalize_key(k) not in taken_keys]
+        if keys:
+            yield KDE_SECTIONS[group], {"action": fields[2], "keys": keys}
+
+
+def build_sections():
+    binds = konveyor_binds()
+    taken = {normalize_key(bind["key"]) for bind in binds}
+    sections = konveyor_sections(binds)
+    for name, entry in kde_entries(taken):
+        sections.setdefault(name, []).append(entry)
+    order = ["Focus", "Move Windows", "Sizing", "Workspaces", "Floating & Tabs", "Monitors", "Konveyor"] + list(KDE_SECTIONS.values())
+    ordered = sorted(sections.items(), key=lambda item: order.index(item[0]) if item[0] in order else len(order))
+    return [{"name": name, "entries": sorted(entries, key=lambda e: e["action"].lower())} for name, entries in ordered]
+
+
+def main():
+    if close_running():
+        return 0
+    env = dict(os.environ, QT_WAYLAND_SHELL_INTEGRATION="layer-shell")
+    process = subprocess.Popen(["qml6", str(QML), "--", json.dumps(build_sections())], env=env)
+    PID_FILE.write_text(str(process.pid))
+    code = process.wait()
+    if PID_FILE.exists() and PID_FILE.read_text().strip() == str(process.pid):
+        PID_FILE.unlink()
+    return max(code, 0)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Build, test and lint
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git cmake ninja clang extra-cmake-modules \
+            qt6-base qt6-declarative kwin kglobalaccel kconfig kcolorscheme knotifications \
+            kcoreaddons ki18n kdecoration libxkbcommon llvm typos nodejs npm python-dbus
+
+      - name: Build xunused
+        run: |
+          git clone https://github.com/mgehre/xunused.git /tmp/xunused
+          git -C /tmp/xunused checkout b81e0ef
+          if [[ ! -f /usr/include/clang/Driver/Options.h ]]; then
+            sed -i 's|#include "clang/Driver/Options.h"|#include "clang/Options/Options.h"|' /tmp/xunused/main.cpp
+          fi
+          cmake -S /tmp/xunused -B /tmp/xunused/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/xunused/build
+          install -Dm755 /tmp/xunused/build/xunused /usr/local/bin/xunused
+
+      - uses: actions/checkout@v4
+
+      - name: Mark checkout as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Run the full check suite
+        run: ./tools/check.sh
+
+  release:
+    name: Release
+    needs: checks
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create the source archive
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          git archive --format=tar.gz --prefix="konveyor-${version}/" -o "konveyor-${version}.tar.gz" HEAD
+          sha256sum "konveyor-${version}.tar.gz" > "konveyor-${version}.tar.gz.sha256"
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            konveyor-*.tar.gz
+            konveyor-*.tar.gz.sha256
+          body: |
+            ## Install
+
+            Konveyor is built against the exact KWin version on your machine, so install it from source:
+
+            ```sh
+            git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git
+            cd Linux-Konveyor
+            ./install.sh
+            ```
+
+            Log out and back in, then press Super+K for the shortcut list.
+
+            Updating from an older version is the same command: `./install.sh`. To remove it, run `./uninstall.sh`.
+
+            The attached archive is the same source tree for offline installs.

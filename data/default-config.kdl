@@ -1,0 +1,259 @@
+// Konveyor configuration.
+// Changes apply as soon as the file is saved.
+// Keyboard shortcuts that KDE already provides (Alt+F4, Meta+L, screenshots, Meta+V, Meta+W, ...) are left untouched.
+
+input {
+    // focus-follows-mouse max-scroll-amount="0%"
+    // warp-mouse-to-focus
+    // workspace-auto-back-and-forth
+}
+
+layout {
+    gaps 16
+    center-focused-column "never"
+
+    // Where a new window's column opens: "left" or "right" of the focused
+    // column. A column pinned with column-position sends it to the other side.
+    new-column-position "left"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+        proportion 1.0
+    }
+
+    default-column-width { proportion 0.5; }
+
+    focus-ring {
+        width 4
+        // "accent" follows the KDE accent color.
+        active-color "accent"
+        inactive-color "#505050"
+    }
+
+    border {
+        off
+        width 4
+        active-color "accent"
+        inactive-color "#505050"
+        urgent-color "#9b0000"
+    }
+
+    shadow {
+        softness 30
+        spread 5
+        offset x=0 y=5
+        color "#0007"
+    }
+
+    struts {
+    }
+}
+
+gestures {
+    // KDE screen edges already open the overview, so the hot corner is off here.
+    hot-corners {
+        off
+    }
+
+    // "scroll-view" scrolls the columns when dragging a tiled window's title bar, "move-window" drags it to a new position in the row.
+    titlebar-drag "scroll-view"
+}
+
+animations {
+}
+
+monitor-profile "ultrawide" {
+    match aspect-ratio-above=2.0
+    layout {
+        default-column-width { proportion 0.25; }
+        preset-column-widths {
+            proportion 0.25
+            proportion 0.33333
+            proportion 0.5
+            proportion 1.0
+        }
+    }
+}
+
+monitor-profile "standard" {
+    layout {
+        default-column-width { proportion 0.5; }
+    }
+}
+
+// Window rules can target a monitor profile, e.g. a browser that fills a
+// normal monitor but takes half of an ultrawide:
+// window-rule {
+//     match app-id=r#"^google-chrome$"# monitor-profile="ultrawide"
+//     default-column-width { proportion 0.5; }
+// }
+
+window-rule {
+    geometry-corner-radius 12
+    clip-to-geometry true
+}
+
+// Pin a window's column to the start or end of the row.
+window-rule {
+    match app-id=r#"^discord$"#
+    column-position "start"
+}
+
+window-rule {
+    match app-id=r#"^org\.wezfurlong\.wezterm$"#
+    default-column-width {}
+}
+
+window-rule {
+    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+    open-floating true
+}
+
+// `manage false` leaves a window to KWin instead of tiling it. Steam opens its
+// menus, notification toasts and loading placeholders as ordinary windows.
+window-rule {
+    match app-id=r#"^steam$"# title=r#"^(SteamWebhelper|about:blank.*|.+ Menu|.+ Supernav|notificationtoasts_.*|Special Offers)$"#
+    manage false
+}
+
+binds {
+    Mod+K hotkey-overlay-title="Show Shortcut Cheatsheet" { show-hotkey-overlay; }
+
+    // KDE already gives you an overview: Meta+W for the current desktop and
+    // Meta+G for every desktop at once, both with a search field, so no
+    // overview bind is shipped here.
+    Mod+Return { spawn "konsole"; }
+    Mod+Q { close-window; }
+
+    // Up and down move through the windows of a column and continue into the
+    // workspace above or below once the end of the column is reached.
+    Mod+Left  { focus-column-left; }
+    Mod+Down  { focus-window-or-workspace-down; }
+    Mod+Up    { focus-window-or-workspace-up; }
+    Mod+Right { focus-column-right; }
+    Mod+H     { focus-column-left; }
+    Mod+J     { focus-window-or-workspace-down; }
+
+    Mod+Ctrl+Left  { move-column-left; }
+    Mod+Ctrl+Down  { move-window-down-or-to-workspace-down; }
+    Mod+Ctrl+Up    { move-window-up-or-to-workspace-up; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+H     { move-column-left; }
+    Mod+Ctrl+J     { move-window-down-or-to-workspace-down; }
+    Mod+Ctrl+K     { move-window-up-or-to-workspace-up; }
+    Mod+Ctrl+L     { move-column-right; }
+
+    Mod+Home { focus-column-first; }
+    Mod+End  { focus-column-last; }
+    Mod+Ctrl+Home { move-column-to-first; }
+    Mod+Ctrl+End  { move-column-to-last; }
+
+    Mod+Shift+Left  { focus-monitor-left; }
+    Mod+Shift+Down  { focus-monitor-down; }
+    Mod+Shift+Up    { focus-monitor-up; }
+    Mod+Shift+Right { focus-monitor-right; }
+    Mod+Shift+H     { focus-monitor-left; }
+    Mod+Shift+J     { focus-monitor-down; }
+    Mod+Shift+K     { focus-monitor-up; }
+    Mod+Shift+L     { focus-monitor-right; }
+
+    Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+Down  { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+Up    { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
+    Mod+Shift+Ctrl+H     { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+J     { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+K     { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+L     { move-column-to-monitor-right; }
+
+    Mod+Page_Down      { focus-workspace-down; }
+    Mod+Page_Up        { focus-workspace-up; }
+    Mod+Ctrl+Page_Down { move-column-to-workspace-down; }
+    Mod+Ctrl+Page_Up   { move-column-to-workspace-up; }
+    Mod+Ctrl+U         { move-column-to-workspace-down; }
+    Mod+Ctrl+I         { move-column-to-workspace-up; }
+
+    Mod+Shift+Page_Down { move-workspace-down; }
+    Mod+Shift+Page_Up   { move-workspace-up; }
+    Mod+Shift+U         { move-workspace-down; }
+    Mod+Shift+I         { move-workspace-up; }
+
+    Mod+WheelScrollDown      cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp        cooldown-ms=150 { focus-workspace-up; }
+    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+
+    Mod+WheelScrollRight      { focus-column-right; }
+    Mod+WheelScrollLeft       { focus-column-left; }
+    Mod+Ctrl+WheelScrollRight { move-column-right; }
+    Mod+Ctrl+WheelScrollLeft  { move-column-left; }
+
+    Mod+Shift+WheelScrollDown      { focus-column-right; }
+    Mod+Shift+WheelScrollUp        { focus-column-left; }
+    Mod+Ctrl+Shift+WheelScrollDown { move-column-right; }
+    Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+    Mod+Ctrl+1 { move-column-to-workspace 1; }
+    Mod+Ctrl+2 { move-column-to-workspace 2; }
+    Mod+Ctrl+3 { move-column-to-workspace 3; }
+    Mod+Ctrl+4 { move-column-to-workspace 4; }
+    Mod+Ctrl+5 { move-column-to-workspace 5; }
+    Mod+Ctrl+6 { move-column-to-workspace 6; }
+    Mod+Ctrl+7 { move-column-to-workspace 7; }
+    Mod+Ctrl+8 { move-column-to-workspace 8; }
+    Mod+Ctrl+9 { move-column-to-workspace 9; }
+
+    Mod+BracketLeft  { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+    Mod+Comma  { consume-window-into-column; }
+    Mod+Period { expel-window-from-column; }
+
+    Mod+R { switch-preset-column-width; }
+    Mod+Shift+R { switch-preset-column-width-back; }
+    Mod+Ctrl+Shift+R { switch-preset-window-height; }
+    Mod+Ctrl+R { reset-window-height; }
+    Mod+F { cycle-window-expansion; }
+    Mod+Shift+F { fullscreen-window; }
+    Mod+Ctrl+F { expand-column-to-available-width; }
+
+    Mod+C { center-column; }
+    Mod+Ctrl+C { center-visible-columns; }
+
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
+
+    Mod+Space       { toggle-window-floating; }
+    Mod+Shift+Space { switch-focus-between-floating-and-tiling; }
+
+    Mod+Shift+W { toggle-column-tabbed-display; }
+
+}
+
+// Konveyor extension: hide Plasma desktop widgets while a window is visible on
+// the active workspace of that monitor. Needs a desktop containment that reads
+// the hideDesktopWidgets key; without one this does nothing.
+hide-desktop-widgets
+
+// Konveyor extension: stretch Plasma panels to the full screen width while a
+// window on that monitor is maximized to the edges, and put them back after.
+// The panel's previous width mode is kept in the panel's own settings, so a
+// panel you change in the meantime is left the way you set it.
+fill-panels-on-maximize
+
+// Konveyor extension: windows cannot be minimized. This adds a
+// KWin window rule that forces minimize off, which also hides the minimize
+// button on KDE title bars. The rule is removed when Konveyor is disabled.
+disable-minimize

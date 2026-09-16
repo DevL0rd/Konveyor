@@ -1,0 +1,37 @@
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-unchecked-optional-access,
+  performance-*,
+  -performance-enum-size,
+  readability-function-cognitive-complexity,
+  readability-function-size,
+  readability-else-after-return,
+  readability-redundant-*,
+  -readability-redundant-access-specifiers,
+  -bugprone-return-const-ref-from-parameter,
+  readability-simplify-boolean-expr,
+  readability-container-size-empty,
+  readability-inconsistent-declaration-parameter-name,
+  readability-misleading-indentation,
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-emplace,
+  modernize-loop-convert,
+  misc-unused-using-decls,
+  misc-redundant-expression
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/Linux-Konveyor/src/.*'
+CheckOptions:
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '15'
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    value: 'true'
+  - key: readability-function-size.LineThreshold
+    value: '60'
+  - key: readability-function-size.ParameterThreshold
+    value: '6'
+  - key: readability-function-size.NestingThreshold
+    value: '4'

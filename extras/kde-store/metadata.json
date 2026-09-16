@@ -1,0 +1,12 @@
+{
+    "name": "Konveyor",
+    "summary": "Scrollable tiling for KDE Plasma",
+    "category": 719,
+    "categoryName": "KWin Effects Plasma 6",
+    "store": "https://store.kde.org",
+    "license": "GPL-3.0-or-later",
+    "homepage": "https://github.com/DevL0rd/Linux-Konveyor",
+    "tags": ["kwin", "plasma6", "tiling", "scrolling", "window-management"],
+    "screenshots": ["docs/screenshot.png"],
+    "note": "Konveyor is a C++ KWin plugin built against the exact KWin version on the user's machine, so the store entry links to the source and the install script rather than shipping a prebuilt binary."
+}

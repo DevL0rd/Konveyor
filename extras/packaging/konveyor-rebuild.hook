@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = kwin
+
+[Action]
+Description = Rebuilding Konveyor for the updated KWin...
+When = PostTransaction
+Exec = /usr/lib/konveyor/konveyor-rebuild
+Depends = cmake

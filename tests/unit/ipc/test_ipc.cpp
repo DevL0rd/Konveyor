@@ -1,0 +1,100 @@
+#include "ipc/model.h"
+
+#include <QTest>
+
+using namespace Konveyor;
+
+class TestIpc : public QObject
+{
+    Q_OBJECT
+
+private Q_SLOTS:
+    void parsesPositionalArgumentsAndProperties()
+    {
+        const auto request = Ipc::actionFromArguments(
+            {QStringLiteral("move-column-to-workspace"), QStringLiteral("2"), QStringLiteral("--focus"), QStringLiteral("false")});
+        QVERIFY(request.has_value());
+        QCOMPARE(request->action.name, QStringLiteral("move-column-to-workspace"));
+        QCOMPARE(request->action.arguments, QStringList {QStringLiteral("2")});
+        QCOMPARE(request->action.properties.size(), 1);
+        QCOMPARE(request->action.properties.first().first, QStringLiteral("focus"));
+        QCOMPARE(request->action.properties.first().second, QStringLiteral("false"));
+        QVERIFY(!request->target.has_value());
+    }
+
+    void parsesWindowIdTarget()
+    {
+        const auto request = Ipc::actionFromArguments({QStringLiteral("close-window"), QStringLiteral("--id"), QStringLiteral("42")});
+        QVERIFY(request.has_value());
+        QCOMPARE(request->target.value(), Layout::WindowId {42});
+        QVERIFY(request->action.properties.isEmpty());
+    }
+
+    void keepsNegativeSizeChangeAsArgument()
+    {
+        const auto request = Ipc::actionFromArguments({QStringLiteral("set-column-width"), QStringLiteral("-10%")});
+        QVERIFY(request.has_value());
+        QCOMPARE(request->action.arguments, QStringList {QStringLiteral("-10%")});
+    }
+
+    void rejectsInvalidInput()
+    {
+        QVERIFY(!Ipc::actionFromArguments({}).has_value());
+        QVERIFY(!Ipc::actionFromArguments({QStringLiteral("focus-window"), QStringLiteral("--id")}).has_value());
+        QVERIFY(!Ipc::actionFromArguments({QStringLiteral("focus-window"), QStringLiteral("--id"), QStringLiteral("abc")}).has_value());
+        QVERIFY(!Ipc::actionFromJson({}).has_value());
+    }
+
+    void actionJsonRoundTrips()
+    {
+        Ipc::ActionRequest request;
+        request.action = {QStringLiteral("move-floating-window"), {},
+            {{QStringLiteral("x"), QStringLiteral("+10")}, {QStringLiteral("y"), QStringLiteral("-5%")}}};
+        request.target = 7;
+        const auto parsed = Ipc::actionFromJson(Ipc::actionToJson(request));
+        QVERIFY(parsed.has_value());
+        QCOMPARE(parsed->action.name, request.action.name);
+        QCOMPARE(parsed->target, request.target);
+        QCOMPARE(parsed->action.properties.size(), 2);
+    }
+
+    void windowJsonUsesIpcFieldNames()
+    {
+        Layout::WindowState state;
+        state.id = 3;
+        state.workspace = 9;
+        state.isFocused = true;
+        state.columnIndex = 1;
+        state.tileIndex = 0;
+        state.targetFrame = QRectF(10, 20, 300, 400);
+        const QJsonObject json = Ipc::windowToJson({3, QStringLiteral("Title"), QStringLiteral("app"), 1234}, state);
+        QCOMPARE(json.value(QStringLiteral("app_id")).toString(), QStringLiteral("app"));
+        QCOMPARE(json.value(QStringLiteral("workspace_id")).toInteger(), 9);
+        QCOMPARE(json.value(QStringLiteral("is_focused")).toBool(), true);
+        const QJsonObject layout = json.value(QStringLiteral("layout")).toObject();
+        QCOMPARE(layout.value(QStringLiteral("pos_in_scrolling_layout")).toArray(), (QJsonArray {2, 1}));
+        QCOMPARE(layout.value(QStringLiteral("tile_size")).toArray(), (QJsonArray {300.0, 400.0}));
+    }
+
+    void floatingWindowHasNoScrollingPosition()
+    {
+        Layout::WindowState state;
+        state.isFloating = true;
+        const QJsonObject json = Ipc::windowToJson({}, state);
+        QVERIFY(json.value(QStringLiteral("layout")).toObject().value(QStringLiteral("pos_in_scrolling_layout")).isNull());
+    }
+
+    void workspaceJsonHasNullNameWhenUnnamed()
+    {
+        Layout::WorkspaceState state;
+        state.index = 2;
+        const QJsonObject json = Ipc::workspaceToJson(state);
+        QVERIFY(json.value(QStringLiteral("name")).isNull());
+        QCOMPARE(json.value(QStringLiteral("idx")).toInt(), 2);
+        QVERIFY(json.value(QStringLiteral("active_window_id")).isNull());
+    }
+};
+
+QTEST_GUILESS_MAIN(TestIpc)
+
+#include "test_ipc.moc"

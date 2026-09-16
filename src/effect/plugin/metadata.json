@@ -1,0 +1,14 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "DevL0rd"
+            }
+        ],
+        "Category": "Window Management",
+        "Description": "Scrolling column tiling for KDE Plasma",
+        "EnabledByDefault": false,
+        "License": "GPL-3.0-or-later",
+        "Name": "Konveyor"
+    }
+}

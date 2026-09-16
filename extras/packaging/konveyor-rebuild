@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE=/usr/share/konveyor/source
+
+if [[ ! -r $STATE_FILE ]]; then
+    echo "konveyor: no recorded source checkout, skipping rebuild" >&2
+    exit 0
+fi
+
+mapfile -t state <"$STATE_FILE"
+source_dir="${state[0]}"
+owner="${state[1]}"
+build_dir="$source_dir/build-release"
+
+if [[ ! -d $source_dir ]]; then
+    echo "konveyor: source checkout $source_dir is gone, run install.sh from a fresh clone" >&2
+    exit 0
+fi
+
+runuser -u "$owner" -- cmake --build "$build_dir"
+cmake --install "$build_dir" >/dev/null
+echo "konveyor: rebuilt for the new KWin; log out and back in to load it"

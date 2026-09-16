@@ -1,0 +1,110 @@
+#pragma once
+
+#include "plugin/konveyoreffect.h"
+
+#include "dbus/dbusservice.h"
+#include "decorations/accentcolor.h"
+#include "decorations/decorationlayer.h"
+#include "decorations/fullscreenshade.h"
+#include "input/inputfilter.h"
+#include "input/shortcutmanager.h"
+#include "kwin/desktopsync.h"
+#include "kwin/minimizerule.h"
+#include "kwin/outputregistry.h"
+#include "kwin/windowapplier.h"
+#include "kwin/windowregistry.h"
+#include "plasma/plasmashellsync.h"
+#include "plugin/configmanager.h"
+
+#include "anim/clock.h"
+#include "config/loader.h"
+#include "ipc/model.h"
+
+#include <core/output.h>
+#include <effect/effecthandler.h>
+#include <input.h>
+#include <wayland/seat.h>
+#include <wayland_server.h>
+#include <window.h>
+#include <workspace.h>
+
+#include <algorithm>
+#include <chrono>
+#include <utility>
+
+#include <QJsonArray>
+#include <QProcess>
+#include <QSet>
+#include <QTimer>
+
+namespace Konveyor
+{
+
+inline constexpr int animationIntervalMs = 8;
+inline constexpr int interactivePhaseStart = 0;
+inline constexpr int interactivePhaseStep = 1;
+inline constexpr int interactivePhaseEnd = 2;
+
+inline QString outputNameOf(KWin::Window *window)
+{
+    return window->output() ? window->output()->name() : QString();
+}
+
+inline double outputScaleOf(KWin::Window *window)
+{
+    return window->output() ? window->output()->scale() : 1.0;
+}
+
+inline QList<std::pair<KWin::ElectricBorder, bool Config::HotCorners::*>> hotCornerFlags()
+{
+    return {
+        {KWin::ElectricTopLeft, &Config::HotCorners::topLeft},
+        {KWin::ElectricTopRight, &Config::HotCorners::topRight},
+        {KWin::ElectricBottomLeft, &Config::HotCorners::bottomLeft},
+        {KWin::ElectricBottomRight, &Config::HotCorners::bottomRight},
+    };
+}
+
+inline QRectF outputGeometryOf(KWin::Window *window)
+{
+    return window->output() ? QRectF(window->output()->geometryF()) : QRectF();
+}
+
+struct KonveyorEffect::Private
+{
+    Anim::Clock clock;
+    ConfigManager config;
+    AccentColor accent;
+    WindowRegistry windows;
+    OutputRegistry outputs;
+    Layout::Engine engine;
+    WindowApplier applier;
+    DecorationLayer decorations;
+    FullscreenShade fullscreenShade;
+    DesktopSync desktops;
+    ShortcutManager shortcuts;
+    PlasmaShellSync plasmaShell;
+    std::unique_ptr<InputFilter> input;
+    std::unique_ptr<DBusService> dbus;
+    QTimer flushTimer;
+    QTimer animationTimer;
+    bool animating = false;
+    QSet<KWin::ElectricBorder> reservedCorners;
+    double dragOrigin = 0;
+    QSizeF resizeOrigin;
+    quint64 bindCount = 0;
+    QString lastBindKey;
+    QString lastBindAction;
+    std::optional<Layout::WindowId> focusRequest;
+    std::optional<Layout::WindowId> titlebarDrag;
+
+    Private(Layout::Hooks hooks, ShortcutManager::Handler shortcutHandler)
+        : engine(clock, std::move(hooks))
+        , applier(windows)
+        , decorations(accent)
+        , fullscreenShade(windows)
+        , desktops(windows, outputs)
+        , shortcuts(std::move(shortcutHandler))
+    { }
+};
+}

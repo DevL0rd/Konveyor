@@ -1,0 +1,55 @@
+#pragma once
+
+#include "config/types/paint.h"
+
+#include <QList>
+#include <QString>
+
+#include <optional>
+
+namespace Konveyor::Config
+{
+
+struct Layout
+{
+    double gaps = 16;
+    CenterFocusedColumn centerFocusedColumn = CenterFocusedColumn::Never;
+    NewColumnPosition newColumnPosition = NewColumnPosition::Right;
+    bool alwaysCenterSingleColumn = false;
+    bool emptyWorkspaceAboveFirst = false;
+    ColumnDisplay defaultColumnDisplay = ColumnDisplay::Normal;
+    QList<PresetSize> presetColumnWidths;
+    std::optional<PresetSize> defaultColumnWidth = Proportion {0.5};
+    QList<PresetSize> presetWindowHeights;
+    Struts struts;
+    Border focusRing;
+    Border border;
+    Shadow shadow;
+    TabIndicator tabIndicator;
+    InsertHint insertHint;
+    QColor backgroundColor {0x40, 0x40, 0x40};
+    bool operator==(const Layout &) const = default;
+};
+
+struct LayoutPart
+{
+    std::optional<double> gaps;
+    std::optional<CenterFocusedColumn> centerFocusedColumn;
+    std::optional<NewColumnPosition> newColumnPosition;
+    std::optional<bool> alwaysCenterSingleColumn;
+    std::optional<bool> emptyWorkspaceAboveFirst;
+    std::optional<ColumnDisplay> defaultColumnDisplay;
+    std::optional<QList<PresetSize>> presetColumnWidths;
+    std::optional<std::optional<PresetSize>> defaultColumnWidth;
+    std::optional<QList<PresetSize>> presetWindowHeights;
+    std::optional<Struts> struts;
+    std::optional<BorderRule> focusRing;
+    std::optional<BorderRule> border;
+    std::optional<ShadowRule> shadow;
+    std::optional<TabIndicatorPart> tabIndicator;
+    std::optional<InsertHintPart> insertHint;
+    std::optional<QColor> backgroundColor;
+    bool operator==(const LayoutPart &) const = default;
+};
+
+}

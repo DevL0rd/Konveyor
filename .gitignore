@@ -1,0 +1,6 @@
+/build/
+/build-*/
+/compile_commands.json
+/.cache/
+__pycache__/
+/report/
