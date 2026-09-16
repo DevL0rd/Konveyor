@@ -101,6 +101,7 @@ done
 
 echo ""
 echo "Done! Add it via right-click panel -> Add Widgets -> search \"App Portal\"."
+echo "Portal Launcher: add \"Portal Launcher\" to your panel in place of the application launcher; Meta opens it."
 echo "Friends badge: add your Steam Web API key to $HOME/.config/Plasma-App-Portal/config.json"
 
 echo "Restarting Plasma…"
