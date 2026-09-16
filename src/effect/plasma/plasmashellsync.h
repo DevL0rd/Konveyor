@@ -2,6 +2,7 @@
 
 #include "layout/engine/engine.h"
 
+#include <QDBusServiceWatcher>
 #include <QHash>
 #include <QObject>
 #include <QStringList>
@@ -34,6 +35,7 @@ private:
     void apply();
 
     QTimer m_debounce;
+    QDBusServiceWatcher m_shellWatcher;
     QHash<QString, ScreenState> m_screens;
     QStringList m_outputOrder;
     bool m_hideDesktopWidgets = false;

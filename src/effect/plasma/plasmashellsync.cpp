@@ -74,6 +74,10 @@ void PlasmaShellSync::start()
 {
     m_started = true;
     connect(KWin::effects, &KWin::EffectsHandler::showingDesktopChanged, this, &PlasmaShellSync::scheduleApply);
+    m_shellWatcher.setConnection(QDBusConnection::sessionBus());
+    m_shellWatcher.setWatchMode(QDBusServiceWatcher::WatchForRegistration);
+    m_shellWatcher.addWatchedService(QStringLiteral("org.kde.plasmashell"));
+    connect(&m_shellWatcher, &QDBusServiceWatcher::serviceRegistered, this, &PlasmaShellSync::scheduleApply);
     scheduleApply();
 }
 
