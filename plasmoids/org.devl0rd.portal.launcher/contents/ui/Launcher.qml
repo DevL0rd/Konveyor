@@ -168,8 +168,35 @@ Window {
         if (!current)
             return
         current.sectionActive = true
-        if (scroll !== false && view.scrollTo && current.currentIndex >= 0 && !current.scrolling)
-            view.scrollTo(current.itemAtIndex(current.currentIndex) || current)
+        if (scroll !== false && view.column && current.currentIndex >= 0 && !current.scrolling)
+            ensureVisible(view, current)
+    }
+    function ensureVisible(view, section) {
+        const item = section.itemAtIndex(section.currentIndex)
+        const flick = view.contentItem
+        if (!item || !flick)
+            return
+        const top = item.mapToItem(view.column, 0, 0).y
+        const headerRoom = section.currentIndex < section.columns ? Kirigami.Units.gridUnit * 2.4 : Kirigami.Units.largeSpacing
+        const wantTop = top - headerRoom
+        const wantBottom = top + item.height + Kirigami.Units.largeSpacing
+        let target = flick.contentY
+        if (wantTop < flick.contentY)
+            target = wantTop
+        else if (wantBottom > flick.contentY + flick.height)
+            target = wantBottom - flick.height
+        target = Math.max(0, Math.min(target, view.column.height - flick.height))
+        if (Math.abs(target - flick.contentY) < 1)
+            return
+        scrollAnimation.target = flick
+        scrollAnimation.to = target
+        scrollAnimation.restart()
+    }
+    NumberAnimation {
+        id: scrollAnimation
+        property: "contentY"
+        duration: Kirigami.Units.longDuration
+        easing.type: Easing.OutCubic
     }
     function resetSelection() {
         const sections = liveSections()
@@ -676,9 +703,9 @@ Window {
                 takeItem(0).destroy()
             for (const entry of entries) {
                 if (entry.separator)
-                    addItem(separatorComponent.createObject(menu))
+                    addItem(separatorComponent.createObject(null))
                 else
-                    addItem(itemComponent.createObject(menu, { text: entry.text, "icon.name": entry.icon || "", enabled: entry.disabled !== true, entry: entry }))
+                    addItem(itemComponent.createObject(null, { text: entry.text, "icon.name": entry.icon || "", enabled: entry.disabled !== true, entry: entry }))
             }
         }
         onClosed: field.forceActiveFocus()

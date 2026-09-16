@@ -102,6 +102,15 @@ Item {
         }
 
         Rectangle {
+            anchors.fill: parent
+            visible: card.selected || card.playing.length > 0
+            radius: Kirigami.Units.cornerRadius * 2.5
+            color: "transparent"
+            border.width: card.selected ? 3 : 1.5
+            border.color: card.selected ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.positiveTextColor, 0.8)
+        }
+
+        Rectangle {
             visible: card.playing.length > 0
             anchors.top: parent.top
             anchors.right: parent.right
