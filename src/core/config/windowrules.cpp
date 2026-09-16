@@ -35,7 +35,6 @@ void addMatchBooleans(ValueTable &table, Match &match)
     flagOf(QStringLiteral("is-floating"), match.isFloating);
     flagOf(QStringLiteral("is-urgent"), match.isUrgent);
     flagOf(QStringLiteral("at-startup"), match.atStartup);
-    flagOf(QStringLiteral("is-window-cast-target"), match.isWindowCastTarget);
 }
 
 Match decodeMatch(const Kdl::Node &node)
@@ -121,10 +120,6 @@ void addOpenHandlers(NodeTable &table, WindowRule &rule)
     });
     table.insert(QStringLiteral("default-floating-position"),
         [&rule](const Kdl::Node &node) { rule.defaultFloatingPosition = decodeFloatingPosition(node); });
-    table.insert(QStringLiteral("on-xdg-activate"), [&rule](const Kdl::Node &node) {
-        rule.onXdgActivate = static_cast<XdgActivate>(
-            keywordArgument(node, {QStringLiteral("ignore"), QStringLiteral("set-urgent"), QStringLiteral("focus")}));
-    });
 }
 
 void addSizeHandlers(NodeTable &table, WindowRule &rule)
@@ -143,46 +138,21 @@ void addDynamicHandlers(NodeTable &table, WindowRule &rule)
     const auto boolOf = [&table](const QString &name, std::optional<bool> &target) {
         table.insert(name, [&target](const Kdl::Node &node) { target = booleanArgument(node); });
     };
-    boolOf(QStringLiteral("draw-border-with-background"), rule.drawBorderWithBackground);
     boolOf(QStringLiteral("clip-to-geometry"), rule.clipToGeometry);
-    boolOf(QStringLiteral("baba-is-float"), rule.babaIsFloat);
-    boolOf(QStringLiteral("variable-refresh-rate"), rule.variableRefreshRate);
-    boolOf(QStringLiteral("tiled-state"), rule.tiledState);
     table.insert(QStringLiteral("opacity"), [&rule](const Kdl::Node &node) { rule.opacity = numberArgument(node, AnyNumber); });
     table.insert(
-        QStringLiteral("scroll-factor"), [&rule](const Kdl::Node &node) { rule.scrollFactor = numberArgument(node, Range {0, 100}); });
-    table.insert(
         QStringLiteral("geometry-corner-radius"), [&rule](const Kdl::Node &node) { rule.geometryCornerRadius = decodeCornerRadius(node); });
-    table.insert(QStringLiteral("block-out-from"), [&rule](const Kdl::Node &node) {
-        rule.blockOutFrom
-            = static_cast<BlockOutFrom>(keywordArgument(node, {QStringLiteral("screencast"), QStringLiteral("screen-capture")}));
-        rule.blockOutFromScreencast = true;
-    });
 }
 
 void addAppearanceHandlers(NodeTable &table, WindowRule &rule)
 {
     table.insert(QStringLiteral("focus-ring"), [&rule](const Kdl::Node &node) { rule.focusRing = decodeBorderRule(node); });
     table.insert(QStringLiteral("border"), [&rule](const Kdl::Node &node) { rule.border = decodeBorderRule(node); });
-    table.insert(QStringLiteral("tab-indicator"), [&rule](const Kdl::Node &node) { rule.tabIndicator = decodeTabIndicatorRule(node); });
-    table.insert(QStringLiteral("shadow"), [&rule](const Kdl::Node &node) {
-        rule.shadowRule = decodeShadowRule(node);
-        rule.shadow = rule.shadowRule.enabled;
-    });
-}
-
-void addIgnoredRuleHandlers(NodeTable &table, LoadContext &context)
-{
-    static const QStringList names {QStringLiteral("background-effect"), QStringLiteral("popups")};
-    for (const QString &name : names) {
-        table.insert(name,
-            [&context](const Kdl::Node &node) { ignoreNode(context, node, QStringLiteral("this effect has no equivalent in KWin")); });
-    }
 }
 
 }
 
-WindowRule decodeWindowRule(LoadContext &context, const Kdl::Node &node)
+WindowRule decodeWindowRule(const Kdl::Node &node)
 {
     expectOnlyChildren(node);
     WindowRule rule;
@@ -193,7 +163,6 @@ WindowRule decodeWindowRule(LoadContext &context, const Kdl::Node &node)
     addSizeHandlers(table, rule);
     addDynamicHandlers(table, rule);
     addAppearanceHandlers(table, rule);
-    addIgnoredRuleHandlers(table, context);
     decodeChildren(node, table, {QStringLiteral("match"), QStringLiteral("exclude")});
     return rule;
 }

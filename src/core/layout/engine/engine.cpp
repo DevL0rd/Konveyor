@@ -1,6 +1,7 @@
 #include "layout/engine/engineprivate.h"
 
 #include "layout/common/geometry.h"
+#include "layout/monitor/monitorprofiles.h"
 
 #include <algorithm>
 #include <chrono>
@@ -13,20 +14,6 @@ namespace
 {
 
 constexpr auto StartupWindow = std::chrono::seconds(60);
-
-bool monitorMatches(const Config::MonitorMatch &match, const QString &name, QSizeF size);
-
-bool monitorMatches(const Config::MonitorMatch &match, const QString &name, QSizeF size)
-{
-    if (match.name && !match.name->match(name).hasMatch()) {
-        return false;
-    }
-    const double aspect = size.height() > 0 ? size.width() / size.height() : 0.0;
-    const auto above = [](const std::optional<double> &limit, double value) { return !limit || value > *limit; };
-    const auto below = [](const std::optional<double> &limit, double value) { return !limit || value < *limit; };
-    return above(match.aspectRatioAbove, aspect) && below(match.aspectRatioBelow, aspect) && above(match.widthAbove, size.width())
-        && below(match.widthBelow, size.width()) && above(match.heightAbove, size.height()) && below(match.heightBelow, size.height());
-}
 
 std::optional<Config::Layout> layoutForOutput(const Config::Config &config, const QString &name, QSizeF size)
 {
@@ -180,8 +167,6 @@ void Engine::setOverviewOpen(bool open)
         return;
     }
     d->overviewOpen = open;
-    const double from = d->overviewAnimation ? d->overviewAnimation->value() : (open ? 0.0 : 1.0);
-    d->overviewAnimation = Anim::Animation(d->clock, from, open ? 1.0 : 0.0, 0.0, d->options->animations.overviewOpenClose);
     for (Monitor &monitor : d->monitors) {
         monitor.overviewOpen = open;
     }
@@ -192,9 +177,6 @@ void Engine::setOverviewOpen(bool open)
 
 void Engine::tickAnimations()
 {
-    if (d->overviewAnimation && d->overviewAnimation->isFinished()) {
-        d->overviewAnimation.reset();
-    }
     for (Monitor &monitor : d->monitors) {
         monitor.tickAnimations();
     }
@@ -206,22 +188,7 @@ void Engine::tickAnimations()
 
 bool Engine::isAnimating() const
 {
-    if (d->overviewAnimation) {
-        return true;
-    }
     return std::ranges::any_of(d->monitors, &Monitor::isAnimating);
-}
-
-const Config::MonitorProfile *monitorProfileFor(const Config::Config &config, const QString &name, QSizeF size)
-{
-    for (const Config::MonitorProfile &profile : config.monitorProfiles) {
-        const bool matches = profile.matches.isEmpty()
-            || std::ranges::any_of(profile.matches, [&](const Config::MonitorMatch &match) { return monitorMatches(match, name, size); });
-        if (matches) {
-            return &profile;
-        }
-    }
-    return nullptr;
 }
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area)

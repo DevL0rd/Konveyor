@@ -17,28 +17,18 @@ struct AnimationSlot
 {
     QString name;
     AnimationParams Animations::*field;
-    bool allowsShader;
 };
 
 const QList<AnimationSlot> &animationSlots()
 {
     static const QList<AnimationSlot> entries {
-        {QStringLiteral("workspace-switch"), &Animations::workspaceSwitch, false},
-        {QStringLiteral("window-open"), &Animations::windowOpen, true},
-        {QStringLiteral("window-close"), &Animations::windowClose, true},
-        {QStringLiteral("horizontal-view-movement"), &Animations::horizontalViewMovement, false},
-        {QStringLiteral("window-movement"), &Animations::windowMovement, false},
-        {QStringLiteral("window-resize"), &Animations::windowResize, true},
-        {QStringLiteral("overview-open-close"), &Animations::overviewOpenClose, false},
+        {QStringLiteral("workspace-switch"), &Animations::workspaceSwitch},
+        {QStringLiteral("window-open"), &Animations::windowOpen},
+        {QStringLiteral("horizontal-view-movement"), &Animations::horizontalViewMovement},
+        {QStringLiteral("window-movement"), &Animations::windowMovement},
+        {QStringLiteral("window-resize"), &Animations::windowResize},
     };
     return entries;
-}
-
-const QStringList &ignoredAnimations()
-{
-    static const QStringList names {QStringLiteral("screenshot-ui-open"), QStringLiteral("config-notification-open-close"),
-        QStringLiteral("exit-confirmation-open-close"), QStringLiteral("recent-windows-close")};
-    return names;
 }
 
 SpringParams decodeSpring(const Kdl::Node &node)
@@ -133,7 +123,7 @@ AnimationParams finishAnimation(const AnimationDraft &draft, const AnimationPara
     return result;
 }
 
-AnimationParams decodeAnimation(LoadContext &context, const Kdl::Node &node, const AnimationParams &fallback, bool allowsShader)
+AnimationParams decodeAnimation(const Kdl::Node &node, const AnimationParams &fallback)
 {
     expectOnlyChildren(node);
     AnimationDraft draft;
@@ -157,11 +147,6 @@ AnimationParams decodeAnimation(LoadContext &context, const Kdl::Node &node, con
         decodeCurve(child, draft.easing);
         draft.hasEasing = true;
     });
-    if (allowsShader) {
-        table.insert(QStringLiteral("custom-shader"), [&context](const Kdl::Node &child) {
-            ignoreNode(context, child, QStringLiteral("custom animation shaders are not supported"));
-        });
-    }
     decodeChildren(node, table);
     return finishAnimation(draft, fallback);
 }
@@ -173,18 +158,15 @@ Animations defaultAnimations()
     Animations animations;
     animations.workspaceSwitch.kind = SpringParams {1.0, 1000, 0.0001};
     animations.windowOpen.kind = EasingParams {150, EasingCurve::EaseOutExpo, 0, 0, 1, 1};
-    animations.windowClose.kind = EasingParams {150, EasingCurve::EaseOutQuad, 0, 0, 1, 1};
     animations.horizontalViewMovement.kind = SpringParams {1.0, 800, 0.0001};
     animations.windowMovement.kind = SpringParams {1.0, 800, 0.0001};
     animations.windowResize.kind = SpringParams {1.0, 800, 0.0001};
-    animations.overviewOpenClose.kind = SpringParams {1.0, 800, 0.0001};
     return animations;
 }
 
-void decodeAnimations(LoadContext &context, const Kdl::Node &node)
+void decodeAnimations(const Kdl::Node &node, Animations &animations)
 {
     expectOnlyChildren(node);
-    Animations &animations = context.config.animations;
     bool on = false;
     bool off = false;
     NodeTable table;
@@ -194,13 +176,8 @@ void decodeAnimations(LoadContext &context, const Kdl::Node &node)
         [&animations](const Kdl::Node &child) { animations.slowdown = numberArgument(child, Range {0, 2147483647}); });
     static const Animations defaults = defaultAnimations();
     for (const AnimationSlot &slot : animationSlots()) {
-        table.insert(slot.name, [&context, &animations, slot](const Kdl::Node &child) {
-            animations.*slot.field = decodeAnimation(context, child, defaults.*slot.field, slot.allowsShader);
-        });
-    }
-    for (const QString &name : ignoredAnimations()) {
-        table.insert(name,
-            [&context](const Kdl::Node &child) { ignoreNode(context, child, QStringLiteral("this animation has no equivalent in KWin")); });
+        table.insert(slot.name,
+            [&animations, slot](const Kdl::Node &child) { animations.*slot.field = decodeAnimation(child, defaults.*slot.field); });
     }
     decodeChildren(node, table);
     if (off) {

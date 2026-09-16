@@ -31,15 +31,6 @@ bool regexMatches(const std::optional<QRegularExpression> &regex, const QString 
     return regex->match(value).hasMatch();
 }
 
-bool ruleApplies(const Config::WindowRule &rule, const MatchContext &context, bool atStartup)
-{
-    const auto matches = [&](const Config::Match &m) { return matchApplies(m, context, atStartup); };
-    if (!rule.matches.isEmpty() && std::ranges::none_of(rule.matches, matches)) {
-        return false;
-    }
-    return std::ranges::none_of(rule.excludes, matches);
-}
-
 void mergeBorderRule(Config::BorderRule &target, const Config::BorderRule &source)
 {
     assignIfSet(target.enabled, source.enabled);
@@ -64,7 +55,6 @@ void applyOpenRules(EffectiveWindowRules &resolved, const Config::WindowRule &ru
     assignIfSet(resolved.openFocused, rule.openFocused);
     assignIfSet(resolved.manage, rule.manage);
     assignIfSet(resolved.columnPosition, rule.columnPosition);
-    assignIfSet(resolved.onXdgActivate, rule.onXdgActivate);
 }
 
 void applyAppearanceRules(EffectiveWindowRules &resolved, const Config::WindowRule &rule)
@@ -75,12 +65,9 @@ void applyAppearanceRules(EffectiveWindowRules &resolved, const Config::WindowRu
     assignIfSet(resolved.maxHeight, rule.maxHeight);
     mergeBorderRule(resolved.focusRing, rule.focusRing);
     mergeBorderRule(resolved.border, rule.border);
-    assignIfSet(resolved.shadow, rule.shadow);
-    assignIfSet(resolved.drawBorderWithBackground, rule.drawBorderWithBackground);
     assignIfSet(resolved.opacity, rule.opacity);
     assignIfSet(resolved.geometryCornerRadius, rule.geometryCornerRadius);
     assignIfSet(resolved.clipToGeometry, rule.clipToGeometry);
-    assignIfSet(resolved.scrollFactor, rule.scrollFactor);
 }
 
 }
@@ -128,6 +115,15 @@ bool matchApplies(const Config::Match &match, const MatchContext &context, bool 
         && regexMatches(match.appId, context.appId) && regexMatches(match.title, context.title)
         && regexMatches(match.monitorProfile, context.monitorProfile) && flagMatches(match.isActiveInColumn, context.isActiveInColumn)
         && flagMatches(match.isFloating, context.isFloating);
+}
+
+bool ruleApplies(const Config::WindowRule &rule, const MatchContext &context, bool atStartup)
+{
+    const auto matches = [&](const Config::Match &m) { return matchApplies(m, context, atStartup); };
+    if (!rule.matches.isEmpty() && std::ranges::none_of(rule.matches, matches)) {
+        return false;
+    }
+    return std::ranges::none_of(rule.excludes, matches);
 }
 
 EffectiveWindowRules resolveWindowRules(const QList<Config::WindowRule> &rules, const MatchContext &context, bool atStartup)

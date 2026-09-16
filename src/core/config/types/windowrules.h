@@ -22,7 +22,6 @@ struct Match
     std::optional<bool> isFloating;
     std::optional<bool> isUrgent;
     std::optional<bool> atStartup;
-    std::optional<bool> isWindowCastTarget;
     bool operator==(const Match &) const = default;
 };
 
@@ -44,19 +43,6 @@ struct FloatingPosition
     double y = 0;
     FloatingRelativeTo relativeTo = FloatingRelativeTo::TopLeft;
     bool operator==(const FloatingPosition &) const = default;
-};
-
-enum class XdgActivate
-{
-    Ignore,
-    SetUrgent,
-    Focus
-};
-
-enum class BlockOutFrom
-{
-    Screencast,
-    ScreenCapture
 };
 
 struct CornerRadius
@@ -85,7 +71,6 @@ struct WindowRule
     std::optional<bool> manage;
     std::optional<ColumnPosition> columnPosition;
 
-    std::optional<XdgActivate> onXdgActivate;
     std::optional<double> opacity;
     std::optional<int> minWidth;
     std::optional<int> maxWidth;
@@ -93,20 +78,10 @@ struct WindowRule
     std::optional<int> maxHeight;
     BorderRule focusRing;
     BorderRule border;
-    std::optional<bool> shadow;
-    std::optional<bool> drawBorderWithBackground;
     std::optional<CornerRadius> geometryCornerRadius;
     std::optional<bool> clipToGeometry;
     std::optional<ColumnDisplay> defaultColumnDisplay;
     std::optional<FloatingPosition> defaultFloatingPosition;
-    std::optional<double> scrollFactor;
-    std::optional<bool> blockOutFromScreencast;
-    ShadowRule shadowRule;
-    TabIndicatorRule tabIndicator;
-    std::optional<BlockOutFrom> blockOutFrom;
-    std::optional<bool> babaIsFloat;
-    std::optional<bool> variableRefreshRate;
-    std::optional<bool> tiledState;
     bool operator==(const WindowRule &) const = default;
 };
 

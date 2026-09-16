@@ -59,48 +59,6 @@ BorderRule decodeBorderRule(const Kdl::Node &node)
     return rule;
 }
 
-ShadowRule decodeShadowRule(const Kdl::Node &node)
-{
-    expectOnlyChildren(node);
-    ShadowRule rule;
-    bool on = false;
-    bool off = false;
-    NodeTable table;
-    addToggleHandlers(table, on, off);
-    table.insert(QStringLiteral("offset"), [&rule](const Kdl::Node &child) {
-        QPointF offset;
-        ValueTable properties;
-        properties.insert(QStringLiteral("x"), [&offset](const Kdl::Value &value) { offset.setX(toNumber(value, Range {-65535, 65535})); });
-        properties.insert(QStringLiteral("y"), [&offset](const Kdl::Value &value) { offset.setY(toNumber(value, Range {-65535, 65535})); });
-        expectNoArguments(child);
-        expectNoChildren(child);
-        decodeProperties(child, properties);
-        rule.offset = offset;
-    });
-    table.insert(QStringLiteral("softness"), [&rule](const Kdl::Node &child) { rule.softness = numberArgument(child, Range {0, 1024}); });
-    table.insert(QStringLiteral("spread"), [&rule](const Kdl::Node &child) { rule.spread = numberArgument(child, Range {-1024, 1024}); });
-    table.insert(QStringLiteral("draw-behind-window"), [&rule](const Kdl::Node &child) { rule.drawBehindWindow = booleanArgument(child); });
-    table.insert(QStringLiteral("color"), [&rule](const Kdl::Node &child) { rule.color = decodeColorNode(child); });
-    table.insert(QStringLiteral("inactive-color"), [&rule](const Kdl::Node &child) { rule.inactiveColor = decodeColorNode(child); });
-    decodeChildren(node, table);
-    if (off) {
-        rule.enabled = false;
-    } else if (on) {
-        rule.enabled = true;
-    }
-    return rule;
-}
-
-TabIndicatorRule decodeTabIndicatorRule(const Kdl::Node &node)
-{
-    expectOnlyChildren(node);
-    TabIndicatorRule rule;
-    NodeTable table;
-    addTripletHandlers(table, rule.active, rule.inactive, rule.urgent);
-    decodeChildren(node, table);
-    return rule;
-}
-
 TabIndicatorPart decodeTabIndicatorPart(const Kdl::Node &node)
 {
     expectOnlyChildren(node);

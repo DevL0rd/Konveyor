@@ -14,8 +14,6 @@ struct Config
     Animations animations;
     Gestures gestures;
     Input input;
-    Overview overview;
-    bool preferNoCsd = false;
     bool hideDesktopWidgets = false;
     bool fillPanelsOnMaximize = false;
     bool disableMinimize = false;
@@ -25,7 +23,6 @@ struct Config
     QList<WindowRule> windowRules;
     QList<Bind> binds;
     bool configNotificationDisableFailed = false;
-    HotkeyOverlay hotkeyOverlay;
     bool operator==(const Config &) const = default;
 };
 

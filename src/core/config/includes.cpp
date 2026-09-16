@@ -14,32 +14,11 @@ namespace
 
 constexpr int kRecursionLimit = 10;
 
-const QStringList &ignoredSections()
-{
-    static const QStringList names {QStringLiteral("layer-rule"), QStringLiteral("recent-windows"), QStringLiteral("environment"),
-        QStringLiteral("spawn-at-startup"), QStringLiteral("spawn-sh-at-startup"), QStringLiteral("cursor"),
-        QStringLiteral("screenshot-path"), QStringLiteral("clipboard"), QStringLiteral("xwayland-satellite"),
-        QStringLiteral("switch-events"), QStringLiteral("debug"), QStringLiteral("blur")};
-    return names;
-}
-
 const QSet<QString> &multipartSections()
 {
-    static const QSet<QString> names {QStringLiteral("output"), QStringLiteral("spawn-at-startup"), QStringLiteral("spawn-sh-at-startup"),
-        QStringLiteral("window-rule"), QStringLiteral("layer-rule"), QStringLiteral("workspace"), QStringLiteral("include"),
-        QStringLiteral("monitor-profile")};
+    static const QSet<QString> names {QStringLiteral("output"), QStringLiteral("window-rule"), QStringLiteral("workspace"),
+        QStringLiteral("include"), QStringLiteral("monitor-profile")};
     return names;
-}
-
-QString ignoreReason(const QString &name)
-{
-    if (name == QLatin1String("recent-windows")) {
-        return QStringLiteral("KDE provides its own window switcher");
-    }
-    if (name == QLatin1String("layer-rule")) {
-        return QStringLiteral("layer surfaces are managed by KDE");
-    }
-    return QStringLiteral("this setting has no equivalent in KWin");
 }
 
 QString expandPath(const Kdl::Node &node, const QString &raw, const QString &baseDir)
@@ -78,12 +57,9 @@ bool includeOptional(const Kdl::Node &node)
 void addSimpleHandlers(NodeTable &table, LoadContext &context)
 {
     Config &config = context.config;
-    table.insert(QStringLiteral("input"), [&context](const Kdl::Node &node) { decodeInput(context, node); });
-    table.insert(QStringLiteral("animations"), [&context](const Kdl::Node &node) { decodeAnimations(context, node); });
-    table.insert(QStringLiteral("gestures"), [&context](const Kdl::Node &node) { decodeGestures(context, node); });
-    table.insert(QStringLiteral("overview"), [&config](const Kdl::Node &node) { decodeOverview(node, config.overview); });
-    table.insert(QStringLiteral("hotkey-overlay"), [&config](const Kdl::Node &node) { decodeHotkeyOverlay(node, config.hotkeyOverlay); });
-    table.insert(QStringLiteral("prefer-no-csd"), [&config](const Kdl::Node &node) { config.preferNoCsd = flagArgument(node); });
+    table.insert(QStringLiteral("input"), [&config](const Kdl::Node &node) { decodeInput(node, config.input); });
+    table.insert(QStringLiteral("animations"), [&config](const Kdl::Node &node) { decodeAnimations(node, config.animations); });
+    table.insert(QStringLiteral("gestures"), [&config](const Kdl::Node &node) { decodeGestures(node, config.gestures); });
     table.insert(
         QStringLiteral("hide-desktop-widgets"), [&config](const Kdl::Node &node) { config.hideDesktopWidgets = flagArgument(node); });
     table.insert(
@@ -99,23 +75,10 @@ void addSimpleHandlers(NodeTable &table, LoadContext &context)
     table.insert(QStringLiteral("output"), [&context](const Kdl::Node &node) { decodeOutput(context, node); });
     table.insert(QStringLiteral("monitor-profile"), [&context](const Kdl::Node &node) { decodeMonitorProfile(context, node); });
     table.insert(QStringLiteral("workspace"), [&context](const Kdl::Node &node) { decodeWorkspace(context, node); });
-    table.insert(QStringLiteral("window-rule"),
-        [&context](const Kdl::Node &node) { context.config.windowRules.append(decodeWindowRule(context, node)); });
+    table.insert(QStringLiteral("window-rule"), [&config](const Kdl::Node &node) { config.windowRules.append(decodeWindowRule(node)); });
     table.insert(QStringLiteral("binds"), [&context](const Kdl::Node &node) { decodeBinds(context, node); });
-    for (const QString &name : ignoredSections()) {
-        table.insert(name, [&context, name](const Kdl::Node &node) { ignoreNode(context, node, ignoreReason(name)); });
-    }
 }
 
-}
-
-void ignoreNode(LoadContext &context, const Kdl::Node &node, const QString &reason)
-{
-    context.warnings.append(QStringLiteral("%1:%2:%3: ignoring `%4`: %5")
-            .arg(node.location.file)
-            .arg(node.location.line)
-            .arg(node.location.column)
-            .arg(node.name, reason));
 }
 
 void processNode(LoadContext &context, const Kdl::Node &node, const QString &baseDir, const QStringList &stack)

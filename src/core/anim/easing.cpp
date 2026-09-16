@@ -1,5 +1,7 @@
 #include "anim/easing.h"
 
+#include <QPointF>
+
 #include <cmath>
 
 namespace Konveyor::Anim

@@ -51,11 +51,9 @@ struct Animations
     double slowdown = 1.0;
     AnimationParams workspaceSwitch;
     AnimationParams windowOpen;
-    AnimationParams windowClose;
     AnimationParams horizontalViewMovement;
     AnimationParams windowMovement;
     AnimationParams windowResize;
-    AnimationParams overviewOpenClose;
     bool operator==(const Animations &) const = default;
 };
 

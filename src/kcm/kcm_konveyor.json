@@ -1,0 +1,16 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "DevL0rd"
+            }
+        ],
+        "Description": "Scrolling column tiling: layout, look, motion, shortcuts and window rules",
+        "Icon": "view-split-left-right",
+        "License": "GPL-3.0-or-later",
+        "Name": "Konveyor"
+    },
+    "X-KDE-Keywords": "tiling,scrolling,columns,konveyor,gaps,focus ring,border,animations,shortcuts,window rules,monitor,workspaces",
+    "X-KDE-System-Settings-Parent-Category": "windowmanagement",
+    "X-KDE-Weight": 70
+}

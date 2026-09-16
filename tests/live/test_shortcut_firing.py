@@ -17,7 +17,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from keycodes import evdev_codes
 
 os.environ.setdefault("YDOTOOL_SOCKET", f"/run/user/{os.getuid()}/.ydotool_socket")
-SKIP = {"toggle-keyboard-shortcuts-inhibit", "quit", "power-off-monitors"}
 
 
 def msg(*args):
@@ -55,11 +54,10 @@ def main():
 
     binds = [b for b in msg("binds") if b.get("key")]
     keyboard = [b for b in binds if "WheelScroll" not in b["key"] and "Mouse" not in b["key"]]
-    tested = [b for b in keyboard if b["action"]["name"] not in SKIP]
 
     failures = []
     unmapped = []
-    for bind in tested:
+    for bind in keyboard:
         before = last_bind()
         if not press(bind["key"]):
             unmapped.append(bind["key"])
@@ -70,8 +68,8 @@ def main():
         elif after["key"] != bind["key"]:
             failures.append((bind["key"], bind["action"]["name"], f"ran {after['key']} instead"))
 
-    print(f"keyboard binds: {len(keyboard)}   tested: {len(tested)}   skipped: {len(keyboard) - len(tested)}")
-    print(f"fired: {len(tested) - len(failures) - len(unmapped)}")
+    print(f"keyboard binds: {len(keyboard)}")
+    print(f"fired: {len(keyboard) - len(failures) - len(unmapped)}")
     for key in unmapped:
         print(f"  NO KEYCODE IN TEST  {key}")
     for key, action, why in failures:

@@ -24,8 +24,6 @@ void TestConfigOutputs::parsesOutput()
             gaps 16
         }
         output "eDP-1" {
-            scale 2
-            mode "1920x1080@144"
             layout {
                 gaps 4
                 border {
@@ -37,7 +35,6 @@ void TestConfigOutputs::parsesOutput()
             }
         }
         output "DP-2" {
-            position x=0 y=0
         }
     )"));
     QCOMPARE(result.config.outputs.size(), 2);
@@ -51,7 +48,8 @@ void TestConfigOutputs::parsesOutput()
     QCOMPARE(primary.hotCorners->enabled, false);
     QCOMPARE(result.config.layout.gaps, 16.0);
     QVERIFY(!result.config.outputs.at(1).layout.has_value());
-    QCOMPARE(result.warnings.size(), 3);
+    QVERIFY(result.warnings.isEmpty());
+    QVERIFY(mustFail(QStringLiteral("output \"eDP-1\" {\n scale 2\n}\n")).message.contains(QStringLiteral("unexpected node `scale`")));
 }
 
 void TestConfigOutputs::parsesMonitorProfiles()

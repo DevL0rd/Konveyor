@@ -48,6 +48,14 @@ struct Property
     Location location;
 };
 
+struct Span
+{
+    qsizetype start = -1;
+    qsizetype end = -1;
+    qsizetype childrenOpen = -1;
+    qsizetype childrenClose = -1;
+};
+
 struct Node
 {
     QString name;
@@ -56,6 +64,7 @@ struct Node
     QList<Property> properties;
     QList<Node> children;
     Location location;
+    Span span;
 
     const Property *property(const QString &propertyName) const;
     const Node *child(const QString &childName) const;

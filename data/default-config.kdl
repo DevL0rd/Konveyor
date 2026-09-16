@@ -3,7 +3,7 @@
 // Keyboard shortcuts that KDE already provides (Alt+F4, Meta+L, screenshots, Meta+V, Meta+W, ...) are left untouched.
 
 input {
-    // focus-follows-mouse max-scroll-amount="0%"
+    // focus-follows-mouse
     // warp-mouse-to-focus
     // workspace-auto-back-and-forth
 }
@@ -38,13 +38,6 @@ layout {
         active-color "accent"
         inactive-color "#505050"
         urgent-color "#9b0000"
-    }
-
-    shadow {
-        softness 30
-        spread 5
-        offset x=0 y=5
-        color "#0007"
     }
 
     struts {

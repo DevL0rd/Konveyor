@@ -16,7 +16,7 @@ private Q_SLOTS:
     void rejectsMixedAnimationKinds();
     void rejectsBadCurveAndSpring();
     void animationsOffAndSlowdown();
-    void ignoresUnrenderedAnimations();
+    void rejectsUnknownAnimations();
 };
 
 void TestConfigAnimations::parsesAnimationSpring()
@@ -61,12 +61,12 @@ void TestConfigAnimations::parsesCubicBezier()
 {
     const Config config = parsed(QStringLiteral(R"(
         animations {
-            window-close {
+            window-open {
                 curve "cubic-bezier" 0.05 0.7 0.1 1
             }
         }
     )"));
-    const auto easing = std::get<EasingParams>(config.animations.windowClose.kind);
+    const auto easing = std::get<EasingParams>(config.animations.windowOpen.kind);
     QCOMPARE(easing.curve, EasingCurve::CubicBezier);
     QCOMPARE(easing.x1, 0.05);
     QCOMPARE(easing.y1, 0.7);
@@ -98,7 +98,7 @@ void TestConfigAnimations::rejectsBadCurveAndSpring()
             .message.contains(QStringLiteral("damping-ratio must be between")));
     QVERIFY(mustFail(QStringLiteral("animations {\n window-open { spring damping-ratio=1 stiffness=800 epsilon=5; }\n}\n"))
             .message.contains(QStringLiteral("epsilon must be between")));
-    QVERIFY(mustFail(QStringLiteral("animations {\n window-close { curve \"cubic-bezier\" 0.1 0.2; }\n}\n"))
+    QVERIFY(mustFail(QStringLiteral("animations {\n window-open { curve \"cubic-bezier\" 0.1 0.2; }\n}\n"))
             .message.contains(QStringLiteral("cubic-bezier requires")));
 }
 
@@ -110,18 +110,15 @@ void TestConfigAnimations::animationsOffAndSlowdown()
     QCOMPARE(parsed(QStringLiteral("animations {\n off\n on\n}\n")).animations.enabled, true);
 }
 
-void TestConfigAnimations::ignoresUnrenderedAnimations()
+void TestConfigAnimations::rejectsUnknownAnimations()
 {
-    const LoadResult result = mustLoad(QStringLiteral(R"(
-        animations {
-            screenshot-ui-open { duration-ms 1; }
-            config-notification-open-close { off; }
-            exit-confirmation-open-close { off; }
-            recent-windows-close { off; }
-        }
-    )"));
-    QCOMPARE(result.warnings.size(), 4);
-    QVERIFY(result.warnings.first().contains(QStringLiteral("screenshot-ui-open")));
+    const QStringList names {QStringLiteral("window-close"), QStringLiteral("overview-open-close"), QStringLiteral("screenshot-ui-open")};
+    for (const QString &name : names) {
+        const QString text = QStringLiteral("animations {\n %1 { off; }\n}\n").arg(name);
+        QVERIFY2(mustFail(text).message.contains(QStringLiteral("unexpected node")), qPrintable(name));
+    }
+    QVERIFY(mustFail(QStringLiteral("animations {\n window-open { custom-shader \"x\"; }\n}\n"))
+            .message.contains(QStringLiteral("unexpected node")));
 }
 
 QTEST_MAIN(TestConfigAnimations)

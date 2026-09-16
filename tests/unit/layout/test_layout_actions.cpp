@@ -52,12 +52,7 @@ const QStringList &directionalPrefixes()
 
 const QStringList &compositorActionNames()
 {
-    static const QStringList names {QStringLiteral("quit"), QStringLiteral("power-off-monitors"), QStringLiteral("power-on-monitors"),
-        QStringLiteral("do-screen-transition"), QStringLiteral("screenshot"), QStringLiteral("screenshot-screen"),
-        QStringLiteral("screenshot-window"), QStringLiteral("show-hotkey-overlay"), QStringLiteral("toggle-keyboard-shortcuts-inhibit"),
-        QStringLiteral("switch-layout"), QStringLiteral("toggle-debug-tint"), QStringLiteral("debug-toggle-opaque-regions"),
-        QStringLiteral("debug-toggle-damage"), QStringLiteral("set-dynamic-cast-window"), QStringLiteral("set-dynamic-cast-monitor"),
-        QStringLiteral("clear-dynamic-cast-target"), QStringLiteral("stop-cast"), QStringLiteral("load-config-file")};
+    static const QStringList names {QStringLiteral("show-hotkey-overlay")};
     return names;
 }
 
@@ -168,6 +163,9 @@ private Q_SLOTS:
         const Layout::ActionResult result = fixture.perform(QStringLiteral("do-a-barrel-roll"));
         QVERIFY(!result.ok);
         QCOMPARE(result.error, QStringLiteral("unknown action: do-a-barrel-roll"));
+        for (const QString &removed : {QStringLiteral("quit"), QStringLiteral("screenshot"), QStringLiteral("load-config-file")}) {
+            QVERIFY(!fixture.perform(removed).ok);
+        }
     }
 
     void badArgumentsAreReported()

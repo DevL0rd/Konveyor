@@ -99,8 +99,10 @@ Node Parser::parseNode()
 {
     Node node;
     node.location = m_cursor.location();
+    node.span.start = m_cursor.position();
     node.typeAnnotation = parseTypeAnnotation();
     node.name = identifierFromWord(m_lexer.readWord(QStringLiteral("node name")), QStringLiteral("node name"));
+    node.span.end = m_cursor.position();
     parseEntries(node);
     return node;
 }
@@ -121,6 +123,9 @@ void Parser::parseEntries(Node &node)
         }
         requireEntrySeparator(separated, entryStart);
         parseEntry(node, discard);
+        if (!discard) {
+            node.span.end = m_cursor.position();
+        }
     }
 }
 
@@ -148,15 +153,20 @@ void Parser::parseChildren(Node &node, bool discard)
         raiseSyntaxError(QStringLiteral("children blocks are nested too deeply"), open);
     }
     ++m_depth;
+    const qsizetype openPosition = m_cursor.position();
     m_cursor.advance();
     QList<Node> children = parseNodes();
     if (m_cursor.atEnd()) {
         raiseSyntaxError(QStringLiteral("unclosed children block"), open);
     }
+    const qsizetype closePosition = m_cursor.position();
     m_cursor.advance();
     --m_depth;
     if (!discard) {
         node.children = std::move(children);
+        node.span.childrenOpen = openPosition;
+        node.span.childrenClose = closePosition;
+        node.span.end = m_cursor.position();
     }
 }
 

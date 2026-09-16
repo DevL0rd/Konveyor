@@ -123,19 +123,16 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void overviewAnimationRuns()
+    void overviewStateTogglesWithoutAnimating()
     {
         Fixture fixture(animatedConfig());
         fixture.add();
         fixture.advance(2000);
         fixture.engine().setOverviewOpen(true);
         QVERIFY(fixture.engine().isOverviewOpen());
-        QVERIFY(fixture.engine().isAnimating());
-        fixture.advance(4000);
         QVERIFY(!fixture.engine().isAnimating());
         fixture.engine().setOverviewOpen(false);
         QVERIFY(!fixture.engine().isOverviewOpen());
-        fixture.advance(4000);
         QVERIFY(!fixture.engine().isAnimating());
         VERIFY_INVARIANTS(fixture);
     }

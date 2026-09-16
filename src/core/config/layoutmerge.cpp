@@ -103,9 +103,6 @@ Layout mergedLayout(Layout base, const LayoutPart &part)
     if (part.border) {
         mergeBorder(base.border, *part.border);
     }
-    if (part.shadow) {
-        mergeShadow(base.shadow, *part.shadow);
-    }
     if (part.tabIndicator) {
         mergeTabIndicator(base.tabIndicator, *part.tabIndicator);
     }
@@ -132,31 +129,6 @@ void mergeBorder(Border &base, const BorderRule &part)
     mergePaint(base.active, part.active);
     mergePaint(base.inactive, part.inactive);
     mergePaint(base.urgent, part.urgent);
-}
-
-void mergeShadow(Shadow &base, const ShadowRule &part)
-{
-    if (part.enabled) {
-        base.enabled = *part.enabled;
-    }
-    if (part.offset) {
-        base.offset = *part.offset;
-    }
-    if (part.softness) {
-        base.softness = *part.softness;
-    }
-    if (part.spread) {
-        base.spread = *part.spread;
-    }
-    if (part.drawBehindWindow) {
-        base.drawBehindWindow = *part.drawBehindWindow;
-    }
-    if (part.color) {
-        base.color = *part.color;
-    }
-    if (part.inactiveColor) {
-        base.inactiveColor = *part.inactiveColor;
-    }
 }
 
 }

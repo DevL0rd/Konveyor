@@ -8,6 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(KONVEYOR_BUILD_EFFECT "Build the KWin effect plugin" ON)
+option(KONVEYOR_BUILD_KCM "Build the System Settings module" ON)
 option(KONVEYOR_BUILD_TESTS "Build unit tests" ON)
 
 find_package(ECM 6.0 REQUIRED NO_MODULE)
@@ -24,6 +25,10 @@ add_subdirectory(src/cli)
 
 if(KONVEYOR_BUILD_EFFECT)
     add_subdirectory(src/effect)
+endif()
+
+if(KONVEYOR_BUILD_KCM)
+    add_subdirectory(src/kcm)
 endif()
 
 if(KONVEYOR_BUILD_TESTS)

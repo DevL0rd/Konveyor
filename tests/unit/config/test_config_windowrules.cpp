@@ -14,6 +14,7 @@ private Q_SLOTS:
     void parsesWindowRuleProperties();
     void parsesGeometryCornerRadius();
     void parsesFloatingPosition();
+    void rejectsRemovedRuleOptions();
 };
 
 void TestConfigWindowRules::parsesWindowRuleMatchers()
@@ -22,7 +23,7 @@ void TestConfigWindowRules::parsesWindowRuleMatchers()
         window-rule {
             match app-id="^firefox$" title="Picture-in-Picture"
             match is-active=true is-focused=false is-active-in-column=true
-            exclude is-floating=true is-urgent=false at-startup=true is-window-cast-target=false
+            exclude is-floating=true is-urgent=false at-startup=true
             open-floating true
             manage false
         }
@@ -55,24 +56,15 @@ void TestConfigWindowRules::parsesWindowRuleProperties()
             open-maximized-to-edges false
             open-fullscreen true
             open-focused true
-            on-xdg-activate "set-urgent"
             min-width 100
             max-width 900
             min-height 50
             max-height 800
             opacity 0.9
-            scroll-factor 1.5
             clip-to-geometry true
-            draw-border-with-background false
-            baba-is-float true
-            variable-refresh-rate true
-            tiled-state false
-            block-out-from "screen-capture"
             default-column-display "tabbed"
             focus-ring { off; }
             border { on; width 8.5; }
-            shadow { on; softness 12; }
-            tab-indicator { active-color "#f00"; }
         }
     )"));
     const WindowRule &rule = config.windowRules.first();
@@ -84,26 +76,14 @@ void TestConfigWindowRules::parsesWindowRuleProperties()
     QCOMPARE(rule.openMaximized, std::optional {true});
     QCOMPARE(rule.openMaximizedToEdges, std::optional {false});
     QCOMPARE(rule.openFullscreen, std::optional {true});
-    QCOMPARE(rule.onXdgActivate, std::optional {XdgActivate::SetUrgent});
     QCOMPARE(rule.minWidth, std::optional {100});
     QCOMPARE(rule.maxHeight, std::optional {800});
     QCOMPARE(rule.opacity, std::optional {0.9});
-    QCOMPARE(rule.scrollFactor, std::optional {1.5});
     QCOMPARE(rule.clipToGeometry, std::optional {true});
-    QCOMPARE(rule.drawBorderWithBackground, std::optional {false});
-    QCOMPARE(rule.babaIsFloat, std::optional {true});
-    QCOMPARE(rule.variableRefreshRate, std::optional {true});
-    QCOMPARE(rule.tiledState, std::optional {false});
-    QCOMPARE(rule.blockOutFrom, std::optional {BlockOutFrom::ScreenCapture});
-    QCOMPARE(rule.blockOutFromScreencast, std::optional {true});
     QCOMPARE(rule.defaultColumnDisplay, std::optional {ColumnDisplay::Tabbed});
     QCOMPARE(rule.focusRing.enabled, std::optional {false});
     QCOMPARE(rule.border.enabled, std::optional {true});
     QCOMPARE(rule.border.width, std::optional {8.5});
-    QCOMPARE(rule.shadow, std::optional {true});
-    QCOMPARE(rule.shadowRule.softness, std::optional {12.0});
-    QVERIFY(rule.tabIndicator.active.has_value());
-    QCOMPARE(rule.tabIndicator.active->color, QColor(255, 0, 0));
 }
 
 void TestConfigWindowRules::parsesGeometryCornerRadius()
@@ -132,6 +112,21 @@ void TestConfigWindowRules::parsesFloatingPosition()
     QCOMPARE(plain.windowRules.first().defaultFloatingPosition->relativeTo, FloatingRelativeTo::TopLeft);
     QVERIFY(
         mustFail(QStringLiteral("window-rule {\n default-floating-position x=1\n}\n")).message.contains(QStringLiteral("`y` is required")));
+}
+
+void TestConfigWindowRules::rejectsRemovedRuleOptions()
+{
+    const QStringList nodes {QStringLiteral("on-xdg-activate \"focus\""), QStringLiteral("scroll-factor 1.5"),
+        QStringLiteral("draw-border-with-background false"), QStringLiteral("baba-is-float true"),
+        QStringLiteral("variable-refresh-rate true"), QStringLiteral("tiled-state false"), QStringLiteral("block-out-from \"screencast\""),
+        QStringLiteral("shadow { on; }"), QStringLiteral("tab-indicator { active-color \"#f00\"; }"),
+        QStringLiteral("popups { opacity 0.5; }"), QStringLiteral("background-effect { blur true; }")};
+    for (const QString &node : nodes) {
+        const QString text = QStringLiteral("window-rule {\n %1\n}\n").arg(node);
+        QVERIFY2(mustFail(text).message.contains(QStringLiteral("unexpected node")), qPrintable(node));
+    }
+    QVERIFY(mustFail(QStringLiteral("window-rule {\n match is-window-cast-target=true\n}\n"))
+            .message.contains(QStringLiteral("unexpected property")));
 }
 
 QTEST_MAIN(TestConfigWindowRules)

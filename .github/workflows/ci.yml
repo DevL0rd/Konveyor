@@ -21,7 +21,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm --needed git cmake ninja clang extra-cmake-modules \
             qt6-base qt6-declarative kwin kglobalaccel kconfig kcolorscheme knotifications \
-            kcoreaddons ki18n kdecoration libxkbcommon llvm typos nodejs npm python-dbus
+            kcoreaddons ki18n kdecoration kcmutils kservice libxkbcommon llvm typos nodejs npm python-dbus
 
       - name: Build xunused
         run: |

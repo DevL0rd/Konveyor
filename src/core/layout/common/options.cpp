@@ -33,7 +33,6 @@ Options optionsFromConfig(const Config::Config &config)
     options.layout = normalizedLayout(config.layout);
     options.animations = config.animations;
     options.gestures = config.gestures;
-    options.overview = config.overview;
     return options;
 }
 

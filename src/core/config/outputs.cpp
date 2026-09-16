@@ -5,19 +5,6 @@
 namespace Konveyor::Config
 {
 
-namespace
-{
-
-const QStringList &ignoredOutputNodes()
-{
-    static const QStringList names {QStringLiteral("off"), QStringLiteral("mode"), QStringLiteral("modeline"), QStringLiteral("scale"),
-        QStringLiteral("transform"), QStringLiteral("position"), QStringLiteral("max-bpc"), QStringLiteral("variable-refresh-rate"),
-        QStringLiteral("focus-at-startup"), QStringLiteral("background-color"), QStringLiteral("backdrop-color")};
-    return names;
-}
-
-}
-
 void decodeOutput(LoadContext &context, const Kdl::Node &node)
 {
     expectNoProperties(node);
@@ -25,10 +12,6 @@ void decodeOutput(LoadContext &context, const Kdl::Node &node)
     OutputConfig output;
     output.name = toText(requiredArgument(node, QStringLiteral("name")));
     NodeTable table;
-    for (const QString &name : ignoredOutputNodes()) {
-        table.insert(
-            name, [&context](const Kdl::Node &child) { ignoreNode(context, child, QStringLiteral("KDE manages output configuration")); });
-    }
     table.insert(QStringLiteral("layout"), [&output](const Kdl::Node &child) { output.layoutPart = decodeLayoutPart(child, false); });
     table.insert(QStringLiteral("hot-corners"), [&output](const Kdl::Node &child) { output.hotCorners = decodeHotCorners(child); });
     decodeChildren(node, table);

@@ -4,7 +4,6 @@
 
 #include <QColor>
 #include <QList>
-#include <QPointF>
 #include <QString>
 
 #include <optional>
@@ -84,36 +83,12 @@ struct BorderRule
     bool operator==(const BorderRule &) const = default;
 };
 
-struct Shadow
-{
-    bool enabled = false;
-    double softness = 30;
-    double spread = 5;
-    QPointF offset {0, 5};
-    bool drawBehindWindow = false;
-    QColor color {0, 0, 0, 0x77};
-    std::optional<QColor> inactiveColor;
-    bool operator==(const Shadow &) const = default;
-};
-
 enum class TabIndicatorPosition
 {
     Left,
     Right,
     Top,
     Bottom
-};
-
-struct ShadowRule
-{
-    std::optional<bool> enabled;
-    std::optional<QPointF> offset;
-    std::optional<double> softness;
-    std::optional<double> spread;
-    std::optional<bool> drawBehindWindow;
-    std::optional<QColor> color;
-    std::optional<QColor> inactiveColor;
-    bool operator==(const ShadowRule &) const = default;
 };
 
 struct TabIndicatorRule

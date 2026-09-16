@@ -13,7 +13,6 @@ struct Options
     Config::Layout layout;
     Config::Animations animations;
     Config::Gestures gestures;
-    Config::Overview overview;
     bool operator==(const Options &) const = default;
 };
 

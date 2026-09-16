@@ -32,11 +32,9 @@ Config::Animations defaultAnimations()
     animations.slowdown = 1.0;
     animations.workspaceSwitch = springAnimation(1.0, 1000, 0.0001);
     animations.windowOpen = easingAnimation(150, Config::EasingCurve::EaseOutExpo);
-    animations.windowClose = easingAnimation(150, Config::EasingCurve::EaseOutQuad);
     animations.horizontalViewMovement = springAnimation(1.0, 800, 0.0001);
     animations.windowMovement = springAnimation(1.0, 800, 0.0001);
     animations.windowResize = springAnimation(1.0, 800, 0.0001);
-    animations.overviewOpenClose = springAnimation(1.0, 800, 0.0001);
     return animations;
 }
 

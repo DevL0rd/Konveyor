@@ -66,7 +66,6 @@ void addLayoutAppearanceHandlers(NodeTable &table, LayoutPart &part)
 {
     table.insert(QStringLiteral("focus-ring"), [&part](const Kdl::Node &node) { part.focusRing = decodeBorderRule(node); });
     table.insert(QStringLiteral("border"), [&part](const Kdl::Node &node) { part.border = decodeBorderRule(node); });
-    table.insert(QStringLiteral("shadow"), [&part](const Kdl::Node &node) { part.shadow = decodeShadowRule(node); });
     table.insert(QStringLiteral("tab-indicator"), [&part](const Kdl::Node &node) { part.tabIndicator = decodeTabIndicatorPart(node); });
     table.insert(QStringLiteral("insert-hint"), [&part](const Kdl::Node &node) { part.insertHint = decodeInsertHintPart(node); });
     table.insert(QStringLiteral("background-color"), [&part](const Kdl::Node &node) { part.backgroundColor = decodeColorNode(node); });

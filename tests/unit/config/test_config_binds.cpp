@@ -37,7 +37,6 @@ private Q_SLOTS:
     void hotkeyOverlayTitleNullHides();
     void resolvesModKey();
     void resolvesModKeyFromInputSection();
-    void toggleInhibitIsNeverInhibited();
     void capturesActionArgumentsAndProperties();
     void rejectsUnknownAction();
     void rejectsMissingActionArgument();
@@ -46,7 +45,7 @@ private Q_SLOTS:
     void rejectsMultipleActions();
     void rejectsDuplicateBinds();
     void rejectsInvalidModifierAndKey();
-    void rejectsAllowWhenLockedOnNonSpawn();
+    void rejectsRemovedBindOptions();
 };
 
 void TestConfigBinds::parsesKeysymTriggers()
@@ -147,20 +146,16 @@ void TestConfigBinds::parsesScrollTriggers()
 
 void TestConfigBinds::parsesBindProperties()
 {
-    const Bind bind = firstBind(QStringLiteral("Mod+T repeat=false cooldown-ms=150 allow-when-locked=true allow-inhibiting=false "
-                                               "hotkey-overlay-title=\"Terminal\" { spawn \"alacritty\"; }"));
+    const Bind bind
+        = firstBind(QStringLiteral("Mod+T repeat=false cooldown-ms=150 hotkey-overlay-title=\"Terminal\" { spawn \"alacritty\"; }"));
     QCOMPARE(bind.repeat, false);
     QCOMPARE(bind.cooldownMs, std::optional {150});
-    QCOMPARE(bind.allowWhenLocked, true);
-    QCOMPARE(bind.allowInhibiting, false);
     QCOMPARE(bind.hotkeyOverlayTitle, std::optional {QStringLiteral("Terminal")});
     QCOMPARE(bind.hideFromHotkeyOverlay, false);
 
     const Bind plain = firstBind(QStringLiteral("Mod+Q { close-window; }"));
     QCOMPARE(plain.repeat, true);
     QVERIFY(!plain.cooldownMs.has_value());
-    QCOMPARE(plain.allowWhenLocked, false);
-    QCOMPARE(plain.allowInhibiting, true);
     QVERIFY(!plain.hotkeyOverlayTitle.has_value());
 }
 
@@ -195,12 +190,6 @@ void TestConfigBinds::resolvesModKeyFromInputSection()
     QVERIFY(config.binds.first().modifiers.testFlag(Qt::AltModifier));
 }
 
-void TestConfigBinds::toggleInhibitIsNeverInhibited()
-{
-    const Bind bind = firstBind(QStringLiteral("Mod+Escape { toggle-keyboard-shortcuts-inhibit; }"));
-    QCOMPARE(bind.allowInhibiting, false);
-}
-
 void TestConfigBinds::capturesActionArgumentsAndProperties()
 {
     const Bind spawn = firstBind(QStringLiteral("Mod+B { spawn \"brightnessctl\" \"set\" \"+10%\"; }"));
@@ -216,10 +205,10 @@ void TestConfigBinds::capturesActionArgumentsAndProperties()
     const Bind width = firstBind(QStringLiteral("Mod+Minus { set-column-width \"-10%\"; }"));
     QCOMPARE(width.action.arguments, QStringList({QStringLiteral("-10%")}));
 
-    const Bind quit = firstBind(QStringLiteral("Mod+Shift+E { quit skip-confirmation=true; }"));
-    QCOMPARE(quit.action.properties.size(), 1);
-    QCOMPARE(quit.action.properties.first().first, QStringLiteral("skip-confirmation"));
-    QCOMPARE(quit.action.properties.first().second, QStringLiteral("true"));
+    const Bind move = firstBind(QStringLiteral("Mod+Shift+1 { move-column-to-workspace 1 focus=false; }"));
+    QCOMPARE(move.action.properties.size(), 1);
+    QCOMPARE(move.action.properties.first().first, QStringLiteral("focus"));
+    QCOMPARE(move.action.properties.first().second, QStringLiteral("false"));
 }
 
 void TestConfigBinds::rejectsUnknownAction()
@@ -264,12 +253,18 @@ void TestConfigBinds::rejectsInvalidModifierAndKey()
     QCOMPARE(bindError(QStringLiteral("Mod+NotAKey { close-window; }")).message, QStringLiteral("invalid key: NotAKey"));
 }
 
-void TestConfigBinds::rejectsAllowWhenLockedOnNonSpawn()
+void TestConfigBinds::rejectsRemovedBindOptions()
 {
-    QVERIFY(bindError(QStringLiteral("Mod+A allow-when-locked=true { close-window; }"))
-            .message.contains(QStringLiteral("allow-when-locked can only be set on spawn binds")));
-    const Bind bind = firstBind(QStringLiteral("Mod+A allow-when-locked=true { spawn-sh \"true\"; }"));
-    QCOMPARE(bind.allowWhenLocked, true);
+    QVERIFY(bindError(QStringLiteral("Mod+A allow-when-locked=true { spawn-sh \"true\"; }"))
+            .message.contains(QStringLiteral("unexpected property")));
+    QVERIFY(bindError(QStringLiteral("Mod+A allow-inhibiting=false { close-window; }"))
+            .message.contains(QStringLiteral("unexpected property")));
+    const QStringList actions {QStringLiteral("quit"), QStringLiteral("suspend"), QStringLiteral("screenshot"),
+        QStringLiteral("power-off-monitors"), QStringLiteral("toggle-keyboard-shortcuts-inhibit"), QStringLiteral("toggle-debug-tint"),
+        QStringLiteral("stop-cast")};
+    for (const QString &name : actions) {
+        QVERIFY2(bindError(QStringLiteral("Mod+A { %1; }").arg(name)).message.contains(QStringLiteral("unknown action")), qPrintable(name));
+    }
 }
 
 QTEST_MAIN(TestConfigBinds)

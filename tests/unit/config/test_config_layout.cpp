@@ -14,7 +14,6 @@ private Q_SLOTS:
     void parsesPresetsAndDefaultWidth();
     void emptyBorderSectionEnablesBorder();
     void borderOffKeepsBorderDisabled();
-    void shadowOffWinsOverOn();
     void parsesTabIndicatorAndInsertHint();
     void parsesStrutsPartially();
     void rejectsOutOfRangeValues_data();
@@ -86,31 +85,6 @@ void TestConfigLayout::borderOffKeepsBorderDisabled()
     QCOMPARE(ring.layout.focusRing.enabled, false);
 }
 
-void TestConfigLayout::shadowOffWinsOverOn()
-{
-    QCOMPARE(parsed(QStringLiteral("layout { shadow { on; }; }")).layout.shadow.enabled, true);
-    QCOMPARE(parsed(QStringLiteral("layout { shadow { on; off; }; }")).layout.shadow.enabled, false);
-    const Config config = parsed(QStringLiteral(R"(
-        layout {
-            shadow {
-                on
-                offset x=10 y=-20
-                softness 12
-                spread 3
-                draw-behind-window true
-                color "#010203"
-                inactive-color "#040506"
-            }
-        }
-    )"));
-    QCOMPARE(config.layout.shadow.offset, QPointF(10, -20));
-    QCOMPARE(config.layout.shadow.softness, 12.0);
-    QCOMPARE(config.layout.shadow.spread, 3.0);
-    QCOMPARE(config.layout.shadow.drawBehindWindow, true);
-    QCOMPARE(config.layout.shadow.color, QColor(1, 2, 3));
-    QCOMPARE(config.layout.shadow.inactiveColor, std::optional {QColor(4, 5, 6)});
-}
-
 void TestConfigLayout::parsesTabIndicatorAndInsertHint()
 {
     const Config config = parsed(QStringLiteral(R"(
@@ -161,8 +135,10 @@ void TestConfigLayout::rejectsOutOfRangeValues_data()
 
     QTest::newRow("negative gaps") << QStringLiteral("layout { gaps -1; }") << QStringLiteral("between 0 and 65535");
     QTest::newRow("huge width") << QStringLiteral("layout { border { width 70000; }; }") << QStringLiteral("between 0 and 65535");
-    QTest::newRow("softness") << QStringLiteral("layout { shadow { softness 2000; }; }") << QStringLiteral("between 0 and 1024");
-    QTest::newRow("zoom") << QStringLiteral("overview { zoom 4; }") << QStringLiteral("between 0 and 1");
+    QTest::newRow("tab corner radius") << QStringLiteral("layout { tab-indicator { corner-radius 70000; }; }")
+                                       << QStringLiteral("between 0 and 65535");
+    QTest::newRow("edge delay") << QStringLiteral("gestures { dnd-edge-view-scroll { delay-ms 70000; }; }")
+                                << QStringLiteral("between 0 and 65535");
     QTest::newRow("string gaps") << QStringLiteral("layout { gaps \"x\"; }") << QStringLiteral("only numbers");
 }
 
@@ -180,6 +156,7 @@ void TestConfigLayout::rejectsUnknownNodes_data()
 
     QTest::newRow("top level") << QStringLiteral("nonsense {}") << QStringLiteral("unexpected node `nonsense`");
     QTest::newRow("layout child") << QStringLiteral("layout { bogus 1; }") << QStringLiteral("unexpected node `bogus`");
+    QTest::newRow("layout shadow") << QStringLiteral("layout { shadow { on; }; }") << QStringLiteral("unexpected node `shadow`");
     QTest::newRow("border child") << QStringLiteral("layout { border { bogus; }; }") << QStringLiteral("unexpected node `bogus`");
     QTest::newRow("preset") << QStringLiteral("layout { preset-column-widths { huge 1; }; }") << QStringLiteral("unexpected node `huge`");
     QTest::newRow("property") << QStringLiteral("layout { gaps bogus=1; }") << QStringLiteral("unexpected property `bogus`");

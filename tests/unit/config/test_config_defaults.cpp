@@ -15,7 +15,6 @@ private Q_SLOTS:
     void defaultAppearanceValues();
     void defaultAnimationValues();
     void defaultGestureAndInputValues();
-    void defaultOverviewValues();
     void mergedLayoutAppliesPart();
     void mergedLayoutUnsetsWithFalseFlag();
     void mergedLayoutRestoresEmptyPresets();
@@ -59,11 +58,6 @@ void TestConfigDefaults::defaultAppearanceValues()
     QCOMPARE(layout.border.enabled, false);
     QCOMPARE(layout.border.width, 4.0);
     QCOMPARE(layout.border.active.color, QColor(255, 200, 127));
-    QCOMPARE(layout.shadow.enabled, false);
-    QCOMPARE(layout.shadow.softness, 30.0);
-    QCOMPARE(layout.shadow.spread, 5.0);
-    QCOMPARE(layout.shadow.offset, QPointF(0, 5));
-    QCOMPARE(layout.shadow.color, QColor(0, 0, 0, 0x77));
     QCOMPARE(layout.tabIndicator.enabled, true);
     QCOMPARE(layout.tabIndicator.gap, 5.0);
     QCOMPARE(layout.tabIndicator.width, 4.0);
@@ -82,13 +76,9 @@ void TestConfigDefaults::defaultAnimationValues()
     QCOMPARE(std::get<SpringParams>(animations.horizontalViewMovement.kind), (SpringParams {1.0, 800, 0.0001}));
     QCOMPARE(std::get<SpringParams>(animations.windowMovement.kind), (SpringParams {1.0, 800, 0.0001}));
     QCOMPARE(std::get<SpringParams>(animations.windowResize.kind), (SpringParams {1.0, 800, 0.0001}));
-    QCOMPARE(std::get<SpringParams>(animations.overviewOpenClose.kind), (SpringParams {1.0, 800, 0.0001}));
     const auto open = std::get<EasingParams>(animations.windowOpen.kind);
     QCOMPARE(open.durationMs, 150.0);
     QCOMPARE(open.curve, EasingCurve::EaseOutExpo);
-    const auto close = std::get<EasingParams>(animations.windowClose.kind);
-    QCOMPARE(close.durationMs, 150.0);
-    QCOMPARE(close.curve, EasingCurve::EaseOutQuad);
 }
 
 void TestConfigDefaults::defaultGestureAndInputValues()
@@ -106,23 +96,7 @@ void TestConfigDefaults::defaultGestureAndInputValues()
     QCOMPARE(config.input.warpMouseToFocus, false);
     QCOMPARE(config.input.workspaceAutoBackAndForth, false);
     QCOMPARE(config.input.modKey, QStringLiteral("Super"));
-    QVERIFY(!config.input.modKeyNested.has_value());
-    QCOMPARE(config.preferNoCsd, false);
-    QCOMPARE(config.hotkeyOverlay.skipAtStartup, false);
-    QCOMPARE(config.hotkeyOverlay.hideNotBound, false);
     QCOMPARE(config.configNotificationDisableFailed, false);
-}
-
-void TestConfigDefaults::defaultOverviewValues()
-{
-    const Overview overview = defaultConfig().overview;
-    QCOMPARE(overview.zoom, 0.5);
-    QCOMPARE(overview.backdropColor, QColor(0x26, 0x26, 0x26));
-    QCOMPARE(overview.workspaceShadow.enabled, true);
-    QCOMPARE(overview.workspaceShadow.softness, 40.0);
-    QCOMPARE(overview.workspaceShadow.spread, 10.0);
-    QCOMPARE(overview.workspaceShadow.offset, QPointF(0, 10));
-    QCOMPARE(overview.workspaceShadow.color, QColor(0, 0, 0, 0x50));
 }
 
 void TestConfigDefaults::mergedLayoutAppliesPart()

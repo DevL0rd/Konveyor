@@ -26,19 +26,15 @@ struct EffectiveWindowRules
     std::optional<bool> openFocused;
     std::optional<bool> manage;
     std::optional<Config::ColumnPosition> columnPosition;
-    std::optional<Config::XdgActivate> onXdgActivate;
     std::optional<int> minWidth;
     std::optional<int> minHeight;
     std::optional<int> maxWidth;
     std::optional<int> maxHeight;
     Config::BorderRule focusRing;
     Config::BorderRule border;
-    std::optional<bool> shadow;
-    std::optional<bool> drawBorderWithBackground;
     std::optional<double> opacity;
     std::optional<Config::CornerRadius> geometryCornerRadius;
     std::optional<bool> clipToGeometry;
-    std::optional<double> scrollFactor;
     bool operator==(const EffectiveWindowRules &) const = default;
 
     QSize limitMinSize(QSize minSize) const;
@@ -58,6 +54,7 @@ struct MatchContext
 };
 
 bool matchApplies(const Config::Match &match, const MatchContext &context, bool atStartup);
+bool ruleApplies(const Config::WindowRule &rule, const MatchContext &context, bool atStartup);
 EffectiveWindowRules resolveWindowRules(const QList<Config::WindowRule> &rules, const MatchContext &context, bool atStartup);
 Config::Border mergeBorder(Config::Border border, const Config::BorderRule &rule);
 

@@ -1,6 +1,5 @@
 #include "config/loader.h"
 
-#include <QFile>
 #include <QTest>
 
 using namespace Konveyor::Config;
@@ -11,7 +10,6 @@ class TestConfigFiles : public QObject
 
 private Q_SLOTS:
     void loadsRepositoryDefaultConfig();
-    void loadsReferenceConfig();
     void reportsMissingFile();
     void configPathHonoursEnvironment();
 
@@ -59,21 +57,6 @@ void TestConfigFiles::loadsRepositoryDefaultConfig()
     QVERIFY(showOverlay != result->config.binds.end());
     QCOMPARE(showOverlay->keyText, QStringLiteral("K"));
     QCOMPARE(showOverlay->hotkeyOverlayTitle, QStringLiteral("Show Shortcut Cheatsheet"));
-}
-
-void TestConfigFiles::loadsReferenceConfig()
-{
-    const QString path = qEnvironmentVariable("KONVEYOR_REFERENCE_CONFIG");
-    if (path.isEmpty() || !QFile::exists(path)) {
-        QSKIP("set KONVEYOR_REFERENCE_CONFIG to an external config file to run this test");
-    }
-    loadKdlFile(path);
-
-    const auto result = loadFile(path);
-    QVERIFY(result.has_value());
-    QVERIFY(!result->warnings.isEmpty());
-    QCOMPARE(result->config.layout.gaps, 16.0);
-    QCOMPARE(result->config.layout.presetColumnWidths.size(), 3);
 }
 
 void TestConfigFiles::reportsMissingFile()

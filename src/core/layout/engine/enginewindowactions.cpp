@@ -210,10 +210,7 @@ void registerWindowActions(ActionTable &table)
 
 void registerCompositorActions(ActionTable &table)
 {
-    static const char *const names[] = {"spawn", "spawn-sh", "quit", "power-off-monitors", "power-on-monitors", "do-screen-transition",
-        "screenshot", "screenshot-screen", "screenshot-window", "show-hotkey-overlay", "toggle-keyboard-shortcuts-inhibit", "switch-layout",
-        "toggle-debug-tint", "debug-toggle-opaque-regions", "debug-toggle-damage", "set-dynamic-cast-window", "set-dynamic-cast-monitor",
-        "clear-dynamic-cast-target", "stop-cast", "load-config-file"};
+    static const char *const names[] = {"spawn", "spawn-sh", "show-hotkey-overlay"};
     for (const char *name : names) {
         addForwardedAction(table, name);
     }

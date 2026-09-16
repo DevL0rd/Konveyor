@@ -10,18 +10,10 @@ class TestConfigSections : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-    void parsesMiscFlags();
     void hidesDesktopWidgetsFlag();
-    void ignoresUnsupportedSections_data();
-    void ignoresUnsupportedSections();
+    void rejectsUnsupportedSections_data();
+    void rejectsUnsupportedSections();
 };
-
-void TestConfigSections::parsesMiscFlags()
-{
-    QCOMPARE(parsed(QStringLiteral("prefer-no-csd\n")).preferNoCsd, true);
-    QCOMPARE(parsed(QStringLiteral("prefer-no-csd false\n")).preferNoCsd, false);
-    QCOMPARE(parsed(QString()).preferNoCsd, false);
-}
 
 void TestConfigSections::hidesDesktopWidgetsFlag()
 {
@@ -33,9 +25,13 @@ void TestConfigSections::hidesDesktopWidgetsFlag()
     QVERIFY(parsed(QStringLiteral("disable-minimize\n")).disableMinimize);
 }
 
-void TestConfigSections::ignoresUnsupportedSections_data()
+void TestConfigSections::rejectsUnsupportedSections_data()
 {
     QTest::addColumn<QString>("text");
+
+    QTest::newRow("prefer-no-csd") << QStringLiteral("prefer-no-csd\n");
+    QTest::newRow("overview") << QStringLiteral("overview {\n zoom 0.25\n}\n");
+    QTest::newRow("hotkey-overlay") << QStringLiteral("hotkey-overlay {\n skip-at-startup\n}\n");
 
     QTest::newRow("layer-rule") << QStringLiteral("layer-rule {\n match namespace=\"^bar$\"\n}\n");
     QTest::newRow("recent-windows") << QStringLiteral("recent-windows {\n off\n}\n");
@@ -51,12 +47,10 @@ void TestConfigSections::ignoresUnsupportedSections_data()
     QTest::newRow("blur") << QStringLiteral("blur {\n passes 3\n}\n");
 }
 
-void TestConfigSections::ignoresUnsupportedSections()
+void TestConfigSections::rejectsUnsupportedSections()
 {
     QFETCH(QString, text);
-    const LoadResult result = mustLoad(text);
-    QCOMPARE(result.warnings.size(), 1);
-    QVERIFY(result.config == defaultConfig());
+    QVERIFY(mustFail(text).message.startsWith(QStringLiteral("unexpected node")));
 }
 
 QTEST_MAIN(TestConfigSections)

@@ -95,7 +95,6 @@ struct Bind
     Action action;
     bool repeat = true;
     std::optional<int> cooldownMs;
-    bool allowInhibiting = true;
     std::optional<QString> hotkeyOverlayTitle;
     bool hideFromHotkeyOverlay = false;
     quint32 keysym = 0;
@@ -103,7 +102,6 @@ struct Bind
     ScrollDirection scrollDirection = ScrollDirection::Down;
     BindModifiers keyModifiers;
     BindModifiers resolvedModifiers;
-    bool allowWhenLocked = false;
     bool operator==(const Bind &) const = default;
 };
 

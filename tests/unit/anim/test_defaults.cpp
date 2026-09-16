@@ -21,11 +21,9 @@ AnimationParams fetchParams()
     const QHash<QByteArray, Member> members {
         {"workspace-switch", &Animations::workspaceSwitch},
         {"window-open", &Animations::windowOpen},
-        {"window-close", &Animations::windowClose},
         {"horizontal-view-movement", &Animations::horizontalViewMovement},
         {"window-movement", &Animations::windowMovement},
         {"window-resize", &Animations::windowResize},
-        {"overview-open-close", &Animations::overviewOpenClose},
     };
     return Konveyor::Anim::defaultAnimations().*members.value(member);
 }
@@ -52,7 +50,6 @@ private Q_SLOTS:
         QTest::newRow("horizontal-view-movement") << QByteArray("horizontal-view-movement") << 800.0;
         QTest::newRow("window-movement") << QByteArray("window-movement") << 800.0;
         QTest::newRow("window-resize") << QByteArray("window-resize") << 800.0;
-        QTest::newRow("overview-open-close") << QByteArray("overview-open-close") << 800.0;
     }
 
     void springs()
@@ -72,7 +69,6 @@ private Q_SLOTS:
         QTest::addColumn<QByteArray>("member");
         QTest::addColumn<EasingCurve>("curve");
         QTest::newRow("window-open") << QByteArray("window-open") << EasingCurve::EaseOutExpo;
-        QTest::newRow("window-close") << QByteArray("window-close") << EasingCurve::EaseOutQuad;
     }
 
     void easings()

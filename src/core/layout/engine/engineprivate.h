@@ -12,7 +12,6 @@
 namespace Konveyor::Layout
 {
 
-const Config::MonitorProfile *monitorProfileFor(const Config::Config &config, const QString &name, QSizeF size);
 QString monitorProfileName(const Config::Config &config, const OutputArea &area);
 
 struct WindowDrag
@@ -81,7 +80,6 @@ struct Engine::Private
     QString switchGestureOutput;
     std::optional<WindowId> resizeWindow;
     bool overviewOpen = false;
-    std::optional<Anim::Animation> overviewAnimation;
     Anim::Duration startupTime;
 
     bool atStartup() const;

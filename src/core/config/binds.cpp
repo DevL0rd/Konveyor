@@ -9,30 +9,29 @@ namespace Konveyor::Config
 namespace
 {
 
-constexpr const char *kSimpleActions[] = {"suspend", "power-off-monitors", "power-on-monitors", "toggle-debug-tint",
-    "debug-toggle-opaque-regions", "debug-toggle-damage", "toggle-keyboard-shortcuts-inhibit", "close-window", "fullscreen-window",
-    "toggle-windowed-fullscreen", "focus-window-previous", "focus-column-left", "focus-column-right", "focus-column-first",
-    "focus-column-last", "focus-column-right-or-first", "focus-column-left-or-last", "focus-window-or-monitor-up",
-    "focus-window-or-monitor-down", "focus-column-or-monitor-left", "focus-column-or-monitor-right", "focus-window-down", "focus-window-up",
-    "focus-window-down-or-column-left", "focus-window-down-or-column-right", "focus-window-up-or-column-left",
-    "focus-window-up-or-column-right", "focus-window-or-workspace-down", "focus-window-or-workspace-up", "focus-window-top",
-    "focus-window-bottom", "focus-window-down-or-top", "focus-window-up-or-bottom", "move-column-left", "move-column-right",
-    "move-column-to-first", "move-column-to-last", "move-column-left-or-to-monitor-left", "move-column-right-or-to-monitor-right",
-    "move-window-down", "move-window-up", "move-window-down-or-to-workspace-down", "move-window-up-or-to-workspace-up",
-    "consume-or-expel-window-left", "consume-or-expel-window-right", "consume-window-into-column", "expel-window-from-column",
-    "swap-window-left", "swap-window-right", "toggle-column-tabbed-display", "center-column", "center-window", "center-visible-columns",
-    "focus-workspace-down", "focus-workspace-up", "focus-workspace-previous", "move-workspace-down", "move-workspace-up",
-    "unset-workspace-name", "focus-monitor-left", "focus-monitor-right", "focus-monitor-down", "focus-monitor-up", "focus-monitor-previous",
-    "focus-monitor-next", "move-window-to-monitor-left", "move-window-to-monitor-right", "move-window-to-monitor-down",
-    "move-window-to-monitor-up", "move-window-to-monitor-previous", "move-window-to-monitor-next", "move-column-to-monitor-left",
-    "move-column-to-monitor-right", "move-column-to-monitor-down", "move-column-to-monitor-up", "move-column-to-monitor-previous",
-    "move-column-to-monitor-next", "reset-window-height", "switch-preset-column-width", "switch-preset-column-width-back",
-    "switch-preset-window-width", "switch-preset-window-width-back", "switch-preset-window-height", "switch-preset-window-height-back",
-    "maximize-column", "maximize-window-to-edges", "cycle-window-expansion", "expand-column-to-available-width", "show-hotkey-overlay",
+constexpr const char *kSimpleActions[] = {"close-window", "fullscreen-window", "toggle-windowed-fullscreen", "focus-window-previous",
+    "focus-column-left", "focus-column-right", "focus-column-first", "focus-column-last", "focus-column-right-or-first",
+    "focus-column-left-or-last", "focus-window-or-monitor-up", "focus-window-or-monitor-down", "focus-column-or-monitor-left",
+    "focus-column-or-monitor-right", "focus-window-down", "focus-window-up", "focus-window-down-or-column-left",
+    "focus-window-down-or-column-right", "focus-window-up-or-column-left", "focus-window-up-or-column-right",
+    "focus-window-or-workspace-down", "focus-window-or-workspace-up", "focus-window-top", "focus-window-bottom", "focus-window-down-or-top",
+    "focus-window-up-or-bottom", "move-column-left", "move-column-right", "move-column-to-first", "move-column-to-last",
+    "move-column-left-or-to-monitor-left", "move-column-right-or-to-monitor-right", "move-window-down", "move-window-up",
+    "move-window-down-or-to-workspace-down", "move-window-up-or-to-workspace-up", "consume-or-expel-window-left",
+    "consume-or-expel-window-right", "consume-window-into-column", "expel-window-from-column", "swap-window-left", "swap-window-right",
+    "toggle-column-tabbed-display", "center-column", "center-window", "center-visible-columns", "focus-workspace-down",
+    "focus-workspace-up", "focus-workspace-previous", "move-workspace-down", "move-workspace-up", "unset-workspace-name",
+    "focus-monitor-left", "focus-monitor-right", "focus-monitor-down", "focus-monitor-up", "focus-monitor-previous", "focus-monitor-next",
+    "move-window-to-monitor-left", "move-window-to-monitor-right", "move-window-to-monitor-down", "move-window-to-monitor-up",
+    "move-window-to-monitor-previous", "move-window-to-monitor-next", "move-column-to-monitor-left", "move-column-to-monitor-right",
+    "move-column-to-monitor-down", "move-column-to-monitor-up", "move-column-to-monitor-previous", "move-column-to-monitor-next",
+    "reset-window-height", "switch-preset-column-width", "switch-preset-column-width-back", "switch-preset-window-width",
+    "switch-preset-window-width-back", "switch-preset-window-height", "switch-preset-window-height-back", "maximize-column",
+    "maximize-window-to-edges", "cycle-window-expansion", "expand-column-to-available-width", "show-hotkey-overlay",
     "move-workspace-to-monitor-left", "move-workspace-to-monitor-right", "move-workspace-to-monitor-down", "move-workspace-to-monitor-up",
     "move-workspace-to-monitor-previous", "move-workspace-to-monitor-next", "toggle-window-floating", "move-window-to-floating",
     "move-window-to-tiling", "focus-floating", "focus-tiling", "switch-focus-between-floating-and-tiling", "toggle-window-rule-opacity",
-    "set-dynamic-cast-window", "clear-dynamic-cast-target", "toggle-overview", "open-overview", "close-overview"};
+    "toggle-overview", "open-overview", "close-overview"};
 
 struct ActionSpec
 {
@@ -43,13 +42,8 @@ struct ActionSpec
 };
 
 constexpr ActionSpec kSpecialActions[] = {
-    {"quit", 0, 0, "skip-confirmation"},
     {"spawn", 0, -1, ""},
     {"spawn-sh", 1, 1, ""},
-    {"do-screen-transition", 0, 0, "delay-ms"},
-    {"screenshot", 0, 0, "show-pointer"},
-    {"screenshot-screen", 0, 0, "write-to-disk show-pointer"},
-    {"screenshot-window", 0, 0, "write-to-disk show-pointer"},
     {"focus-window-in-column", 1, 1, ""},
     {"focus-column", 1, 1, ""},
     {"move-column-to-index", 1, 1, ""},
@@ -70,8 +64,6 @@ constexpr ActionSpec kSpecialActions[] = {
     {"set-window-width", 1, 1, ""},
     {"set-window-height", 1, 1, ""},
     {"set-column-width", 1, 1, ""},
-    {"switch-layout", 1, 1, ""},
-    {"set-dynamic-cast-monitor", 0, 1, ""},
 };
 
 struct ModifierSpec
@@ -213,17 +205,12 @@ Action decodeAction(const Kdl::Node &node)
     return action;
 }
 
-void decodeBindProperties(Bind &bind, const Kdl::Node &node, bool &lockedRequested)
+void decodeBindProperties(Bind &bind, const Kdl::Node &node)
 {
     ValueTable table;
     table.insert(QStringLiteral("repeat"), [&bind](const Kdl::Value &value) { bind.repeat = toBoolean(value); });
     table.insert(QStringLiteral("cooldown-ms"),
         [&bind](const Kdl::Value &value) { bind.cooldownMs = static_cast<int>(toInteger(value, Range {0, 2147483647})); });
-    table.insert(QStringLiteral("allow-when-locked"), [&bind, &lockedRequested](const Kdl::Value &value) {
-        bind.allowWhenLocked = toBoolean(value);
-        lockedRequested = true;
-    });
-    table.insert(QStringLiteral("allow-inhibiting"), [&bind](const Kdl::Value &value) { bind.allowInhibiting = toBoolean(value); });
     table.insert(QStringLiteral("hotkey-overlay-title"), [&bind](const Kdl::Value &value) {
         if (value.isNull()) {
             bind.hideFromHotkeyOverlay = true;
@@ -239,8 +226,7 @@ Bind decodeBind(const Kdl::Node &node)
     expectNoArguments(node);
     Bind bind;
     parseBindKey(bind, node);
-    bool lockedRequested = false;
-    decodeBindProperties(bind, node, lockedRequested);
+    decodeBindProperties(bind, node);
     if (node.children.isEmpty()) {
         fail(node, QStringLiteral("expected an action for this keybind"));
     }
@@ -248,13 +234,6 @@ Bind decodeBind(const Kdl::Node &node)
         failAt(node.children.at(1).location, QStringLiteral("only one action is allowed per keybind"));
     }
     bind.action = decodeAction(node.children.first());
-    const bool spawns = bind.action.name == QLatin1String("spawn") || bind.action.name == QLatin1String("spawn-sh");
-    if (lockedRequested && !spawns) {
-        fail(node, QStringLiteral("allow-when-locked can only be set on spawn binds"));
-    }
-    if (bind.action.name == QLatin1String("toggle-keyboard-shortcuts-inhibit")) {
-        bind.allowInhibiting = false;
-    }
     return bind;
 }
 
