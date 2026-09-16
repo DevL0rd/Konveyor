@@ -78,7 +78,8 @@ $AFFINITY
 WantedBy=default.target
 EOF
 systemctl --user daemon-reload
-systemctl --user enable --now linux-router-monitor.service
+systemctl --user enable linux-router-monitor.service
+systemctl --user restart linux-router-monitor.service
 echo "Enabled resident collector service (linux-router-monitor.service)"
 
 # --- allow the widgets to read the tmpfs snapshot in-process via QML XHR ---
