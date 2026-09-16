@@ -73,7 +73,8 @@ $AFFINITY
 WantedBy=default.target
 EOF
 systemctl --user daemon-reload
-systemctl --user enable --now linux-process-mon.service >/dev/null 2>&1 \
+systemctl --user enable linux-process-mon.service >/dev/null 2>&1 \
+    && systemctl --user restart linux-process-mon.service \
     && echo "Enabled resident collector (linux-process-mon.service)" \
     || echo "  (could not enable linux-process-mon.service -- enable it manually)"
 
