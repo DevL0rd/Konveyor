@@ -33,6 +33,7 @@ LOCK = os.path.join(CACHE_DIR, "serve.lock")
 MAX_LINES = int(os.environ.get("LOGMON_MAX_LINES", "2000"))  # >= widget's max live buffer
 SEED = min(MAX_LINES, 500)          # lines shown immediately on start
 FLUSH_INTERVAL = 0.1                # flush ~immediately on new lines (caps bursts to 10/s)
+OUTPUT_FIELDS = "MESSAGE,PRIORITY,SYSLOG_IDENTIFIER,_COMM,_SYSTEMD_UNIT,UNIT,_TRANSPORT,_PID,SYSLOG_PID"
 HEARTBEAT = 5.0                     # refresh `ts` even when idle (liveness)
 
 
@@ -93,7 +94,7 @@ def serve():
         sys.stderr.write("another logmon-collect --serve is already running\n")
         return 0
 
-    cmd = ["journalctl", "-f", "-o", "json", "--no-pager", "-n", str(SEED)]
+    cmd = ["journalctl", "-f", "-o", "json", "--all", "--output-fields=" + OUTPUT_FIELDS, "--no-pager", "-n", str(SEED)]
     extra = os.environ.get("LOGMON_JOURNAL_ARGS", "").split()
     if extra:
         cmd += extra

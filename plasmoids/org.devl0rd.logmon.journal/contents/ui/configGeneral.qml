@@ -14,6 +14,20 @@ Kirigami.FormLayout {
     property alias cfg_showApp: showApp.checked
     property alias cfg_wrapMessages: wrap.checked
     property alias cfg_accentColor: accent.text
+    property alias cfg_compactShowWarnings: compactShowWarnings.checked
+    property alias cfg_middleClickPause: middleClickPause.checked
+    property string cfg_lastSeen
+    property bool cfg_showActivity
+
+    QQC2.CheckBox {
+        id: compactShowWarnings
+        Kirigami.FormData.label: i18n("Panel button:")
+        text: i18n("Show new warnings next to new errors")
+    }
+    QQC2.CheckBox { id: middleClickPause; text: i18n("Middle-click pauses and resumes following") }
+
+    Item { Kirigami.FormData.isSection: true }
+
 
     RowLayout {
         Kirigami.FormData.label: i18n("Poll interval:")
@@ -41,7 +55,7 @@ Kirigami.FormLayout {
     }
     QQC2.ComboBox {
         id: levelCombo
-        Kirigami.FormData.label: i18n("Default level:")
+        Kirigami.FormData.label: i18n("Open on:")
         model: [i18n("All"), i18n("Info"), i18n("Warnings"), i18n("Errors")]
     }
 

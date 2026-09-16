@@ -73,6 +73,7 @@ WantedBy=default.target
 EOF
 systemctl --user daemon-reload
 systemctl --user enable --now linux-log-monitor.service
+systemctl --user restart linux-log-monitor.service
 echo "Enabled resident collector service (linux-log-monitor.service)"
 
 # --- 3. allow the widget to read the tmpfs snapshot in-process via QML XHR ---
@@ -90,7 +91,7 @@ fi
 echo "Installing widget(s)..."
 for d in "$PLASMOID_SRC"/org.devl0rd.logmon.*; do
     cp -r "$REPO_DIR/shared/lib" "$d/contents/ui/"   # repo-specific components -> ui/lib/
-    cp "$REPO_DIR/shared/common/FileWatcher.qml" "$d/contents/ui/lib/"  # shared (submodule) component
+    cp "$REPO_DIR/shared/common/"*.qml "$REPO_DIR/shared/common/"*.js "$d/contents/ui/lib/"
     if kpackagetool6 -t Plasma/Applet -u "$d" >/dev/null 2>&1; then
         echo "  upgraded $(basename "$d")"
     else

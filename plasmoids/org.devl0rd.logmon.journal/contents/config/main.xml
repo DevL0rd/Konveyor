@@ -14,5 +14,9 @@
         <entry name="showApp" type="Bool"><default>true</default></entry>
         <entry name="wrapMessages" type="Bool"><default>false</default></entry>
         <entry name="accentColor" type="String"><default></default></entry>
+        <entry name="compactShowWarnings" type="Bool"><default>true</default></entry>
+        <entry name="middleClickPause" type="Bool"><default>true</default></entry>
+        <entry name="lastSeen" type="String"><default></default></entry>
+        <entry name="showActivity" type="Bool"><default>true</default></entry>
     </group>
 </kcfg>

@@ -15,11 +15,18 @@ look and costs almost nothing.
 ## Features
 
 - **Everything, live** — follows `journalctl -f` (kernel + all services + apps).
-- **Colour-coded severity** — errors red, warnings amber, the rest neutral.
-- **Severity filter** — All / Info / Warnings / Errors.
-- **Live search** — instant text filter on message + application name.
-- **Pause / follow** — freeze the stream to read; resume snaps back to the tail.
-- **Click to copy** — click any line to copy it to the clipboard.
+- **Panel or desktop** — in a panel it is a fixed-width button with the errors and
+  warnings logged since you last opened it; on the desktop it shows the full log.
+- **Severity tabs** — All / Info / Warnings / Errors, with counts.
+- **Whole-journal search** — searches messages and app names across the entire
+  on-disk journal, highlights matches, and keeps the results live.
+- **Activity graph** — lines per 15 s over the last 10 minutes, warnings and worse
+  drawn separately.
+- **Busiest apps** — one click shows only that app; muted apps can be unmuted from
+  the same row.
+- **Expandable lines** — full multi-line message, level, time, PID and unit, with
+  copy, filter, mute and Ask Claude actions (also on right-click).
+- **Pause / follow** — freeze the stream to read; a pill jumps back to the newest lines.
 
 ## How it works
 
@@ -67,9 +74,11 @@ Right-click the widget → **Configure**:
 
 | Option | Default | Notes |
 | --- | --- | --- |
-| Poll interval | 1.0 s | how often the widget re-reads the tmpfs file |
-| Lines kept | 600 | display ring size |
-| Default level | All | severity shown on start |
+| Panel button | errors + warnings | show new warnings next to new errors |
+| Middle-click | pause | middle-click the panel button to pause or resume |
+| Live buffer | 1000 | lines kept in the live view |
+| Search limit | 5000 | newest matching lines loaded by a search |
+| Open on | All | severity tab shown on start |
 | Application column | on | show the emitting unit/app |
 | Wrap long messages | off | wrap vs. elide |
 | Accent colour | theme | colour of the app column |

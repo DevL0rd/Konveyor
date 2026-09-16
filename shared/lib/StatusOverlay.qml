@@ -1,8 +1,3 @@
-/*
- * Covers the widget with a centered message when the log collector isn't
- * running (or hasn't written a fresh snapshot). Matches the router monitor's
- * overlay so the two projects feel like one set.
- */
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
@@ -16,9 +11,7 @@ Rectangle {
     z: 100
     visible: !online
     color: Qt.alpha(Kirigami.Theme.backgroundColor, 0.9)
-    radius: Kirigami.Units.smallSpacing
 
-    // swallow clicks so the widget underneath can't be interacted with
     MouseArea { anchors.fill: parent }
 
     ColumnLayout {
