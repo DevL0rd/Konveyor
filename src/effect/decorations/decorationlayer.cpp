@@ -93,7 +93,7 @@ void DecorationLayer::apply(Slot &slot, KWin::Item *parent, const Placement &pla
         slot.outline.reset();
         return;
     }
-    if (placement.spec.gradient) {
+    if (placement.spec.gradient || placement.filled) {
         slot.outline.reset();
         applyImage(slot, parent, placement);
         return;
@@ -164,6 +164,7 @@ DecorationLayer::Placement DecorationLayer::tab(
     placement.position = rect.topLeft() - frame.topLeft();
     placement.spec.size = rect.size();
     placement.spec.scale = scale;
+    placement.filled = true;
     fillPaint(placement.spec, paint, rect, workspaceView);
     return placement;
 }

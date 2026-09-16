@@ -59,6 +59,7 @@ private:
         QRectF innerRect;
         double thickness = 0.0;
         bool visible = false;
+        bool filled = false;
     };
 
     void apply(Slot &slot, KWin::Item *parent, const Placement &placement);
