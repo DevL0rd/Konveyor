@@ -5,7 +5,7 @@ function(konveyor_add_unit_test source module)
     target_compile_options(${name} PRIVATE -Wall -Wextra -Werror)
     target_compile_definitions(${name} PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
     add_test(NAME ${name} COMMAND ${name})
-    set_tests_properties(${name} PROPERTIES LABELS "unit;${module}")
+    set_tests_properties(${name} PROPERTIES LABELS "unit;${module}" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endfunction()
 
 foreach(module kdl anim config render layout ipc)
