@@ -30,6 +30,8 @@ PlasmoidItem {
     onHistoryLengthChanged: history = History.resized(history, historyLength)
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property bool dataWanted: inPanel || visible
+    onDataWantedChanged: if (!dataWanted) watchdog.stop()
     property bool popupAlive: !inPanel
     preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     onExpandedChanged: function() {
@@ -149,7 +151,7 @@ PlasmoidItem {
         xhr.send()
     }
     FileWatcher {
-        path: root.cachePath
+        path: root.dataWanted ? root.cachePath : ""
         onChanged: root.read()
     }
     Timer {
