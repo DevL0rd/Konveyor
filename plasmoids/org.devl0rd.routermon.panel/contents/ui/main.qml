@@ -13,8 +13,19 @@ import "lib/Format.js" as Fmt
 PlasmoidItem {
     id: root
 
-    Plasmoid.icon: "network-wireless-hotspot"
-    Plasmoid.title: i18n("Router")
+    readonly property var lockedTabs: ({
+        "org.devl0rd.routermon.network": { key: "network", label: i18n("Network") },
+        "org.devl0rd.routermon.wifi": { key: "wifi", label: i18n("WiFi") },
+        "org.devl0rd.routermon.clients": { key: "clients", label: i18n("Clients") },
+        "org.devl0rd.routermon.dns": { key: "dns", label: i18n("DNS") },
+        "org.devl0rd.routermon.speedtest": { key: "speed", label: i18n("Speed Test") },
+        "org.devl0rd.routermon.system": { key: "system", label: i18n("System") }
+    })
+    readonly property var locked: lockedTabs[Plasmoid.metaData.pluginId] || null
+    readonly property string activeTab: locked ? locked.key : tabKey
+
+    Plasmoid.icon: Plasmoid.metaData.iconName
+    Plasmoid.title: locked ? i18n("Router · %1", locked.label) : i18n("Router")
 
     readonly property color accent: Plasmoid.configuration.accentColor !== "" ? Plasmoid.configuration.accentColor : Kirigami.Theme.highlightColor
     readonly property color downColor: Style.hue("down", Kirigami.Theme)

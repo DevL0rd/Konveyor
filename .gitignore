@@ -17,3 +17,9 @@ __pycache__/
 # Shared QML components are kept once in shared/lib and synced into each
 # widget by install.sh -- don't track the per-widget copies.
 plasmoids/*/contents/ui/lib/
+plasmoids/*/contents/ui/*.qml
+plasmoids/*/contents/ui/tabs/
+plasmoids/*/contents/config/main.xml
+!plasmoids/org.devl0rd.routermon.panel/contents/ui/*.qml
+!plasmoids/org.devl0rd.routermon.panel/contents/ui/tabs/
+!plasmoids/org.devl0rd.routermon.panel/contents/config/main.xml

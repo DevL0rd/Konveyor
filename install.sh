@@ -115,7 +115,15 @@ if [ ! -e "$REPO_DIR/shared/common/FileWatcher.qml" ]; then
     exit 1
 fi
 echo "Installing widgets..."
+UI_SRC="$PLASMOID_SRC/org.devl0rd.routermon.panel"
 for d in "$PLASMOID_SRC"/org.devl0rd.routermon.*; do
+    if [ "$d" != "$UI_SRC" ]; then
+        rm -rf "$d/contents/ui/tabs"
+        cp "$UI_SRC/contents/ui/"*.qml "$d/contents/ui/"
+        cp -r "$UI_SRC/contents/ui/tabs" "$d/contents/ui/"
+        cp "$UI_SRC/contents/config/main.xml" "$d/contents/config/"
+    fi
+    mkdir -p "$d/contents/ui/lib"
     cp -r "$REPO_DIR/shared/lib" "$d/contents/ui/"   # repo-specific components -> ui/lib/
     cp "$REPO_DIR/shared/common/"*.qml "$REPO_DIR/shared/common/"*.js "$d/contents/ui/lib/"  # shared (submodule) components
     if kpackagetool6 -t Plasma/Applet -u "$d" >/dev/null 2>&1; then
@@ -126,7 +134,7 @@ for d in "$PLASMOID_SRC"/org.devl0rd.routermon.*; do
 done
 
 echo ""
-echo "Done! Six widgets are available: System, Network, WiFi, DNS, Clients, Speed Test."
+echo "Done! Widgets available: Router (Panel), System, Network, WiFi, DNS, Clients, Speed Test."
 echo "Add them via right-click desktop/panel -> Add Widgets -> search \"Router\"."
 echo "Logs: $HOME/.local/state/$APP/monitor.log"
 

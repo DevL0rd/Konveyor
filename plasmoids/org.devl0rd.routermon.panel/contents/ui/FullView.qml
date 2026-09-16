@@ -13,8 +13,8 @@ Item {
 
     Layout.minimumWidth: Kirigami.Units.gridUnit * 13
     Layout.minimumHeight: Kirigami.Units.gridUnit * 12
-    Layout.preferredWidth: Kirigami.Units.gridUnit * 30
-    Layout.preferredHeight: Kirigami.Units.gridUnit * 40
+    Layout.preferredWidth: Kirigami.Units.gridUnit * (root.locked ? 24 : 30)
+    Layout.preferredHeight: Kirigami.Units.gridUnit * (root.locked ? 28 : 40)
 
     readonly property var tabDefs: [
         { key: "overview", label: i18n("Overview"), file: "OverviewTab.qml" },
@@ -48,13 +48,15 @@ Item {
         PopupShell {
             id: shell
 
-            readonly property int tabIndex: Math.max(0, full.tabDefs.findIndex(tab => tab.key === root.tabKey))
+            readonly property int tabIndex: Math.max(0, full.tabDefs.findIndex(tab => tab.key === root.activeTab))
 
             anchors.fill: parent
-            icon: "network-wireless-hotspot"
-            title: root.info.model || i18n("Router")
+            icon: Plasmoid.icon
+            title: root.locked ? root.locked.label : root.info.model || i18n("Router")
             subtitle: {
                 const parts = []
+                if (root.locked && root.info.model)
+                    parts.push(root.info.model)
                 if (root.info.fw)
                     parts.push(i18n("Firmware %1", root.info.fw))
                 if (root.info.uptime)
@@ -66,7 +68,7 @@ Item {
             statusColor: root.stateColor
             statusText: root.stateText
             searchPlaceholder: i18n("Search devices, radios, domains, actions…")
-            tabs: full.tabDefs.map(tab => ({ key: tab.key, label: tab.label, badge: tab.key === "clients" ? root.onlineCount + "" : "" }))
+            tabs: root.locked ? [] : full.tabDefs.map(tab => ({ key: tab.key, label: tab.label, badge: tab.key === "clients" ? root.onlineCount + "" : "" }))
             currentTab: tabIndex
             matchCount: results.item ? results.item.count : -1
             onTabActivated: index => root.tabKey = full.tabDefs[index].key

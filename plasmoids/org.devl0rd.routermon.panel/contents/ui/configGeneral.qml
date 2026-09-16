@@ -3,6 +3,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols as KQuickControls
+import org.kde.plasma.plasmoid
 
 Kirigami.FormLayout {
     property alias cfg_accentColor: accent.text
@@ -32,6 +33,7 @@ Kirigami.FormLayout {
     property string cfg_clientFilter
     property string cfg_speedHistory
     property alias cfg_rememberTab: rememberTab.checked
+    readonly property bool tabbed: Plasmoid.metaData.pluginId === "org.devl0rd.routermon.panel"
 
     QQC2.ComboBox {
         Kirigami.FormData.label: i18n("Panel also shows:")
@@ -52,6 +54,7 @@ Kirigami.FormLayout {
 
     QQC2.ComboBox {
         Kirigami.FormData.label: i18n("Open on:")
+        visible: tabbed
         textRole: "text"
         valueRole: "value"
         enabled: !rememberTab.checked
@@ -67,7 +70,7 @@ Kirigami.FormLayout {
         Component.onCompleted: currentIndex = Math.max(0, indexOfValue(cfg_defaultTab))
         onActivated: cfg_defaultTab = currentValue
     }
-    QQC2.CheckBox { id: rememberTab; text: i18n("Reopen on the last tab") }
+    QQC2.CheckBox { id: rememberTab; visible: tabbed; text: i18n("Reopen on the last tab") }
 
     QQC2.CheckBox { id: showCharts; Kirigami.FormData.label: i18n("Show:"); text: i18n("History graphs") }
     QQC2.CheckBox { id: showPerCore; text: i18n("Router per-core bars") }
