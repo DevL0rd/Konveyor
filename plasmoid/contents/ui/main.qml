@@ -15,13 +15,23 @@ PlasmoidItem {
     readonly property string toggleCommand: helper + " toggle"
 
     property bool portrait: false
+    property bool known: false
+    property bool busy: false
+
+    readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property string stateText: !known ? i18n("Checking…") : portrait ? i18n("Portrait") : i18n("Landscape")
+    readonly property string actionText: portrait ? i18n("Rotate to landscape") : i18n("Rotate to portrait")
 
     function toggleRotation() {
+        if (busy)
+            return
+        busy = true
         runner.connectSource(toggleCommand)
     }
 
-    Plasmoid.icon: "object-rotate-left"
-    preferredRepresentation: compactRepresentation
+    Plasmoid.icon: portrait ? "object-rotate-right" : "object-rotate-left"
+    Plasmoid.title: i18n("Screen Rotate")
+    preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     toolTipMainText: i18n("Screen Rotate")
     toolTipSubText: portrait ? i18n("Portrait - click for landscape") : i18n("Landscape - click for portrait")
 
@@ -34,6 +44,8 @@ PlasmoidItem {
             disconnectSource(source)
             if (source === root.readCommand) {
                 root.portrait = (data["stdout"] || "").indexOf("portrait") !== -1
+                root.known = true
+                root.busy = false
             } else {
                 connectSource(root.readCommand)
             }
@@ -42,46 +54,130 @@ PlasmoidItem {
 
     Component.onCompleted: runner.connectSource(readCommand)
 
+    component ScreenGlyph: Item {
+        id: glyph
+
+        property real size: Kirigami.Units.iconSizes.medium
+        property color tint: Kirigami.Theme.textColor
+
+        implicitWidth: size
+        implicitHeight: size
+
+        Rectangle {
+            id: frame
+            anchors.centerIn: parent
+            width: glyph.size * 0.86
+            height: glyph.size * 0.58
+            radius: Math.max(2, glyph.size * 0.1)
+            color: Qt.alpha(glyph.tint, 0.12)
+            border.width: Math.max(1.5, glyph.size * 0.08)
+            border.color: glyph.tint
+            rotation: root.portrait ? 90 : 0
+            opacity: root.known ? 1 : 0.5
+            Behavior on rotation { NumberAnimation { duration: 420; easing.type: Easing.OutBack; easing.overshoot: 1.2 } }
+            Behavior on border.color { ColorAnimation { duration: 200 } }
+
+            Rectangle {
+                anchors.right: parent.right
+                anchors.rightMargin: parent.border.width + Math.max(1, glyph.size * 0.05)
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(2, glyph.size * 0.07)
+                height: width
+                radius: width / 2
+                color: glyph.tint
+            }
+        }
+
+        SequentialAnimation on opacity {
+            running: root.busy
+            loops: Animation.Infinite
+            alwaysRunToEnd: true
+            NumberAnimation { to: 0.45; duration: 380; easing.type: Easing.InOutQuad }
+            NumberAnimation { to: 1; duration: 380; easing.type: Easing.InOutQuad }
+        }
+    }
+
     compactRepresentation: MouseArea {
         id: compact
+
+        readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+        readonly property real thickness: vertical ? width : height
+
+        Layout.minimumWidth: vertical ? 0 : thickness
+        Layout.maximumWidth: vertical ? -1 : thickness
+        Layout.preferredWidth: Layout.minimumWidth
+        Layout.minimumHeight: vertical ? thickness : 0
+        Layout.maximumHeight: vertical ? thickness : -1
+        Layout.preferredHeight: Layout.minimumHeight
         implicitWidth: Kirigami.Units.gridUnit * 1.5
         implicitHeight: Kirigami.Units.gridUnit * 1.5
+
         hoverEnabled: true
         onClicked: root.toggleRotation()
 
         Rectangle {
             anchors.fill: parent
+            anchors.margins: 1
             radius: Kirigami.Units.cornerRadius
-            color: Kirigami.Theme.highlightColor
-            opacity: compact.containsMouse ? 0.25 : 0
-
-            Behavior on opacity {
-                NumberAnimation { duration: Kirigami.Units.shortDuration }
-            }
+            color: Qt.alpha(compact.containsMouse ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor,
+                            compact.pressed ? 0.28 : compact.containsMouse ? 0.14 : 0)
+            Behavior on color { ColorAnimation { duration: 150 } }
         }
 
-        Kirigami.Icon {
-            anchors.fill: parent
-            anchors.margins: Math.round(Math.min(compact.width, compact.height) * 0.18)
-            source: root.portrait ? "object-rotate-right" : "object-rotate-left"
+        ScreenGlyph {
+            anchors.centerIn: parent
+            size: Math.round(Math.min(compact.width, compact.height) * 0.72)
+            tint: compact.containsMouse ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
         }
     }
 
-    fullRepresentation: ColumnLayout {
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 12
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 6
-        spacing: Kirigami.Units.smallSpacing
+    fullRepresentation: Item {
+        id: full
 
-        PlasmaComponents.Label {
-            Layout.alignment: Qt.AlignHCenter
-            text: root.portrait ? i18n("Portrait") : i18n("Landscape")
-        }
+        Layout.minimumWidth: card.implicitWidth + Kirigami.Units.largeSpacing * 2
+        Layout.minimumHeight: card.implicitHeight + Kirigami.Units.largeSpacing * 2
+        Layout.preferredWidth: Layout.minimumWidth
+        Layout.preferredHeight: Layout.minimumHeight
 
-        PlasmaComponents.Button {
-            Layout.alignment: Qt.AlignHCenter
-            icon.name: root.portrait ? "object-rotate-right" : "object-rotate-left"
-            text: root.portrait ? i18n("Rotate to landscape") : i18n("Rotate to portrait")
-            onClicked: root.toggleRotation()
+        RowLayout {
+            id: card
+            anchors.centerIn: parent
+            spacing: Kirigami.Units.largeSpacing
+
+            ScreenGlyph {
+                Layout.alignment: Qt.AlignVCenter
+                size: Kirigami.Units.gridUnit * 3
+                tint: Kirigami.Theme.highlightColor
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                spacing: Kirigami.Units.smallSpacing
+
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    text: i18n("SCREEN")
+                    font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 0.6
+                    opacity: 0.6
+                    elide: Text.ElideRight
+                }
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    text: root.stateText
+                    font.pixelSize: Kirigami.Theme.defaultFont.pixelSize * 1.3
+                    font.weight: Font.DemiBold
+                    elide: Text.ElideRight
+                }
+                PlasmaComponents.Button {
+                    icon.name: root.portrait ? "object-rotate-right" : "object-rotate-left"
+                    text: root.actionText
+                    enabled: !root.busy
+                    onClicked: root.toggleRotation()
+                }
+            }
         }
     }
 }

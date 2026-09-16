@@ -30,10 +30,7 @@ Remove the widget from your panel if it is still shown.
 
 ## Behaviour
 
-| Icon | Meaning |
-| --- | --- |
-| `object-rotate-left` | Landscape; clicking rotates to portrait |
-| `object-rotate-right` | Portrait; clicking rotates back to landscape |
+The panel button draws a small screen that turns to match the current orientation and pulses while a rotation is being applied. Clicking it switches between landscape and portrait. On the desktop the widget shows a card with the current orientation and a rotate button.
 
 Rotation is applied with `kscreen-doctor output.<name>.rotation.left` and `output.<name>.rotation.none`.
 
