@@ -13,7 +13,9 @@ rm -f ~/.config/environment.d/linux-system-monitor.conf
 rm -rf "${XDG_RUNTIME_DIR:-/tmp}/Linux-System-Monitor"
 
 echo "Removing widget..."
-kpackagetool6 -t Plasma/Applet -r "org.devl0rd.sysmon" >/dev/null 2>&1 \
-    && echo "  removed org.devl0rd.sysmon" || true
+for id in org.devl0rd.sysmon org.devl0rd.sysmon.panel; do
+    kpackagetool6 -t Plasma/Applet -r "$id" >/dev/null 2>&1 \
+        && echo "  removed $id" || true
+done
 
 echo "Done. (Kept ~/.config/Linux-System-Monitor/config.json.)"

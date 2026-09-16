@@ -31,7 +31,31 @@ cd Linux-System-Monitor
 ./install.sh
 ```
 
-Add **System Monitor** from *Add Widgets*. Uninstall with `./uninstall.sh`.
+Add **System Monitor** or **System Monitor (Panel)** from *Add Widgets*.
+Uninstall with `./uninstall.sh`.
+
+## Panel widget
+
+**System Monitor (Panel)** is made for a panel. The button shows CPU, GPU and
+memory use with a thin bar under each, plus CPU and GPU temperatures, and each
+value turns amber or red when it runs hot. It stacks neatly in vertical panels
+too. Middle-click opens KDE System Monitor.
+
+Click it for the full dashboard:
+
+- **Rings** for CPU, GPU and memory — click one to jump to its card
+- **CPU**: a history graph with Usage, Temp, Clock, Power and Fan tabs, plus
+  now / peak / average for the visible history
+- **Cores**: performance and efficiency cores, each with a group bar and a bar
+  per core
+- **GPU**: the same graph tabs, VRAM, memory clock, power limit and max clock
+- **Memory**: RAM and swap with a history graph
+- **Search** filters the dashboard — try `temp`, `power`, `e-core`, `vram` or
+  `swap`
+- Cards fold away with the arrow in their corner and stay folded
+
+Everything in the popup is only built while it's open, so a closed popup costs
+nothing beyond the panel button.
 
 Settings (right-click → Configure): panel icon, refresh interval, accent colour,
 history graphs, per-core bars, GPU section. Collector sampling rate is

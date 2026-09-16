@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+    <group name="General">
+        <entry name="panelIcon" type="String"><default>cpu</default></entry>
+        <entry name="updateInterval" type="Int"><default>500</default></entry>
+        <entry name="accentColor" type="String"><default></default></entry>
+        <entry name="showCharts" type="Bool"><default>true</default></entry>
+        <entry name="showPerCore" type="Bool"><default>true</default></entry>
+        <entry name="showGpu" type="Bool"><default>true</default></entry>
+        <entry name="cpuClockMax" type="Int"><default>0</default></entry>
+        <entry name="cpuPowerMax" type="Int"><default>0</default></entry>
+        <entry name="cpuFanMax" type="Int"><default>0</default></entry>
+        <entry name="gpuClockMax" type="Int"><default>0</default></entry>
+        <entry name="gpuPowerMax" type="Int"><default>0</default></entry>
+        <entry name="gpuFanMax" type="Int"><default>0</default></entry>
+        <entry name="compactShowCpu" type="Bool"><default>true</default></entry>
+        <entry name="compactShowGpu" type="Bool"><default>true</default></entry>
+        <entry name="compactShowRam" type="Bool"><default>true</default></entry>
+        <entry name="compactShowTemps" type="Bool"><default>true</default></entry>
+        <entry name="compactStyle" type="String"><default>bar</default></entry>
+        <entry name="historyLength" type="Int"><default>120</default></entry>
+        <entry name="middleClickAction" type="String"><default>systemmonitor</default></entry>
+        <entry name="cpuTab" type="Int"><default>0</default></entry>
+        <entry name="gpuTab" type="Int"><default>0</default></entry>
+        <entry name="collapsedCards" type="String"><default></default></entry>
+    </group>
+</kcfg>
