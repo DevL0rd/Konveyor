@@ -5,6 +5,15 @@ namespace Konveyor
 
 void KonveyorEffect::installInputFilter()
 {
+    d->spillInput = std::make_unique<SpillInputFilter>([this](KWin::Window *window, const QPointF &position) {
+        const std::optional<Layout::WindowId> id = d->windows.idOf(window);
+        const auto home = id ? d->homeOutputs.constFind(*id) : d->homeOutputs.constEnd();
+        if (home == d->homeOutputs.constEnd()) {
+            return true;
+        }
+        const KWin::LogicalOutput *output = d->outputs.outputNamed(*home);
+        return !output || QRectF(output->geometryF()).contains(position);
+    });
     d->input = std::make_unique<InputFilter>(InputHandlers {
         [this](Config::BindTrigger trigger, Qt::KeyboardModifiers modifiers, Config::MouseButton button,
             Config::ScrollDirection direction) { return d->shortcuts.triggerPointerBind(trigger, modifiers, button, direction); },
@@ -46,6 +55,7 @@ void KonveyorEffect::connectWindowLifecycle()
         d->decorations.remove(id);
         d->fullscreenShade.remove(id);
         d->applier.forget(id);
+        d->homeOutputs.remove(id);
     });
     connect(&d->windows, &WindowRegistry::propertiesChanged, this, [this](Layout::WindowId id) {
         if (KWin::Window *window = d->windows.windowOf(id)) {

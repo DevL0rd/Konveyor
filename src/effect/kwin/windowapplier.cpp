@@ -2,7 +2,10 @@
 
 #include "kwin/windowregistry.h"
 
+#include "layout/common/geometry.h"
+
 #include <KDecoration3/Decoration>
+#include <core/output.h>
 #include <scene/borderradius.h>
 #include <window.h>
 #include <workspace.h>
@@ -42,11 +45,12 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
         if (!window || isUserManipulated(window)) {
             continue;
         }
-        if (!frameFor(state).isEmpty()) {
-            m_appliedFrames.insert(state.id, frameFor(state));
+        const QRectF frame = placedFrame(state);
+        if (!frame.isEmpty()) {
+            m_appliedFrames.insert(state.id, frame);
         }
         applySizingMode(window, state);
-        applyGeometry(window, state);
+        applyGeometry(window, frame);
         applyBorderRadius(window, state);
         if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
             window->setOpacity(state.ruleOpacity);
@@ -92,9 +96,26 @@ QRectF WindowApplier::frameFor(const Layout::WindowState &state)
     return QRectF(state.renderFrame.topLeft(), state.targetFrame.size());
 }
 
-void WindowApplier::applyGeometry(KWin::Window *window, const Layout::WindowState &state) const
+QRectF WindowApplier::placedFrame(const Layout::WindowState &state)
 {
     const QRectF frame = frameFor(state);
+    const KWin::LogicalOutput *home = KWin::workspace()->findOutput(state.output);
+    if (frame.isEmpty() || !home) {
+        return frame;
+    }
+    const QRectF homeRect = home->geometryF();
+    if (frame.intersects(homeRect)) {
+        return frame;
+    }
+    QList<QRectF> outputs;
+    for (const KWin::LogicalOutput *output : KWin::workspace()->outputs()) {
+        outputs.append(output->geometryF());
+    }
+    return Layout::parkedFrame(frame, homeRect, outputs);
+}
+
+void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame) const
+{
     if (frame.isEmpty()) {
         return;
     }

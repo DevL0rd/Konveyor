@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 
 #include <memory>
+#include <optional>
 
 namespace KWin
 {
@@ -40,6 +41,10 @@ public:
     bool borderActivated(KWin::ElectricBorder border) override;
     void prePaintScreen(KWin::ScreenPrePaintData &data) override;
     void postPaintScreen() override;
+    void prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data) override;
+    void paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w, int mask,
+        const KWin::Region &deviceRegion, KWin::WindowPaintData &data) override;
+    bool blocksDirectScanout() const override;
 
 private:
     void installInputFilter();
@@ -78,6 +83,9 @@ private:
     const Layout::Engine &readEngine() const;
     void acknowledgeSettledModeChanges(const QList<Layout::WindowState> &states);
     void updateDecorations(const QList<Layout::WindowState> &states);
+    void updateHomeOutputs(const QList<Layout::WindowState> &states);
+    std::optional<QRectF> spillHome(KWin::Window *window) const;
+    bool hasSpill() const;
     void scheduleFlush();
     Layout::Hooks makeHooks();
     QString performActionJson(const QString &json);

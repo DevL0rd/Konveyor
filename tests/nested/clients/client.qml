@@ -13,6 +13,11 @@ Window {
     title: root.label
     color: "#2f3033"
 
+    MouseArea {
+        anchors.fill: parent
+        onClicked: console.warn("konveyor-test-clicked:" + root.label)
+    }
+
     Text {
         anchors.centerIn: parent
         text: root.label

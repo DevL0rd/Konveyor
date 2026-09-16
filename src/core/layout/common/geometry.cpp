@@ -1,6 +1,7 @@
 #include "layout/common/geometry.h"
 
 #include <algorithm>
+#include <array>
 #include <climits>
 #include <cmath>
 #include <variant>
@@ -183,6 +184,47 @@ QPointF centerInArea(QRectF area, QSizeF size)
     const double dx = std::max((area.width() - size.width()) / 2.0, 0.0);
     const double dy = std::max((area.height() - size.height()) / 2.0, 0.0);
     return {area.x() + dx, area.y() + dy};
+}
+
+qsizetype nearestOutputIndex(QPointF point, const QList<QRectF> &outputs)
+{
+    qsizetype best = -1;
+    double bestDistance = 0.0;
+    for (qsizetype i = 0; i < outputs.size(); ++i) {
+        const QRectF &geo = outputs[i];
+        const double x = std::clamp(point.x(), geo.x(), geo.x() + geo.width() - 1.0);
+        const double y = std::clamp(point.y(), geo.y(), geo.y() + geo.height() - 1.0);
+        const double distance = (x - point.x()) * (x - point.x()) + (y - point.y()) * (y - point.y());
+        if (best < 0 || distance < bestDistance) {
+            best = i;
+            bestDistance = distance;
+        }
+    }
+    return best;
+}
+
+QRectF parkedFrame(QRectF frame, QRectF home, const QList<QRectF> &outputs)
+{
+    constexpr double gap = 256.0;
+    QRectF bounds = home;
+    for (const QRectF &output : outputs) {
+        bounds = bounds.united(output);
+    }
+    const QSizeF size = frame.size();
+    const QPointF center = home.center();
+    const std::array<QRectF, 4> candidates {
+        QRectF(QPointF(center.x() - size.width() / 2.0, bounds.bottom() + gap), size),
+        QRectF(QPointF(center.x() - size.width() / 2.0, bounds.top() - gap - size.height()), size),
+        QRectF(QPointF(bounds.right() + gap, center.y() - size.height() / 2.0), size),
+        QRectF(QPointF(bounds.left() - gap - size.width(), center.y() - size.height() / 2.0), size),
+    };
+    const qsizetype homeIndex = outputs.indexOf(home);
+    for (const QRectF &candidate : candidates) {
+        if (homeIndex < 0 || nearestOutputIndex(candidate.center(), outputs) == homeIndex) {
+            return candidate;
+        }
+    }
+    return candidates.front();
 }
 
 PresetExtent measurePreset(const Config::PresetSize &preset, const Options &options, double viewSize, double reservedSize)

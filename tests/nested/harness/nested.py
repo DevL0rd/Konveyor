@@ -18,7 +18,8 @@ def build_dir():
 
 
 class NestedSession:
-    def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False):
+    def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1):
+        self.output_count = output_count
         self.width = width
         self.height = height
         self.root = Path(tempfile.mkdtemp(prefix="konveyor-test-"))
@@ -47,6 +48,7 @@ class NestedSession:
         env["XDG_DATA_HOME"] = str(self.data_home)
         env["QT_PLUGIN_PATH"] = f"{build_dir() / 'bin'}:{os.environ.get('QT_PLUGIN_PATH', '/usr/lib/qt6/plugins')}"
         env["KWIN_SCREENSHOT_NO_PERMISSION_CHECKS"] = "1"
+        env["KWIN_WAYLAND_NO_PERMISSION_CHECKS"] = "1"
         env["QT_LOGGING_RULES"] = "kwin_*.debug=false"
         env["QT_FORCE_STDERR_LOGGING"] = "1"
         return env
@@ -61,7 +63,7 @@ class NestedSession:
             command.append("--no-global-shortcuts")
         if self.xwayland:
             command.append("--xwayland")
-        command += ["--socket", self.socket, "--width", str(self.width), "--height", str(self.height),
+        command += ["--socket", self.socket, "--width", str(self.width), "--height", str(self.height), "--output-count", str(self.output_count),
                     "--exit-with-session", str(script)]
         self.proc = subprocess.Popen(
             command,
@@ -95,14 +97,14 @@ python3 {runner} > "$KONVEYOR_REPORT" 2>&1
 """
 
 
-def run_runner(runner, timeout, extra_config=""):
+def run_runner(runner, timeout, extra_config="", output_count=1):
     script = RUNNER_SCRIPT.format(client=REPO / "tests" / "nested" / "clients" / "client.qml", runner=runner)
-    return run_script(script, timeout, extra_config)
+    return run_script(script, timeout, extra_config, output_count=output_count)
 
 
-def run_script(script, timeout, extra_config="", xwayland=False):
+def run_script(script, timeout, extra_config="", xwayland=False, output_count=1):
     config = (REPO / "data" / "default-config.kdl").read_text() + extra_config
-    session = NestedSession(config_kdl=config, xwayland=xwayland)
+    session = NestedSession(config_kdl=config, xwayland=xwayland, output_count=output_count)
     report = session.root / "report.txt"
     session.start(f'export KONVEYOR_REPORT="{report}"\nexport KONVEYOR_KWIN_LOG="{session.log_path}"\n' + script)
     try:

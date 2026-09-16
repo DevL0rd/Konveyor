@@ -3,8 +3,22 @@
 
 #include <QTest>
 
+#include <algorithm>
+
 using namespace Konveyor;
 using namespace Konveyor::Layout;
+
+namespace
+{
+
+bool parksAtHome(QRectF frame, QRectF home, const QList<QRectF> &outputs)
+{
+    const QRectF parked = parkedFrame(frame, home, outputs);
+    const bool offEveryOutput = std::ranges::none_of(outputs, [&](const QRectF &output) { return parked.intersects(output); });
+    return parked.size() == frame.size() && offEveryOutput && nearestOutputIndex(parked.center(), outputs) == outputs.indexOf(home);
+}
+
+}
 
 class TestLayoutGeometry : public QObject
 {
@@ -184,6 +198,39 @@ private Q_SLOTS:
         QCOMPARE(sizeChangeFromPreset(Config::Proportion {0.25}).value, 25.0);
         QCOMPARE(sizeChangeFromPreset(Config::Fixed {100.4}).kind, ChangeKind::SetFixed);
         QCOMPARE(sizeChangeFromPreset(Config::Fixed {100.4}).value, 100.0);
+    }
+
+    void nearestOutputMatchesKWin()
+    {
+        const QList<QRectF> outputs {QRectF(0, 0, 5120, 1440), QRectF(-2328, 0, 2328, 1600)};
+        QCOMPARE(nearestOutputIndex(QPointF(100, 100), outputs), 0);
+        QCOMPARE(nearestOutputIndex(QPointF(-100, 100), outputs), 1);
+        QCOMPARE(nearestOutputIndex(QPointF(-100, 1500), outputs), 1);
+        QCOMPARE(nearestOutputIndex(QPointF(9000, 100), outputs), 0);
+    }
+
+    void parkedFrameStaysOffEveryOutput()
+    {
+        const QList<QRectF> outputs {QRectF(0, 0, 5120, 1440), QRectF(-2560, 400, 2560, 1440)};
+        for (const QRectF &home : outputs) {
+            QVERIFY(parksAtHome(QRectF(-1300, 58, 1260, 1366), home, outputs));
+        }
+    }
+
+    void parkedFrameKeepsHomeInARowOfThree()
+    {
+        const QList<QRectF> outputs {QRectF(0, 0, 1920, 1080), QRectF(1920, 0, 1920, 1080), QRectF(3840, 0, 1920, 1080)};
+        for (const QRectF &home : outputs) {
+            QVERIFY(parksAtHome(QRectF(-900, 0, 800, 1000), home, outputs));
+        }
+    }
+
+    void parkedFrameKeepsHomeInAColumn()
+    {
+        const QList<QRectF> outputs {QRectF(0, 0, 2560, 1440), QRectF(0, 1440, 2560, 1440), QRectF(0, 2880, 2560, 1440)};
+        for (const QRectF &home : outputs) {
+            QVERIFY(parksAtHome(QRectF(2600, 100, 1200, 1300), home, outputs));
+        }
     }
 };
 

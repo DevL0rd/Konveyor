@@ -1,5 +1,8 @@
 #include "plugin/konveyoreffect_p.h"
 
+#include <core/renderviewport.h>
+#include <effect/effectwindow.h>
+
 namespace Konveyor
 {
 
@@ -42,7 +45,68 @@ KonveyorEffect::~KonveyorEffect()
 
 bool KonveyorEffect::isActive() const
 {
+    return d->animating || hasSpill();
+}
+
+bool KonveyorEffect::blocksDirectScanout() const
+{
     return d->animating;
+}
+
+std::optional<QRectF> KonveyorEffect::spillHome(KWin::Window *window) const
+{
+    const std::optional<Layout::WindowId> id = window ? d->windows.idOf(window) : std::nullopt;
+    const auto home = id ? d->homeOutputs.constFind(*id) : d->homeOutputs.constEnd();
+    if (home == d->homeOutputs.constEnd()) {
+        return std::nullopt;
+    }
+    const KWin::LogicalOutput *output = d->outputs.outputNamed(*home);
+    if (!output) {
+        return std::nullopt;
+    }
+    const QRectF homeRect = output->geometryF();
+    const QRectF visible = window->visibleGeometry();
+    if (homeRect.contains(visible)) {
+        return std::nullopt;
+    }
+    for (const KWin::LogicalOutput *other : KWin::workspace()->outputs()) {
+        if (other != output && visible.intersects(other->geometryF())) {
+            return homeRect;
+        }
+    }
+    return std::nullopt;
+}
+
+bool KonveyorEffect::hasSpill() const
+{
+    for (auto it = d->homeOutputs.constBegin(); it != d->homeOutputs.constEnd(); ++it) {
+        if (KWin::Window *window = d->windows.windowOf(it.key()); window && spillHome(window)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void KonveyorEffect::prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data)
+{
+    if (spillHome(w->window())) {
+        data.setTranslucent();
+    }
+    KWin::Effect::prePaintWindow(view, w, data);
+}
+
+void KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,
+    int mask, const KWin::Region &deviceRegion, KWin::WindowPaintData &data)
+{
+    const std::optional<QRectF> home = spillHome(w->window());
+    if (!home) {
+        KWin::Effect::paintWindow(renderTarget, viewport, w, mask, deviceRegion, data);
+        return;
+    }
+    const KWin::Region clipped = deviceRegion & viewport.mapToDeviceCoordinatesAligned(KWin::RectF(*home));
+    if (!clipped.isEmpty()) {
+        KWin::Effect::paintWindow(renderTarget, viewport, w, mask, clipped, data);
+    }
 }
 
 void KonveyorEffect::prePaintScreen(KWin::ScreenPrePaintData &data)
@@ -90,6 +154,7 @@ void KonveyorEffect::flush()
     const QList<Layout::WindowState> states = readEngine().windowStates();
     d->desktops.apply(readEngine().workspaceStates(), states);
     d->applier.apply(states);
+    updateHomeOutputs(states);
     acknowledgeSettledModeChanges(states);
     updateDecorations(states);
     d->fullscreenShade.update(states);
@@ -115,6 +180,14 @@ void KonveyorEffect::acknowledgeSettledModeChanges(const QList<Layout::WindowSta
     }
 }
 
+void KonveyorEffect::updateHomeOutputs(const QList<Layout::WindowState> &states)
+{
+    d->homeOutputs.clear();
+    for (const Layout::WindowState &state : states) {
+        d->homeOutputs.insert(state.id, state.output);
+    }
+}
+
 void KonveyorEffect::updateDecorations(const QList<Layout::WindowState> &states)
 {
     QSet<Layout::WindowId> present;
@@ -123,8 +196,10 @@ void KonveyorEffect::updateDecorations(const QList<Layout::WindowState> &states)
     }
     d->decorations.retainOnly(present);
     for (const Layout::WindowState &state : states) {
-        if (KWin::Window *window = d->windows.windowOf(state.id)) {
-            d->decorations.update(window, state, outputGeometryOf(window), outputScaleOf(window));
+        KWin::Window *window = d->windows.windowOf(state.id);
+        const KWin::LogicalOutput *home = d->outputs.outputNamed(state.output);
+        if (window && home) {
+            d->decorations.update(window, state, home->geometryF(), home->scale());
         }
     }
 }

@@ -8,6 +8,7 @@
 #include "decorations/fullscreenshade.h"
 #include "input/inputfilter.h"
 #include "input/shortcutmanager.h"
+#include "input/spillinputfilter.h"
 #include "kwin/desktopsync.h"
 #include "kwin/minimizerule.h"
 #include "kwin/outputregistry.h"
@@ -50,11 +51,6 @@ inline QString outputNameOf(KWin::Window *window)
     return window->output() ? window->output()->name() : QString();
 }
 
-inline double outputScaleOf(KWin::Window *window)
-{
-    return window->output() ? window->output()->scale() : 1.0;
-}
-
 inline QList<std::pair<KWin::ElectricBorder, bool Config::HotCorners::*>> hotCornerFlags()
 {
     return {
@@ -63,11 +59,6 @@ inline QList<std::pair<KWin::ElectricBorder, bool Config::HotCorners::*>> hotCor
         {KWin::ElectricBottomLeft, &Config::HotCorners::bottomLeft},
         {KWin::ElectricBottomRight, &Config::HotCorners::bottomRight},
     };
-}
-
-inline QRectF outputGeometryOf(KWin::Window *window)
-{
-    return window->output() ? QRectF(window->output()->geometryF()) : QRectF();
 }
 
 struct KonveyorEffect::Private
@@ -84,6 +75,7 @@ struct KonveyorEffect::Private
     DesktopSync desktops;
     ShortcutManager shortcuts;
     PlasmaShellSync plasmaShell;
+    std::unique_ptr<SpillInputFilter> spillInput;
     std::unique_ptr<InputFilter> input;
     std::unique_ptr<DBusService> dbus;
     QTimer flushTimer;
@@ -97,6 +89,7 @@ struct KonveyorEffect::Private
     QString lastBindAction;
     std::optional<Layout::WindowId> focusRequest;
     std::optional<Layout::WindowId> titlebarDrag;
+    QHash<Layout::WindowId, QString> homeOutputs;
 
     Private(Layout::Hooks hooks, ShortcutManager::Handler shortcutHandler)
         : engine(clock, std::move(hooks))
