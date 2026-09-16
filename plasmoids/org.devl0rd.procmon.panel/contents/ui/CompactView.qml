@@ -73,6 +73,7 @@ MouseArea {
             panelThickness: compact.thickness
             chipStyle: "text"
             label: i18n("CPU")
+            widestValue: "100%"
             value: compact.proc ? Math.round(compact.proc.cpu) + "%" : ""
             valueColor: Style.heat(compact.proc ? compact.proc.cpu : 0, 60, 85, Kirigami.Theme)
         }
@@ -82,6 +83,7 @@ MouseArea {
             panelThickness: compact.thickness
             chipStyle: "text"
             label: i18n("GPU")
+            widestValue: "100%"
             value: compact.proc ? Math.round(compact.proc.gpu) + "%" : ""
             valueColor: Style.heat(compact.proc ? compact.proc.gpu : 0, 90, 99, Kirigami.Theme)
         }
@@ -91,6 +93,7 @@ MouseArea {
             panelThickness: compact.thickness
             chipStyle: "text"
             label: i18n("FPS")
+            widestValue: "888"
             value: compact.proc ? compact.proc.fps + "" : ""
             valueColor: root.fpsColor(compact.proc ? compact.proc.fps : 0)
             showLabel: compact.vertical

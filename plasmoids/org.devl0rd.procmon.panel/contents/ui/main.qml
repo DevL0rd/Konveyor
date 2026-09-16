@@ -47,6 +47,7 @@ PlasmoidItem {
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
     property bool popupAlive: !inPanel
+    preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     onPopupAliveChanged: requestRebuild()
     onExpandedChanged: function() {
         if (root.expanded) {
@@ -62,8 +63,6 @@ PlasmoidItem {
         onTriggered: root.popupAlive = root.expanded || !root.inPanel
     }
 
-    switchWidth: Kirigami.Units.gridUnit * 20
-    switchHeight: Kirigami.Units.gridUnit * 16
 
     TaskManager.TasksModel {
         id: tasks

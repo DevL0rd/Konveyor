@@ -84,8 +84,12 @@ if [ ! -e "$REPO_DIR/shared/common/FileWatcher.qml" ]; then
     exit 1
 fi
 echo "Installing widget..."
+UI_SRC="$PLASMOID_SRC/org.devl0rd.procmon.panel"
 for d in "$PLASMOID_SRC"/org.devl0rd.procmon*; do
-    cp "$REPO_DIR/shared/common/FileWatcher.qml" "$REPO_DIR/shared/common/Sparkline.qml" "$d/contents/ui/"  # shared (submodule) components
+    if [ "$d" != "$UI_SRC" ]; then
+        cp "$UI_SRC/contents/ui/"*.qml "$UI_SRC/contents/ui/"*.mjs "$d/contents/ui/"
+        cp "$UI_SRC/contents/config/main.xml" "$d/contents/config/"
+    fi
     mkdir -p "$d/contents/ui/lib"
     cp "$REPO_DIR/shared/common/"*.qml "$REPO_DIR/shared/common/"*.js "$d/contents/ui/lib/"
     if kpackagetool6 -t Plasma/Applet -u "$d" >/dev/null 2>&1; then

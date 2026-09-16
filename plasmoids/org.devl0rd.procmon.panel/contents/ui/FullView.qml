@@ -11,8 +11,8 @@ import "lib/PopStyle.js" as Style
 Item {
     id: full
 
-    Layout.minimumWidth: Kirigami.Units.gridUnit * 26
-    Layout.minimumHeight: Kirigami.Units.gridUnit * 24
+    Layout.minimumWidth: Kirigami.Units.gridUnit * 13
+    Layout.minimumHeight: Kirigami.Units.gridUnit * 12
     Layout.preferredWidth: Kirigami.Units.gridUnit * 38
     Layout.preferredHeight: Kirigami.Units.gridUnit * 42
 
