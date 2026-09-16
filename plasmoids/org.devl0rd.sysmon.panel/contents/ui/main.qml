@@ -31,6 +31,7 @@ PlasmoidItem {
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
     property bool popupAlive: !inPanel
+    preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     onExpandedChanged: function() {
         if (root.expanded) {
             releasePopup.stop()
@@ -45,8 +46,6 @@ PlasmoidItem {
         onTriggered: root.popupAlive = root.expanded || !root.inPanel
     }
 
-    switchWidth: Kirigami.Units.gridUnit * 16
-    switchHeight: Kirigami.Units.gridUnit * 16
 
     function cpuShort() {
         return (snap.cpu_model || "").replace(/\(R\)|\(TM\)/g, "").replace(/\d+th Gen /, "").replace("Intel Core ", "").replace(/\s+/g, " ").trim()

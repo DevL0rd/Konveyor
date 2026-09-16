@@ -13,8 +13,8 @@ import "lib/Highlight.js" as Highlight
 Item {
     id: full
 
-    Layout.minimumWidth: Kirigami.Units.gridUnit * 20
-    Layout.minimumHeight: Kirigami.Units.gridUnit * 20
+    Layout.minimumWidth: Kirigami.Units.gridUnit * 13
+    Layout.minimumHeight: Kirigami.Units.gridUnit * 12
     Layout.preferredWidth: Kirigami.Units.gridUnit * 26
     Layout.preferredHeight: Kirigami.Units.gridUnit * 42
 

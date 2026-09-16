@@ -63,6 +63,8 @@ MouseArea {
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
             label: i18n("CPU")
+            widestValue: "100%"
+            widestSecondary: compact.temps ? "100°" : ""
             value: Math.round(root.cpu.total || 0) + "%"
             valueColor: Style.heat(root.cpu.total || 0, 85, 95, Kirigami.Theme)
             secondary: compact.temps && root.cpu.temp ? Math.round(root.cpu.temp) + "°" : ""
@@ -77,6 +79,8 @@ MouseArea {
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
             label: i18n("GPU")
+            widestValue: "100%"
+            widestSecondary: compact.temps ? "100°" : ""
             value: root.gpu ? Math.round(root.gpu.util || 0) + "%" : ""
             valueColor: Style.heat(root.gpu ? root.gpu.util || 0 : 0, 90, 99, Kirigami.Theme)
             secondary: compact.temps && root.gpu && root.gpu.temp ? Math.round(root.gpu.temp) + "°" : ""
@@ -91,6 +95,7 @@ MouseArea {
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
             label: i18n("RAM")
+            widestValue: "100%"
             value: Math.round(root.mem.pct || 0) + "%"
             valueColor: Style.heat(root.mem.pct || 0, 75, 90, Kirigami.Theme)
             fraction: (root.mem.pct || 0) / 100

@@ -13,3 +13,6 @@ __pycache__/
 
 # Shared QML/JS components synced from the shared/common submodule by install.sh
 plasmoids/*/contents/ui/lib/
+
+plasmoids/org.devl0rd.sysmon/contents/ui/*.qml
+plasmoids/org.devl0rd.sysmon/contents/config/main.xml
