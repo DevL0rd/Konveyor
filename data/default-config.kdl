@@ -108,6 +108,11 @@ window-rule {
     open-floating true
 }
 
+window-rule {
+    match app-id=r#"^org\.kde\.plasma\.emojier$"#
+    open-floating true
+}
+
 // `manage false` leaves a window to KWin instead of tiling it. Steam opens its
 // menus, notification toasts and loading placeholders as ordinary windows.
 window-rule {
