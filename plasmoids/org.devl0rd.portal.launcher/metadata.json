@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Id": "org.devl0rd.portal.launcher",
+        "Name": "Portal Launcher",
+        "Description": "A full-screen launcher for apps, games, files, friends and system actions, with one search for everything",
+        "Icon": "start-here-kde-plasma",
+        "Authors": [
+            { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
+        ],
+        "Category": "Application Launchers",
+        "License": "MIT",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Linux-Plasma-Portals"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": [
+        "org.kde.plasma.launchermenu"
+    ]
+}

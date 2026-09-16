@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+    <group name="General">
+        <entry name="icon" type="String"><default>start-here-kde-plasma</default></entry>
+        <entry name="label" type="String"><default></default></entry>
+        <entry name="showLabel" type="Bool"><default>false</default></entry>
+        <entry name="widthFraction" type="Double"><default>0.64</default></entry>
+        <entry name="heightFraction" type="Double"><default>0.78</default></entry>
+        <entry name="dimStrength" type="Double"><default>0.55</default></entry>
+        <entry name="defaultPage" type="String"><default>home</default></entry>
+        <entry name="tileSize" type="Int"><default>48</default></entry>
+        <entry name="showRecentApps" type="Bool"><default>true</default></entry>
+        <entry name="showRecentFiles" type="Bool"><default>true</default></entry>
+        <entry name="showGames" type="Bool"><default>true</default></entry>
+        <entry name="showFriends" type="Bool"><default>true</default></entry>
+        <entry name="searchFiles" type="Bool"><default>true</default></entry>
+        <entry name="searchSettings" type="Bool"><default>true</default></entry>
+        <entry name="searchCalculator" type="Bool"><default>true</default></entry>
+        <entry name="searchCommands" type="Bool"><default>true</default></entry>
+        <entry name="searchWeb" type="Bool"><default>false</default></entry>
+    </group>
+</kcfg>
