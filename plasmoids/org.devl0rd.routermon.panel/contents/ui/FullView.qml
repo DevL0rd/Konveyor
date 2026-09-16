@@ -79,11 +79,6 @@ Item {
             onCloseRequested: root.expanded = false
             onSearchAccepted: if (results.item) results.item.activateFirst()
 
-            Connections {
-                target: root
-                function onTickChanged() { shell.pulse() }
-            }
-
             headerActions: [
                 PlasmaComponents.ToolButton {
                     visible: Plasmoid.configuration.showWebUI && !!root.info.admin_url
