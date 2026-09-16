@@ -14,7 +14,7 @@ layout {
 
     // Where a new window's column opens: "left" or "right" of the focused
     // column. A column pinned with column-position sends it to the other side.
-    new-column-position "left"
+    new-column-position "right"
 
     preset-column-widths {
         proportion 0.33333
