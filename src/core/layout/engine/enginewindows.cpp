@@ -200,7 +200,8 @@ void Engine::Private::finishPlacement(WindowId id, const NewWindowPlan &plan)
     }
 }
 
-void Engine::Private::placeNewWindow(WindowId id, const WindowProperties &properties, const NewWindowPlan &plan)
+void Engine::Private::placeNewWindow(
+    WindowId id, const WindowProperties &properties, const NewWindowPlan &plan, const std::optional<RestorePlacement> &restore)
 {
     Workspace *workspace = workspaceForPlacement(plan);
     if (!workspace) {
@@ -215,7 +216,7 @@ void Engine::Private::placeNewWindow(WindowId id, const WindowProperties &proper
     }
     const ColumnWidth width = workspace->tiledWidthFor(tile.window(), plan.width);
     MonitorAddRequest request = makeAddRequest(plan, width);
-    if (placeInAppGroup(tile, plan, *workspace, request)) {
+    if ((restore && placeRestored(tile, plan, *restore, request)) || (!restore && placeInAppGroup(tile, plan, *workspace, request))) {
         finishPlacement(id, plan);
         return;
     }
@@ -228,42 +229,6 @@ void Engine::Private::placeNewWindow(WindowId id, const WindowProperties &proper
         workspace->addTile(std::move(tile), {target, request.activate, width, plan.fillsWidth, plan.isFloating, std::nullopt});
     }
     finishPlacement(id, plan);
-}
-
-void Engine::addWindow(WindowId id, const WindowProperties &properties, const QString &preferredOutput, ActivationPolicy policy)
-{
-    if (hasWindow(id)) {
-        return;
-    }
-    d->placeNewWindow(id, properties, d->planNewWindow(properties, preferredOutput, policy));
-    d->refresh();
-}
-
-void Engine::removeWindow(WindowId id)
-{
-    if (d->windowDrag && d->windowDrag->window == id) {
-        d->windowDrag.reset();
-    }
-    for (Monitor &monitor : d->monitors) {
-        for (Workspace &workspace : monitor.workspaces()) {
-            if (!workspace.hasWindow(id)) {
-                continue;
-            }
-            workspace.removeTile(id);
-            monitor.pruneWorkspaces();
-            d->focusOrder.remove(id);
-            d->refresh();
-            return;
-        }
-    }
-    for (Workspace &workspace : d->orphanWorkspaces) {
-        if (workspace.hasWindow(id)) {
-            workspace.removeTile(id);
-            d->focusOrder.remove(id);
-            d->refresh();
-            return;
-        }
-    }
 }
 
 bool Engine::hasWindow(WindowId id) const

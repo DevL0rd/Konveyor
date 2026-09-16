@@ -57,6 +57,16 @@ void KonveyorEffect::connectWindowLifecycle()
         d->applier.forget(id);
         d->homeOutputs.remove(id);
     });
+    connect(&d->windows, &WindowRegistry::windowMinimizing, this, [this](Layout::WindowId id, KWin::Window *window) {
+        const std::optional<Layout::RestorePlacement> placement = readEngine().placementOf(id);
+        if (!placement) {
+            return;
+        }
+        if (!d->minimizedPlacements.contains(window)) {
+            connect(window, &QObject::destroyed, this, [this, window] { d->minimizedPlacements.remove(window); });
+        }
+        d->minimizedPlacements.insert(window, *placement);
+    });
     connect(&d->windows, &WindowRegistry::propertiesChanged, this, [this](Layout::WindowId id) {
         if (KWin::Window *window = d->windows.windowOf(id)) {
             changeEngine().updateWindowProperties(id, d->windows.propertiesOf(window));
@@ -130,7 +140,11 @@ void KonveyorEffect::connectDesktopSync()
 
 void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
 {
-    changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart);
+    const auto restore = d->minimizedPlacements.constFind(window);
+    const std::optional<Layout::RestorePlacement> placement
+        = restore == d->minimizedPlacements.constEnd() ? std::nullopt : std::optional(*restore);
+    d->minimizedPlacements.remove(window);
+    changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);
 }
 
 }

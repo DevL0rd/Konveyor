@@ -120,6 +120,9 @@ void WindowRegistry::refresh(KWin::Window *window)
     const bool tracked = m_ids.contains(window);
     const bool wanted = !window->isMinimized() && (!m_wantsWindow || m_wantsWindow(propertiesOf(window)));
     if (!wanted && tracked) {
+        if (window->isMinimized()) {
+            Q_EMIT windowMinimizing(m_ids.value(window), window);
+        }
         remove(window);
     } else if (wanted && !tracked) {
         add(window);

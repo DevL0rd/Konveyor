@@ -37,6 +37,7 @@ public:
 Q_SIGNALS:
     void windowAdded(Layout::WindowId id, KWin::Window *window);
     void windowRemoved(Layout::WindowId id);
+    void windowMinimizing(Layout::WindowId id, KWin::Window *window);
     void propertiesChanged(Layout::WindowId id);
     void sizeCommitted(Layout::WindowId id, const QSizeF &size);
     void fullscreenRequested(Layout::WindowId id, bool fullscreen);

@@ -263,7 +263,7 @@ hide-desktop-widgets
 // panel you change in the meantime is left the way you set it.
 fill-panels-on-maximize
 
-// Konveyor extension: windows cannot be minimized. This adds a
-// KWin window rule that forces minimize off, which also hides the minimize
-// button on KDE title bars. The rule is removed when Konveyor is disabled.
-disable-minimize
+// Konveyor extension: uncomment to stop windows from being minimized. This
+// adds a KWin window rule that forces minimize off, which also hides the
+// minimize button on KDE title bars. The rule is removed when Konveyor is disabled.
+// disable-minimize

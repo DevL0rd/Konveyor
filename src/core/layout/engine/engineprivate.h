@@ -117,7 +117,9 @@ struct Engine::Private
     Workspace *workspaceForNewWindow(NewWindowPlan &plan);
     Workspace *workspaceForPlacement(const NewWindowPlan &plan);
     void finishPlacement(WindowId id, const NewWindowPlan &plan);
-    void placeNewWindow(WindowId id, const WindowProperties &properties, const NewWindowPlan &plan);
+    void placeNewWindow(
+        WindowId id, const WindowProperties &properties, const NewWindowPlan &plan, const std::optional<RestorePlacement> &restore);
+    bool placeRestored(Tile &tile, const NewWindowPlan &plan, const RestorePlacement &restore, MonitorAddRequest &request);
 
     std::optional<std::size_t> monitorInDirection(const QString &direction) const;
 

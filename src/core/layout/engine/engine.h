@@ -129,6 +129,16 @@ struct WindowState
     bool operator==(const WindowState &) const = default;
 };
 
+struct RestorePlacement
+{
+    WorkspaceId workspace = 0;
+    bool isFloating = false;
+    std::size_t columnIndex = 0;
+    std::optional<std::size_t> tileIndex;
+    ColumnWidth width;
+    QRectF floatingFrame;
+};
+
 struct WorkspaceState
 {
     WorkspaceId id = 0;
@@ -185,7 +195,9 @@ public:
     void focusOutput(const QString &name);
     std::optional<QString> focusedOutput() const;
 
-    void addWindow(WindowId id, const WindowProperties &properties, const QString &preferredOutput, ActivationPolicy policy);
+    void addWindow(WindowId id, const WindowProperties &properties, const QString &preferredOutput, ActivationPolicy policy,
+        const std::optional<RestorePlacement> &restore = std::nullopt);
+    std::optional<RestorePlacement> placementOf(WindowId id) const;
     void removeWindow(WindowId id);
     void updateWindowProperties(WindowId id, const WindowProperties &properties);
     void windowSizeCommitted(WindowId id, const QSizeF &frameSize);

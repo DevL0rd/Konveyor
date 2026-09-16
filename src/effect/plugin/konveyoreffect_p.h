@@ -94,6 +94,7 @@ struct KonveyorEffect::Private
     std::optional<Layout::WindowId> focusRequest;
     std::optional<Layout::WindowId> titlebarDrag;
     QHash<Layout::WindowId, QString> homeOutputs;
+    QHash<KWin::Window *, Layout::RestorePlacement> minimizedPlacements;
 
     Private(Layout::Hooks hooks, ShortcutManager::Handler shortcutHandler)
         : engine(clock, std::move(hooks))
