@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.components as PlasmaComponents
 import "lib"
 import "lib/PopStyle.js" as Style
 
@@ -12,66 +11,16 @@ MouseArea {
 
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property real thickness: vertical ? width : height
-    readonly property real valueSize: Math.max(Kirigami.Theme.smallFont.pixelSize, Math.min(Kirigami.Theme.defaultFont.pixelSize * 1.05, thickness * 0.4))
+    readonly property bool showLabels: vertical || thickness >= Kirigami.Units.gridUnit * 2.4
     readonly property string extra: Plasmoid.configuration.compactExtra
     readonly property var down: root.speed(root.network.down_mbps)
     readonly property var up: root.speed(root.network.up_mbps)
     readonly property bool showNumbers: root.ready && root.routerState !== "offline"
+    readonly property real downScale: Plasmoid.configuration.maxMbps > 0 ? Plasmoid.configuration.maxMbps
+                                    : Plasmoid.configuration.planDownMbps > 0 ? Plasmoid.configuration.planDownMbps
+                                    : Math.max(1, Plasmoid.configuration.peakDown)
+    readonly property real upScale: Plasmoid.configuration.maxMbps > 0 ? Plasmoid.configuration.maxMbps : Math.max(1, Plasmoid.configuration.peakUp)
     property bool wasExpanded: false
-
-    component SpeedGroup: GridLayout {
-        property string arrow
-        property var speed
-        property color tint
-        visible: compact.showNumbers
-        Layout.alignment: Qt.AlignCenter
-        flow: compact.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
-        columnSpacing: 2
-        rowSpacing: 0
-        PlasmaComponents.Label {
-            text: parent.arrow
-            color: parent.tint
-            font.pixelSize: compact.valueSize
-            font.weight: Font.Bold
-            Layout.alignment: compact.vertical ? Qt.AlignHCenter : Qt.AlignBaseline
-        }
-        PlasmaComponents.Label {
-            text: parent.speed.value
-            horizontalAlignment: compact.vertical ? Text.AlignHCenter : Text.AlignRight
-            Layout.minimumWidth: compact.vertical ? 0 : Math.ceil(numberMetrics.advanceWidth)
-            font.pixelSize: compact.valueSize
-            font.weight: Font.DemiBold
-            font.features: { "tnum": 1 }
-            Layout.alignment: compact.vertical ? Qt.AlignHCenter : Qt.AlignBaseline
-        }
-        PlasmaComponents.Label {
-            visible: !compact.vertical
-            Layout.minimumWidth: Math.ceil(unitMetrics.advanceWidth)
-            text: parent.speed.unit
-            font.pixelSize: compact.valueSize * 0.7
-            opacity: 0.6
-            Layout.alignment: Qt.AlignBaseline
-        }
-    }
-
-    TextMetrics {
-        id: numberMetrics
-        font.pixelSize: compact.valueSize
-        font.weight: Font.DemiBold
-        font.features: { "tnum": 1 }
-        text: "888.8"
-    }
-    TextMetrics {
-        id: unitMetrics
-        font.pixelSize: compact.valueSize * 0.7
-        text: i18n("Mb/s").length >= i18n("Kb/s").length ? i18n("Mb/s") : i18n("Kb/s")
-    }
-    TextMetrics {
-        id: extraMetrics
-        font.pixelSize: compact.valueSize * 0.85
-        font.features: { "tnum": 1 }
-        text: compact.extra === "ping" ? "888 ms" : compact.extra === "blocked" ? "100%" : "888"
-    }
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
@@ -83,9 +32,9 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    Layout.minimumWidth: vertical ? 0 : content.implicitWidth + Kirigami.Units.smallSpacing * 3
+    Layout.minimumWidth: vertical ? 0 : content.implicitWidth + Kirigami.Units.smallSpacing * 2
     Layout.preferredWidth: Layout.minimumWidth
-    Layout.minimumHeight: vertical ? content.implicitHeight + Kirigami.Units.smallSpacing * 3 : 0
+    Layout.minimumHeight: vertical ? content.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0
     Layout.preferredHeight: Layout.minimumHeight
 
     Rectangle {
@@ -96,31 +45,17 @@ MouseArea {
         Behavior on color { ColorAnimation { duration: 150 } }
     }
 
-    Sparkline {
-        visible: compact.showNumbers && !compact.vertical
-        anchors.fill: parent
-        anchors.margins: 3
-        opacity: 0.35
-        values: root.series("down").slice(-40)
-        values2: root.series("up").slice(-40)
-        lineColor: root.downColor
-        lineColor2: root.upColor
-        gradient: false
-        peakMarker: false
-        hoverable: false
-        rangeFloor: 2
-    }
-
     GridLayout {
         id: content
         anchors.centerIn: parent
         flow: compact.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
-        columnSpacing: Kirigami.Units.smallSpacing * 1.5
+        columnSpacing: Kirigami.Units.largeSpacing
         rowSpacing: Kirigami.Units.smallSpacing
 
         Item {
+            visible: !compact.showNumbers
             Layout.alignment: Qt.AlignCenter
-            Layout.preferredWidth: Math.round(compact.valueSize * 1.35)
+            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
             Layout.preferredHeight: Layout.preferredWidth
             Kirigami.Icon {
                 anchors.fill: parent
@@ -149,31 +84,69 @@ MouseArea {
             }
         }
 
-        SpeedGroup {
-            arrow: "↓"
-            speed: compact.down
-            tint: root.downColor
+        PopChip {
+            visible: compact.showNumbers
+            vertical: compact.vertical
+            panelThickness: compact.thickness
+            showLabel: compact.showLabels
+            label: i18n("DOWN")
+            valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
+            widestValue: "888.8"
+            widestSecondary: compact.vertical ? "" : i18n("Mb/s")
+            value: compact.down.value
+            secondary: compact.vertical ? "" : compact.down.unit
+            fraction: Math.min(1, (root.network.down_mbps || 0) / compact.downScale)
+            barColor: root.downColor
         }
-        SpeedGroup {
-            arrow: "↑"
-            speed: compact.up
-            tint: root.upColor
+        PopChip {
+            visible: compact.showNumbers
+            vertical: compact.vertical
+            panelThickness: compact.thickness
+            showLabel: compact.showLabels
+            label: i18n("UP")
+            valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
+            widestValue: "888.8"
+            widestSecondary: compact.vertical ? "" : i18n("Mb/s")
+            value: compact.up.value
+            secondary: compact.vertical ? "" : compact.up.unit
+            fraction: Math.min(1, (root.network.up_mbps || 0) / compact.upScale)
+            barColor: root.upColor
         }
-
-        PlasmaComponents.Label {
-            visible: compact.showNumbers && compact.extra !== "none" && text !== ""
-            Layout.alignment: Qt.AlignCenter
-            Layout.leftMargin: compact.vertical ? 0 : Kirigami.Units.smallSpacing
-            font.pixelSize: compact.valueSize * 0.85
-            font.features: { "tnum": 1 }
-            horizontalAlignment: compact.vertical ? Text.AlignHCenter : Text.AlignRight
-            Layout.minimumWidth: compact.vertical ? 0 : Math.ceil(extraMetrics.advanceWidth)
-            text: compact.extra === "ping" ? Math.round(root.network.ping_rtt || 0) + " ms"
-                : compact.extra === "clients" ? root.onlineCount + ""
-                : compact.extra === "blocked" && root.dns ? Math.round(root.dns.blocked_pct || 0) + "%"
-                : ""
-            color: compact.extra === "ping" ? Style.heat(root.network.ping_rtt || 0, 40, 100, Kirigami.Theme) : Kirigami.Theme.textColor
-            opacity: 0.85
+        PopChip {
+            visible: compact.showNumbers && compact.extra === "ping"
+            vertical: compact.vertical
+            panelThickness: compact.thickness
+            showLabel: compact.showLabels
+            label: i18n("PING")
+            widestValue: "888"
+            widestSecondary: compact.vertical ? "" : "ms"
+            value: Math.round(root.network.ping_rtt || 0) + ""
+            valueColor: Style.heat(root.network.ping_rtt || 0, 40, 100, Kirigami.Theme)
+            secondary: compact.vertical ? "" : "ms"
+            fraction: Math.min(1, (root.network.ping_rtt || 0) / 100)
+            barColor: Style.heat(root.network.ping_rtt || 0, 40, 100, Kirigami.Theme)
+        }
+        PopChip {
+            visible: compact.showNumbers && compact.extra === "clients"
+            vertical: compact.vertical
+            panelThickness: compact.thickness
+            showLabel: compact.showLabels
+            label: i18n("DEVICES")
+            widestValue: "888"
+            value: root.onlineCount + ""
+            fraction: root.leases.length > 0 ? root.onlineCount / root.leases.length : 0
+            barColor: root.accent
+        }
+        PopChip {
+            visible: compact.showNumbers && compact.extra === "blocked" && root.dns !== null
+            vertical: compact.vertical
+            panelThickness: compact.thickness
+            showLabel: compact.showLabels
+            label: i18n("BLOCKED")
+            widestValue: "100%"
+            value: root.dns ? Math.round(root.dns.blocked_pct || 0) + "%" : ""
+            fraction: root.dns ? (root.dns.blocked_pct || 0) / 100 : 0
+            barColor: root.accent
         }
     }
 }
