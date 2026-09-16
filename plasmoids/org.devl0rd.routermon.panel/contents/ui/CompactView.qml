@@ -19,6 +19,41 @@ MouseArea {
     readonly property bool showNumbers: root.ready && root.routerState !== "offline"
     property bool wasExpanded: false
 
+    component SpeedGroup: GridLayout {
+        property string arrow
+        property var speed
+        property color tint
+        visible: compact.showNumbers
+        Layout.alignment: Qt.AlignCenter
+        flow: compact.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
+        columnSpacing: 2
+        rowSpacing: 0
+        PlasmaComponents.Label {
+            text: parent.arrow
+            color: parent.tint
+            font.pixelSize: compact.valueSize
+            font.weight: Font.Bold
+            Layout.alignment: compact.vertical ? Qt.AlignHCenter : Qt.AlignBaseline
+        }
+        PlasmaComponents.Label {
+            text: parent.speed.value
+            horizontalAlignment: compact.vertical ? Text.AlignHCenter : Text.AlignRight
+            Layout.minimumWidth: compact.vertical ? 0 : Math.ceil(numberMetrics.advanceWidth)
+            font.pixelSize: compact.valueSize
+            font.weight: Font.DemiBold
+            font.features: { "tnum": 1 }
+            Layout.alignment: compact.vertical ? Qt.AlignHCenter : Qt.AlignBaseline
+        }
+        PlasmaComponents.Label {
+            visible: !compact.vertical
+            Layout.minimumWidth: Math.ceil(unitMetrics.advanceWidth)
+            text: parent.speed.unit
+            font.pixelSize: compact.valueSize * 0.7
+            opacity: 0.6
+            Layout.alignment: Qt.AlignBaseline
+        }
+    }
+
     TextMetrics {
         id: numberMetrics
         font.pixelSize: compact.valueSize
@@ -114,43 +149,15 @@ MouseArea {
             }
         }
 
-        Repeater {
-            model: compact.showNumbers ? [
-                { arrow: "↓", value: compact.down.value, unit: compact.down.unit, color: root.downColor },
-                { arrow: "↑", value: compact.up.value, unit: compact.up.unit, color: root.upColor }
-            ] : []
-
-            GridLayout {
-                required property var modelData
-                Layout.alignment: Qt.AlignCenter
-                flow: compact.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
-                columnSpacing: 2
-                rowSpacing: 0
-                PlasmaComponents.Label {
-                    text: modelData.arrow
-                    color: modelData.color
-                    font.pixelSize: compact.valueSize
-                    font.weight: Font.Bold
-                    Layout.alignment: compact.vertical ? Qt.AlignHCenter : Qt.AlignBaseline
-                }
-                PlasmaComponents.Label {
-                    text: modelData.value
-                    horizontalAlignment: compact.vertical ? Text.AlignHCenter : Text.AlignRight
-                    Layout.minimumWidth: compact.vertical ? 0 : Math.ceil(numberMetrics.advanceWidth)
-                    font.pixelSize: compact.valueSize
-                    font.weight: Font.DemiBold
-                    font.features: { "tnum": 1 }
-                    Layout.alignment: compact.vertical ? Qt.AlignHCenter : Qt.AlignBaseline
-                }
-                PlasmaComponents.Label {
-                    visible: !compact.vertical
-                    Layout.minimumWidth: Math.ceil(unitMetrics.advanceWidth)
-                    text: modelData.unit
-                    font.pixelSize: compact.valueSize * 0.7
-                    opacity: 0.6
-                    Layout.alignment: Qt.AlignBaseline
-                }
-            }
+        SpeedGroup {
+            arrow: "↓"
+            speed: compact.down
+            tint: root.downColor
+        }
+        SpeedGroup {
+            arrow: "↑"
+            speed: compact.up
+            tint: root.upColor
         }
 
         PlasmaComponents.Label {

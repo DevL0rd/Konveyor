@@ -25,6 +25,7 @@ Item {
     signal updated()
 
     property string cachePath: ""
+    property bool active: true
 
     // one-shot: resolve the runtime cache path (cheap shell echo), then poll via XHR
     P5Support.DataSource {
@@ -63,7 +64,7 @@ Item {
     }
 
     // event-driven: re-read the instant the collector rewrites the snapshot (no polling)
-    FileWatcher { path: root.cachePath; onChanged: root.read() }
+    FileWatcher { path: root.active ? root.cachePath : ""; onChanged: root.read() }
 
     Component.onCompleted: helper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Linux-Router-Monitor/data.json\"")
 }

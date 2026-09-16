@@ -34,6 +34,7 @@ PlasmoidItem {
 
     RouterData {
         id: routerData
+        active: root.inPanel || root.visible
         onUpdated: root.onSnapshot()
     }
 
