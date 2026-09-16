@@ -14,7 +14,7 @@ systemctl --user daemon-reload 2>/dev/null || true
 rm -f ~/.config/environment.d/linux-router-monitor.conf ~/.config/plasma-workspace/env/linux-router-monitor.sh
 
 echo "Removing widgets..."
-for id in system network wifi dns clients speedtest; do
+for id in system network wifi dns clients speedtest panel; do
     kpackagetool6 -t Plasma/Applet -r "org.devl0rd.routermon.$id" >/dev/null 2>&1 \
         && echo "  removed org.devl0rd.routermon.$id" || true
 done

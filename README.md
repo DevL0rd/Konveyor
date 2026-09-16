@@ -23,6 +23,37 @@ instructions.
 Each widget has settings for poll interval, accent colour, and which
 sub-sections / charts to show.
 
+### Router (Panel)
+
+**Router (Panel)** puts everything above into one panel button. The button
+shows live download and upload speed over a faint speed graph, plus ping (or
+devices online, or DNS blocked %). A small badge on the router icon turns amber
+when the internet is down, red when the router can't be reached, and shows a
+pause sign while monitoring is paused. Middle-click pauses or resumes
+monitoring.
+
+Click it for a popup with seven tabs:
+
+- **Overview**: download and upload with a graph, tiles for ping, packet loss,
+  devices, DNS blocked, router CPU and RAM, the last speed test, and airtime per
+  WiFi band
+- **Network**: public IP, gateway and DNS servers (click to copy), download and
+  upload graphs, latency and loss, wired port speeds and local network traffic
+- **WiFi**: each band's network name, channel, noise, temperature, transmit
+  power, DFS state and airtime, with a list of connected devices
+- **Clients**: filter by online, WiFi, wired or blocked and sort by traffic,
+  signal, name or IP; click a device for its details and every action (SSH,
+  files, ping, port scan, copy, rename, reserve IP, disconnect, block)
+- **DNS**: AdGuard protection switch, blocked share, queries, response time,
+  malware and parental blocks, a queries graph with blocked queries on top, and
+  top blocked, queried and client lists
+- **Speed**: run a test and watch it live, with a history of your last 20 tests
+- **System**: router CPU per core, memory, temperatures, load, processes,
+  tracked connections, security features, reboot and restart WiFi
+
+The search box finds devices by name, IP or MAC, WiFi bands, ports, domains and
+actions such as `reboot` or `speed test`.
+
 ## How it works (and why it's light on the router)
 
 Widgets never each open their own SSH connection. A single helper
