@@ -9,7 +9,9 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
     if (!window) {
         return;
     }
-    const bool scrollOnDrag = d->config.config().gestures.titlebarDrag == Config::TitlebarDrag::ScrollView;
+    const std::optional<Layout::WindowState> state = readEngine().windowState(id);
+    const bool floating = state && state->isFloating;
+    const bool scrollOnDrag = !floating && d->config.config().gestures.titlebarDrag == Config::TitlebarDrag::ScrollView;
     if (!isMove) {
         handleWindowResize(id, window, phase);
     } else if (scrollOnDrag) {
