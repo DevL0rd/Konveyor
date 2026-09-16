@@ -52,6 +52,10 @@ gestures {
 
     // "scroll-view" scrolls the columns when dragging a tiled window's title bar, "move-window" drags it to a new position in the row.
     titlebar-drag "scroll-view"
+
+    // Uncomment to resize tiled windows by dragging their edges. Floating
+    // windows can always be resized.
+    // resize-tiled-windows
 }
 
 animations {

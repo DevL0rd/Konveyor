@@ -118,6 +118,12 @@ void KonveyorEffect::handleWindowMove(Layout::WindowId id, KWin::Window *window,
 
 void KonveyorEffect::handleWindowResize(Layout::WindowId id, KWin::Window *window, int phase)
 {
+    if (!d->config.config().gestures.resizeTiledWindows) {
+        if (phase == interactivePhaseStart) {
+            window->endInteractiveMoveResize();
+        }
+        return;
+    }
     if (phase == interactivePhaseStart) {
         d->resizeOrigin = window->moveResizeGeometry().size();
         changeEngine().beginResize(id, resizeEdgesFor(window->interactiveMoveResizeGravity()));

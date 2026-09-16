@@ -85,7 +85,7 @@ SettingsPage {
     }
 
     CardHeader {
-        title: "Dragging title bars"
+        title: "Dragging windows"
     }
 
     Card {
@@ -106,6 +106,15 @@ SettingsPage {
                 ]
                 onChosen: value => kcm.setValue("gestures/titlebar-drag", [value])
             }
+        }
+
+        SwitchRow {
+            label: "Resize tiled windows by dragging their edges"
+            description: "When off, window edges in the row can't be dragged, so the layout only changes through shortcuts and presets. Floating windows can always be resized."
+            iconName: "transform-scale"
+            resetPaths: ["gestures/resize-tiled-windows"]
+            isOn: kcm.values["gestures/resize-tiled-windows"]
+            onSwitched: on => kcm.setFlag("gestures/resize-tiled-windows", on)
         }
     }
 

@@ -3,7 +3,8 @@
 const entries = [
     { page: "mouse", section: "Focus", label: "Focus follows the mouse", keywords: "hover focus follows mouse pointer sloppy" },
     { page: "mouse", section: "Focus", label: "Move the pointer with keyboard focus", keywords: "warp mouse pointer cursor center focus" },
-    { page: "mouse", section: "Dragging title bars", label: "Dragging a tiled window's title bar", keywords: "titlebar drag scroll move window" },
+    { page: "mouse", section: "Dragging windows", label: "Dragging a tiled window's title bar", keywords: "titlebar drag scroll move window" },
+    { page: "mouse", section: "Dragging windows", label: "Resize tiled windows by dragging their edges", keywords: "resize edges drag border size" },
     { page: "mouse", section: "Hot corners", label: "Open the overview from screen corners", keywords: "hot corners overview" },
     { page: "mouse", section: "Hot corners", label: "Active corners", keywords: "top left right bottom corner" },
     { page: "mouse", section: "Scrolling while dragging", label: "Scroll the row", keywords: "drag and drop edge scroll view dnd" },

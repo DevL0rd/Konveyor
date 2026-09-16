@@ -78,6 +78,7 @@ QVariantMap globalValues(const Config::Config &config)
                 {QStringLiteral("bottom-left"), gestures.hotCorners.bottomLeft},
                 {QStringLiteral("bottom-right"), gestures.hotCorners.bottomRight},
             }},
+        {QStringLiteral("gestures/resize-tiled-windows"), gestures.resizeTiledWindows},
         {QStringLiteral("gestures/titlebar-drag"),
             gestures.titlebarDrag == Config::TitlebarDrag::MoveWindow ? QStringLiteral("move-window") : QStringLiteral("scroll-view")},
     };

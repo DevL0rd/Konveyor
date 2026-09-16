@@ -74,6 +74,8 @@ void decodeGestures(const Kdl::Node &node, Gestures &gestures)
         const int index = keywordArgument(child, {QStringLiteral("scroll-view"), QStringLiteral("move-window")});
         gestures.titlebarDrag = index == 0 ? TitlebarDrag::ScrollView : TitlebarDrag::MoveWindow;
     });
+    table.insert(
+        QStringLiteral("resize-tiled-windows"), [&gestures](const Kdl::Node &child) { gestures.resizeTiledWindows = flagArgument(child); });
     decodeChildren(node, table);
 }
 

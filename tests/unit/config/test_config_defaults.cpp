@@ -92,6 +92,7 @@ void TestConfigDefaults::defaultGestureAndInputValues()
     QCOMPARE(config.gestures.hotCorners.topLeft, true);
     QCOMPARE(config.gestures.hotCorners.topRight, false);
     QCOMPARE(config.gestures.titlebarDrag, TitlebarDrag::ScrollView);
+    QCOMPARE(config.gestures.resizeTiledWindows, false);
     QCOMPARE(config.input.focusFollowsMouse, false);
     QCOMPARE(config.input.warpMouseToFocus, false);
     QCOMPARE(config.input.workspaceAutoBackAndForth, false);

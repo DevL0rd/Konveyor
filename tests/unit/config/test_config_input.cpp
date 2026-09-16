@@ -31,6 +31,7 @@ void TestConfigInput::parsesGestures()
                 max-speed 900
             }
             titlebar-drag "move-window"
+            resize-tiled-windows
         }
     )"));
     QCOMPARE(config.gestures.dndEdgeViewScroll.triggerSize, 10.0);
@@ -39,6 +40,7 @@ void TestConfigInput::parsesGestures()
     QCOMPARE(config.gestures.dndEdgeWorkspaceSwitch.triggerSize, 20.0);
     QCOMPARE(config.gestures.dndEdgeWorkspaceSwitch.maxSpeed, 900.0);
     QCOMPARE(config.gestures.titlebarDrag, TitlebarDrag::MoveWindow);
+    QCOMPARE(config.gestures.resizeTiledWindows, true);
     QVERIFY(mustFail(QStringLiteral("gestures {\n titlebar-drag \"wobble\"\n}\n")).message.contains(QStringLiteral("expected one of")));
 }
 
