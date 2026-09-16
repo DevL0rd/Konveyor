@@ -26,6 +26,8 @@ void TestConfigWindowRules::parsesWindowRuleMatchers()
             exclude is-floating=true is-urgent=false at-startup=true
             open-floating true
             manage false
+            group-app-windows "stack"
+            max-rows-per-column 2
         }
     )"));
     const WindowRule &rule = config.windowRules.first();
@@ -33,6 +35,8 @@ void TestConfigWindowRules::parsesWindowRuleMatchers()
     QCOMPARE(rule.excludes.size(), 1);
     QVERIFY(rule.matches.first().appId.has_value());
     QCOMPARE(rule.matches.first().appId->pattern(), QStringLiteral("^firefox$"));
+    QCOMPARE(rule.groupAppWindows, std::optional(GroupAppWindows::Stack));
+    QCOMPARE(rule.maxRowsPerColumn, std::optional(2));
     QCOMPARE(rule.matches.first().title->pattern(), QStringLiteral("Picture-in-Picture"));
     QCOMPARE(rule.matches.at(1).isActive, std::optional {true});
     QCOMPARE(rule.matches.at(1).isFocused, std::optional {false});

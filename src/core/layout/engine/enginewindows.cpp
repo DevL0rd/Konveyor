@@ -214,13 +214,18 @@ void Engine::Private::placeNewWindow(WindowId id, const WindowProperties &proper
         tile.savedFloatingPosition = remembered->floatingPosition;
     }
     const ColumnWidth width = workspace->tiledWidthFor(tile.window(), plan.width);
-    const MonitorAddRequest request = makeAddRequest(plan, width);
+    MonitorAddRequest request = makeAddRequest(plan, width);
+    if (placeInAppGroup(tile, plan, *workspace, request)) {
+        finishPlacement(id, plan);
+        return;
+    }
 
     if (plan.monitorIndex < monitors.size()) {
         monitors[plan.monitorIndex].addTile(std::move(tile), request);
     } else {
-        const AddTarget target = plan.parent ? AddTarget::besideWindow(*plan.parent) : AddTarget();
-        workspace->addTile(std::move(tile), {target, plan.activate, width, plan.fillsWidth, plan.isFloating, std::nullopt});
+        const AddTarget target
+            = request.target.kind == MonitorAddTarget::Kind::NextTo ? AddTarget::besideWindow(request.target.window) : AddTarget();
+        workspace->addTile(std::move(tile), {target, request.activate, width, plan.fillsWidth, plan.isFloating, std::nullopt});
     }
     finishPlacement(id, plan);
 }

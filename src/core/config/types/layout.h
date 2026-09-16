@@ -22,6 +22,8 @@ struct Layout
     std::optional<PresetSize> defaultColumnWidth = Proportion {0.25};
     bool rememberWindowSizes = true;
     bool rememberWindowPositions = false;
+    GroupAppWindows groupAppWindows = GroupAppWindows::Beside;
+    int maxRowsPerColumn = 3;
     QList<PresetSize> presetWindowHeights;
     Struts struts;
     Border focusRing;
@@ -44,6 +46,8 @@ struct LayoutPart
     std::optional<std::optional<PresetSize>> defaultColumnWidth;
     std::optional<bool> rememberWindowSizes;
     std::optional<bool> rememberWindowPositions;
+    std::optional<GroupAppWindows> groupAppWindows;
+    std::optional<int> maxRowsPerColumn;
     std::optional<QList<PresetSize>> presetWindowHeights;
     std::optional<Struts> struts;
     std::optional<BorderRule> focusRing;

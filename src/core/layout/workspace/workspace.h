@@ -89,6 +89,7 @@ public:
     Tile *tileFor(WindowId id);
     void addTile(Tile tile, const AddTileRequest &request);
     void insertIntoColumn(std::size_t columnIndex, std::optional<std::size_t> tileIndex, Tile tile, bool activate);
+    void addToAppStack(const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows);
     void addColumn(Column column, bool activate, std::optional<Config::AnimationParams> anim);
     DetachedTile removeTile(WindowId id);
     std::optional<Column> removeActiveColumn();

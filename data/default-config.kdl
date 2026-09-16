@@ -28,6 +28,13 @@ layout {
     remember-window-sizes
     remember-window-positions false
 
+    // When an app already has a window on the workspace, open the new one
+    // next to it: "beside" gives it its own column right of the app's
+    // columns, "stack" adds it as a row under them, "off" opens it beside
+    // the focused column. Window rules can choose per app.
+    group-app-windows "beside"
+    max-rows-per-column 3
+
     focus-ring {
         width 4
         // "accent" follows the KDE accent color.
@@ -102,6 +109,11 @@ window-rule {
 window-rule {
     match app-id=r#"firefox$"# title="^Picture-in-Picture$"
     open-floating true
+}
+
+window-rule {
+    match app-id=r#"^org\.kde\.konsole$"#
+    group-app-windows "stack"
 }
 
 window-rule {

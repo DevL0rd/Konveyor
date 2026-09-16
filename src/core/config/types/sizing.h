@@ -42,6 +42,13 @@ enum class ColumnPosition
     End
 };
 
+enum class GroupAppWindows
+{
+    Off,
+    Beside,
+    Stack
+};
+
 enum class ColumnDisplay
 {
     Normal,

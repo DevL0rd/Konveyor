@@ -201,6 +201,17 @@ void Monitor::addTile(Tile tile, const MonitorAddRequest &request)
     }
 }
 
+void Monitor::addToAppStack(
+    std::size_t workspaceIndex, const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows)
+{
+    m_workspaces[workspaceIndex].addToAppStack(appColumns, std::move(tile), activate, maxRows);
+    ownWorkspace(workspaceIndex);
+    addEmptyWorkspacesAround(workspaceIndex);
+    if (activate) {
+        activateWorkspace(workspaceIndex);
+    }
+}
+
 void Monitor::insertIntoColumn(std::size_t workspaceIndex, std::size_t columnIndex, std::optional<std::size_t> tileIndex, Tile tile,
     bool activate, bool allowActivateWorkspace)
 {

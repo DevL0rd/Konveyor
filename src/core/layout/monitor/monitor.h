@@ -84,6 +84,8 @@ public:
     std::vector<Workspace> takeWorkspacesForOutput(const OutputArea &target);
 
     void addTile(Tile tile, const MonitorAddRequest &request);
+    void addToAppStack(
+        std::size_t workspaceIndex, const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows);
     void insertIntoColumn(std::size_t workspaceIndex, std::size_t columnIndex, std::optional<std::size_t> tileIndex, Tile tile,
         bool activate, bool allowActivateWorkspace);
     void addColumn(std::size_t workspaceIndex, Column column, bool activate, std::optional<Config::AnimationParams> anim);

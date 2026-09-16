@@ -10,7 +10,8 @@ namespace
 
 const QStringList &globalOnlyLayoutNodes()
 {
-    static const QStringList names {QStringLiteral("remember-window-sizes"), QStringLiteral("remember-window-positions")};
+    static const QStringList names {QStringLiteral("remember-window-sizes"), QStringLiteral("remember-window-positions"),
+        QStringLiteral("group-app-windows"), QStringLiteral("max-rows-per-column")};
     return names;
 }
 

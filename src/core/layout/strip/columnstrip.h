@@ -64,6 +64,8 @@ public:
         std::optional<Config::AnimationParams> anim);
     void insertIntoColumn(std::size_t colIndex, std::optional<std::size_t> tileIndex, Tile tile, bool activate);
     void insertTileAfter(WindowId rightOf, Tile tile, bool activate, ColumnWidth width, bool fillsWidth);
+    std::vector<std::size_t> appColumnIndices(const QString &appId) const;
+    void addToAppStack(const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows);
     void addColumn(std::optional<std::size_t> idx, Column column, bool activate, std::optional<Config::AnimationParams> anim);
     DetachedTile removeTile(WindowId id);
     DetachedTile detachTileAt(std::size_t columnIndex, std::size_t tileIndex, std::optional<Config::AnimationParams> anim);

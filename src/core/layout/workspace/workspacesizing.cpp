@@ -9,6 +9,15 @@
 namespace Konveyor::Layout
 {
 
+void Workspace::addToAppStack(const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows)
+{
+    tile.returnsToFloating = false;
+    m_strip.addToAppStack(appColumns, std::move(tile), activate, maxRows);
+    if (activate) {
+        m_floatingFocus = FloatingFocus::No;
+    }
+}
+
 std::optional<Config::PresetSize> Workspace::defaultWidthFor(
     const std::optional<std::optional<Config::PresetSize>> &rule, bool isFloating) const
 {

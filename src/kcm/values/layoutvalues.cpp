@@ -50,6 +50,7 @@ QVariantMap tabIndicatorValue(const Config::TabIndicator &indicator)
 QVariantMap layoutValues(const Config::Layout &layout)
 {
     static const QStringList centerModes {QStringLiteral("never"), QStringLiteral("always"), QStringLiteral("on-overflow")};
+    static const QStringList groupModes {QStringLiteral("off"), QStringLiteral("beside"), QStringLiteral("stack")};
     return {
         {QStringLiteral("gaps"), layout.gaps},
         {QStringLiteral("center-focused-column"), centerModes.at(static_cast<qsizetype>(layout.centerFocusedColumn))},
@@ -59,6 +60,8 @@ QVariantMap layoutValues(const Config::Layout &layout)
         {QStringLiteral("empty-workspace-above-first"), layout.emptyWorkspaceAboveFirst},
         {QStringLiteral("remember-window-sizes"), layout.rememberWindowSizes},
         {QStringLiteral("remember-window-positions"), layout.rememberWindowPositions},
+        {QStringLiteral("group-app-windows"), groupModes.at(static_cast<qsizetype>(layout.groupAppWindows))},
+        {QStringLiteral("max-rows-per-column"), layout.maxRowsPerColumn},
         {QStringLiteral("default-column-display"),
             layout.defaultColumnDisplay == Config::ColumnDisplay::Tabbed ? QStringLiteral("tabbed") : QStringLiteral("normal")},
         {QStringLiteral("preset-column-widths"), sizesValue(layout.presetColumnWidths)},

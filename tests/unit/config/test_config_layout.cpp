@@ -35,6 +35,8 @@ void TestConfigLayout::parsesEveryLayoutSetting()
             empty-workspace-above-first true
             remember-window-sizes false
             remember-window-positions
+            group-app-windows "off"
+            max-rows-per-column 5
             default-column-display "tabbed"
             background-color "#123456"
             struts { left 1; right 2; top 3; bottom 4; }
@@ -48,6 +50,8 @@ void TestConfigLayout::parsesEveryLayoutSetting()
     QCOMPARE(layout.emptyWorkspaceAboveFirst, true);
     QCOMPARE(layout.rememberWindowSizes, false);
     QCOMPARE(layout.rememberWindowPositions, true);
+    QCOMPARE(layout.groupAppWindows, GroupAppWindows::Off);
+    QCOMPARE(layout.maxRowsPerColumn, 5);
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Tabbed);
     QCOMPARE(layout.backgroundColor, QColor(0x12, 0x34, 0x56));
     QCOMPARE(layout.struts, (Struts {1, 2, 3, 4}));

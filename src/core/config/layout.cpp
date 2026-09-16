@@ -20,6 +20,12 @@ const QStringList &newColumnPositions()
     return positions;
 }
 
+const QStringList &groupModes()
+{
+    static const QStringList modes {QStringLiteral("off"), QStringLiteral("beside"), QStringLiteral("stack")};
+    return modes;
+}
+
 const QStringList &columnDisplays()
 {
     static const QStringList displays {QStringLiteral("normal"), QStringLiteral("tabbed")};
@@ -59,6 +65,10 @@ void addLayoutSizingHandlers(NodeTable &table, LayoutPart &part)
         QStringLiteral("remember-window-sizes"), [&part](const Kdl::Node &node) { part.rememberWindowSizes = flagArgument(node); });
     table.insert(
         QStringLiteral("remember-window-positions"), [&part](const Kdl::Node &node) { part.rememberWindowPositions = flagArgument(node); });
+    table.insert(QStringLiteral("group-app-windows"),
+        [&part](const Kdl::Node &node) { part.groupAppWindows = static_cast<GroupAppWindows>(keywordArgument(node, groupModes())); });
+    table.insert(QStringLiteral("max-rows-per-column"),
+        [&part](const Kdl::Node &node) { part.maxRowsPerColumn = static_cast<int>(integerArgument(node, Range {1, 64})); });
     table.insert(QStringLiteral("empty-workspace-above-first"),
         [&part](const Kdl::Node &node) { part.emptyWorkspaceAboveFirst = flagArgument(node); });
     table.insert(QStringLiteral("default-column-display"), [&part](const Kdl::Node &node) {

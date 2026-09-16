@@ -132,6 +132,31 @@ ColumnLayout {
         }
     }
 
+    SettingRow {
+        label: "Other windows from this app"
+        description: "Where it opens when the app already has a window on the workspace"
+        iconName: "window-duplicate"
+
+        Segmented {
+            readonly property var mode: section.argOf("group-app-windows")
+            currentValue: mode === undefined ? "default" : mode
+            options: [
+                { value: "default", label: "Default" },
+                { value: "off", label: "Don't group" },
+                { value: "beside", label: "Beside" },
+                { value: "stack", label: "Stack" }
+            ]
+            onChosen: value => value === "default" ? kcm.remove(section.rulePath + "/group-app-windows") : kcm.setValue(section.rulePath + "/group-app-windows", [value])
+        }
+    }
+
+    StackLimitRow {
+        path: section.rulePath + "/max-rows-per-column"
+        label: "Most stacked per column"
+        description: "How many of its windows share a column before another column opens"
+        iconName: "view-split-top-bottom"
+    }
+
     ColumnPositionRow {
         path: section.rulePath + "/column-position"
         label: "Pin its column"

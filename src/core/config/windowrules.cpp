@@ -108,6 +108,12 @@ void addOpenHandlers(NodeTable &table, WindowRule &rule)
         }
         failAt(value.location, QStringLiteral("column-position must be \"start\" or \"end\""));
     });
+    table.insert(QStringLiteral("group-app-windows"), [&rule](const Kdl::Node &node) {
+        rule.groupAppWindows = static_cast<GroupAppWindows>(
+            keywordArgument(node, {QStringLiteral("off"), QStringLiteral("beside"), QStringLiteral("stack")}));
+    });
+    table.insert(QStringLiteral("max-rows-per-column"),
+        [&rule](const Kdl::Node &node) { rule.maxRowsPerColumn = static_cast<int>(integerArgument(node, Range {1, 64})); });
     boolOf(QStringLiteral("open-focused"), rule.openFocused);
     textOf(QStringLiteral("open-on-output"), rule.openOnOutput);
     textOf(QStringLiteral("open-on-workspace"), rule.openOnWorkspace);

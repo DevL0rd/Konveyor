@@ -75,6 +75,12 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     if (part.rememberWindowPositions) {
         base.rememberWindowPositions = *part.rememberWindowPositions;
     }
+    if (part.groupAppWindows) {
+        base.groupAppWindows = *part.groupAppWindows;
+    }
+    if (part.maxRowsPerColumn) {
+        base.maxRowsPerColumn = *part.maxRowsPerColumn;
+    }
     if (part.emptyWorkspaceAboveFirst) {
         base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;
     }

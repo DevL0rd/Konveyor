@@ -26,6 +26,8 @@ struct EffectiveWindowRules
     std::optional<bool> openFocused;
     std::optional<bool> manage;
     std::optional<Config::ColumnPosition> columnPosition;
+    std::optional<Config::GroupAppWindows> groupAppWindows;
+    std::optional<int> maxRowsPerColumn;
     std::optional<int> minWidth;
     std::optional<int> minHeight;
     std::optional<int> maxWidth;

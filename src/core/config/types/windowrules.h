@@ -70,6 +70,8 @@ struct WindowRule
     std::optional<bool> openFocused;
     std::optional<bool> manage;
     std::optional<ColumnPosition> columnPosition;
+    std::optional<GroupAppWindows> groupAppWindows;
+    std::optional<int> maxRowsPerColumn;
 
     std::optional<double> opacity;
     std::optional<int> minWidth;

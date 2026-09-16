@@ -43,6 +43,45 @@ ColumnLayout {
 
         ScopedRow {
             scope: root
+            key: "group-app-windows"
+            visible: !root.overrideMode
+            inheritedSummary: ({ off: "off", beside: "beside", stack: "stacked" })[root.values["group-app-windows"]] || ""
+            wideControl: true
+            label: "Windows from an app that's already open"
+            description: "Keep an app's windows together instead of opening them beside whatever you're focused on. Window rules can choose differently per app."
+            iconName: "window-duplicate"
+
+            ChoiceCards {
+                width: parent.width
+                currentValue: root.values["group-app-windows"]
+                cardHeight: Kirigami.Units.gridUnit * 7
+                onChosen: value => LayoutKeys.write(kcm, root.scopePath, "group-app-windows", value)
+                options: [
+                    { value: "off", title: "Don't group", description: "Opens beside the focused column", preview: groupOffDiagram },
+                    { value: "beside", title: "Beside its app", description: "New column right of the app's windows", preview: groupBesideDiagram },
+                    { value: "stack", title: "Stack in its column", description: "New row under the app's windows", preview: groupStackDiagram }
+                ]
+            }
+        }
+
+        ScopedRow {
+            scope: root
+            key: "max-rows-per-column"
+            visible: !root.overrideMode
+            label: "Most stacked windows per column"
+            description: "When an app's columns are full, a new column opens and its windows are spread evenly, with any extra on the left."
+            iconName: "view-split-top-bottom"
+
+            ValueSlider {
+                value: root.values["max-rows-per-column"] || 3
+                from: 1
+                to: 8
+                onEdited: value => LayoutKeys.write(kcm, root.scopePath, "max-rows-per-column", Math.round(value))
+            }
+        }
+
+        ScopedRow {
+            scope: root
             key: "default-column-width"
             label: "Starting width"
             description: "How wide a new column is. Window rules can override this per app."
@@ -161,6 +200,27 @@ ColumnLayout {
         NewColumnDiagram {
             side: "right"
             running: parent && parent.selected === true
+        }
+    }
+
+    Component {
+        id: groupOffDiagram
+        MiniColumns {
+            columns: [{ width: 0.24 }, { width: 0.24 }, { width: 0.24, focused: true }, { width: 0.24, ghost: true }]
+        }
+    }
+
+    Component {
+        id: groupBesideDiagram
+        MiniColumns {
+            columns: [{ width: 0.24, focused: true }, { width: 0.24, focused: true, ghost: true }, { width: 0.24 }, { width: 0.24 }]
+        }
+    }
+
+    Component {
+        id: groupStackDiagram
+        MiniColumns {
+            columns: [{ width: 0.3, focused: true, stack: 3 }, { width: 0.3 }, { width: 0.3 }]
         }
     }
 

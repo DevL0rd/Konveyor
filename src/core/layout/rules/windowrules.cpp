@@ -55,6 +55,8 @@ void applyOpenRules(EffectiveWindowRules &resolved, const Config::WindowRule &ru
     assignIfSet(resolved.openFocused, rule.openFocused);
     assignIfSet(resolved.manage, rule.manage);
     assignIfSet(resolved.columnPosition, rule.columnPosition);
+    assignIfSet(resolved.groupAppWindows, rule.groupAppWindows);
+    assignIfSet(resolved.maxRowsPerColumn, rule.maxRowsPerColumn);
 }
 
 void applyAppearanceRules(EffectiveWindowRules &resolved, const Config::WindowRule &rule)

@@ -115,6 +115,14 @@ function effects(rule) {
     if (position !== undefined) {
         list.push("pinned to the " + position + " of the row");
     }
+    const group = firstArg(child(rule, "group-app-windows"));
+    if (group !== undefined) {
+        list.push(({ off: "doesn't group with its app", beside: "opens beside its app", stack: "stacks with its app" })[group]);
+    }
+    const maxRows = firstArg(child(rule, "max-rows-per-column"));
+    if (maxRows !== undefined) {
+        list.push("up to " + maxRows + " stacked per column");
+    }
     list.push(...boolEffect(rule, "open-floating", "opens floating", "opens tiled"));
     list.push(...boolEffect(rule, "open-maximized", "opens maximized", "doesn't open maximized"));
     list.push(...boolEffect(rule, "open-maximized-to-edges", "opens maximized to the edges", "doesn't open maximized to the edges"));
