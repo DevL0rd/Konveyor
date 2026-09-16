@@ -26,50 +26,17 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    readonly property real inset: Math.max(2, Math.round(thickness * 0.08))
-    readonly property real sidePadding: Kirigami.Units.largeSpacing * 1.5
-    readonly property bool lit: containsMouse || root.expanded
-
-    Layout.minimumWidth: vertical ? 0 : chips.implicitWidth + sidePadding * 2 + inset * 2
+    Layout.minimumWidth: vertical ? 0 : chips.implicitWidth + Kirigami.Units.smallSpacing * 2
     Layout.preferredWidth: Layout.minimumWidth
-    Layout.minimumHeight: vertical ? chips.implicitHeight + sidePadding * 2 + inset * 2 : 0
+    Layout.minimumHeight: vertical ? chips.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0
     Layout.preferredHeight: Layout.minimumHeight
 
     Rectangle {
-        id: tile
         anchors.fill: parent
-        anchors.margins: compact.inset
-        radius: Kirigami.Units.cornerRadius * 2
-        border.width: 1
-        border.color: Qt.alpha(root.accent, compact.lit ? 0.55 : 0.32)
-        gradient: Gradient {
-            orientation: compact.vertical ? Gradient.Vertical : Gradient.Horizontal
-            GradientStop { position: 0; color: Qt.alpha(root.accent, compact.lit ? 0.26 : 0.17) }
-            GradientStop { position: 1; color: Qt.alpha(root.accent, compact.lit ? 0.12 : 0.06) }
-        }
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: 1
-            radius: parent.radius - 1
-            color: "transparent"
-            border.width: 1
-            border.color: Qt.alpha("white", 0.05)
-        }
-    }
-
-    Repeater {
-        model: compact.vertical ? 0 : chips.visibleChildren.length - 1
-        Rectangle {
-            required property int index
-            readonly property Item before: chips.visibleChildren[index]
-            readonly property Item after: chips.visibleChildren[index + 1]
-            visible: !!before && !!after
-            width: 1
-            height: tile.height * 0.5
-            anchors.verticalCenter: tile.verticalCenter
-            x: before && after ? chips.x + (before.x + before.width + after.x) / 2 : 0
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.12)
-        }
+        anchors.margins: 1
+        radius: Kirigami.Units.cornerRadius
+        color: Qt.alpha(Kirigami.Theme.textColor, compact.containsMouse || root.expanded ? 0.08 : 0)
+        Behavior on color { ColorAnimation { duration: 150 } }
     }
 
     Kirigami.Icon {
