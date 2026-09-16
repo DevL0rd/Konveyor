@@ -26,8 +26,10 @@ class NestedSession:
         self.socket = f"konveyor-test-{os.getpid()}"
         self.config_home = self.root / "config"
         self.data_home = self.root / "data"
+        self.state_home = self.root / "state"
         self.config_home.mkdir()
         self.data_home.mkdir()
+        self.state_home.mkdir()
         (self.config_home / "kwinrc").write_text(textwrap.dedent(f"""\
             [Plugins]
             konveyor_effectEnabled=true
@@ -46,6 +48,7 @@ class NestedSession:
         env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "QT_QPA_PLATFORM", "KDE_FULL_SESSION", "XDG_CURRENT_DESKTOP", "SESSION_MANAGER")}
         env["XDG_CONFIG_HOME"] = str(self.config_home)
         env["XDG_DATA_HOME"] = str(self.data_home)
+        env["XDG_STATE_HOME"] = str(self.state_home)
         env["QT_PLUGIN_PATH"] = f"{build_dir() / 'bin'}:{os.environ.get('QT_PLUGIN_PATH', '/usr/lib/qt6/plugins')}"
         env["KWIN_SCREENSHOT_NO_PERMISSION_CHECKS"] = "1"
         env["KWIN_WAYLAND_NO_PERMISSION_CHECKS"] = "1"

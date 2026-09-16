@@ -39,11 +39,13 @@ void TestConfigFiles::loadsRepositoryDefaultConfig()
     QCOMPARE(result->config.layout.focusRing.active.source, ColorSource::SystemAccent);
     QCOMPARE(result->config.layout.border.enabled, false);
     QVERIFY(!result->config.windowRules.isEmpty());
-    QCOMPARE(result->config.monitorProfiles.size(), 2);
+    QCOMPARE(result->config.monitorProfiles.size(), 1);
     const MonitorProfile &ultrawide = result->config.monitorProfiles.at(0);
     QCOMPARE(ultrawide.matches.value(0).aspectRatioAbove, std::optional(2.0));
     QCOMPARE(std::get<Proportion>(*ultrawide.layout->defaultColumnWidth).value, 0.25);
-    QVERIFY(result->config.monitorProfiles.at(1).matches.isEmpty());
+    QCOMPARE(std::get<Proportion>(*result->config.layout.defaultColumnWidth).value, 0.25);
+    QCOMPARE(result->config.layout.rememberWindowSizes, true);
+    QCOMPARE(result->config.layout.rememberWindowPositions, false);
     const auto wezterm = std::ranges::find_if(result->config.windowRules, [](const WindowRule &rule) {
         return !rule.matches.isEmpty() && rule.matches.first().appId
             && rule.matches.first().appId->pattern() == QStringLiteral(R"(^org\.wezfurlong\.wezterm$)");

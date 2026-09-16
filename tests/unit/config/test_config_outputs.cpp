@@ -111,6 +111,10 @@ void TestConfigOutputs::rejectsDisallowedWorkspaceLayoutNodes()
             .message.contains(QStringLiteral("not allowed inside `workspace.layout`")));
     QVERIFY(mustFail(QStringLiteral("workspace \"a\" {\n layout {\n empty-workspace-above-first\n }\n}\n"))
             .message.contains(QStringLiteral("not allowed inside `workspace.layout`")));
+    QVERIFY(mustFail(QStringLiteral("monitor-profile \"wide\" {\n layout {\n remember-window-sizes false\n }\n}\n"))
+            .message.contains(QStringLiteral("not allowed inside `monitor-profile.layout`")));
+    QVERIFY(mustFail(QStringLiteral("output \"DP-1\" {\n layout {\n remember-window-positions\n }\n}\n"))
+            .message.contains(QStringLiteral("not allowed inside `output.layout`")));
 }
 
 QTEST_MAIN(TestConfigOutputs)

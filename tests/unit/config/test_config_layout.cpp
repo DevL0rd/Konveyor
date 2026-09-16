@@ -33,6 +33,8 @@ void TestConfigLayout::parsesEveryLayoutSetting()
             new-column-position "left"
             always-center-single-column
             empty-workspace-above-first true
+            remember-window-sizes false
+            remember-window-positions
             default-column-display "tabbed"
             background-color "#123456"
             struts { left 1; right 2; top 3; bottom 4; }
@@ -44,6 +46,8 @@ void TestConfigLayout::parsesEveryLayoutSetting()
     QCOMPARE(layout.newColumnPosition, NewColumnPosition::Left);
     QCOMPARE(layout.alwaysCenterSingleColumn, true);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, true);
+    QCOMPARE(layout.rememberWindowSizes, false);
+    QCOMPARE(layout.rememberWindowPositions, true);
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Tabbed);
     QCOMPARE(layout.backgroundColor, QColor(0x12, 0x34, 0x56));
     QCOMPARE(layout.struts, (Struts {1, 2, 3, 4}));

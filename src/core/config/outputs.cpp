@@ -5,6 +5,27 @@
 namespace Konveyor::Config
 {
 
+namespace
+{
+
+const QStringList &globalOnlyLayoutNodes()
+{
+    static const QStringList names {QStringLiteral("remember-window-sizes"), QStringLiteral("remember-window-positions")};
+    return names;
+}
+
+void rejectNodes(const Kdl::Node &parent, const QStringList &names, const QString &scope)
+{
+    for (const Kdl::Node &inner : parent.children) {
+        if (names.contains(inner.name)) {
+            failAt(inner.location,
+                QStringLiteral("node ") + quoteName(inner.name) + QStringLiteral(" is not allowed inside `") + scope + u'`');
+        }
+    }
+}
+
+}
+
 void decodeOutput(LoadContext &context, const Kdl::Node &node)
 {
     expectNoProperties(node);
@@ -12,7 +33,10 @@ void decodeOutput(LoadContext &context, const Kdl::Node &node)
     OutputConfig output;
     output.name = toText(requiredArgument(node, QStringLiteral("name")));
     NodeTable table;
-    table.insert(QStringLiteral("layout"), [&output](const Kdl::Node &child) { output.layoutPart = decodeLayoutPart(child, false); });
+    table.insert(QStringLiteral("layout"), [&output](const Kdl::Node &child) {
+        rejectNodes(child, globalOnlyLayoutNodes(), QStringLiteral("output.layout"));
+        output.layoutPart = decodeLayoutPart(child, false);
+    });
     table.insert(QStringLiteral("hot-corners"), [&output](const Kdl::Node &child) { output.hotCorners = decodeHotCorners(child); });
     decodeChildren(node, table);
     context.config.outputs.append(output);
@@ -54,7 +78,10 @@ void decodeMonitorProfile(LoadContext &context, const Kdl::Node &node)
     profile.name = toText(requiredArgument(node, QStringLiteral("name")));
     NodeTable table;
     table.insert(QStringLiteral("match"), [&profile](const Kdl::Node &child) { profile.matches.append(decodeMonitorMatch(child)); });
-    table.insert(QStringLiteral("layout"), [&profile](const Kdl::Node &child) { profile.layoutPart = decodeLayoutPart(child, false); });
+    table.insert(QStringLiteral("layout"), [&profile](const Kdl::Node &child) {
+        rejectNodes(child, globalOnlyLayoutNodes(), QStringLiteral("monitor-profile.layout"));
+        profile.layoutPart = decodeLayoutPart(child, false);
+    });
     decodeChildren(node, table, {QStringLiteral("match")});
     context.config.monitorProfiles.append(profile);
 }
@@ -76,12 +103,9 @@ void decodeWorkspace(LoadContext &context, const Kdl::Node &node)
     table.insert(
         QStringLiteral("open-on-output"), [&workspace](const Kdl::Node &child) { workspace.openOnOutput = stringArgument(child); });
     table.insert(QStringLiteral("layout"), [&workspace](const Kdl::Node &child) {
-        for (const Kdl::Node &inner : child.children) {
-            if (inner.name == QLatin1String("empty-workspace-above-first") || inner.name == QLatin1String("insert-hint")) {
-                failAt(inner.location,
-                    QStringLiteral("node ") + quoteName(inner.name) + QStringLiteral(" is not allowed inside `workspace.layout`"));
-            }
-        }
+        rejectNodes(child,
+            globalOnlyLayoutNodes() + QStringList {QStringLiteral("empty-workspace-above-first"), QStringLiteral("insert-hint")},
+            QStringLiteral("workspace.layout"));
         workspace.layoutPart = decodeLayoutPart(child, false);
     });
     decodeChildren(node, table);

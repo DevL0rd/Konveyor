@@ -36,13 +36,16 @@ void TestConfigDefaults::defaultLayoutValues()
     QCOMPARE(layout.alwaysCenterSingleColumn, false);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, false);
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Normal);
-    QCOMPARE(layout.presetColumnWidths.size(), 3);
-    QCOMPARE(proportionOf(layout.presetColumnWidths.at(0)), 1.0 / 3.0);
-    QCOMPARE(proportionOf(layout.presetColumnWidths.at(1)), 0.5);
-    QCOMPARE(proportionOf(layout.presetColumnWidths.at(2)), 2.0 / 3.0);
+    QCOMPARE(layout.presetColumnWidths.size(), 4);
+    QCOMPARE(proportionOf(layout.presetColumnWidths.at(0)), 0.25);
+    QCOMPARE(proportionOf(layout.presetColumnWidths.at(1)), 1.0 / 3.0);
+    QCOMPARE(proportionOf(layout.presetColumnWidths.at(2)), 0.5);
+    QCOMPARE(proportionOf(layout.presetColumnWidths.at(3)), 2.0 / 3.0);
     QCOMPARE(layout.presetWindowHeights, layout.presetColumnWidths);
     QVERIFY(layout.defaultColumnWidth.has_value());
-    QCOMPARE(proportionOf(*layout.defaultColumnWidth), 0.5);
+    QCOMPARE(proportionOf(*layout.defaultColumnWidth), 0.25);
+    QCOMPARE(layout.rememberWindowSizes, true);
+    QCOMPARE(layout.rememberWindowPositions, false);
     QCOMPARE(layout.struts, Struts {});
     QCOMPARE(layout.backgroundColor, QColor(0x40, 0x40, 0x40));
 }
@@ -142,8 +145,8 @@ void TestConfigDefaults::mergedLayoutRestoresEmptyPresets()
     part.presetWindowHeights = QList<PresetSize> {};
 
     const Layout merged = mergedLayout(defaultConfig().layout, part);
-    QCOMPARE(merged.presetColumnWidths.size(), 3);
-    QCOMPARE(merged.presetWindowHeights.size(), 3);
+    QCOMPARE(merged.presetColumnWidths.size(), 4);
+    QCOMPARE(merged.presetWindowHeights.size(), 4);
 }
 
 void TestConfigDefaults::keysymLookup()

@@ -20,7 +20,7 @@ Paint solidPaint(int red, int green, int blue, int alpha)
 
 QList<PresetSize> defaultPresets()
 {
-    return {Proportion {1.0 / 3.0}, Proportion {0.5}, Proportion {2.0 / 3.0}};
+    return {Proportion {0.25}, Proportion {1.0 / 3.0}, Proportion {0.5}, Proportion {2.0 / 3.0}};
 }
 
 QString sourceLineOf(const LoadContext &context, const Kdl::Location &location)

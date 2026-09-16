@@ -116,6 +116,36 @@ ColumnLayout {
                 onSwitched: on => LayoutKeys.writeFlag(kcm, root.scopePath, root.overrideMode, "always-center-single-column", on)
             }
         }
+
+        ScopedRow {
+            scope: root
+            key: "remember-window-sizes"
+            visible: !root.overrideMode
+            label: "Remember window sizes"
+            description: "Reopen each app at the width it had last time, and floating windows at their last size."
+            iconName: "transform-scale"
+
+            ScopedSwitch {
+                isOn: root.values["remember-window-sizes"] !== false
+                onSwitched: on => on && !root.overrideMode
+                    ? kcm.remove(root.scopePath + "/remember-window-sizes")
+                    : kcm.setValue(root.scopePath + "/remember-window-sizes", on ? [] : [false])
+            }
+        }
+
+        ScopedRow {
+            scope: root
+            key: "remember-window-positions"
+            visible: !root.overrideMode
+            label: "Remember floating window positions"
+            description: "Reopen floating windows where they were last placed."
+            iconName: "transform-move"
+
+            ScopedSwitch {
+                isOn: root.values["remember-window-positions"] === true
+                onSwitched: on => LayoutKeys.writeFlag(kcm, root.scopePath, root.overrideMode, "remember-window-positions", on)
+            }
+        }
     }
 
     Component {

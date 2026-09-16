@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/types.h"
+#include "layout/engine/windowmemory.h"
 
 #include <QList>
 #include <QPointF>
@@ -165,6 +166,7 @@ struct Hooks
     std::function<void(bool)> setOverviewOpen;
     std::function<void(const QString &)> compositorAction;
     std::function<void(WindowId)> focusWindow;
+    std::function<void()> windowMemoryChanged;
 };
 
 class Engine
@@ -227,6 +229,8 @@ public:
     std::optional<WindowId> windowAt(const QPointF &globalPos) const;
 
     void focusWorkspace(const QString &output, int index);
+    void setWindowMemory(const WindowMemory &memory);
+    const WindowMemory &windowMemory() const;
     bool isOverviewOpen() const;
     void setOverviewOpen(bool open);
 

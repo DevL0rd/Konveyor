@@ -55,6 +55,10 @@ void addLayoutSizingHandlers(NodeTable &table, LayoutPart &part)
     });
     table.insert(QStringLiteral("always-center-single-column"),
         [&part](const Kdl::Node &node) { part.alwaysCenterSingleColumn = flagArgument(node); });
+    table.insert(
+        QStringLiteral("remember-window-sizes"), [&part](const Kdl::Node &node) { part.rememberWindowSizes = flagArgument(node); });
+    table.insert(
+        QStringLiteral("remember-window-positions"), [&part](const Kdl::Node &node) { part.rememberWindowPositions = flagArgument(node); });
     table.insert(QStringLiteral("empty-workspace-above-first"),
         [&part](const Kdl::Node &node) { part.emptyWorkspaceAboveFirst = flagArgument(node); });
     table.insert(QStringLiteral("default-column-display"), [&part](const Kdl::Node &node) {

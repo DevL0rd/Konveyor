@@ -19,6 +19,7 @@ void Engine::Private::refresh()
     }
     updateFocus();
     resolveRules();
+    rememberWindows();
 }
 
 void Engine::Private::updateFocus()

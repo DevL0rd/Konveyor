@@ -19,7 +19,9 @@ struct Layout
     bool emptyWorkspaceAboveFirst = false;
     ColumnDisplay defaultColumnDisplay = ColumnDisplay::Normal;
     QList<PresetSize> presetColumnWidths;
-    std::optional<PresetSize> defaultColumnWidth = Proportion {0.5};
+    std::optional<PresetSize> defaultColumnWidth = Proportion {0.25};
+    bool rememberWindowSizes = true;
+    bool rememberWindowPositions = false;
     QList<PresetSize> presetWindowHeights;
     Struts struts;
     Border focusRing;
@@ -40,6 +42,8 @@ struct LayoutPart
     std::optional<ColumnDisplay> defaultColumnDisplay;
     std::optional<QList<PresetSize>> presetColumnWidths;
     std::optional<std::optional<PresetSize>> defaultColumnWidth;
+    std::optional<bool> rememberWindowSizes;
+    std::optional<bool> rememberWindowPositions;
     std::optional<QList<PresetSize>> presetWindowHeights;
     std::optional<Struts> struts;
     std::optional<BorderRule> focusRing;

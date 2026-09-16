@@ -81,6 +81,7 @@ struct Engine::Private
     std::optional<WindowId> resizeWindow;
     bool overviewOpen = false;
     Anim::Duration startupTime;
+    WindowMemory windowMemory;
 
     bool atStartup() const;
     OutputArea areaFor(const OutputInfo &info) const;
@@ -95,6 +96,8 @@ struct Engine::Private
     Workspace *workspaceById(WorkspaceId id);
     std::optional<std::size_t> monitorIndexOf(WindowId id) const;
     std::vector<Workspace *> allWorkspaces();
+    void rememberWindows();
+    void applyRememberedSize(NewWindowPlan &plan, const QString &appId) const;
 
     std::optional<WindowId> target(std::optional<WindowId> requested) const;
     Workspace *workspaceForTarget(std::optional<WindowId> requested);

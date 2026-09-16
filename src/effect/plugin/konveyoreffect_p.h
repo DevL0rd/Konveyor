@@ -16,6 +16,7 @@
 #include "kwin/windowregistry.h"
 #include "plasma/plasmashellsync.h"
 #include "plugin/configmanager.h"
+#include "plugin/windowmemorystore.h"
 
 #include "anim/clock.h"
 #include "config/loader.h"
@@ -42,6 +43,7 @@ namespace Konveyor
 {
 
 inline constexpr int animationIntervalMs = 8;
+inline constexpr int memorySaveDelayMs = 1000;
 inline constexpr int interactivePhaseStart = 0;
 inline constexpr int interactivePhaseStep = 1;
 inline constexpr int interactivePhaseEnd = 2;
@@ -80,6 +82,8 @@ struct KonveyorEffect::Private
     std::unique_ptr<DBusService> dbus;
     QTimer flushTimer;
     QTimer animationTimer;
+    QTimer memorySaveTimer;
+    WindowMemoryStore memoryStore;
     bool animating = false;
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;

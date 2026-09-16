@@ -10,7 +10,7 @@ namespace
 
 QList<PresetSize> defaultPresets()
 {
-    return {Proportion {1.0 / 3.0}, Proportion {0.5}, Proportion {2.0 / 3.0}};
+    return {Proportion {0.25}, Proportion {1.0 / 3.0}, Proportion {0.5}, Proportion {2.0 / 3.0}};
 }
 
 void mergeTabIndicator(TabIndicator &base, const TabIndicatorPart &part)
@@ -68,6 +68,12 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     }
     if (part.alwaysCenterSingleColumn) {
         base.alwaysCenterSingleColumn = *part.alwaysCenterSingleColumn;
+    }
+    if (part.rememberWindowSizes) {
+        base.rememberWindowSizes = *part.rememberWindowSizes;
+    }
+    if (part.rememberWindowPositions) {
+        base.rememberWindowPositions = *part.rememberWindowPositions;
     }
     if (part.emptyWorkspaceAboveFirst) {
         base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;

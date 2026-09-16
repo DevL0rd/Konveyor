@@ -40,6 +40,9 @@ inline Config::Config instantConfig()
 {
     Config::Config config;
     config.animations.enabled = false;
+    config.layout.defaultColumnWidth = Config::Proportion {0.5};
+    config.layout.presetColumnWidths = {Config::Proportion {1.0 / 3.0}, Config::Proportion {0.5}, Config::Proportion {2.0 / 3.0}};
+    config.layout.rememberWindowSizes = false;
     return config;
 }
 

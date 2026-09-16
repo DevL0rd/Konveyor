@@ -10,7 +10,7 @@ namespace
 
 QList<Config::PresetSize> defaultPresets()
 {
-    return {Config::Proportion {1.0 / 3.0}, Config::Proportion {0.5}, Config::Proportion {2.0 / 3.0}};
+    return {Config::Proportion {0.25}, Config::Proportion {1.0 / 3.0}, Config::Proportion {0.5}, Config::Proportion {2.0 / 3.0}};
 }
 
 }

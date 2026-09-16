@@ -19,6 +19,10 @@ KonveyorEffect::KonveyorEffect()
     connect(&d->flushTimer, &QTimer::timeout, this, &KonveyorEffect::flush);
     d->animationTimer.setInterval(animationIntervalMs);
     connect(&d->animationTimer, &QTimer::timeout, this, &KonveyorEffect::stepAnimations);
+    d->memorySaveTimer.setSingleShot(true);
+    d->memorySaveTimer.setInterval(memorySaveDelayMs);
+    connect(&d->memorySaveTimer, &QTimer::timeout, this, [this] { d->memoryStore.save(readEngine().windowMemory()); });
+    d->engine.setWindowMemory(d->memoryStore.load());
     connect(&d->config, &ConfigManager::configChanged, this, &KonveyorEffect::applyConfig);
     connect(&d->accent, &AccentColor::changed, this, &KonveyorEffect::scheduleFlush);
     connectRegistries();
@@ -37,6 +41,9 @@ KonveyorEffect::KonveyorEffect()
 
 KonveyorEffect::~KonveyorEffect()
 {
+    if (d->memorySaveTimer.isActive()) {
+        d->memoryStore.save(d->engine.windowMemory());
+    }
     MinimizeRule::apply(false);
     Config::HotCorners disabled;
     disabled.enabled = false;
@@ -258,6 +265,7 @@ Layout::Hooks KonveyorEffect::makeHooks()
         }
         qInfo() << "konveyor: action left to KDE:" << name;
     };
+    hooks.windowMemoryChanged = [this] { d->memorySaveTimer.start(); };
     hooks.focusWindow = [this](Layout::WindowId id) {
         d->focusRequest = id;
         scheduleFlush();

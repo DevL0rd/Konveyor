@@ -113,6 +113,7 @@ NewWindowPlan Engine::Private::planNewWindow(
     if (Workspace *workspace = self.workspaceForNewWindow(plan)) {
         plan.width = workspace->defaultWidthFor(plan.rules.defaultWidth, plan.isFloating);
         plan.height = workspace->defaultHeightFor(plan.rules.defaultHeight, plan.isFloating);
+        applyRememberedSize(plan, properties.appId);
     }
     return plan;
 }
@@ -207,6 +208,11 @@ void Engine::Private::placeNewWindow(WindowId id, const WindowProperties &proper
     }
 
     Tile tile = workspace->createTile(makeNewWindow(id, properties, plan, *workspace));
+    const auto remembered = windowMemory.constFind(properties.appId);
+    if (plan.isFloating && config.layout.rememberWindowPositions && remembered != windowMemory.constEnd() && remembered->floatingPosition
+        && !plan.rules.defaultFloatingPosition) {
+        tile.savedFloatingPosition = remembered->floatingPosition;
+    }
     const ColumnWidth width = workspace->tiledWidthFor(tile.window(), plan.width);
     const MonitorAddRequest request = makeAddRequest(plan, width);
 

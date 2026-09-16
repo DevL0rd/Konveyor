@@ -57,6 +57,8 @@ QVariantMap layoutValues(const Config::Layout &layout)
             layout.newColumnPosition == Config::NewColumnPosition::Left ? QStringLiteral("left") : QStringLiteral("right")},
         {QStringLiteral("always-center-single-column"), layout.alwaysCenterSingleColumn},
         {QStringLiteral("empty-workspace-above-first"), layout.emptyWorkspaceAboveFirst},
+        {QStringLiteral("remember-window-sizes"), layout.rememberWindowSizes},
+        {QStringLiteral("remember-window-positions"), layout.rememberWindowPositions},
         {QStringLiteral("default-column-display"),
             layout.defaultColumnDisplay == Config::ColumnDisplay::Tabbed ? QStringLiteral("tabbed") : QStringLiteral("normal")},
         {QStringLiteral("preset-column-widths"), sizesValue(layout.presetColumnWidths)},

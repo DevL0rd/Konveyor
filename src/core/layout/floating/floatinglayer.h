@@ -43,6 +43,7 @@ public:
     bool isAnimating() const;
 
     const std::vector<Tile> &tiles() const { return m_tiles; }
+    const std::vector<FloatingData> &data() const { return m_data; }
     std::vector<Tile> &tiles() { return m_tiles; }
     bool isEmpty() const { return m_tiles.empty(); }
     bool hasWindow(WindowId id) const;

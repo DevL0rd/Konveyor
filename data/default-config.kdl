@@ -17,13 +17,16 @@ layout {
     new-column-position "right"
 
     preset-column-widths {
+        proportion 0.25
         proportion 0.33333
         proportion 0.5
         proportion 0.66667
         proportion 1.0
     }
 
-    default-column-width { proportion 0.5; }
+    default-column-width { proportion 0.25; }
+    remember-window-sizes
+    remember-window-positions false
 
     focus-ring {
         width 4
@@ -64,19 +67,12 @@ animations {
 monitor-profile "ultrawide" {
     match aspect-ratio-above=2.0
     layout {
-        default-column-width { proportion 0.25; }
         preset-column-widths {
             proportion 0.25
             proportion 0.33333
             proportion 0.5
             proportion 1.0
         }
-    }
-}
-
-monitor-profile "standard" {
-    layout {
-        default-column-width { proportion 0.5; }
     }
 }
 
