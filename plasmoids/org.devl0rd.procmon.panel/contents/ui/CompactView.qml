@@ -30,24 +30,43 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    Layout.minimumWidth: vertical ? 0 : content.implicitWidth + Kirigami.Units.smallSpacing * 3
+    readonly property real inset: Math.max(2, Math.round(thickness * 0.08))
+    readonly property real sidePadding: Kirigami.Units.largeSpacing * 1.25
+    readonly property bool lit: containsMouse || root.expanded
+
+    Layout.minimumWidth: vertical ? 0 : content.implicitWidth + sidePadding * 2 + inset * 2
     Layout.preferredWidth: Layout.minimumWidth
-    Layout.minimumHeight: vertical ? content.implicitHeight + Kirigami.Units.smallSpacing * 3 : 0
+    Layout.minimumHeight: vertical ? content.implicitHeight + sidePadding * 2 + inset * 2 : 0
     Layout.preferredHeight: Layout.minimumHeight
 
     Rectangle {
+        id: tile
         anchors.fill: parent
-        anchors.margins: 1
-        radius: Kirigami.Units.cornerRadius
-        color: Qt.alpha(Kirigami.Theme.textColor, compact.containsMouse || root.expanded ? 0.08 : 0)
-        Behavior on color { ColorAnimation { duration: 150 } }
+        anchors.margins: compact.inset
+        radius: Kirigami.Units.cornerRadius * 2
+        border.width: 1
+        border.color: Qt.alpha(Kirigami.Theme.textColor, compact.lit ? 0.28 : 0.16)
+        gradient: Gradient {
+            orientation: compact.vertical ? Gradient.Horizontal : Gradient.Vertical
+            GradientStop { position: 0; color: Qt.alpha(Kirigami.Theme.textColor, compact.lit ? 0.16 : 0.10) }
+            GradientStop { position: 1; color: Qt.alpha(Kirigami.Theme.textColor, compact.lit ? 0.09 : 0.04) }
+        }
+    }
+
+    Rectangle {
+        visible: !compact.vertical && nameLabel.visible
+        width: 1
+        height: tile.height * 0.5
+        anchors.verticalCenter: tile.verticalCenter
+        x: content.x + nameLabel.x + nameLabel.width + content.columnSpacing / 2
+        color: Qt.alpha(Kirigami.Theme.textColor, 0.16)
     }
 
     GridLayout {
         id: content
         anchors.centerIn: parent
         flow: compact.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
-        columnSpacing: Kirigami.Units.smallSpacing * 1.5
+        columnSpacing: Kirigami.Units.largeSpacing
         rowSpacing: Kirigami.Units.smallSpacing
 
         Kirigami.Icon {
@@ -61,6 +80,7 @@ MouseArea {
         }
 
         PlasmaComponents.Label {
+            id: nameLabel
             visible: !compact.vertical && Plasmoid.configuration.compactMaxWidth > 0
             Layout.alignment: Qt.AlignVCenter
             Layout.preferredWidth: Kirigami.Units.gridUnit * Plasmoid.configuration.compactMaxWidth
