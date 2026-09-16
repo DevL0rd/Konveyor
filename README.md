@@ -29,7 +29,7 @@ Remove the widget from your panel if it is still shown.
 
 ## Behaviour
 
-Clicking the icon calls `forceActivate` on KWin's virtual keyboard, which shows it.
+Clicking the panel button calls `forceActivate` on KWin's virtual keyboard, which shows it, with a short ripple to confirm the click. On the desktop the widget shows a card with a Show keyboard button.
 
 There is no hide action. KWin's virtual keyboard D-Bus interface exposes no way to dismiss the keyboard; setting `active` to false or changing `mode` leaves it visible. The keyboard hides itself when the focused text field loses focus, or through its own close button. For the same reason the widget does not indicate whether the keyboard is currently open.
 
