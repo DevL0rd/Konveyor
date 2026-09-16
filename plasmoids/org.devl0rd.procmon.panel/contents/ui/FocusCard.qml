@@ -12,6 +12,7 @@ PopCard {
 
     readonly property var proc: root.focusProc
     readonly property var history: root.focusHistory
+    readonly property int procPid: proc ? proc.pid : 0
 
     title: root.activePid > 0 ? i18n("Focused app") : i18n("Busiest process")
     icon: "window"
@@ -206,13 +207,13 @@ PopCard {
     PopActions {
         visible: card.proc !== null
         showText: true
-        model: card.proc ? [
-            { icon: "process-stop", text: i18n("End"), run: () => root.signalProc(card.proc.pid, "TERM") },
-            { icon: "process-stop", text: i18n("Force kill"), destructive: true, run: () => root.signalProc(card.proc.pid, "KILL") },
-            { icon: "media-playback-pause", text: i18n("Pause"), run: () => root.signalProc(card.proc.pid, "STOP") },
-            { icon: "media-playback-start", text: i18n("Resume"), run: () => root.signalProc(card.proc.pid, "CONT") },
-            { icon: "folder-open", text: i18n("Open location"), run: () => root.openLocation(card.proc.pid) },
-            { icon: "edit-copy", text: i18n("Copy command"), run: () => root.copyCmdline(card.proc.pid) }
+        model: card.procPid > 0 ? [
+            { icon: "process-stop", text: i18n("End"), run: () => root.signalProc(card.procPid, "TERM") },
+            { icon: "process-stop", text: i18n("Force kill"), destructive: true, run: () => root.signalProc(card.procPid, "KILL") },
+            { icon: "media-playback-pause", text: i18n("Pause"), run: () => root.signalProc(card.procPid, "STOP") },
+            { icon: "media-playback-start", text: i18n("Resume"), run: () => root.signalProc(card.procPid, "CONT") },
+            { icon: "folder-open", text: i18n("Open location"), run: () => root.openLocation(card.procPid) },
+            { icon: "edit-copy", text: i18n("Copy command"), run: () => root.copyCmdline(card.procPid) }
         ] : []
     }
 

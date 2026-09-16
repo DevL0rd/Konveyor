@@ -19,10 +19,11 @@ Rectangle {
     readonly property var proc: root.procByPid[pid] || ({})
     readonly property bool open: root.expandedPid === pid
     readonly property real rowHeight: Kirigami.Units.gridUnit * 1.75
+    readonly property string query: root.searchText.trim()
     property string commandLine
     signal menuRequested(var proc)
 
-    implicitHeight: rowHeight + (open ? details.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0)
+    implicitHeight: rowHeight + (open && details.item ? details.item.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0)
     radius: Kirigami.Units.cornerRadius
     color: open ? Qt.alpha(Kirigami.Theme.highlightColor, 0.1)
          : mouse.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.12)
@@ -65,7 +66,7 @@ Rectangle {
         gradient: false
         peakMarker: false
         opacity: 0.3
-        tipText: v => root.fmtValue(v, (root.colOf(Plasmoid.configuration.sortColumn) || { kind: "int" }).kind)
+        hoverable: false
     }
 
     RowLayout {
@@ -99,8 +100,8 @@ Rectangle {
         }
         PlasmaComponents.Label {
             Layout.fillWidth: true
-            text: Highlight.mark(row.proc.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor)
-            textFormat: Text.StyledText
+            text: row.query === "" ? row.proc.name || "" : Highlight.mark(row.proc.name || "", row.query, Kirigami.Theme.highlightColor)
+            textFormat: row.query === "" ? Text.PlainText : Text.StyledText
             elide: Text.ElideRight
         }
         Rectangle {
@@ -124,8 +125,8 @@ Rectangle {
                 required property var modelData
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 3.6
                 horizontalAlignment: Text.AlignRight
-                text: modelData.key === "pid" ? Highlight.mark(String(row.pid), root.searchText.trim(), Kirigami.Theme.highlightColor) : root.fmtCol(row.proc, modelData)
-                textFormat: modelData.key === "pid" ? Text.StyledText : Text.PlainText
+                text: modelData.key === "pid" && row.query !== "" ? Highlight.mark(String(row.pid), row.query, Kirigami.Theme.highlightColor) : root.fmtCol(row.proc, modelData)
+                textFormat: modelData.key === "pid" && row.query !== "" ? Text.StyledText : Text.PlainText
                 color: root.colColor(row.proc, modelData)
                 font.features: { "tnum": 1 }
                 opacity: modelData.kind === "bytes" || modelData.kind === "int" ? 0.9 : 1
@@ -134,94 +135,114 @@ Rectangle {
         }
     }
 
-    ColumnLayout {
+    component MetricLine: RowLayout {
+        property string label
+        property string own
+        property string total
+        property bool header: false
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.largeSpacing
+        PlasmaComponents.Label {
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 4
+            text: parent.label
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            opacity: 0.6
+        }
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            text: parent.own
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            font.weight: parent.header ? Font.DemiBold : Font.Normal
+            font.features: { "tnum": 1 }
+            opacity: parent.header ? 0.6 : 0.9
+        }
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            text: parent.total
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            font.weight: parent.header ? Font.DemiBold : Font.Normal
+            font.features: { "tnum": 1 }
+            opacity: parent.header ? 0.6 : 0.9
+        }
+    }
+
+    Loader {
         id: details
-        visible: row.open
+        active: row.open
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.topMargin: row.rowHeight
         anchors.leftMargin: Kirigami.Units.largeSpacing
         anchors.rightMargin: Kirigami.Units.largeSpacing
-        spacing: Kirigami.Units.smallSpacing
+        sourceComponent: ColumnLayout {
+            spacing: Kirigami.Units.smallSpacing
 
-        GridLayout {
-            Layout.fillWidth: true
-            columns: 3
-            columnSpacing: Kirigami.Units.largeSpacing
-            rowSpacing: 2
-
-            PlasmaComponents.Label { text: ""; font: Kirigami.Theme.smallFont }
-            PlasmaComponents.Label { text: i18n("This process"); font.pointSize: Kirigami.Theme.smallFont.pointSize; font.weight: Font.DemiBold; opacity: 0.6; Layout.fillWidth: true; Layout.preferredWidth: 1 }
-            PlasmaComponents.Label { text: i18n("With children"); font.pointSize: Kirigami.Theme.smallFont.pointSize; font.weight: Font.DemiBold; opacity: 0.6; Layout.fillWidth: true; Layout.preferredWidth: 1 }
-
-            Repeater {
-                model: [
-                    { key: "cpu", label: i18n("CPU"), kind: "pct" },
-                    { key: "gpu", label: i18n("GPU"), kind: "pct" },
-                    { key: "ram", label: i18n("RAM"), kind: "bytes" },
-                    { key: "vram", label: i18n("VRAM"), kind: "bytes" },
-                    { key: "disk", label: i18n("Disk"), kind: "rate" },
-                    { key: "threads", label: i18n("Threads"), kind: "int" },
-                    { key: "enc", label: i18n("Encode"), kind: "pct" },
-                    { key: "dec", label: i18n("Decode"), kind: "pct" }
-                ]
-                delegate: Repeater {
-                    required property var modelData
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+                MetricLine { header: true; own: i18n("This process"); total: i18n("With children") }
+                Repeater {
                     model: [
-                        { text: modelData.label, dim: true },
-                        { text: root.fmtValue(row.proc[modelData.key] || 0, modelData.kind), dim: false },
-                        { text: root.fmtValue(row.proc["a" + modelData.key] !== undefined ? row.proc["a" + modelData.key] : (row.proc[modelData.key] || 0), modelData.kind), dim: false }
+                        { key: "cpu", label: i18n("CPU"), kind: "pct" },
+                        { key: "gpu", label: i18n("GPU"), kind: "pct" },
+                        { key: "ram", label: i18n("RAM"), kind: "bytes" },
+                        { key: "vram", label: i18n("VRAM"), kind: "bytes" },
+                        { key: "disk", label: i18n("Disk"), kind: "rate" },
+                        { key: "threads", label: i18n("Threads"), kind: "int" },
+                        { key: "enc", label: i18n("Encode"), kind: "pct" },
+                        { key: "dec", label: i18n("Decode"), kind: "pct" }
                     ]
-                    PlasmaComponents.Label {
+                    MetricLine {
                         required property var modelData
-                        text: modelData.text
-                        font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        font.features: { "tnum": 1 }
-                        opacity: modelData.dim ? 0.6 : 0.9
+                        label: modelData.label
+                        own: root.fmtValue(row.proc[modelData.key] || 0, modelData.kind)
+                        total: root.fmtValue(row.proc["a" + modelData.key] !== undefined ? row.proc["a" + modelData.key] : (row.proc[modelData.key] || 0), modelData.kind)
                     }
                 }
             }
-        }
 
-        RowLayout {
-            visible: row.proc.fps !== undefined
-            Layout.fillWidth: true
-            PlasmaComponents.Label {
-                text: i18n("Frames")
-                font: Kirigami.Theme.smallFont
-                opacity: 0.6
+            RowLayout {
+                visible: row.proc.fps !== undefined
+                Layout.fillWidth: true
+                PlasmaComponents.Label {
+                    text: i18n("Frames")
+                    font: Kirigami.Theme.smallFont
+                    opacity: 0.6
+                }
+                PlasmaComponents.Label {
+                    text: i18n("%1 FPS · %2 ms per frame · 1% low %3 FPS", row.proc.fps || 0, (row.proc.frametime || 0).toFixed(1), row.proc.fps_low || 0)
+                    font: Kirigami.Theme.smallFont
+                    color: root.fpsColor(row.proc.fps || 0)
+                }
             }
+
             PlasmaComponents.Label {
-                text: i18n("%1 FPS · %2 ms per frame · 1% low %3 FPS", row.proc.fps || 0, (row.proc.frametime || 0).toFixed(1), row.proc.fps_low || 0)
-                font: Kirigami.Theme.smallFont
-                color: root.fpsColor(row.proc.fps || 0)
+                Layout.fillWidth: true
+                visible: row.commandLine !== ""
+                text: row.commandLine
+                font.family: "monospace"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                opacity: 0.75
+                wrapMode: Text.WrapAnywhere
+                maximumLineCount: 3
+                elide: Text.ElideRight
             }
-        }
 
-        PlasmaComponents.Label {
-            Layout.fillWidth: true
-            visible: row.commandLine !== ""
-            text: row.commandLine
-            font.family: "monospace"
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
-            opacity: 0.75
-            wrapMode: Text.WrapAnywhere
-            maximumLineCount: 3
-            elide: Text.ElideRight
-        }
-
-        PopActions {
-            showText: true
-            model: [
-                { icon: "process-stop", text: i18n("End"), run: () => root.signalProc(row.pid, "TERM") },
-                { icon: "process-stop", text: i18n("Force kill"), destructive: true, run: () => root.signalProc(row.pid, "KILL") },
-                { icon: "media-playback-pause", text: i18n("Pause"), run: () => root.signalProc(row.pid, "STOP") },
-                { icon: "media-playback-start", text: i18n("Resume"), run: () => root.signalProc(row.pid, "CONT") },
-                { icon: "folder-open", text: i18n("Open location"), run: () => root.openLocation(row.pid) },
-                { icon: "edit-copy", text: i18n("Copy command"), run: () => root.copyText(row.commandLine) },
-                { icon: "overflow-menu", text: i18n("More…"), run: () => row.menuRequested(row.proc) }
-            ]
+            PopActions {
+                showText: true
+                model: [
+                    { icon: "process-stop", text: i18n("End"), run: () => root.signalProc(row.pid, "TERM") },
+                    { icon: "process-stop", text: i18n("Force kill"), destructive: true, run: () => root.signalProc(row.pid, "KILL") },
+                    { icon: "media-playback-pause", text: i18n("Pause"), run: () => root.signalProc(row.pid, "STOP") },
+                    { icon: "media-playback-start", text: i18n("Resume"), run: () => root.signalProc(row.pid, "CONT") },
+                    { icon: "folder-open", text: i18n("Open location"), run: () => root.openLocation(row.pid) },
+                    { icon: "edit-copy", text: i18n("Copy command"), run: () => root.copyText(row.commandLine) },
+                    { icon: "overflow-menu", text: i18n("More…"), run: () => row.menuRequested(row.proc) }
+                ]
+            }
         }
     }
 }

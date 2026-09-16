@@ -7,6 +7,7 @@ var focusHistPid = 0
 var memTotal = 0
 var vramTotal = 0
 var ncpu = 1
+var lastRowSig = ""
 
 function ringMake(cap) { return { buf: new Array(cap), head: 0, len: 0, cap: cap } }
 function ringPush(r, v) { r.buf[r.head] = v; r.head = (r.head + 1) % r.cap; if (r.len < r.cap) r.len++ }
@@ -111,11 +112,17 @@ function build(s) {
         var h = hist[pid]
         return (h && h[sc]) ? ringValues(h[sc]) : []
     }
-    var desired = [], pbp = {}, shb = {}
+    var desired = [], pbp = {}, shb = {}, sig = []
+    var first = s.windowStart, last = s.windowEnd, shown = {}
+    for (var w = 0; w < s.windowPids.length; w++) shown[s.windowPids[w]] = true
     function emit(p, depth, has, exp) {
-        pbp[p.pid] = p
-        shb[p.pid] = histArr(p.pid)
+        var index = desired.length
+        if ((index >= first && index <= last) || shown[p.pid] === true) {
+            pbp[p.pid] = p
+            shb[p.pid] = histArr(p.pid)
+        }
         desired.push({ pid: p.pid, depth: depth, hasChildren: has, expanded: exp })
+        sig.push(p.pid + (has ? (exp ? "e" : "c") : "") + depth)
     }
     var flat = s.searchText !== "" || s.filter !== "all" || !s.tree
     if (flat) {
@@ -147,7 +154,7 @@ function build(s) {
         }
         for (var j = 0; j < rl.length; j++) walk(rl[j], 0)
     }
-    return { desired: desired, procByPid: pbp, sortHistByPid: shb }
+    return { desired: desired, procByPid: pbp, sortHistByPid: shb, sig: sig.join(",") }
 }
 
 WorkerScript.onMessage = function(msg) {
@@ -181,9 +188,14 @@ WorkerScript.onMessage = function(msg) {
     var out = { focus: focusInfo(s.focusPid), focusHistory: focusHistory(), summary: summary(), full: s.full }
     if (s.full) {
         var built = build(s)
-        out.desired = built.desired
+        if (built.sig !== lastRowSig) {
+            lastRowSig = built.sig
+            out.desired = built.desired
+        }
         out.procByPid = built.procByPid
         out.sortHistByPid = built.sortHistByPid
+    } else {
+        lastRowSig = ""
     }
     WorkerScript.sendMessage(out)
 }

@@ -43,9 +43,31 @@ PlasmoidItem {
     property int expandedPid: 0
     property string searchText
     property var rowsView: null
+    onRowsViewChanged: requestRebuild()
+    readonly property int windowRows: 40
+    property int windowStart: 0
+    readonly property int windowEnd: windowStart + windowRows * 2
+    function windowPids() {
+        const pids = []
+        const end = Math.min(rowModel.count, windowEnd + 1)
+        for (let i = windowStart; i < end; ++i)
+            pids.push(rowModel.get(i).pid)
+        return pids
+    }
+    function updateWindow() {
+        if (!rowsView)
+            return
+        const top = Math.floor(rowsView.contentY / (Kirigami.Units.gridUnit * 1.75))
+        const wanted = Math.max(0, top - windowRows / 2)
+        if (Math.abs(wanted - windowStart) >= windowRows / 2) {
+            windowStart = wanted
+            requestRebuild()
+        }
+    }
     property bool hasData: false
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property bool dataWanted: inPanel || visible
     property bool popupAlive: !inPanel
     preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     onPopupAliveChanged: requestRebuild()
@@ -147,7 +169,7 @@ PlasmoidItem {
         xhr.send()
     }
     FileWatcher {
-        path: root.cachePath
+        path: root.dataWanted ? root.cachePath : ""
         onChanged: root.read()
     }
     function workerState() {
@@ -158,7 +180,8 @@ PlasmoidItem {
             sortColumn: sortColumn, sortNoagg: column ? !!column.noagg : true, sortDescending: Plasmoid.configuration.sortDescending,
             searchText: searchText.trim(), showKernel: Plasmoid.configuration.showKernelThreads, hideSystemd: Plasmoid.configuration.hideSystemd,
             expanded: expandedRows, tree: Plasmoid.configuration.treeView, filter: Plasmoid.configuration.processFilter,
-            focusPid: focusPid, full: popupAlive
+            focusPid: focusPid, full: popupAlive && rowsView !== null,
+            windowStart: windowStart, windowEnd: windowEnd, windowPids: windowPids()
         }
     }
     function requestRebuild() {
@@ -178,6 +201,8 @@ PlasmoidItem {
                 return
             root.procByPid = message.procByPid
             root.sortHistByPid = message.sortHistByPid
+            if (!message.desired)
+                return
             if (!root.rowsView || root.rowsView.contentY < Kirigami.Units.gridUnit * 1.7)
                 root.syncModel(message.desired)
             else

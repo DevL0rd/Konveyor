@@ -226,6 +226,8 @@ Item {
                             spacing: 1
                             QQC2.ScrollBar.vertical: PlasmaComponents.ScrollBar {}
                             Component.onCompleted: root.rowsView = list
+                            Component.onDestruction: if (root.rowsView === list) root.rowsView = null
+                            onContentYChanged: root.updateWindow()
 
                             delegate: ProcessRow {
                                 width: list.width - (list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
