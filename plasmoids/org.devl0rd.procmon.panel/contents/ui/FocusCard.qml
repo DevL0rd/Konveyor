@@ -14,7 +14,7 @@ PopCard {
     readonly property var history: root.focusHistory
     readonly property int procPid: proc ? proc.pid : 0
 
-    title: root.activePid > 0 ? i18n("Focused app") : i18n("Busiest process")
+    title: i18n("Focused app")
     icon: "window"
     trailing: proc ? "PID " + proc.pid : ""
 

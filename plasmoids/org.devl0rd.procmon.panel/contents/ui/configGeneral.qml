@@ -23,7 +23,6 @@ Kirigami.FormLayout {
     property alias cfg_compactShowCpu: compactCpu.checked
     property alias cfg_compactShowGpu: compactGpu.checked
     property alias cfg_compactShowFps: compactFps.checked
-    property string cfg_compactNoFocus
     property alias cfg_showFocusedCard: focusedCard.checked
     property alias cfg_fpsGood: fpsGood.value
     property alias cfg_fpsWarn: fpsWarn.value
@@ -37,17 +36,6 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: i18n("App name width:")
         QQC2.SpinBox { id: nameWidth; from: 0; to: 30 }
         QQC2.Label { text: nameWidth.value === 0 ? i18n("hidden") : i18n("grid units"); opacity: 0.6 }
-    }
-    QQC2.ComboBox {
-        Kirigami.FormData.label: i18n("With no focused app:")
-        textRole: "text"
-        valueRole: "value"
-        model: [
-            { text: i18n("Show the busiest process"), value: "top" },
-            { text: i18n("Show only the icon"), value: "blank" }
-        ]
-        Component.onCompleted: currentIndex = Math.max(0, indexOfValue(cfg_compactNoFocus))
-        onActivated: cfg_compactNoFocus = currentValue
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Frame rate colours:")

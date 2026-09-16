@@ -36,7 +36,7 @@ PlasmoidItem {
 
     property var focusProc: null
     property var focusHistory: ({})
-    property var summary: ({ count: 0, cpu: 0, vram: 0, memTotal: 0, vramTotal: 0, gpuTop: null })
+    property var summary: ({ count: 0, cpu: 0, gpu: 0, vram: 0, memTotal: 0, vramTotal: 0, gpuTop: null })
     property var procByPid: ({})
     property var sortHistByPid: ({})
     property var expandedRows: ({})
@@ -104,7 +104,7 @@ PlasmoidItem {
         return tasks.activeTask ? (tasks.data(tasks.activeTask, TaskManager.AbstractTasksModel.AppName) || "") : ""
     }
     readonly property var activeIcon: tasks.activeTask ? tasks.data(tasks.activeTask, Qt.DecorationRole) : null
-    readonly property int focusPid: activePid > 0 ? activePid : (Plasmoid.configuration.compactNoFocus === "top" && summary.topCpu ? summary.topCpu : 0)
+    readonly property int focusPid: activePid
     onFocusPidChanged: requestRebuild()
 
     function colOf(key) {

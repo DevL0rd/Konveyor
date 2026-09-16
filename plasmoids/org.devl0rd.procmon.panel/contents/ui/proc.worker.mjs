@@ -84,18 +84,17 @@ function focusHistory() {
 }
 
 function summary() {
-    var cpu = 0, vram = 0, gpuTop = null, cpuTop = null
+    var cpu = 0, gpu = 0, vram = 0, gpuTop = null
     for (var i = 0; i < procs.length; i++) {
         var p = procs[i]
         cpu += p.cpu || 0
+        gpu += p.gpu || 0
         vram += p.vram || 0
         if ((p.gpu || 0) > 0 && (gpuTop === null || p.gpu > gpuTop.gpu)) gpuTop = p
-        if (!p.kernel && (p.acpu || 0) > 0 && p.pid !== 1 && p.name !== "systemd" && (cpuTop === null || p.cpu > cpuTop.cpu)) cpuTop = p
     }
     return {
-        count: procs.length, cpu: Math.min(100, cpu), vram: vram, memTotal: memTotal, vramTotal: vramTotal, ncpu: ncpu,
-        gpuTop: gpuTop ? { pid: gpuTop.pid, name: gpuTop.name, gpu: gpuTop.gpu } : null,
-        topCpu: cpuTop ? cpuTop.pid : 0
+        count: procs.length, cpu: Math.min(100, cpu), gpu: Math.min(100, gpu), vram: vram, memTotal: memTotal, vramTotal: vramTotal, ncpu: ncpu,
+        gpuTop: gpuTop ? { pid: gpuTop.pid, name: gpuTop.name, gpu: gpuTop.gpu } : null
     }
 }
 

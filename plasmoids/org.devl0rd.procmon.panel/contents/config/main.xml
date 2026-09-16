@@ -20,11 +20,10 @@
         <entry name="showPidColumn" type="Bool"><default>false</default></entry>
         <entry name="sortColumn" type="String"><default>cpu</default></entry>
         <entry name="sortDescending" type="Bool"><default>true</default></entry>
-        <entry name="compactMaxWidth" type="Int"><default>10</default></entry>
+        <entry name="compactMaxWidth" type="Int"><default>7</default></entry>
         <entry name="compactShowCpu" type="Bool"><default>true</default></entry>
         <entry name="compactShowGpu" type="Bool"><default>true</default></entry>
         <entry name="compactShowFps" type="Bool"><default>true</default></entry>
-        <entry name="compactNoFocus" type="String"><default>top</default></entry>
         <entry name="showFocusedCard" type="Bool"><default>true</default></entry>
         <entry name="fpsGood" type="Int"><default>60</default></entry>
         <entry name="fpsWarn" type="Int"><default>30</default></entry>

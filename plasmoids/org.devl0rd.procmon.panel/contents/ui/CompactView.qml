@@ -14,6 +14,9 @@ MouseArea {
     readonly property real thickness: vertical ? width : height
     readonly property real valueSize: Math.max(Kirigami.Theme.smallFont.pixelSize, Math.min(Kirigami.Theme.defaultFont.pixelSize * 1.05, thickness * 0.4))
     readonly property var proc: root.focusProc
+    readonly property bool system: proc === null
+    readonly property real cpu: system ? root.summary.cpu : proc.cpu
+    readonly property real gpu: system ? root.summary.gpu : proc.gpu
     readonly property bool showFps: Plasmoid.configuration.compactShowFps && proc !== null && proc.fps >= 0
     property bool wasExpanded: false
 
@@ -51,41 +54,43 @@ MouseArea {
             Layout.alignment: Qt.AlignCenter
             Layout.preferredWidth: Math.round(compact.valueSize * 1.35)
             Layout.preferredHeight: Layout.preferredWidth
-            source: root.activePid > 0 && root.activeIcon ? root.activeIcon
-                  : compact.proc && compact.proc.icon ? compact.proc.icon
-                  : compact.proc ? compact.proc.name : root.panelIcon
+            source: compact.system ? root.panelIcon
+                  : root.activeIcon ? root.activeIcon
+                  : compact.proc.icon ? compact.proc.icon : compact.proc.name
             fallback: root.panelIcon
         }
 
         PlasmaComponents.Label {
-            visible: !compact.vertical && compact.proc !== null && Plasmoid.configuration.compactMaxWidth > 0
+            visible: !compact.vertical && Plasmoid.configuration.compactMaxWidth > 0
             Layout.alignment: Qt.AlignVCenter
-            Layout.maximumWidth: Kirigami.Units.gridUnit * Plasmoid.configuration.compactMaxWidth
-            text: root.focusName
+            Layout.preferredWidth: Kirigami.Units.gridUnit * Plasmoid.configuration.compactMaxWidth
+            Layout.maximumWidth: Layout.preferredWidth
+            text: compact.system ? i18n("System") : root.focusName
+            opacity: compact.system ? 0.7 : 1
             font.pixelSize: compact.valueSize * 0.92
             font.weight: Font.DemiBold
             elide: Text.ElideRight
         }
 
         PopChip {
-            visible: Plasmoid.configuration.compactShowCpu && compact.proc !== null
+            visible: Plasmoid.configuration.compactShowCpu
             vertical: compact.vertical
             panelThickness: compact.thickness
             chipStyle: "text"
             label: i18n("CPU")
             widestValue: "100%"
-            value: compact.proc ? Math.round(compact.proc.cpu) + "%" : ""
-            valueColor: Style.heat(compact.proc ? compact.proc.cpu : 0, 60, 85, Kirigami.Theme)
+            value: Math.round(compact.cpu) + "%"
+            valueColor: Style.heat(compact.cpu, 60, 85, Kirigami.Theme)
         }
         PopChip {
-            visible: Plasmoid.configuration.compactShowGpu && compact.proc !== null
+            visible: Plasmoid.configuration.compactShowGpu
             vertical: compact.vertical
             panelThickness: compact.thickness
             chipStyle: "text"
             label: i18n("GPU")
             widestValue: "100%"
-            value: compact.proc ? Math.round(compact.proc.gpu) + "%" : ""
-            valueColor: Style.heat(compact.proc ? compact.proc.gpu : 0, 90, 99, Kirigami.Theme)
+            value: Math.round(compact.gpu) + "%"
+            valueColor: Style.heat(compact.gpu, 90, 99, Kirigami.Theme)
         }
         PopChip {
             visible: compact.showFps
