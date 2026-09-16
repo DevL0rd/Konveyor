@@ -165,11 +165,6 @@ Item {
             onSearchAccepted: if (matchedCards.length > 0) scroll.scrollTo(matchedCards[0])
             onCloseRequested: root.expanded = false
 
-            Connections {
-                target: root
-                function onTickChanged() { shell.pulse() }
-            }
-
             headerExtra: [
                 Pill {
                     visible: !!root.snap.load
