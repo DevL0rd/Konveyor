@@ -25,7 +25,6 @@ Rectangle {
     color: hot ? Qt.alpha(Kirigami.Theme.highlightColor, 0.14) : f.ingame ? Qt.alpha(root.cInGame, 0.06) : "transparent"
     border.width: hot ? 1 : 0
     border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.35)
-    Behavior on color { ColorAnimation { duration: 120 } }
 
     RowLayout {
         anchors.fill: parent
@@ -107,8 +106,8 @@ Rectangle {
                 }
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: Highlight.mark(row.f.name || "", row.query, Kirigami.Theme.highlightColor)
-                    textFormat: Text.StyledText
+                    text: row.query !== "" ? Highlight.mark(row.f.name || "", row.query, Kirigami.Theme.highlightColor) : row.f.name || ""
+                    textFormat: row.query !== "" ? Text.StyledText : Text.PlainText
                     elide: Text.ElideRight
                     font.weight: Font.DemiBold
                     opacity: row.dim ? 0.6 : 1
@@ -126,8 +125,8 @@ Rectangle {
                 }
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: row.f.ingame ? Highlight.mark(root.stateText(row.f), row.query, Kirigami.Theme.highlightColor) : Highlight.escape(root.stateText(row.f))
-                    textFormat: Text.StyledText
+                    text: row.query !== "" && row.f.ingame ? Highlight.mark(root.stateText(row.f), row.query, Kirigami.Theme.highlightColor) : root.stateText(row.f)
+                    textFormat: row.query !== "" && row.f.ingame ? Text.StyledText : Text.PlainText
                     elide: Text.ElideRight
                     font: Kirigami.Theme.smallFont
                     color: row.dim ? Kirigami.Theme.textColor : row.presence
@@ -137,7 +136,7 @@ Rectangle {
         }
 
         Item {
-            Layout.preferredWidth: Math.max(side.implicitWidth, actions.implicitWidth)
+            Layout.preferredWidth: Math.max(side.implicitWidth, root.rowActionButtonWidth * (row.f.join ? 4 : 3))
             Layout.fillHeight: true
 
             RowLayout {
@@ -146,7 +145,6 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Kirigami.Units.smallSpacing
                 opacity: row.hot ? 0 : 1
-                Behavior on opacity { NumberAnimation { duration: 120 } }
 
                 Rectangle {
                     visible: !!(row.f.ingame && row.f.capsule) && capsuleImage.status !== Image.Error
@@ -187,50 +185,54 @@ Rectangle {
                 }
             }
 
-            RowLayout {
+            Loader {
                 id: actions
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 0
-                opacity: row.hot ? 1 : 0
-                visible: opacity > 0
-                Behavior on opacity { NumberAnimation { duration: 120 } }
+                active: row.hot
+                sourceComponent: actionsComponent
+            }
+        }
+    }
 
-                PlasmaComponents.ToolButton {
-                    icon.name: "mail-message"
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    text: i18n("Open Chat")
-                    onClicked: root.openChat(row.f)
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: text
-                }
-                PlasmaComponents.ToolButton {
-                    visible: !!row.f.join
-                    icon.name: "media-playback-start"
-                    icon.color: root.cInGame
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    text: i18n("Join Game")
-                    onClicked: root.steamRun(row.f.join)
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: text
-                }
-                PlasmaComponents.ToolButton {
-                    icon.name: row.fav ? "starred-symbolic" : "non-starred-symbolic"
-                    icon.color: row.fav ? "#f0b400" : Kirigami.Theme.textColor
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    text: row.fav ? i18n("Remove from Favourites") : i18n("Add to Favourites")
-                    onClicked: root.toggleFavorite(row.steamid)
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: text
-                }
-                PlasmaComponents.ToolButton {
-                    icon.name: "overflow-menu"
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    text: i18n("More")
-                    onClicked: root.menuRequested(row.f)
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.text: text
-                }
+    Component {
+        id: actionsComponent
+        RowLayout {
+            spacing: 0
+            PlasmaComponents.ToolButton {
+                icon.name: "mail-message"
+                display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("Open Chat")
+                onClicked: root.openChat(row.f)
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: text
+            }
+            PlasmaComponents.ToolButton {
+                visible: !!row.f.join
+                icon.name: "media-playback-start"
+                icon.color: root.cInGame
+                display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("Join Game")
+                onClicked: root.steamRun(row.f.join)
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: text
+            }
+            PlasmaComponents.ToolButton {
+                icon.name: row.fav ? "starred-symbolic" : "non-starred-symbolic"
+                icon.color: row.fav ? "#f0b400" : Kirigami.Theme.textColor
+                display: PlasmaComponents.AbstractButton.IconOnly
+                text: row.fav ? i18n("Remove from Favourites") : i18n("Add to Favourites")
+                onClicked: root.toggleFavorite(row.steamid)
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: text
+            }
+            PlasmaComponents.ToolButton {
+                icon.name: "overflow-menu"
+                display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18n("More")
+                onClicked: root.menuRequested(row.f)
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: text
             }
         }
     }

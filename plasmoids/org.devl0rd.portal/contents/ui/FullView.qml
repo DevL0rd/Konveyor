@@ -25,7 +25,7 @@ Item {
         anchors.fill: parent
         active: root.popupAlive
         sourceComponent: shellComponent
-        onLoaded: if (root.expanded) item.focusSearch()
+        onLoaded: if (root.expanded && root.inPanel) item.focusSearch()
     }
 
     Connections {

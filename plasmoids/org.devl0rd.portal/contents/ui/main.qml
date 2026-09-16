@@ -63,13 +63,21 @@ PlasmoidItem {
     readonly property string portalBin: "$HOME/.local/bin/portal-games"
     function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }
 
+    property var sectionModels: []
     function appModelFor(cat) {
-        if (!cat) return null
-        if (cat.type === "apps") return rootModel.modelForRow(cat.row)
-        return null
+        if (!cat || cat.type !== "apps") return null
+        return root.sectionModels[cat.row] || null
     }
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property bool dataWanted: inPanel || visible
+    onDataWantedChanged: {
+        if (dataWanted && !inPanel) {
+            loadUsage()
+            loadFavorites()
+            readFriends()
+        }
+    }
     property bool popupAlive: !inPanel
     preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     onExpandedChanged: function() {
@@ -114,7 +122,7 @@ PlasmoidItem {
     Timer {
         interval: 2500
         repeat: true
-        running: root.popupAlive && (root.favActive || root.allAppsActive)
+        running: root.popupAlive && root.dataWanted && (root.favActive || root.allAppsActive)
         onTriggered: root.loadFavorites()
     }
     P5Support.DataSource {
@@ -195,6 +203,7 @@ PlasmoidItem {
     property var friendsByAppid: ({})
     property int friendsPlaying: 0
     property string friendsPath: ""
+    property string friendsSignature: ""
     P5Support.DataSource {
         id: pathHelper
         engine: "executable"
@@ -212,6 +221,10 @@ PlasmoidItem {
             if (xhr.readyState !== XMLHttpRequest.DONE) return
             let byAppid = {}
             try { byAppid = JSON.parse(xhr.responseText || "{}").by_appid || {} } catch (e) {}
+            const signature = JSON.stringify(byAppid)
+            if (signature === root.friendsSignature)
+                return
+            root.friendsSignature = signature
             let playing = 0
             for (const appid in byAppid)
                 playing += byAppid[appid].length
@@ -223,7 +236,7 @@ PlasmoidItem {
     function friendsFor(g) {
         return (g && g.appid && friendsByAppid[g.appid]) ? friendsByAppid[g.appid] : []
     }
-    FileWatcher { path: root.friendsPath; onChanged: root.readFriends() }
+    FileWatcher { path: root.dataWanted ? root.friendsPath : ""; onChanged: root.readFriends() }
 
     Component.onCompleted: {
         selectedLabel = Plasmoid.configuration.defaultCategory || "Favorites"
@@ -282,7 +295,19 @@ PlasmoidItem {
         }
         if (!hadGames)
             cats.push({ label: i18n("Games"), type: "games", row: -1 })
-        root.categories = cats
+        const models = []
+        let modelsChanged = false
+        for (const cat of cats) {
+            if (cat.type !== "apps")
+                continue
+            models[cat.row] = rootModel.modelForRow(cat.row)
+            if (models[cat.row] !== root.sectionModels[cat.row])
+                modelsChanged = true
+        }
+        if (modelsChanged || models.length !== root.sectionModels.length)
+            root.sectionModels = models
+        if (JSON.stringify(cats) !== JSON.stringify(root.categories))
+            root.categories = cats
     }
 
     function launchAndClose() {

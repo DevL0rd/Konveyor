@@ -4,6 +4,7 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasma5support as P5Support
 import "lib"
 
@@ -36,7 +37,10 @@ PlasmoidItem {
     }
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property bool dataWanted: inPanel || visible
+    onDataWantedChanged: if (dataWanted) read()
     property bool popupAlive: !inPanel
+    onPopupAliveChanged: if (popupAlive) rebuild()
     preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     onExpandedChanged: function() {
         if (root.expanded) {
@@ -98,7 +102,9 @@ PlasmoidItem {
     readonly property int inGameCount: friends.filter(f => f.ingame).length
     readonly property int favoriteCount: friends.filter(f => favoritesList().indexOf(String(f.steamid)) >= 0).length
 
-    readonly property var playingNow: {
+    property var playingNow: []
+    property string playingSignature: ""
+    function updatePlayingNow() {
         const groups = {}
         const order = []
         for (const f of friends) {
@@ -111,7 +117,12 @@ PlasmoidItem {
             }
             groups[key].friends.push(f)
         }
-        return order.map(key => groups[key]).sort((a, b) => b.friends.length - a.friends.length || a.game.localeCompare(b.game))
+        const next = order.map(key => groups[key]).sort((a, b) => b.friends.length - a.friends.length || a.game.localeCompare(b.game))
+        const signature = JSON.stringify(next.map(g => [g.key, g.game, g.capsule, g.friends.map(f => [f.steamid, f.name, f.avatar])]))
+        if (signature !== playingSignature) {
+            playingSignature = signature
+            playingNow = next
+        }
     }
 
     function lastOnlineText(f) {
@@ -174,17 +185,23 @@ PlasmoidItem {
         }
         xhr.send()
     }
+    property string snapshotSignature: ""
     function processSnapshot(text) {
         let s
         try { s = JSON.parse(text || "{}") } catch (e) { root.error = i18n("Could not read friends data"); return }
         root.error = (s.ok === false) ? (s.error || i18n("No data")) : ""
         root.saving = false
         const list = s.friends || []
+        const signature = JSON.stringify(list)
+        if (root.ready && signature === root.snapshotSignature)
+            return
+        root.snapshotSignature = signature
         const byId = {}
         for (const f of list)
             byId[String(f.steamid)] = f
         root.friends = list
         root.friendsById = byId
+        root.updatePlayingNow()
         root.ready = true
         root.rebuild()
     }
@@ -194,6 +211,8 @@ PlasmoidItem {
     }
 
     function rebuild() {
+        if (!root.popupAlive)
+            return
         const q = root.searchText.trim().toLowerCase()
         const favs = root.favoritesList()
         const dir = root.sortMode === "name_desc" ? -1 : 1
@@ -281,10 +300,18 @@ PlasmoidItem {
     }
     Timer { id: setupReloadTimer; interval: 4000; onTriggered: root.read() }
 
-    FileWatcher { path: root.cachePath; onChanged: root.read() }
+    FileWatcher { path: root.dataWanted ? root.cachePath : ""; onChanged: root.read() }
     Component.onCompleted: pathHelper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Plasma-App-Portal/friends.json\"")
 
     signal menuRequested(var friend)
+
+    PlasmaComponents.ToolButton {
+        id: actionButtonProbe
+        visible: false
+        icon.name: "mail-message"
+        display: PlasmaComponents.AbstractButton.IconOnly
+    }
+    readonly property real rowActionButtonWidth: actionButtonProbe.implicitWidth
 
     toolTipMainText: i18n("Steam Friends")
     toolTipSubText: {

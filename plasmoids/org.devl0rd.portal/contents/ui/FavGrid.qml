@@ -89,8 +89,8 @@ Item {
                 }
                 PlasmaComponents.Label {
                     visible: Plasmoid.configuration.showAppLabels
-                    text: Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor)
-                    textFormat: Text.StyledText
+                    text: root.searchText.trim() !== "" ? Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor) : modelData.name || ""
+                    textFormat: root.searchText.trim() !== "" ? Text.StyledText : Text.PlainText
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
@@ -142,8 +142,8 @@ Item {
                 }
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor)
-                    textFormat: Text.StyledText
+                    text: root.searchText.trim() !== "" ? Highlight.mark(modelData.name || "", root.searchText.trim(), Kirigami.Theme.highlightColor) : modelData.name || ""
+                    textFormat: root.searchText.trim() !== "" ? Text.StyledText : Text.PlainText
                     elide: Text.ElideRight
                 }
             }
