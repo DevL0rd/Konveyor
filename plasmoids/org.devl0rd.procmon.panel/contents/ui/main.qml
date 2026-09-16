@@ -142,7 +142,7 @@ PlasmoidItem {
         const xhr = new XMLHttpRequest()
         xhr.open("GET", "file://" + cachePath)
         xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || !xhr.responseText) return
+            if (xhr.readyState !== XMLHttpRequest.DONE || !xhr.responseText || !worker.ready) return
             worker.sendMessage({ text: xhr.responseText, state: root.workerState() })
         }
         xhr.send()
@@ -163,11 +163,13 @@ PlasmoidItem {
         }
     }
     function requestRebuild() {
-        worker.sendMessage({ text: null, state: workerState() })
+        if (worker.ready)
+            worker.sendMessage({ text: null, state: workerState() })
     }
     WorkerScript {
         id: worker
         source: Qt.resolvedUrl("proc.worker.mjs")
+        onReadyChanged: if (ready) root.read()
         onMessage: function(message) {
             root.hasData = true
             root.focusProc = message.focus
