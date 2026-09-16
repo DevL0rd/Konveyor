@@ -51,6 +51,11 @@ void Workspace::endEdgeScroll()
     m_strip.endEdgeScroll();
 }
 
+void Workspace::setFloatingFrame(WindowId window, QPointF tilePos, QSizeF windowSize)
+{
+    m_floating.setFrame(window, tilePos, windowSize);
+}
+
 bool Workspace::beginResize(WindowId window, quint8 edges)
 {
     if (m_floating.hasWindow(window)) {

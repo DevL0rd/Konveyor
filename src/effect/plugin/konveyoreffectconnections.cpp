@@ -58,8 +58,12 @@ void KonveyorEffect::connectWindowLifecycle()
 void KonveyorEffect::connectWindowState()
 {
     connect(&d->windows, &WindowRegistry::sizeCommitted, this, [this](Layout::WindowId id, const QSizeF &size) {
-        const bool acknowledgesRequest = d->applier.isEchoOfAppliedSize(id, size);
         KWin::Window *window = d->windows.windowOf(id);
+        if (window && adoptFloatingGeometry(id, window)) {
+            scheduleFlush();
+            return;
+        }
+        const bool acknowledgesRequest = d->applier.isEchoOfAppliedSize(id, size);
         const bool resizedByUser = !d->applier.isApplying() && window && window->isInteractiveResize();
         if (acknowledgesRequest || resizedByUser) {
             changeEngine().windowSizeCommitted(id, size);

@@ -187,6 +187,7 @@ public:
     void removeWindow(WindowId id);
     void updateWindowProperties(WindowId id, const WindowProperties &properties);
     void windowSizeCommitted(WindowId id, const QSizeF &frameSize);
+    void setFloatingFrame(WindowId id, const QRectF &frame);
     void activateWindow(WindowId id);
     void setLayoutFocused(bool focused);
     void setWindowFullscreen(WindowId id, bool fullscreen);

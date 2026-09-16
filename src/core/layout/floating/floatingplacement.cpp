@@ -12,11 +12,6 @@ namespace Konveyor::Layout
 namespace
 {
 
-QSizeF halfSize(QSizeF size)
-{
-    return {size.width() / 2.0, size.height() / 2.0};
-}
-
 bool isRightAnchored(Config::FloatingRelativeTo relativeTo)
 {
     return relativeTo == Config::FloatingRelativeTo::TopRight || relativeTo == Config::FloatingRelativeTo::BottomRight
@@ -83,12 +78,6 @@ void FloatingData::setAbsolutePos(QPointF newPos)
 {
     pos = logicalToFracInArea(workingArea, newPos);
     refreshAbsolutePos();
-}
-
-QPointF FloatingData::center() const
-{
-    const QSizeF half = halfSize(size);
-    return absolutePos + QPointF(half.width(), half.height());
 }
 
 QPointF scaleByArea(QRectF area, QPointF frac)

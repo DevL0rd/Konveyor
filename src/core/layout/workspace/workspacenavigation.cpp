@@ -11,30 +11,26 @@ namespace Konveyor::Layout
 
 bool Workspace::focusLeft()
 {
-    return isFloatingFocused() ? m_floating.focusLeft() : m_strip.focusLeft();
+    focusTiling();
+    return m_strip.focusLeft();
 }
 
 bool Workspace::focusRight()
 {
-    return isFloatingFocused() ? m_floating.focusRight() : m_strip.focusRight();
+    focusTiling();
+    return m_strip.focusRight();
 }
 
 void Workspace::focusColumnFirst()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusLeftmost();
-    } else {
-        m_strip.focusColumnFirst();
-    }
+    focusTiling();
+    m_strip.focusColumnFirst();
 }
 
 void Workspace::focusColumnLast()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusRightmost();
-    } else {
-        m_strip.focusColumnLast();
-    }
+    focusTiling();
+    m_strip.focusColumnLast();
 }
 
 void Workspace::focusColumnRightOrFirst()
@@ -59,73 +55,56 @@ void Workspace::focusColumn(std::size_t index)
 
 void Workspace::focusWindowInColumn(std::size_t index)
 {
-    if (!isFloatingFocused()) {
-        m_strip.focusWindowInColumn(index);
-    }
+    focusTiling();
+    m_strip.focusWindowInColumn(index);
 }
 
 bool Workspace::focusDown()
 {
-    return isFloatingFocused() ? m_floating.focusDown() : m_strip.focusDown();
+    focusTiling();
+    return m_strip.focusDown();
 }
 
 bool Workspace::focusUp()
 {
-    return isFloatingFocused() ? m_floating.focusUp() : m_strip.focusUp();
+    focusTiling();
+    return m_strip.focusUp();
 }
 
 void Workspace::focusDownOrLeft()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusDown();
-    } else {
-        m_strip.focusDownOrLeft();
-    }
+    focusTiling();
+    m_strip.focusDownOrLeft();
 }
 
 void Workspace::focusDownOrRight()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusDown();
-    } else {
-        m_strip.focusDownOrRight();
-    }
+    focusTiling();
+    m_strip.focusDownOrRight();
 }
 
 void Workspace::focusUpOrLeft()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusUp();
-    } else {
-        m_strip.focusUpOrLeft();
-    }
+    focusTiling();
+    m_strip.focusUpOrLeft();
 }
 
 void Workspace::focusUpOrRight()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusUp();
-    } else {
-        m_strip.focusUpOrRight();
-    }
+    focusTiling();
+    m_strip.focusUpOrRight();
 }
 
 void Workspace::focusWindowTop()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusTopmost();
-    } else {
-        m_strip.focusTop();
-    }
+    focusTiling();
+    m_strip.focusTop();
 }
 
 void Workspace::focusWindowBottom()
 {
-    if (isFloatingFocused()) {
-        m_floating.focusBottommost();
-    } else {
-        m_strip.focusBottom();
-    }
+    focusTiling();
+    m_strip.focusBottom();
 }
 
 void Workspace::focusWindowDownOrTop()
@@ -169,38 +148,22 @@ void Workspace::centerVisibleColumns()
 
 bool Workspace::moveLeft()
 {
-    if (!isFloatingFocused()) {
-        return m_strip.moveLeft();
-    }
-    m_floating.moveLeft();
-    return true;
+    return isFloatingFocused() || m_strip.moveLeft();
 }
 
 bool Workspace::moveRight()
 {
-    if (!isFloatingFocused()) {
-        return m_strip.moveRight();
-    }
-    m_floating.moveRight();
-    return true;
+    return isFloatingFocused() || m_strip.moveRight();
 }
 
 bool Workspace::moveDown()
 {
-    if (!isFloatingFocused()) {
-        return m_strip.moveDown();
-    }
-    m_floating.moveDown();
-    return true;
+    return isFloatingFocused() || m_strip.moveDown();
 }
 
 bool Workspace::moveUp()
 {
-    if (!isFloatingFocused()) {
-        return m_strip.moveUp();
-    }
-    m_floating.moveUp();
-    return true;
+    return isFloatingFocused() || m_strip.moveUp();
 }
 
 void Workspace::moveColumnToFirst()

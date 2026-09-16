@@ -185,6 +185,7 @@ public:
     void endEdgeScroll();
 
     bool beginResize(WindowId window, quint8 edges);
+    void setFloatingFrame(WindowId window, QPointF tilePos, QSizeF windowSize);
     bool updateResize(WindowId window, QPointF delta);
     void endResize(std::optional<WindowId> window);
 

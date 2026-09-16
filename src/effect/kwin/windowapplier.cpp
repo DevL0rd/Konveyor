@@ -43,7 +43,7 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             continue;
         }
         if (!frameFor(state).isEmpty()) {
-            m_appliedSizes.insert(state.id, frameFor(state).size());
+            m_appliedFrames.insert(state.id, frameFor(state));
         }
         applySizingMode(window, state);
         applyGeometry(window, state);
@@ -62,16 +62,22 @@ bool WindowApplier::isApplying() const
 
 bool WindowApplier::isEchoOfAppliedSize(Layout::WindowId id, const QSizeF &size) const
 {
-    const auto applied = m_appliedSizes.constFind(id);
-    if (applied == m_appliedSizes.constEnd()) {
+    const auto applied = m_appliedFrames.constFind(id);
+    if (applied == m_appliedFrames.constEnd()) {
         return false;
     }
     return std::abs(applied->width() - size.width()) < 1.0 && std::abs(applied->height() - size.height()) < 1.0;
 }
 
+bool WindowApplier::isEchoOfAppliedFrame(Layout::WindowId id, const QRectF &frame) const
+{
+    const auto applied = m_appliedFrames.constFind(id);
+    return applied != m_appliedFrames.constEnd() && nearlyEqual(*applied, frame);
+}
+
 void WindowApplier::forget(Layout::WindowId id)
 {
-    m_appliedSizes.remove(id);
+    m_appliedFrames.remove(id);
 }
 
 QRectF WindowApplier::frameFor(const Layout::WindowState &state)

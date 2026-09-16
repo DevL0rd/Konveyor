@@ -13,7 +13,6 @@ namespace Konveyor::Layout
 namespace
 {
 
-constexpr double NudgeStep = 50.0;
 constexpr double MinAnimatedMoveDistanceSq = 100.0;
 
 double axisOf(QSizeF size, bool horizontal)
@@ -152,88 +151,6 @@ void FloatingLayer::toggleWindowHeight(std::optional<WindowId> window, bool forw
     endResize(m_tiles[*idx].id());
 }
 
-bool FloatingLayer::focusNearest(const std::function<double(QPointF, QPointF)> &distance)
-{
-    const auto activeIndex = targetIndex(std::nullopt);
-    if (!activeIndex) {
-        return false;
-    }
-    const QPointF center = m_data[*activeIndex].center();
-    std::optional<WindowId> best;
-    double bestDistance = 0.0;
-    for (std::size_t i = 0; i < m_tiles.size(); ++i) {
-        if (i == *activeIndex) {
-            continue;
-        }
-        const double value = distance(center, m_data[i].center());
-        if (value > 0.0 && (!best || value < bestDistance)) {
-            best = m_tiles[i].id();
-            bestDistance = value;
-        }
-    }
-    if (!best) {
-        return false;
-    }
-    activateWindow(*best);
-    return true;
-}
-
-bool FloatingLayer::focusLeft()
-{
-    return focusNearest([](QPointF focus, QPointF other) { return focus.x() - other.x(); });
-}
-
-bool FloatingLayer::focusRight()
-{
-    return focusNearest([](QPointF focus, QPointF other) { return other.x() - focus.x(); });
-}
-
-bool FloatingLayer::focusUp()
-{
-    return focusNearest([](QPointF focus, QPointF other) { return focus.y() - other.y(); });
-}
-
-bool FloatingLayer::focusDown()
-{
-    return focusNearest([](QPointF focus, QPointF other) { return other.y() - focus.y(); });
-}
-
-void FloatingLayer::focusExtreme(bool horizontal, bool maximum)
-{
-    std::optional<WindowId> best;
-    double bestValue = 0.0;
-    for (std::size_t i = 0; i < m_tiles.size(); ++i) {
-        const double value = horizontal ? m_data[i].absolutePos.x() : m_data[i].absolutePos.y();
-        if (!best || (maximum ? value > bestValue : value < bestValue)) {
-            best = m_tiles[i].id();
-            bestValue = value;
-        }
-    }
-    if (best) {
-        activateWindow(*best);
-    }
-}
-
-void FloatingLayer::focusLeftmost()
-{
-    focusExtreme(true, false);
-}
-
-void FloatingLayer::focusRightmost()
-{
-    focusExtreme(true, true);
-}
-
-void FloatingLayer::focusTopmost()
-{
-    focusExtreme(false, false);
-}
-
-void FloatingLayer::focusBottommost()
-{
-    focusExtreme(false, true);
-}
-
 void FloatingLayer::placeAnimated(std::size_t idx, QPointF newPos)
 {
     const QPointF previous = m_data[idx].absolutePos;
@@ -254,31 +171,16 @@ void FloatingLayer::moveTo(std::size_t idx, QPointF newPos, bool animate)
     endResize(std::nullopt);
 }
 
-void FloatingLayer::moveBy(QPointF amount)
+void FloatingLayer::setFrame(WindowId window, QPointF tilePos, QSizeF windowSize)
 {
-    if (const auto idx = targetIndex(std::nullopt)) {
-        moveTo(*idx, m_data[*idx].absolutePos + amount, true);
+    const auto idx = indexOf(window);
+    if (!idx) {
+        return;
     }
-}
-
-void FloatingLayer::moveLeft()
-{
-    moveBy(QPointF(-NudgeStep, 0.0));
-}
-
-void FloatingLayer::moveRight()
-{
-    moveBy(QPointF(NudgeStep, 0.0));
-}
-
-void FloatingLayer::moveUp()
-{
-    moveBy(QPointF(0.0, -NudgeStep));
-}
-
-void FloatingLayer::moveDown()
-{
-    moveBy(QPointF(0.0, NudgeStep));
+    setWindowSize(*idx, SizeChange {ChangeKind::SetFixed, windowSize.width()}, true, false);
+    setWindowSize(*idx, SizeChange {ChangeKind::SetFixed, windowSize.height()}, false, false);
+    m_data[*idx].update(m_tiles[*idx]);
+    moveTo(*idx, tilePos, false);
 }
 
 void FloatingLayer::moveWindow(std::optional<WindowId> window, PositionChange x, PositionChange y, bool animate)

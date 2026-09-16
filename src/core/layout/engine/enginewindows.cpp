@@ -303,6 +303,23 @@ void Engine::windowSizeCommitted(WindowId id, const QSizeF &frameSize)
     d->refresh();
 }
 
+void Engine::setFloatingFrame(WindowId id, const QRectF &frame)
+{
+    Monitor *monitor = d->monitorOf(id);
+    const std::optional<std::size_t> index = monitor ? monitor->workspaceOfWindow(id) : std::nullopt;
+    if (!index) {
+        return;
+    }
+    Workspace &workspace = monitor->workspaces()[*index];
+    const Tile *tile = workspace.tileFor(id);
+    if (!tile || !workspace.isFloating(id)) {
+        return;
+    }
+    const QPointF origin = d->originOf(monitor->outputName()) + QPointF(0.0, monitor->workspaceRenderOffsets()[*index]);
+    workspace.setFloatingFrame(id, frame.topLeft() - origin - tile->windowOffset(), frame.size());
+    d->refresh();
+}
+
 void Engine::activateWindow(WindowId id)
 {
     if (d->focusWindow(id)) {

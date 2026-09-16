@@ -26,6 +26,7 @@ public:
     void apply(const QList<Layout::WindowState> &states);
     bool isApplying() const;
     bool isEchoOfAppliedSize(Layout::WindowId id, const QSizeF &size) const;
+    bool isEchoOfAppliedFrame(Layout::WindowId id, const QRectF &frame) const;
     void forget(Layout::WindowId id);
 
 private:
@@ -36,7 +37,7 @@ private:
     void applyStacking(const QList<Layout::WindowState> &states);
 
     const WindowRegistry &m_windows;
-    QHash<Layout::WindowId, QSizeF> m_appliedSizes;
+    QHash<Layout::WindowId, QRectF> m_appliedFrames;
     bool m_applying = false;
 };
 

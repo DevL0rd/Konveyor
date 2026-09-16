@@ -132,33 +132,50 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void directionalMovesNudgeBy50Pixels()
+    void directionalMovesLeaveFloatingWindowsWhereTheyAre()
     {
         Fixture fixture;
         const auto id = fixture.add(QStringLiteral("app"), QSizeF(400, 300));
         fixture.perform(QStringLiteral("toggle-window-floating"));
         moveFloating(fixture, QStringLiteral("100"), QStringLiteral("100"));
         QVERIFY(fixture.perform(QStringLiteral("move-column-right")).ok);
-        QCOMPARE(fixture.frame(id).topLeft(), QPointF(150, 100));
         QVERIFY(fixture.perform(QStringLiteral("move-window-down")).ok);
-        QCOMPARE(fixture.frame(id).topLeft(), QPointF(150, 150));
+        QCOMPARE(fixture.frame(id).topLeft(), QPointF(100, 100));
         VERIFY_INVARIANTS(fixture);
     }
 
-    void directionalFocusPicksNearestFloatingWindow()
+    void directionalFocusGoesBackToTheColumns()
     {
         Fixture fixture;
-        const auto left = fixture.add(QStringLiteral("left"), QSizeF(200, 200));
+        const auto first = fixture.add(QStringLiteral("first"));
+        const auto second = fixture.add(QStringLiteral("second"));
+        const auto floater = fixture.add(QStringLiteral("floater"), QSizeF(300, 200));
         fixture.perform(QStringLiteral("toggle-window-floating"));
-        moveFloating(fixture, QStringLiteral("100"), QStringLiteral("100"));
-        const auto right = fixture.add(QStringLiteral("right"), QSizeF(200, 200));
-        fixture.perform(QStringLiteral("toggle-window-floating"));
-        moveFloating(fixture, QStringLiteral("800"), QStringLiteral("100"));
-        QCOMPARE(fixture.focused(), right);
+        QCOMPARE(fixture.focused(), floater);
         QVERIFY(fixture.perform(QStringLiteral("focus-column-left")).ok);
-        QCOMPARE(fixture.focused(), left);
-        QVERIFY(fixture.perform(QStringLiteral("focus-column-right")).ok);
-        QCOMPARE(fixture.focused(), right);
+        QVERIFY(fixture.focused() == first || fixture.focused() == second);
+        for (int step = 0; step < 3; ++step) {
+            QVERIFY(fixture.perform(QStringLiteral("focus-column-right")).ok);
+            QVERIFY(fixture.focused() != floater);
+            QVERIFY(fixture.perform(QStringLiteral("focus-window-down")).ok);
+            QVERIFY(fixture.focused() != floater);
+        }
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void floatingWindowsKeepTheGeometryTheyAreGiven()
+    {
+        Fixture fixture;
+        const auto id = fixture.add(QStringLiteral("app"), QSizeF(400, 300));
+        fixture.perform(QStringLiteral("toggle-window-floating"));
+        fixture.settle();
+        const QRectF moved(300, 200, 900, 650);
+        fixture.engine().setFloatingFrame(id, moved);
+        fixture.settle();
+        QCOMPARE(fixture.frame(id), moved);
+        fixture.engine().setFloatingFrame(id, QRectF(10, 20, 500, 400));
+        fixture.settle();
+        QCOMPARE(fixture.frame(id), QRectF(10, 20, 500, 400));
         VERIFY_INVARIANTS(fixture);
     }
 

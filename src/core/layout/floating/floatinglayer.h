@@ -8,7 +8,6 @@
 #include <QSizeF>
 
 #include <cstddef>
-#include <functional>
 #include <optional>
 #include <vector>
 
@@ -26,7 +25,6 @@ struct FloatingData
     void updateWorkingArea(QRectF area);
     void update(const Tile &tile);
     void setAbsolutePos(QPointF pos);
-    QPointF center() const;
     bool operator==(const FloatingData &) const = default;
 };
 
@@ -70,18 +68,7 @@ public:
     void toggleWindowWidth(std::optional<WindowId> window, bool forwards);
     void toggleWindowHeight(std::optional<WindowId> window, bool forwards);
 
-    bool focusLeft();
-    bool focusRight();
-    bool focusUp();
-    bool focusDown();
-    void focusLeftmost();
-    void focusRightmost();
-    void focusTopmost();
-    void focusBottommost();
-    void moveLeft();
-    void moveRight();
-    void moveUp();
-    void moveDown();
+    void setFrame(WindowId window, QPointF tilePos, QSizeF windowSize);
     void moveWindow(std::optional<WindowId> window, PositionChange x, PositionChange y, bool animate);
     void centerWindow(std::optional<WindowId> window);
 
@@ -111,10 +98,7 @@ private:
     void raiseChildrenOf(std::size_t idx);
     void raiseWindow(std::size_t fromIndex, std::size_t toIndex);
     void moveTo(std::size_t idx, QPointF newPos, bool animate);
-    void moveBy(QPointF amount);
     void placeAnimated(std::size_t idx, QPointF newPos);
-    bool focusNearest(const std::function<double(QPointF, QPointF)> &distance);
-    void focusExtreme(bool horizontal, bool maximum);
     void setWindowSize(std::size_t idx, SizeChange change, bool horizontal, bool animate);
     std::size_t togglePresetIndex(std::size_t idx, bool horizontal, bool forwards) const;
     void prepareTileSize(Tile &tile) const;
