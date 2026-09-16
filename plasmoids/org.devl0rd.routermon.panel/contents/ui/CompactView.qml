@@ -19,6 +19,25 @@ MouseArea {
     readonly property bool showNumbers: root.ready && root.routerState !== "offline"
     property bool wasExpanded: false
 
+    TextMetrics {
+        id: numberMetrics
+        font.pixelSize: compact.valueSize
+        font.weight: Font.DemiBold
+        font.features: { "tnum": 1 }
+        text: "888.8"
+    }
+    TextMetrics {
+        id: unitMetrics
+        font.pixelSize: compact.valueSize * 0.7
+        text: i18n("Mb/s").length >= i18n("Kb/s").length ? i18n("Mb/s") : i18n("Kb/s")
+    }
+    TextMetrics {
+        id: extraMetrics
+        font.pixelSize: compact.valueSize * 0.85
+        font.features: { "tnum": 1 }
+        text: compact.extra === "ping" ? "888 ms" : compact.extra === "blocked" ? "100%" : "888"
+    }
+
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
     onPressed: function(mouse) { wasExpanded = root.expanded }
@@ -116,6 +135,8 @@ MouseArea {
                 }
                 PlasmaComponents.Label {
                     text: modelData.value
+                    horizontalAlignment: compact.vertical ? Text.AlignHCenter : Text.AlignRight
+                    Layout.minimumWidth: compact.vertical ? 0 : Math.ceil(numberMetrics.advanceWidth)
                     font.pixelSize: compact.valueSize
                     font.weight: Font.DemiBold
                     font.features: { "tnum": 1 }
@@ -123,6 +144,7 @@ MouseArea {
                 }
                 PlasmaComponents.Label {
                     visible: !compact.vertical
+                    Layout.minimumWidth: Math.ceil(unitMetrics.advanceWidth)
                     text: modelData.unit
                     font.pixelSize: compact.valueSize * 0.7
                     opacity: 0.6
@@ -137,6 +159,8 @@ MouseArea {
             Layout.leftMargin: compact.vertical ? 0 : Kirigami.Units.smallSpacing
             font.pixelSize: compact.valueSize * 0.85
             font.features: { "tnum": 1 }
+            horizontalAlignment: compact.vertical ? Text.AlignHCenter : Text.AlignRight
+            Layout.minimumWidth: compact.vertical ? 0 : Math.ceil(extraMetrics.advanceWidth)
             text: compact.extra === "ping" ? Math.round(root.network.ping_rtt || 0) + " ms"
                 : compact.extra === "clients" ? root.onlineCount + ""
                 : compact.extra === "blocked" && root.dns ? Math.round(root.dns.blocked_pct || 0) + "%"

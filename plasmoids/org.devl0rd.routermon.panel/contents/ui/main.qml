@@ -56,6 +56,7 @@ PlasmoidItem {
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
     property bool popupAlive: !inPanel
+    preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     onExpandedChanged: function() {
         if (root.expanded) {
             releasePopup.stop()
@@ -71,8 +72,6 @@ PlasmoidItem {
         onTriggered: root.popupAlive = root.expanded || !root.inPanel
     }
 
-    switchWidth: Kirigami.Units.gridUnit * 18
-    switchHeight: Kirigami.Units.gridUnit * 18
 
     function speed(mbps) {
         const v = mbps || 0

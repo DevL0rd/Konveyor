@@ -11,8 +11,8 @@ import "lib/Format.js" as Fmt
 Item {
     id: full
 
-    Layout.minimumWidth: Kirigami.Units.gridUnit * 24
-    Layout.minimumHeight: Kirigami.Units.gridUnit * 24
+    Layout.minimumWidth: Kirigami.Units.gridUnit * 13
+    Layout.minimumHeight: Kirigami.Units.gridUnit * 12
     Layout.preferredWidth: Kirigami.Units.gridUnit * 30
     Layout.preferredHeight: Kirigami.Units.gridUnit * 40
 
