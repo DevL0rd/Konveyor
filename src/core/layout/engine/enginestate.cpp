@@ -133,8 +133,8 @@ WindowState buildWindowState(
     state.focusRing = decorationFor(tile.focusRingConfig(), window.isActivated() && !coversOutput, window.isUrgent(), true);
     state.border
         = decorationFor(tile.borderConfig(), tile.borderThickness().has_value() && !coversOutput, window.isUrgent(), window.isActivated());
-    state.cornerRadius = window.rules().geometryCornerRadius.value_or(Config::CornerRadius());
-    state.clipToGeometry = window.rules().clipToGeometry.value_or(false);
+    state.cornerRadius = coversOutput ? Config::CornerRadius() : window.rules().geometryCornerRadius.value_or(Config::CornerRadius());
+    state.clipToGeometry = !coversOutput && window.rules().clipToGeometry.value_or(false);
     return state;
 }
 

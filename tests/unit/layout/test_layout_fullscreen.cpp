@@ -108,27 +108,35 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void fullscreenWindowsHaveNoFocusRingOrBorder()
+    void fullscreenWindowsHaveNoFocusRingBorderOrCornerClipping()
     {
         Config::Config config = instantConfig();
         config.layout.border.enabled = true;
         config.layout.focusRing.enabled = true;
+        Config::WindowRule rule;
+        rule.geometryCornerRadius = Config::CornerRadius {8, 8, 8, 8};
+        rule.clipToGeometry = true;
+        config.windowRules.append(rule);
         Fixture fixture(config);
         const auto id = fixture.add();
-        QVERIFY(fixture.state(id).focusRing.enabled);
-        QVERIFY(fixture.state(id).border.enabled);
+        const auto decorated = [&fixture, id]() {
+            const Layout::WindowState state = fixture.state(id);
+            return state.focusRing.enabled && state.border.enabled && state.clipToGeometry && state.cornerRadius.topLeft == 8.0;
+        };
+        const auto bare = [&fixture, id]() {
+            const Layout::WindowState state = fixture.state(id);
+            return !state.focusRing.enabled && !state.border.enabled && !state.clipToGeometry && state.cornerRadius.topLeft == 0.0;
+        };
+        QVERIFY(decorated());
 
         fixture.engine().setWindowFullscreen(id, true);
-        QVERIFY(!fixture.state(id).focusRing.enabled);
-        QVERIFY(!fixture.state(id).border.enabled);
+        QVERIFY(bare());
         fixture.settle();
-        QVERIFY(!fixture.state(id).focusRing.enabled);
-        QVERIFY(!fixture.state(id).border.enabled);
+        QVERIFY(bare());
 
         fixture.engine().setWindowFullscreen(id, false);
         fixture.settle();
-        QVERIFY(fixture.state(id).focusRing.enabled);
-        QVERIFY(fixture.state(id).border.enabled);
+        QVERIFY(decorated());
     }
 
     void columnsOverlayAFullscreenWindowLikeAStack()
