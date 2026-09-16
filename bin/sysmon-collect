@@ -86,8 +86,8 @@ def cpu_freqs():
 
 
 def cpu_temp():
-    """The package/die temperature (Intel 'Package id 0' / AMD Tdie|Tctl) -- the
-    standard CPU temp. Falls back to the average of the per-core sensors."""
+    """Average of the per-core sensors (Intel 'Core N', AMD 'Tccd N'). CPUs without
+    per-core sensors report their package/die sensor (Package id 0, Tdie, Tctl)."""
     pkg = tdie = tctl = None
     cores = []
     for hw in glob.glob("/sys/class/hwmon/hwmon*"):
@@ -115,10 +115,10 @@ def cpu_temp():
                 tctl = t
             else:
                 cores.append(t)
+    if cores:
+        return round(sum(cores) / len(cores))
     best = pkg if pkg is not None else tdie if tdie is not None else tctl
-    if best is not None:
-        return round(best)
-    return round(sum(cores) / len(cores)) if cores else 0
+    return round(best) if best is not None else 0
 
 
 def cpu_fan():
