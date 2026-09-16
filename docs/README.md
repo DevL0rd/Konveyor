@@ -1,9 +1,5 @@
-# Documentation assets
+# Documentation
 
-`screenshot.png` is the image shown in the top-level README and on the KDE Store listing.
-
-Regenerate it from a running session with:
-
-```sh
-./tools/capture-screenshot.sh docs/screenshot.png
-```
+- `configuration.md` covers the config file and the `konveyor` command line tool.
+- `media/` holds the banner, demo animations and settings screenshots used by the top-level README.
+- `screenshot.png` is the still shown on the KDE Store listing.

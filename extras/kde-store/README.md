@@ -9,7 +9,7 @@ Konveyor is a compiled KWin plugin. KWin refuses to load a plugin built against 
 3. Fill in the listing from `metadata.json` in this directory:
    - **Title:** Konveyor
    - **Summary:** Scrollable tiling for KDE Plasma
-   - **Description:** the "What it does" section of the top-level `README.md`
+   - **Description:** the "See it move" section of the top-level `README.md`
    - **License:** GPL-3.0-or-later
    - **Homepage:** the GitHub repository
    - **Tags:** the `tags` list from `metadata.json`

@@ -1,10 +1,45 @@
-# Konveyor
+<a id="top"></a>
 
-Scrollable tiling for KDE Plasma. Your windows live in one endless row you scroll through, instead of being stacked on top of each other — and the rest of your Plasma desktop stays exactly as it is.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/media/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/media/banner-light.svg">
+    <img alt="Konveyor — scrolling tiling for KDE Plasma" src="docs/media/banner-dark.svg" width="100%">
+  </picture>
+</p>
 
-![Plasma with Konveyor](docs/screenshot.png)
+<p align="center">
+  <a href="https://github.com/DevL0rd/Linux-Konveyor/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/DevL0rd/Linux-Konveyor/ci.yml?branch=main&style=for-the-badge&label=build&logo=githubactions&logoColor=white"></a>
+  <img alt="KDE Plasma 6" src="https://img.shields.io/badge/KDE_Plasma-6-1d99f3?style=for-the-badge&logo=kde&logoColor=white">
+  <img alt="Wayland" src="https://img.shields.io/badge/Wayland-native-ffbc00?style=for-the-badge&logo=wayland&logoColor=black">
+  <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-8a5cd6?style=for-the-badge"></a>
+  <a href="https://github.com/DevL0rd/Linux-Konveyor/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/DevL0rd/Linux-Konveyor?style=for-the-badge&logo=github&color=3daee9"></a>
+</p>
 
-## Quickstart
+<h3 align="center">Your windows, on a conveyor belt.</h3>
+
+<p align="center">
+  Konveyor turns Plasma into an endless, scrollable row of windows.<br>
+  Nothing overlaps, nothing gets buried, and the rest of your desktop stays exactly the way you like it.
+</p>
+
+<p align="center">
+  <a href="#get-started"><b>Get started</b></a> ·
+  <a href="#see-it-move"><b>See it move</b></a> ·
+  <a href="#settings"><b>Settings</b></a> ·
+  <a href="#shortcuts"><b>Shortcuts</b></a> ·
+  <a href="#faq"><b>FAQ</b></a>
+</p>
+
+<p align="center">
+  <img alt="Scrolling through a row of windows with Konveyor" src="docs/media/scroll.gif" width="92%">
+</p>
+
+---
+
+<a id="get-started"></a>
+
+## 🚀 Get started
 
 ```sh
 git clone https://github.com/DevL0rd/Linux-Konveyor.git
@@ -12,92 +47,204 @@ cd Linux-Konveyor
 ./install.sh
 ```
 
-Log out and back in. Press **Super+K** at any time to see every shortcut.
+That's it. The installer grabs what it needs, builds Konveyor for your exact KWin and switches it on, usually without even logging out.
 
-Run `./install.sh` again whenever you want to update — it is safe to repeat and keeps your settings. To remove everything, run `./uninstall.sh`.
+> [!TIP]
+> Press <kbd>Meta</kbd> + <kbd>K</kbd> any time for a searchable cheat sheet of every shortcut.
 
-Requires KDE Plasma 6.4 or newer on Wayland.
+<table>
+  <tr>
+    <td>🔄 <b>Update</b></td>
+    <td>Run <code>./install.sh</code> again. It's safe to repeat and keeps your settings.</td>
+  </tr>
+  <tr>
+    <td>🧹 <b>Remove</b></td>
+    <td>Run <code>./uninstall.sh</code>. Your shortcuts and window rules go back to how KDE had them.</td>
+  </tr>
+  <tr>
+    <td>🖥️ <b>Needs</b></td>
+    <td>KDE Plasma 6.4 or newer on Wayland. The installer sets up dependencies on Arch, Fedora, openSUSE and Debian-based systems.</td>
+  </tr>
+</table>
 
-## What it does
+---
 
-**Windows never overlap and never get lost.** Opening a window puts it in a column next to the current one. Nothing is covered up, nothing jumps around, and the window you were using stays where it was.
+<a id="see-it-move"></a>
 
-**The desktop is wider than your screen.** When a row runs past the edge of the monitor, it scrolls. Move to the next window and the view follows it, so an ultrawide shows four windows at once and a laptop shows two — from the same row.
+## 🎬 See it move
 
-**You decide how wide a window is.** One key cycles a window through a third, half and two thirds of the screen. Another expands it into whatever space is free. Windows can also be stacked in one column, or turned into tabs that share a slot in the row.
+### ↔️ One endless row
 
-**Every window is a keystroke away.** Move focus by direction, jump to the first or last window, or to column 1–9. Send the focused window anywhere the same way. Workspaces stack vertically and are created and cleaned up as you use them.
+Every new window gets its own column right next to the one you're using. When the row runs past the edge of your screen it simply scrolls, so a laptop shows two windows and an ultrawide shows five — from the same row. Tap a key to cycle a column through a third, half and two thirds of the screen, or let it fill whatever space is free.
 
-**Anything that does not belong in a row can float.** Super+Space lifts a window out of the tiling; press it again to drop it back. Dialogs and pop-ups float on their own.
+<p align="center"><img alt="An ultrawide monitor showing four columns side by side" src="docs/screenshot.png" width="88%"></p>
 
-**It is smooth.** Scrolling, resizing, opening, closing and workspace changes are all animated with configurable springs and easing curves, and drawn by the compositor rather than faked on top of it.
+### 🗂️ Stack them. Tab them.
 
-**The active window is outlined in your accent color.** Change your Plasma accent and the outline follows.
+Pull a window into the column next to it to stack them, then flip the column into tabs when you want one at a time. Kick it back out whenever you like.
 
-**Your Plasma stays your Plasma.** Panels, widgets, the overview, KRunner, screenshots, notifications, the lock screen, Alt+F4 and Alt+Tab all keep working and keep their shortcuts. Konveyor only takes over where windows go.
+<p align="center"><img alt="Stacking windows in a column and switching to tabs" src="docs/media/stack-and-tabs.gif" width="88%"></p>
 
-## Configuration
+### 🎮 Fullscreen that doesn't trap you
 
-Open **System Settings → Window Management → Konveyor** (or the Configure button next to Konveyor in Desktop Effects). Every option has a page there with a live preview: layout, look, motion, mouse and gestures, shortcuts, window rules, monitors, workspaces and Plasma integration. Press Apply and the change is live. `systemsettings kcm_konveyor shortcuts` opens a page directly.
+Games and videos stay fullscreen and untouched. Move left or right and your other columns slide in over the top as an overlay, with a soft shade at the edge — move back and they slide away until it's just your fullscreen app again.
 
-The settings page edits `~/.config/konveyor/config.kdl` in place and keeps your comments and formatting, so you can use both.
+<p align="center"><img alt="Columns sliding over a fullscreen app" src="docs/media/fullscreen-overlay.gif" width="88%"></p>
 
-Everything lives in `~/.config/konveyor/config.kdl`, a [KDL](https://kdl.dev) file. The shipped default config lists every option with a short explanation. Save the file and the change is live — no restart, no logout.
+### 🧱 Workspaces that stack up
 
-```kdl
-layout {
-    gaps 16
-    center-focused-column "never"
-    default-column-width { proportion 0.5; }
+Workspaces live above and below each other and appear the moment you need one. Send a column down to a fresh workspace and carry on.
 
-    focus-ring {
-        width 4
-        active-color "accent"
-    }
-}
+<p align="center"><img alt="Moving between stacked workspaces" src="docs/media/workspaces.gif" width="88%"></p>
 
-binds {
-    Mod+Left  { focus-column-left; }
-    Mod+Right { focus-column-right; }
-    Mod+R     { switch-preset-column-width; }
-}
-```
+### 🪟 Float anything
 
-You get gaps, borders, a focus ring, tab indicators, preset widths, centering modes, per-monitor and per-workspace overrides, window rules, animation springs and key binds. Two KDE-specific extras: `active-color "accent"` follows the KDE accent color, and `gestures { titlebar-drag "scroll-view" }` scrolls the row when you drag a window by its title bar.
+Some windows don't belong in a row. Lift one out with a single key, move it and resize it freely like any normal Plasma window, then drop it back in. Dialogs and pop-ups float on their own.
 
-If a config file has a mistake, Konveyor keeps running with the last good one and tells you what is wrong.
+<p align="center"><img alt="Floating a window out of the row and back" src="docs/media/floating.gif" width="88%"></p>
 
-## Shortcuts
+### ✨ And the little things
 
-Press **Super+K** for a searchable list of every shortcut, built from your own config. The defaults leave alone anything KDE already uses:
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h4>🎨 Follows your accent</h4>
+      The focus ring uses your Plasma accent color, or any color and gradient you pick.
+    </td>
+    <td width="33%" valign="top">
+      <h4>🌊 Buttery motion</h4>
+      Scrolling, opening, moving and resizing all glide on springs and curves drawn by the compositor.
+    </td>
+    <td width="33%" valign="top">
+      <h4>🔲 Rounded, clipped corners</h4>
+      Every window gets clean rounded corners, even apps that don't draw their own.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h4>📐 Per-monitor profiles</h4>
+      Give your ultrawide narrower columns than your laptop, automatically.
+    </td>
+    <td valign="top">
+      <h4>🧩 Window rules</h4>
+      Pin Discord to the start of the row, float picture-in-picture, open your browser at half width.
+    </td>
+    <td valign="top">
+      <h4>🏠 Still your Plasma</h4>
+      Panels, widgets, KRunner, Overview, notifications, screenshots and Alt+Tab all keep working.
+    </td>
+  </tr>
+</table>
 
-| Key | Action |
-| --- | --- |
-| Super+← → | Focus the column left or right |
-| Super+↑ ↓ | Focus within a column, then the workspace above or below |
-| Super+Ctrl+← → | Move the column |
-| Super+Ctrl+↑ ↓ | Move the window within its column, then to the workspace above or below |
-| Super+R | Cycle the column width |
-| Super+F | Cycle full width, fill the screen edges, normal |
-| Super+Return | Open Konsole |
-| Super+Q | Close the window |
-| Super+Space | Float or unfloat |
-| Super+Page Up / Down | Switch workspace |
-| Super+1…9 | Go to workspace 1–9 |
-| Super+Scroll | Switch workspace |
-| Super+O | Overview |
+<p align="right"><a href="#top">back to top ⬆</a></p>
 
-## Scripting
+---
 
-`konveyor msg` queries and controls the running instance:
+<a id="settings"></a>
 
-```sh
-konveyor msg windows
-konveyor msg action set-column-width +10%
-```
+## 🎛️ Settings that show you
 
-## Credits
+Open **System Settings → Window Management → Konveyor**. Every option has a live preview, so you can see exactly what a change does before you hit Apply.
 
-Konveyor is inspired by [niri](https://github.com/niri-wm/niri). It is an independent project and is not affiliated with it or with KDE.
+<p align="center"><img alt="A tour through the Konveyor settings pages" src="docs/media/settings-tour.gif" width="88%"></p>
 
-Licensed under the GPL-3.0-or-later.
+<table>
+  <tr>
+    <td width="50%"><img alt="Layout settings" src="docs/media/settings-layout.png"><p align="center"><b>Layout</b> — gaps, column widths and where new windows land</p></td>
+    <td width="50%"><img alt="Look settings" src="docs/media/settings-look.png"><p align="center"><b>Look</b> — focus ring, borders, tabs and corners</p></td>
+  </tr>
+  <tr>
+    <td><img alt="Motion settings" src="docs/media/settings-motion.png"><p align="center"><b>Motion</b> — shape every animation and watch it play</p></td>
+    <td><img alt="Shortcut settings" src="docs/media/settings-shortcuts.png"><p align="center"><b>Shortcuts</b> — record keys, pick actions, spot clashes</p></td>
+  </tr>
+  <tr>
+    <td><img alt="Window rule settings" src="docs/media/settings-rules.png"><p align="center"><b>Window rules</b> — pick an app, see what matches, decide how it behaves</p></td>
+    <td><img alt="Settings overview" src="docs/media/settings-hub.png"><p align="center"><b>Everything in one place</b> — search any setting in seconds</p></td>
+  </tr>
+</table>
+
+<details>
+<summary><b>📸 More settings pages</b></summary>
+<br>
+<table>
+  <tr>
+    <td width="50%"><img alt="Mouse and gesture settings" src="docs/media/settings-mouse.png"><p align="center"><b>Mouse &amp; gestures</b> — hot corners, edge scrolling, title bar drags</p></td>
+    <td width="50%"><img alt="Monitor settings" src="docs/media/settings-monitors.png"><p align="center"><b>Monitors</b> — per-screen profiles drawn to scale</p></td>
+  </tr>
+  <tr>
+    <td><img alt="Workspace settings" src="docs/media/settings-workspaces.png"><p align="center"><b>Workspaces</b> — named workspaces and switching</p></td>
+    <td><img alt="Plasma integration settings" src="docs/media/settings-plasma.png"><p align="center"><b>Plasma integration</b> — widgets, panels and minimizing</p></td>
+  </tr>
+</table>
+</details>
+
+---
+
+<a id="shortcuts"></a>
+
+## ⌨️ The keys you need
+
+| Keys | What happens |
+| :-- | :-- |
+| <kbd>Meta</kbd> + <kbd>←</kbd> <kbd>→</kbd> | Move to the column on the left or right |
+| <kbd>Meta</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> | Move within a column, then to the workspace above or below |
+| <kbd>Meta</kbd> + <kbd>Ctrl</kbd> + <kbd>←</kbd> <kbd>→</kbd> | Carry the column left or right |
+| <kbd>Meta</kbd> + <kbd>Ctrl</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> | Carry the window up or down, into the next workspace |
+| <kbd>Meta</kbd> + <kbd>R</kbd> | Cycle the column width |
+| <kbd>Meta</kbd> + <kbd>F</kbd> | Cycle full width, fill the screen, back to normal |
+| <kbd>Meta</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> | Fullscreen |
+| <kbd>Meta</kbd> + <kbd>[</kbd> <kbd>]</kbd> | Stack into the neighbouring column, or pop back out |
+| <kbd>Meta</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd> | Show a column as tabs |
+| <kbd>Meta</kbd> + <kbd>Space</kbd> | Float or unfloat |
+| <kbd>Meta</kbd> + <kbd>1</kbd> … <kbd>9</kbd> | Jump to a workspace |
+| <kbd>Meta</kbd> + <kbd>Return</kbd> | Open a terminal |
+| <kbd>Meta</kbd> + <kbd>Q</kbd> | Close the window |
+| <kbd>Meta</kbd> + <kbd>K</kbd> | Show every shortcut |
+
+> [!NOTE]
+> Konveyor leaves KDE's own shortcuts alone — <kbd>Alt</kbd> + <kbd>F4</kbd>, <kbd>Meta</kbd> + <kbd>L</kbd>, screenshots and the rest work as always. Change anything from the **Shortcuts** settings page.
+
+---
+
+<a id="faq"></a>
+
+## 💬 Questions
+
+<details>
+<summary><b>Does it replace Plasma or KWin?</b></summary>
+<br>
+No. Konveyor is a KWin effect that decides where windows go. Everything else — panels, widgets, themes, the lock screen, KRunner — is still plain Plasma.
+</details>
+
+<details>
+<summary><b>Do games and fullscreen video work?</b></summary>
+<br>
+Yes. Fullscreen apps are never moved or resized, whether they run natively or through XWayland, and you can still reach your other windows on top of them.
+</details>
+
+<details>
+<summary><b>Does it work on X11?</b></summary>
+<br>
+Konveyor runs in the Plasma Wayland session. X11 apps running through XWayland are tiled like everything else.
+</details>
+
+<details>
+<summary><b>Can I tweak things beyond the settings page?</b></summary>
+<br>
+Everything the settings page changes lives in one readable file, and there's a command line tool for scripting. See <a href="docs/configuration.md">docs/configuration.md</a>.
+</details>
+
+<details>
+<summary><b>How do I get my old desktop back?</b></summary>
+<br>
+Turn Konveyor off under <b>Desktop Effects</b>, or run <code>./uninstall.sh</code>. Your shortcuts and window rules are restored.
+</details>
+
+---
+
+<p align="center">
+  Inspired by <a href="https://github.com/niri-wm/niri">niri</a>. Konveyor is an independent project and is not affiliated with it or with KDE.<br>
+  Released under the <a href="LICENSE">GPL-3.0-or-later</a>.
+</p>
+
+<p align="center"><a href="#top">back to top ⬆</a></p>
