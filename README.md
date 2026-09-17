@@ -56,7 +56,11 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
 <table>
   <tr>
     <td>🔄 <b>Update</b></td>
-    <td>Run <code>./install.sh</code> again. It's safe to repeat and keeps your settings.</td>
+    <td>On Arch-based systems Konveyor updates itself with every system update, and rebuilds when KWin or Plasma update. Anywhere else, run <code>./install.sh</code> again. It's safe to repeat and keeps your settings.</td>
+  </tr>
+  <tr>
+    <td>📦 <b>From a package</b></td>
+    <td>Package builds run <code>./install.sh --aur</code>, so your package manager handles updates instead.</td>
   </tr>
   <tr>
     <td>🧹 <b>Remove</b></td>
@@ -108,6 +112,44 @@ Some windows don't belong in a row. Lift one out with a single key, move it and 
 
 <p align="center"><img alt="Floating a window out of the row and back" src="docs/media/floating.gif" width="88%"></p>
 
+### 📱 Portrait screens stack up
+
+<table>
+  <tr>
+    <td width="36%" valign="top"><img alt="Windows stacking two to a column on a portrait monitor" src="docs/media/portrait.gif"></td>
+    <td valign="top">
+      <br>
+      Turn a monitor on its side and Konveyor turns with it. Every column fills the full width and holds two windows, one above the other, so a tall screen shows two apps at a time without squeezing either of them.
+      <br><br>
+      New windows fill the focused column first, then start the next one. Rotate the screen back and the row returns to your normal widths.
+      <br><br>
+      It's just a monitor profile, so you can pick how many windows stack, or give any other screen the same treatment, under <b>Settings → Monitors</b>.
+    </td>
+  </tr>
+</table>
+
+<a id="touch"></a>
+
+### 👆 Made for touch
+
+Touchpads and touchscreens get the whole row under your fingers. Slide three fingers to scroll the row or change workspace, use four to carry windows around, and tap to resize.
+
+<p align="center"><img alt="Touch gestures scrolling the row, switching workspaces, merging windows and cycling widths" src="docs/media/touch.gif" width="88%"></p>
+
+| Gesture | What happens |
+| :-- | :-- |
+| 3 fingers ← → | Scroll the row |
+| 3 fingers ↑ ↓ | Switch to the workspace above or below |
+| 4 fingers ← → | Merge the window into the next column, or pop it back out |
+| 4 fingers ↑ ↓ | Move the window up or down its column, then to the next workspace |
+| 4-finger pinch | Open or close KDE's Overview |
+| 3-finger tap | Cycle the column width |
+| 4-finger tap | Open the Kontrol Panel |
+| Drag a title bar on a touchscreen | Scroll the row |
+| Hold a title bar on a touchscreen, then drag | Move the window |
+
+The swipes, pinch and taps work on touchpads and touchscreens alike. Pick other finger counts, flip natural swiping or hand a gesture back to KDE on the **Touch & Gestures** settings page.
+
 ### ✨ And the little things
 
 <table>
@@ -139,6 +181,20 @@ Some windows don't belong in a row. Lift one out with a single key, move it and 
       Panels, widgets, KRunner, Overview, notifications, screenshots and Alt+Tab all keep working.
     </td>
   </tr>
+  <tr>
+    <td valign="top">
+      <h4>🧲 Apps stay together</h4>
+      A second window from an app opens beside it or stacks under it, and new windows can fill the focused column before starting another.
+    </td>
+    <td valign="top">
+      <h4>💬 Extra windows float</h4>
+      An app's first window tiles and its friends lists, chats and settings float above the row. Steam does this out of the box.
+    </td>
+    <td valign="top">
+      <h4>💾 Remembers your windows</h4>
+      Reopen apps at the width they had last time and floating windows where you left them. Minimized windows come back to the same spot.
+    </td>
+  </tr>
 </table>
 
 <p align="right"><a href="#top">back to top ⬆</a></p>
@@ -151,24 +207,63 @@ Some windows don't belong in a row. Lift one out with a single key, move it and 
 
 Konveyor comes with a set of Plasma widgets built to match: a full-screen launcher, system and process monitors, a router dashboard, a live system log and your Steam friends. Each one sits in your panel as a small, steady button and opens into a searchable dashboard. They also work as desktop widgets.
 
-<p align="center"><img alt="The Kontrol Panel opening, searching and browsing games" src="docs/media/widgets/launcher.gif" width="92%"></p>
+<p align="center"><img alt="The Kontrol Panel opening, searching, browsing games, shortcuts and settings" src="docs/media/widgets/launcher.gif" width="92%"></p>
 
 ### 🚀 Kontrol Panel
 
-Press <kbd>Meta</kbd> and the desktop dims behind the Kontrol Panel, one launcher for everything. Start typing and apps, games, friends, settings, files, maths, commands and even installable packages show up together, best match first. <kbd>Meta</kbd> + <kbd>G</kbd> opens straight on your games.
+Press <kbd>Meta</kbd> and the desktop dims behind the Kontrol Panel, one place for your apps, games, friends, files, shortcuts and every Konveyor setting. Start typing and apps, games, friends, settings, shortcuts, files, maths, unit conversions, commands and even installable packages show up together, best match first.
 
 <table>
   <tr>
-    <td width="50%"><img alt="Launcher home page" src="docs/media/widgets/launcher-home.jpg"><p align="center"><b>Home</b> — pins, friends playing now and games to jump back into</p></td>
-    <td width="50%"><img alt="Launcher search results" src="docs/media/widgets/launcher-search.jpg"><p align="center"><b>Search</b> — grouped results, with Shelly packages at the end</p></td>
+    <td width="50%"><img alt="Kontrol Panel home page" src="docs/media/widgets/launcher-home.jpg"><p align="center"><b>Home</b> — pins and pinned folders, friends playing now and games to jump back into</p></td>
+    <td width="50%"><img alt="Kontrol Panel search finding an app, settings, shortcuts and a sum" src="docs/media/widgets/launcher-search.gif"><p align="center"><b>Search</b> — best match first, then settings, shortcuts, answers and packages to install with Shelly</p></td>
   </tr>
   <tr>
-    <td><img alt="Launcher games in cover flow" src="docs/media/widgets/launcher-games.jpg"><p align="center"><b>Games</b> — grid, banners, list, carousel and cover flow</p></td>
-    <td><img alt="Launcher apps page" src="docs/media/widgets/launcher-apps.jpg"><p align="center"><b>Apps</b> — categories, an A–Z bar, sorting and zoom</p></td>
+    <td><img alt="Kontrol Panel games in cover flow" src="docs/media/widgets/launcher-games.jpg"><p align="center"><b>Games</b> — grid, banners, list, carousel and cover flow</p></td>
+    <td><img alt="Kontrol Panel apps page" src="docs/media/widgets/launcher-apps.jpg"><p align="center"><b>Apps</b> — categories, an A–Z bar, sorting and zoom</p></td>
   </tr>
   <tr>
-    <td><img alt="Launcher friends page" src="docs/media/widgets/launcher-friends.jpg"><p align="center"><b>Friends</b> — who's online and what they're playing</p></td>
-    <td><img alt="Launcher system page" src="docs/media/widgets/launcher-system.jpg"><p align="center"><b>System</b> — lock, sleep, restart and your settings</p></td>
+    <td><img alt="Kontrol Panel friends page" src="docs/media/widgets/launcher-friends.jpg"><p align="center"><b>Friends</b> — who's online and what they're playing</p></td>
+    <td><img alt="Kontrol Panel system page" src="docs/media/widgets/launcher-system.jpg"><p align="center"><b>System</b> — lock, sleep, restart and your settings</p></td>
+  </tr>
+  <tr>
+    <td><img alt="Kontrol Panel shortcuts page with animated previews" src="docs/media/widgets/launcher-shortcuts.gif"><p align="center"><b>Shortcuts</b> — every key and gesture by category, with a live diagram of what each Konveyor action does</p></td>
+    <td><img alt="Kontrol Panel settings on the Touch and Gestures page" src="docs/media/widgets/launcher-settings.jpg"><p align="center"><b>Settings</b> — all of Konveyor's settings, applied instantly with Undo</p></td>
+  </tr>
+</table>
+
+#### 📌 Pin anything to the sidebar
+
+<table>
+  <tr>
+    <td width="60%"><img alt="Pinning a game and a folder to the Kontrol Panel sidebar" src="docs/media/widgets/launcher-pins.gif"></td>
+    <td valign="top">
+      <br>
+      Keep your favourite apps, games, files and folders one click away under the pages on the left. Right-click anything and choose <b>Pin to sidebar</b>, press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>, or drag it onto the sidebar. Drag pins to reorder them.
+      <br><br>
+      On a touchscreen, press and hold anything in the Kontrol Panel for the same menu.
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td><kbd>Meta</kbd></td>
+    <td>Open the Kontrol Panel</td>
+    <td><kbd>Meta</kbd> + <kbd>G</kbd></td>
+    <td>Open it on your games</td>
+  </tr>
+  <tr>
+    <td><kbd>Meta</kbd> + <kbd>K</kbd></td>
+    <td>Open it on Shortcuts</td>
+    <td><kbd>Ctrl</kbd> + <kbd>,</kbd></td>
+    <td>Jump to Settings</td>
+  </tr>
+  <tr>
+    <td><kbd>Alt</kbd> + <kbd>1</kbd> … <kbd>8</kbd></td>
+    <td>Go to a page</td>
+    <td><kbd>Ctrl</kbd> + <kbd>P</kbd></td>
+    <td>Pin to Home</td>
   </tr>
 </table>
 
@@ -206,11 +301,11 @@ Speeds, WiFi radios, every device, AdGuard Home and a speed test for ASUS router
 <table>
   <tr>
     <td width="50%" valign="top"><img alt="System Log with severity tabs and search" src="docs/media/widgets/system-log.gif"><p align="center"><b>System Log</b> — the live journal, by severity, searchable across everything</p></td>
-    <td width="50%" valign="top"><img alt="App Portal popup" src="docs/media/widgets/app-portal.gif"><p align="center"><b>App Portal</b> — the launcher in a panel popup</p></td>
+    <td width="50%" valign="top"><img alt="App Portal popup" src="docs/media/widgets/app-portal.gif"><p align="center"><b>App Portal</b> — the Kontrol Panel in a compact panel popup</p></td>
   </tr>
   <tr>
     <td valign="top"><img alt="Steam Friends popup" src="docs/media/widgets/steam-friends.gif"><p align="center"><b>Steam Friends</b> — online, in game, join and chat</p></td>
-    <td valign="top" align="center"><br><img alt="Keyboard Toggle and Screen Rotate buttons" src="docs/media/widgets/toggles.png"><p align="center"><b>Keyboard Toggle</b> and <b>Screen Rotate</b> — one tap for the on-screen keyboard or a quarter turn</p></td>
+    <td valign="top" align="center"><br><img alt="Keyboard Toggle and Screen Rotate buttons" src="docs/media/widgets/toggles.png"><p align="center"><b>Keyboard Toggle</b> and <b>Screen Rotate</b> — one tap opens or closes the on-screen keyboard, or gives the screen a quarter turn</p></td>
   </tr>
 </table>
 
@@ -245,13 +340,13 @@ Everything the widgets need is installed for you, and one background service fee
 
 ## 🎛️ Settings that show you
 
-Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the Kontrol Panel, or hit the gear. Every option has a live preview, changes apply instantly, and Undo takes them back.
+Every Konveyor setting lives in the Kontrol Panel. Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the sidebar, hit the gear, or press <kbd>Ctrl</kbd> + <kbd>,</kbd>. Every option has a live preview, changes apply instantly, and Undo takes them back.
 
 <p align="center"><img alt="A tour through the Konveyor settings pages" src="docs/media/settings-tour.gif" width="88%"></p>
 
 <table>
   <tr>
-    <td width="50%"><img alt="Layout settings" src="docs/media/settings-layout.png"><p align="center"><b>Layout</b> — gaps, column widths and where new windows land</p></td>
+    <td width="50%"><img alt="Layout settings" src="docs/media/settings-layout.png"><p align="center"><b>Layout</b> — gaps, column widths, where new windows land and which apps stay together</p></td>
     <td width="50%"><img alt="Look settings" src="docs/media/settings-look.png"><p align="center"><b>Look</b> — focus ring, borders, tabs and corners</p></td>
   </tr>
   <tr>
@@ -260,7 +355,14 @@ Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the 
   </tr>
   <tr>
     <td><img alt="Window rule settings" src="docs/media/settings-rules.png"><p align="center"><b>Window rules</b> — pick an app, see what matches, decide how it behaves</p></td>
-    <td><img alt="Settings overview" src="docs/media/settings-hub.png"><p align="center"><b>Everything in one place</b> — search any setting in seconds</p></td>
+    <td><img alt="Searching Konveyor settings and shortcuts from the Kontrol Panel" src="docs/media/settings-hub.png"><p align="center"><b>Search everything</b> — type in the Kontrol Panel and jump straight to any setting or shortcut</p></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%"><img alt="Touch and gesture settings" src="docs/media/settings-touch.png"><p align="center"><b>Touch &amp; Gestures</b> — finger counts, swipes, pinches, taps and long presses</p></td>
+    <td width="50%"><img alt="Portrait monitor profile settings" src="docs/media/settings-portrait.png"><p align="center"><b>Monitor profiles</b> — portrait screens get full-width columns that stack two windows</p></td>
   </tr>
 </table>
 
@@ -269,7 +371,7 @@ Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the 
 <br>
 <table>
   <tr>
-    <td width="50%"><img alt="Mouse and gesture settings" src="docs/media/settings-mouse.png"><p align="center"><b>Mouse &amp; gestures</b> — hot corners, edge scrolling, title bar drags</p></td>
+    <td width="50%"><img alt="Mouse settings" src="docs/media/settings-mouse.png"><p align="center"><b>Mouse</b> — focus follows mouse, edge scrolling, title bar drags</p></td>
     <td width="50%"><img alt="Monitor settings" src="docs/media/settings-monitors.png"><p align="center"><b>Monitors</b> — per-screen profiles drawn to scale</p></td>
   </tr>
   <tr>
@@ -303,12 +405,8 @@ Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the 
 | <kbd>Meta</kbd> + <kbd>K</kbd> | Open the Kontrol Panel on Shortcuts |
 | <kbd>Meta</kbd> | Open the Kontrol Panel |
 | <kbd>Meta</kbd> + <kbd>G</kbd> | Open the Kontrol Panel on your games |
-| 3 fingers ←→ on the touchpad or touchscreen | Scroll the row |
-| 3 fingers ↑↓ on the touchpad or touchscreen | Switch workspace |
-| 4 fingers ←→ | Merge the window into the next column, or pop it out |
-| 4 fingers ↑↓ | Move the window up or down its column, then to the next workspace |
-| 4-finger pinch | Open or close KDE's Overview |
-| Hold a title bar on a touchscreen, then drag | Move the window |
+
+On a touchpad or touchscreen, see [Made for touch](#touch) for every gesture.
 
 > [!NOTE]
 > Konveyor leaves KDE's own shortcuts alone — <kbd>Alt</kbd> + <kbd>F4</kbd>, <kbd>Meta</kbd> + <kbd>L</kbd>, screenshots and the rest work as always. Change anything from the **Shortcuts** settings page. The 3- and 4-finger swipes replace KDE's desktop-switching and Overview swipes; pick other finger counts, or turn gestures off, on the **Touch & Gestures** settings page.
