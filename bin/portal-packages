@@ -16,7 +16,7 @@ import sys
 
 def run_json(args, timeout):
     try:
-        done = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        done = subprocess.run(args, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout, start_new_session=True)
     except (OSError, subprocess.TimeoutExpired):
         return None
     text = done.stdout.strip()
@@ -57,7 +57,8 @@ def main():
         return
 
     standard = subprocess.Popen(["shelly", "search", "standard", query, "-v", "-t", "40", "-j"],
-                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                                start_new_session=True)
     aur = run_json(["shelly", "search", "aur", query, "-j"], 20) or []
     try:
         out, _ = standard.communicate(timeout=20)
