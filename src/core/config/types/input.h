@@ -65,6 +65,14 @@ enum class WindowVerticalSwipe
     Off
 };
 
+enum class TapAction
+{
+    Off,
+    CycleWidth,
+    KontrolPanel,
+    ToggleOverview
+};
+
 struct MultiTouch
 {
     bool enabled = true;
@@ -79,6 +87,22 @@ struct MultiTouch
     WindowVerticalSwipe windowVerticalSwipe = WindowVerticalSwipe::MoveToWorkspace;
     bool longPressToMove = true;
     int longPressMs = 500;
+    TapAction threeFingerTap = TapAction::CycleWidth;
+    TapAction fourFingerTap = TapAction::KontrolPanel;
+    TapAction fiveFingerTap = TapAction::Off;
+    TapAction tap(int fingers) const
+    {
+        switch (fingers) {
+        case 3:
+            return threeFingerTap;
+        case 4:
+            return fourFingerTap;
+        case 5:
+            return fiveFingerTap;
+        default:
+            return TapAction::Off;
+        }
+    }
     bool operator==(const MultiTouch &) const = default;
 };
 

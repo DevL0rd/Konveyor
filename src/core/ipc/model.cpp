@@ -146,6 +146,16 @@ void appendDeviceGestures(QJsonArray &array, const QString &device, const Config
         array.append(
             gestureToJson(device, touch.pinchFingers, QStringLiteral("pinch"), QStringLiteral("toggle-overview"), touch.naturalSwipe));
     }
+    static const QHash<Config::TapAction, QString> tapActions {
+        {Config::TapAction::CycleWidth, QStringLiteral("cycle-width")},
+        {Config::TapAction::KontrolPanel, QStringLiteral("kontrol-panel")},
+        {Config::TapAction::ToggleOverview, QStringLiteral("toggle-overview")},
+    };
+    for (const int fingers : {3, 4, 5}) {
+        if (const auto action = tapActions.constFind(touch.tap(fingers)); action != tapActions.constEnd()) {
+            array.append(gestureToJson(device, fingers, QStringLiteral("tap"), *action, touch.naturalSwipe));
+        }
+    }
 }
 
 }

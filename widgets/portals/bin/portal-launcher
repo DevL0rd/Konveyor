@@ -8,13 +8,14 @@ file, so this returns immediately and nothing polls.
 Usage:
   portal-launcher PAGE     open the Kontrol Panel on PAGE (home, apps, games, files, friends, system, shortcuts, settings);
                            if it is already open on PAGE it closes
+  portal-launcher toggle   open the Kontrol Panel like Meta does, or close it if it is open
 """
 import json
 import os
 import sys
 import time
 
-PAGES = ("home", "apps", "games", "files", "friends", "system", "shortcuts", "settings")
+PAGES = ("home", "apps", "games", "files", "friends", "system", "shortcuts", "settings", "toggle")
 
 
 def main():

@@ -55,6 +55,9 @@ Konveyor drives the scrolling row from touchpads and touchscreens:
 | 4-finger swipe left or right | Merge the focused window into the neighbouring column, or pop it back out | `window-horizontal-swipe "consume-or-expel"` or `"off"` |
 | 4-finger swipe up or down | Carry the focused window to the workspace above or below | `window-vertical-swipe "move-to-workspace"` or `"off"` |
 | 4-finger pinch | Open or close KDE's Overview | `pinch "toggle-overview"` or `"off"` |
+| 3-finger tap | Cycle the column's width through `preset-column-widths`, like `switch-preset-column-width` | `three-finger-tap "cycle-width"` |
+| 4-finger tap | Open the Kontrol Panel, or close it if it is open | `four-finger-tap "kontrol-panel"` |
+| 5-finger tap | Nothing | `five-finger-tap "off"` |
 | Touchscreen long press on a title bar, then drag | Move the window | `long-press-to-move`, `long-press-ms 500` |
 
 ```kdl
@@ -75,6 +78,10 @@ gestures {
 `touchpad` and `touchscreen` take the same options; `long-press-to-move` and `long-press-ms` are touchscreen only. Finger counts range from 2 to 5. `natural-swipe false` makes the row move against your fingers. `off` inside either block hands every gesture back to KDE.
 
 The window swipes move one step for every stretch of finger travel, so a long swipe carries the window several columns or workspaces; the window goes the way your fingers go. On a touchscreen the gesture moves the window under your fingers; on a touchpad it moves the focused window. If `swipe-fingers` and `window-swipe-fingers` are the same, the row swipes win.
+
+Each tap option takes `"cycle-width"`, `"kontrol-panel"`, `"toggle-overview"` or `"off"`. A tap is all fingers down and lifted within 250 ms without sliding; anything that turns into a swipe or pinch is not a tap. On a touchscreen a width tap acts on the column under your fingers; on a touchpad it acts on the focused column. The Kontrol Panel tap runs `portal-launcher toggle`, so it needs the Konveyor widgets installed.
+
+KDE and libinput have no multi-finger tap gesture, so Konveyor reads the touchpad's finger contacts from its `/dev/input/event*` node. Your user needs read access to it (membership in the `input` group); without it Konveyor logs `touchpad taps are unavailable` to the KWin journal and touchpad taps do nothing. libinput's tap-to-click turns a 3-finger tap into a middle click (a right click with the left-middle-right button map). While `three-finger-tap` is not `"off"`, Konveyor takes that click after a 3-finger touch, so apps no longer get a middle click from it; set `three-finger-tap "off"` to get the middle click back. Konveyor never changes libinput's own touchpad settings.
 
 The finger counts Konveyor uses take over the KDE gestures with the same count: by default the 3- and 4-finger swipes that switch virtual desktops and KDE's 4-finger swipe up for Overview. The pinch opens KDE's own Overview, as do Konveyor's hot corners and the `toggle-overview` action. Set a window or row swipe to `"off"` to give that gesture back to KDE. One-finger touch is left to apps: tapping focuses, and dragging a title bar scrolls the row or moves the window like the mouse does.
 

@@ -188,6 +188,21 @@ ColumnLayout {
             }
         }
 
+        TapRow {
+            fingers: 3
+            key: "three-finger-tap"
+        }
+
+        TapRow {
+            fingers: 4
+            key: "four-finger-tap"
+        }
+
+        TapRow {
+            fingers: 5
+            key: "five-finger-tap"
+        }
+
         SwitchRow {
             visible: section.touchscreen
             label: "Hold a title bar to move the window"
@@ -215,6 +230,34 @@ ColumnLayout {
             value: section.touch["long-press-ms"] || 500
             onEdited: value => section.write("long-press-ms", Math.round(value))
             onHoveredChanged: section.emphasis = hovered ? "long-press" : ""
+        }
+    }
+
+    component TapRow: SettingRow {
+        id: tapRow
+
+        property int fingers
+        property string key
+        readonly property string current: section.touch[key] || "off"
+
+        label: "Tap with " + fingers + " fingers"
+        description: section.touchscreen ? "Quickly tap and lift. Width changes apply to the column under your fingers." : "Quickly tap and lift. Width changes apply to the focused column."
+        resetPaths: [section.path + "/" + key]
+        wideControl: true
+        enabled: section.on
+        onHoveredChanged: section.emphasis = hovered ? "tap-" + fingers : ""
+
+        ChoiceCards {
+            width: parent.width
+            cardHeight: Kirigami.Units.gridUnit * 8
+            currentValue: tapRow.current
+            options: [
+                { value: "cycle-width", title: "Cycle the column width", description: "Step through the preset widths, like Meta+R", preview: gesturePreview, gesture: "tap-cycle-width", fingers: tapRow.fingers },
+                { value: "kontrol-panel", title: "Open the Kontrol Panel", description: "Tap again to close it", preview: gesturePreview, gesture: "tap-kontrol-panel", fingers: tapRow.fingers },
+                { value: "toggle-overview", title: "Open the overview", description: "Tap again to close it", preview: gesturePreview, gesture: "tap-toggle-overview", fingers: tapRow.fingers },
+                { value: "off", title: "Do nothing", description: tapRow.fingers === 3 && !section.touchscreen ? "A 3-finger tap middle-clicks again" : "Konveyor ignores this tap", preview: gesturePreview, gesture: "tap-cycle-width", fingers: tapRow.fingers }
+            ]
+            onChosen: value => section.write(tapRow.key, value)
         }
     }
 
@@ -270,7 +313,7 @@ ColumnLayout {
             readonly property string gestureName: parent ? parent.choice.gesture : "horizontal"
             device: section.device
             gesture: gestureName
-            fingers: section.touch[gestureName === "pinch" ? "pinch-fingers" : (gestureName.startsWith("window-") ? "window-swipe-fingers" : "swipe-fingers")] || 3
+            fingers: parent && parent.choice.fingers ? parent.choice.fingers : section.touch[gestureName === "pinch" ? "pinch-fingers" : (gestureName.startsWith("window-") ? "window-swipe-fingers" : "swipe-fingers")] || 3
             natural: section.touch["natural-swipe"] === true
             active: parent ? parent.choice.value !== "off" : true
             showCaption: false

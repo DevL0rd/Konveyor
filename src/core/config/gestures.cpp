@@ -58,6 +58,13 @@ void decodeWarpMouse(const Kdl::Node &node, Input &input)
     decodeProperties(node, table);
 }
 
+TapAction decodeTapAction(const Kdl::Node &node)
+{
+    static const QList<TapAction> actions {TapAction::CycleWidth, TapAction::KontrolPanel, TapAction::ToggleOverview, TapAction::Off};
+    return actions.at(keywordArgument(
+        node, {QStringLiteral("cycle-width"), QStringLiteral("kontrol-panel"), QStringLiteral("toggle-overview"), QStringLiteral("off")}));
+}
+
 void decodeMultiTouch(const Kdl::Node &node, MultiTouch &touch, bool isTouchscreen)
 {
     expectOnlyChildren(node);
@@ -94,6 +101,9 @@ void decodeMultiTouch(const Kdl::Node &node, MultiTouch &touch, bool isTouchscre
             ? WindowVerticalSwipe::MoveToWorkspace
             : WindowVerticalSwipe::Off;
     });
+    table.insert(QStringLiteral("three-finger-tap"), [&touch](const Kdl::Node &child) { touch.threeFingerTap = decodeTapAction(child); });
+    table.insert(QStringLiteral("four-finger-tap"), [&touch](const Kdl::Node &child) { touch.fourFingerTap = decodeTapAction(child); });
+    table.insert(QStringLiteral("five-finger-tap"), [&touch](const Kdl::Node &child) { touch.fiveFingerTap = decodeTapAction(child); });
     if (isTouchscreen) {
         table.insert(
             QStringLiteral("long-press-to-move"), [&touch](const Kdl::Node &child) { touch.longPressToMove = flagArgument(child); });

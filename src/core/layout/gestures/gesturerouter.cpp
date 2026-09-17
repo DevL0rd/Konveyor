@@ -18,6 +18,8 @@ constexpr double PinchOutScale = 1.25;
 constexpr double PinchSpreadThreshold = 0.2;
 constexpr double TouchpadWindowStep = 160.0;
 constexpr double TouchscreenWindowStep = 320.0;
+constexpr double TouchpadTapTravelMm = 3.0;
+constexpr double TouchscreenTapTravel = 24.0;
 
 double lengthOf(QPointF point)
 {
@@ -28,6 +30,8 @@ double lengthOf(QPointF point)
 
 GestureRouter::GestureRouter(Engine &engine)
     : m_engine(engine)
+    , m_touchpadTaps(TouchpadTapTravelMm)
+    , m_touchTaps(TouchscreenTapTravel)
 { }
 
 void GestureRouter::setConfig(const Config::Gestures &gestures)
@@ -52,6 +56,7 @@ GestureRouter::Allowed GestureRouter::allowedFor(const Config::MultiTouch &setti
     allowed.windowSwipe = !allowed.swipe && fingers == settings.windowSwipeFingers
         && (settings.windowHorizontalSwipe != Config::WindowHorizontalSwipe::Off
             || settings.windowVerticalSwipe != Config::WindowVerticalSwipe::Off);
+    allowed.tap = settings.tap(fingers) != Config::TapAction::Off;
     return allowed;
 }
 
@@ -166,6 +171,7 @@ bool GestureRouter::finishGesture(Swipe &gesture)
 
 bool GestureRouter::touchpadSwipeBegin(int fingers, const QString &output)
 {
+    m_touchpadTaps.invalidate();
     Allowed allowed = allowedFor(m_config.touchpad, fingers);
     allowed.pinch = false;
     if (!allowed.swipe && !allowed.windowSwipe) {
@@ -191,6 +197,7 @@ bool GestureRouter::touchpadSwipeEnd()
 
 bool GestureRouter::touchpadPinchBegin(int fingers)
 {
+    m_touchpadTaps.invalidate();
     const Config::MultiTouch &settings = m_config.touchpad;
     if (!settings.enabled || fingers != settings.pinchFingers || settings.pinch == Config::PinchAction::Off) {
         return false;
@@ -251,6 +258,7 @@ bool GestureRouter::touchDown(qint32 id, QPointF position, qint64 timestampMs, c
         m_firstTouchMoved = false;
     }
     m_points.insert(id, position);
+    m_touchTaps.down(id, position, timestampMs);
     m_lastTouch = position;
     if (!m_config.touchscreen.enabled) {
         return false;
@@ -268,7 +276,7 @@ bool GestureRouter::touchDown(qint32 id, QPointF position, qint64 timestampMs, c
         m_touch.startSpread = spread();
         return true;
     }
-    if (!allowed.swipe && !allowed.pinch && !allowed.windowSwipe) {
+    if (!allowed.swipe && !allowed.pinch && !allowed.windowSwipe && !allowed.tap) {
         return false;
     }
     beginGesture(m_touch, GestureDevice::Touchscreen, output, allowed);
@@ -291,6 +299,7 @@ bool GestureRouter::touchMotion(qint32 id, QPointF position, qint64 timestampMs)
         m_firstMoveMs = timestampMs;
     }
     *point = position;
+    m_touchTaps.motion(id, position);
     m_lastTouch = position;
     if (!m_touch.active) {
         return m_gestureIds.contains(id);
@@ -301,18 +310,25 @@ bool GestureRouter::touchMotion(qint32 id, QPointF position, qint64 timestampMs)
         const double ratio = spread() / m_touch.startSpread;
         if (std::abs(ratio - 1.0) >= PinchSpreadThreshold) {
             feedPinch(m_touch, ratio);
+            m_touchTaps.invalidate();
             return true;
         }
     }
     feedTranslation(m_touch, delta, timestampMs);
+    if (m_touch.axis != Axis::Undecided) {
+        m_touchTaps.invalidate();
+    }
     return true;
 }
 
-bool GestureRouter::touchUp(qint32 id)
+bool GestureRouter::touchUp(qint32 id, qint64 timestampMs)
 {
     m_points.remove(id);
     if (m_touch.active) {
         finishGesture(m_touch);
+    }
+    if (const std::optional<int> fingers = m_touchTaps.up(id, timestampMs); fingers && m_config.touchscreen.enabled) {
+        performTap(m_config.touchscreen, *fingers, m_touchTaps.centroid());
     }
     return m_gestureIds.remove(id);
 }
@@ -327,6 +343,7 @@ bool GestureRouter::resetTouches()
 void GestureRouter::touchCancel()
 {
     finishGesture(m_touch);
+    m_touchTaps.cancel();
     m_points.clear();
     m_gestureIds.clear();
     m_lastTouch.reset();

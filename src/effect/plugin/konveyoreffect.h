@@ -67,7 +67,7 @@ private:
     bool routeGesture(bool consumed);
     bool handleTouchDown(qint32 id, const QPointF &position, qint64 timestampMs);
     bool handleTouchMotion(qint32 id, const QPointF &position, qint64 timestampMs);
-    bool handleTouchUp(qint32 id);
+    bool handleTouchUp(qint32 id, qint64 timestampMs);
     bool holdsToDecide(Layout::WindowId id, int phase);
     void decidePendingTouchMove(qint64 timestampMs);
     void showKdeOverview(bool open);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/types.h"
+#include "layout/gestures/taptracker.h"
 
 #include <QHash>
 #include <QPointF>
@@ -34,10 +35,16 @@ public:
     bool touchpadPinchBegin(int fingers);
     bool touchpadPinchUpdate(double scale);
     bool touchpadPinchEnd();
+    void touchpadContactDown(qint32 slot, QPointF millimeters, qint64 timestampMs);
+    void touchpadContactMotion(qint32 slot, QPointF millimeters);
+    bool touchpadContactUp(qint32 slot, qint64 timestampMs);
+    void touchpadPhysicalClick();
+    void touchpadContactsReset();
+    bool takesTouchpadTapButton() const;
 
     bool touchDown(qint32 id, QPointF position, qint64 timestampMs, const QString &output);
     bool touchMotion(qint32 id, QPointF position, qint64 timestampMs);
-    bool touchUp(qint32 id);
+    bool touchUp(qint32 id, qint64 timestampMs);
     void touchCancel();
     bool resetTouches();
 
@@ -80,6 +87,7 @@ private:
         bool swipe = false;
         bool pinch = false;
         bool windowSwipe = false;
+        bool tap = false;
     };
 
     static Allowed allowedFor(const Config::MultiTouch &settings, int fingers);
@@ -91,11 +99,14 @@ private:
     bool finishGesture(Swipe &gesture);
     QPointF centroid() const;
     double spread() const;
+    bool performTap(const Config::MultiTouch &settings, int fingers, std::optional<QPointF> position);
 
     Engine &m_engine;
     Config::Gestures m_config;
     Swipe m_touchpad;
     Swipe m_touch;
+    TapTracker m_touchpadTaps;
+    TapTracker m_touchTaps;
     QHash<qint32, QPointF> m_points;
     QSet<qint32> m_gestureIds;
     QPointF m_lastCentroid;

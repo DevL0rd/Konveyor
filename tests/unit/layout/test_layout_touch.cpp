@@ -193,7 +193,7 @@ private Q_SLOTS:
                 }
             }
             for (qint32 id = 0; id < 4; ++id) {
-                rig.router.touchUp(id);
+                rig.router.touchUp(id, 1000);
             }
             rig.fixture.settle();
         };
@@ -217,7 +217,7 @@ private Q_SLOTS:
                 rig.router.touchMotion(id, QPointF(400.0 + id * 60.0, 700.0 + step * 50.0), step * 10);
             }
         }
-        rig.router.touchUp(0);
+        rig.router.touchUp(0, 1000);
         rig.fixture.advance(1);
         QCOMPARE(rig.fixture.state(b).workspaceIndex, start + 1);
         VERIFY_INVARIANTS(rig.fixture);
@@ -253,10 +253,10 @@ private Q_SLOTS:
         for (int step = 1; step <= 10; ++step) {
             rig.moveTouches(QPointF(-150.0, 0.0), step * 10);
         }
-        QVERIFY(rig.router.touchUp(2));
+        QVERIFY(rig.router.touchUp(2, 1000));
         QVERIFY(!rig.router.isTouchGestureActive());
-        QVERIFY(rig.router.touchUp(1));
-        QVERIFY(rig.router.touchUp(0));
+        QVERIFY(rig.router.touchUp(1, 1000));
+        QVERIFY(rig.router.touchUp(0, 1000));
         rig.fixture.settle();
         QVERIFY(rig.fixture.focused() != first);
         VERIFY_INVARIANTS(rig.fixture);
@@ -281,7 +281,7 @@ private Q_SLOTS:
         rig.fixture.add();
         QVERIFY(!rig.router.touchDown(0, QPointF(100, 100), 0, Output));
         QVERIFY(!rig.router.touchMotion(0, QPointF(300, 100), 10));
-        QVERIFY(!rig.router.touchUp(0));
+        QVERIFY(!rig.router.touchUp(0, 1000));
         QCOMPARE(rig.router.lastTouchPosition(), std::optional(QPointF(300, 100)));
     }
 
@@ -311,12 +311,12 @@ private Q_SLOTS:
         rig.router.touchMotion(0, QPointF(140, 100), 1650);
         QVERIFY(rig.router.hasFirstTouchMoved());
         QVERIFY(rig.router.isLongPress(1700));
-        rig.router.touchUp(0);
+        rig.router.touchUp(0, 1000);
 
         rig.router.touchDown(0, QPointF(100, 100), 3000, Output);
         rig.router.touchMotion(0, QPointF(160, 100), 3100);
         QVERIFY(!rig.router.isLongPress(3800));
-        rig.router.touchUp(0);
+        rig.router.touchUp(0, 1000);
 
         Config::Config off = wideColumns();
         off.gestures.touchscreen.longPressToMove = false;

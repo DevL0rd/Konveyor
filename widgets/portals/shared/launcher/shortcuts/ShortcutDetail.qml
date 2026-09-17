@@ -28,7 +28,7 @@ ColumnLayout {
             anchors.margins: Kirigami.Units.largeSpacing
             visible: detail.gesture !== null
             device: detail.gesture ? detail.gesture.device : "touchpad"
-            gesture: detail.gesture ? detail.gesture.motion.replace("swipe-", "") : "horizontal"
+            gesture: detail.gesture ? (detail.gesture.motion === "tap" ? "tap-" + detail.gesture.action : detail.gesture.motion.replace("swipe-", "")) : "horizontal"
             fingers: detail.gesture ? detail.gesture.fingers : 3
             natural: detail.gesture ? detail.gesture.natural : true
             animated: detail.animated

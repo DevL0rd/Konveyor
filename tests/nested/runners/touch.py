@@ -148,6 +148,26 @@ def check_tap(problems):
         problems.append(f"tapping {target} did not focus it (active: {active_title()})")
 
 
+def tile_width(title):
+    window = next(window for window in konveyor_windows() if window["title"] == title)
+    return window["layout"]["tile_size"][0]
+
+
+def check_three_finger_tap(problems):
+    set_widths("30%")
+    visible = [(x, title) for x, title in columns() if 0 <= x < 1700]
+    target_x, target = visible[1]
+    before = tile_width(target)
+    touch(3, target_x + before / 2, 600, radius=60, steps=1)
+    time.sleep(1.0)
+    after = tile_width(target)
+    print(f"3-finger tap on {target}: KWin active window is {active_title()}, width {before} -> {after}")
+    if active_title() != target:
+        problems.append(f"a 3-finger tap on {target} did not focus it (active: {active_title()})")
+    if abs(after - before) < 1:
+        problems.append(f"a 3-finger tap on {target} did not change its width ({before} -> {after})")
+
+
 def check_long_press(problems):
     set_widths("30%")
     before = [title for _, title in columns()]
@@ -198,7 +218,7 @@ def check_floating_drag(problems):
 
 def main():
     problems = []
-    for check in (check_swipe, check_workspace_swipe, check_pinch, check_window_swipes, check_tap, check_quick_drag_scrolls, check_long_press, check_floating_drag):
+    for check in (check_swipe, check_workspace_swipe, check_pinch, check_window_swipes, check_tap, check_three_finger_tap, check_quick_drag_scrolls, check_long_press, check_floating_drag):
         check(problems)
     capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
     for problem in problems:

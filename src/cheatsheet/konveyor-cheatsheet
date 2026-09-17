@@ -89,6 +89,13 @@ def gesture_entry(gesture):
     if motion == "long-press":
         seconds = gesture["hold-ms"] / 1000
         return {"action": f"Move a window: hold its title bar on the {device}", "keys": [f"Hold {seconds:g} s+Drag"], "gesture": gesture}
+    if motion == "tap":
+        taps = {
+            "cycle-width": "Cycle the column width",
+            "kontrol-panel": "Open or close the Kontrol Panel",
+            "toggle-overview": "Open or close the overview",
+        }
+        return {"action": f"{taps[gesture['action']]} on the {device}", "keys": [f"{fingers} fingers tap"], "gesture": gesture}
     actions = {
         "swipe-horizontal": ("Scroll the row", "swipe ←→"),
         "swipe-vertical": ("Switch workspace", "swipe ↑↓"),

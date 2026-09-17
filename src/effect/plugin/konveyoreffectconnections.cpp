@@ -29,13 +29,22 @@ void KonveyorEffect::installInputFilter()
         [this] { return routeGesture(d->gestures.touchpadPinchEnd()); },
         [this](qint32 id, const QPointF &position, qint64 timestamp) { return handleTouchDown(id, position, timestamp); },
         [this](qint32 id, const QPointF &position, qint64 timestamp) { return handleTouchMotion(id, position, timestamp); },
-        [this](qint32 id) { return handleTouchUp(id); },
+        [this](qint32 id, qint64 timestamp) { return handleTouchUp(id, timestamp); },
         [this] {
             d->gestures.touchCancel();
             endTitlebarDrag();
             scheduleFlush();
         },
         [this] { routeGesture(d->gestures.resetTouches()); },
+        [this] { return d->gestures.takesTouchpadTapButton(); },
+    });
+    d->touchpadContacts = std::make_unique<TouchpadContactReader>(TouchpadContactHandlers {
+        [this](
+            qint32 slot, const QPointF &millimeters, qint64 timestamp) { d->gestures.touchpadContactDown(slot, millimeters, timestamp); },
+        [this](qint32 slot, const QPointF &millimeters) { d->gestures.touchpadContactMotion(slot, millimeters); },
+        [this](qint32 slot, qint64 timestamp) { routeGesture(d->gestures.touchpadContactUp(slot, timestamp)); },
+        [this] { d->gestures.touchpadPhysicalClick(); },
+        [this] { d->gestures.touchpadContactsReset(); },
     });
 }
 

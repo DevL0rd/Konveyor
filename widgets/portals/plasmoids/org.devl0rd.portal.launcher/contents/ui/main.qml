@@ -48,7 +48,9 @@ PlasmoidItem {
         xhr.send()
     }
     function handleRequest(page) {
-        if (open && currentPage === page) {
+        if (page === "toggle") {
+            toggle(true, "")
+        } else if (open && currentPage === page) {
             hide()
         } else if (open) {
             pageRequested(page)

@@ -24,6 +24,8 @@ Rectangle {
             return "▭ ↑↓";
         case "long-press":
             return "Hold";
+        case "tap":
+            return "Tap";
         }
         return "";
     }

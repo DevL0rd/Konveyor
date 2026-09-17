@@ -1,5 +1,6 @@
 #include "input/gesturefilter.h"
 
+#include <core/inputdevice.h>
 #include <input_event.h>
 #include <touch_input.h>
 
@@ -92,7 +93,7 @@ bool GestureFilter::touchMotion(KWin::TouchMotionEvent *event)
 
 bool GestureFilter::touchUp(KWin::TouchUpEvent *event)
 {
-    const bool consumed = m_handlers.touchUp(event->id);
+    const bool consumed = m_handlers.touchUp(event->id, millisecondsOf(event->time));
     if (KWin::input()->touch()->touchPointCount() == 0) {
         m_touchGestureTaken = false;
     }
@@ -107,6 +108,22 @@ bool GestureFilter::touchCancel()
     m_touchGestureTaken = false;
     m_handlers.touchCancel();
     return false;
+}
+
+bool GestureFilter::pointerButton(KWin::PointerButtonEvent *event)
+{
+    if (!event->device || !event->device->isTouchpad()) {
+        return false;
+    }
+    const Qt::MouseButton tapButton = event->device->property("lmrTapButtonMap").toBool() ? Qt::RightButton : Qt::MiddleButton;
+    if (event->button != tapButton) {
+        return false;
+    }
+    if (event->state == KWin::PointerButtonState::Pressed) {
+        m_tapButtonTaken = m_handlers.takesTouchpadTapButton();
+        return m_tapButtonTaken;
+    }
+    return std::exchange(m_tapButtonTaken, false);
 }
 
 }

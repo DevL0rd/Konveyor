@@ -17,6 +17,8 @@ Item {
 
     readonly property bool touchscreen: device === "touchscreen"
     readonly property real handSign: natural ? -1 : 1
+    readonly property bool tap: gesture.startsWith("tap-")
+    readonly property real tapEffect: tap ? Math.max(0, (progress - 0.3) / 0.7) : 0
     readonly property string caption: {
         const count = fingers + "-finger ";
         switch (gesture) {
@@ -32,6 +34,12 @@ Item {
             return count + "swipe up or down carries the window to another workspace";
         case "long-press":
             return "Hold a title bar, then drag to move the window";
+        case "tap-cycle-width":
+            return count + "tap cycles the column width";
+        case "tap-kontrol-panel":
+            return count + "tap opens the Kontrol Panel";
+        case "tap-toggle-overview":
+            return count + "tap opens the overview";
         }
         return "";
     }
@@ -39,7 +47,7 @@ Item {
     function columnGeometry(workspaceIndex, index) {
         const h = world.height;
         const lift = world.liftProgress;
-        const geometry = { x: world.gap + index * world.step, y: h * 0.08, height: h * 0.84, highlight: false };
+        const geometry = { x: world.gap + index * world.step, y: h * 0.08, width: world.columnWidth, height: h * 0.84, highlight: false };
         if (workspaceIndex !== 0) {
             return geometry;
         }
@@ -63,6 +71,14 @@ Item {
                 geometry.height -= progress * h * 0.43;
             } else if (index > 1) {
                 geometry.x -= progress * world.step;
+            }
+            break;
+        case "tap-cycle-width":
+            if (index === 0) {
+                geometry.width += tapEffect * world.step * 0.6;
+                geometry.highlight = true;
+            } else {
+                geometry.x += tapEffect * world.step * 0.6;
             }
             break;
         case "window-vertical":
@@ -116,7 +132,7 @@ Item {
             transformOrigin: Item.Center
             x: demo.gesture === "horizontal" ? -demo.progress * step : 0
             y: demo.gesture === "vertical" || demo.gesture === "window-vertical" ? -demo.progress * parent.height : 0
-            scale: demo.gesture === "pinch" ? 1 - demo.progress * 0.5 : 1
+            scale: demo.gesture === "pinch" ? 1 - demo.progress * 0.5 : (demo.gesture === "tap-toggle-overview" ? 1 - demo.tapEffect * 0.5 : 1)
 
             Repeater {
                 model: 2
@@ -139,7 +155,7 @@ Item {
                             x: geometry.x
                             z: lifted ? 1 : 0
                             y: geometry.y
-                            width: world.columnWidth
+                            width: geometry.width
                             height: geometry.height
                             radius: 3
                             color: Kirigami.Theme.backgroundColor
@@ -159,13 +175,43 @@ Item {
         }
 
         Rectangle {
-            visible: demo.gesture === "pinch"
+            visible: demo.gesture === "pinch" || demo.gesture === "tap-toggle-overview"
             anchors.fill: parent
             color: "transparent"
             border.color: Kirigami.Theme.highlightColor
             border.width: 2
             radius: 4
-            opacity: Math.max(0, demo.progress * 2 - 1)
+            opacity: Math.max(0, (demo.tap ? demo.tapEffect : demo.progress) * 2 - 1)
+        }
+
+        Rectangle {
+            visible: demo.gesture === "tap-kontrol-panel"
+            anchors.centerIn: parent
+            width: parent.width * 0.62
+            height: parent.height * 0.72
+            radius: Kirigami.Units.cornerRadius
+            color: Kirigami.Theme.backgroundColor
+            border.color: Kirigami.Theme.highlightColor
+            border.width: 2
+            opacity: demo.tapEffect
+            scale: 0.9 + demo.tapEffect * 0.1
+
+            Grid {
+                anchors.centerIn: parent
+                columns: 4
+                spacing: parent.width * 0.05
+
+                Repeater {
+                    model: 8
+
+                    Rectangle {
+                        width: parent.parent.width * 0.14
+                        height: width
+                        radius: 3
+                        color: Qt.alpha(Kirigami.Theme.highlightColor, 0.35)
+                    }
+                }
+            }
         }
     }
 
@@ -218,6 +264,20 @@ Item {
                 color: Qt.alpha(Kirigami.Theme.highlightColor, 0.7)
                 border.color: Kirigami.Theme.highlightedTextColor
                 border.width: 1
+                opacity: demo.tap ? Math.max(0, 1 - Math.max(0, demo.progress - 0.25) * 6) : 1
+
+                Rectangle {
+                    visible: demo.tap
+                    readonly property real press: Math.min(1, demo.progress / 0.25)
+                    anchors.centerIn: parent
+                    width: hand.dot * (1 + press * 1.2)
+                    height: width
+                    radius: width / 2
+                    color: "transparent"
+                    border.color: Kirigami.Theme.highlightColor
+                    border.width: 2
+                    opacity: 1 - press * 0.7
+                }
 
                 Rectangle {
                     visible: demo.gesture === "long-press"

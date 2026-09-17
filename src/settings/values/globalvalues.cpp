@@ -51,6 +51,13 @@ void insertAnimations(QVariantMap &values, const Config::Animations &animations)
     }
 }
 
+QString tapValue(Config::TapAction action)
+{
+    static const QStringList names {
+        QStringLiteral("off"), QStringLiteral("cycle-width"), QStringLiteral("kontrol-panel"), QStringLiteral("toggle-overview")};
+    return names.at(static_cast<qsizetype>(action));
+}
+
 QVariantMap multiTouchValue(const Config::MultiTouch &touch)
 {
     return {
@@ -73,6 +80,9 @@ QVariantMap multiTouchValue(const Config::MultiTouch &touch)
                                                                                       : QStringLiteral("off")},
         {QStringLiteral("long-press-to-move"), touch.longPressToMove},
         {QStringLiteral("long-press-ms"), touch.longPressMs},
+        {QStringLiteral("three-finger-tap"), tapValue(touch.threeFingerTap)},
+        {QStringLiteral("four-finger-tap"), tapValue(touch.fourFingerTap)},
+        {QStringLiteral("five-finger-tap"), tapValue(touch.fiveFingerTap)},
     };
 }
 

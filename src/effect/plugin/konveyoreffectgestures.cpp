@@ -72,9 +72,9 @@ bool KonveyorEffect::handleTouchMotion(qint32 id, const QPointF &position, qint6
     return false;
 }
 
-bool KonveyorEffect::handleTouchUp(qint32 id)
+bool KonveyorEffect::handleTouchUp(qint32 id, qint64 timestampMs)
 {
-    const bool consumed = routeGesture(d->gestures.touchUp(id));
+    const bool consumed = routeGesture(d->gestures.touchUp(id, timestampMs));
     if (d->gestures.touchPointCount() == 0) {
         endTitlebarDrag();
     }

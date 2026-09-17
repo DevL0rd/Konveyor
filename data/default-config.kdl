@@ -80,7 +80,10 @@ gestures {
     // Multi-finger touchpad gestures. 3-finger swipes move the row, 4-finger
     // swipes push the focused window into the next column or to another
     // workspace, and a 4-finger pinch opens KDE's Overview. The finger counts
-    // used here replace the matching KDE gestures.
+    // used here replace the matching KDE gestures. A quick 3-finger tap cycles
+    // the focused column's width like Mod+R and a 4-finger tap opens or closes
+    // the Kontrol Panel; while the 3-finger tap is mapped it replaces the
+    // touchpad's 3-finger middle click.
     touchpad {
         swipe-fingers 3
         pinch-fingers 4
@@ -91,10 +94,14 @@ gestures {
         window-swipe-fingers 4
         window-horizontal-swipe "consume-or-expel"
         window-vertical-swipe "move-to-workspace"
+        three-finger-tap "cycle-width"
+        four-finger-tap "kontrol-panel"
+        five-finger-tap "off"
     }
 
     // Touchscreen gestures. One finger still taps, scrolls and drags title bars;
-    // holding a title bar before dragging lifts the window to move it.
+    // holding a title bar before dragging lifts the window to move it. Taps work
+    // like the touchpad's but act on the column under your fingers.
     touchscreen {
         swipe-fingers 3
         pinch-fingers 4
@@ -107,6 +114,9 @@ gestures {
         window-vertical-swipe "move-to-workspace"
         long-press-to-move
         long-press-ms 500
+        three-finger-tap "cycle-width"
+        four-finger-tap "kontrol-panel"
+        five-finger-tap "off"
     }
 }
 

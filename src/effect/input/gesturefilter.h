@@ -19,9 +19,10 @@ struct GestureHandlers
     std::function<bool()> pinchEnd;
     std::function<bool(qint32, const QPointF &, qint64)> touchDown;
     std::function<bool(qint32, const QPointF &, qint64)> touchMotion;
-    std::function<bool(qint32)> touchUp;
+    std::function<bool(qint32, qint64)> touchUp;
     std::function<void()> touchCancel;
     std::function<void()> touchSequenceStarted;
+    std::function<bool()> takesTouchpadTapButton;
 };
 
 class GestureFilter : public KWin::InputEventFilter
@@ -42,11 +43,13 @@ public:
     bool touchMotion(KWin::TouchMotionEvent *event) override;
     bool touchUp(KWin::TouchUpEvent *event) override;
     bool touchCancel() override;
+    bool pointerButton(KWin::PointerButtonEvent *event) override;
 
 private:
     GestureHandlers m_handlers;
     bool m_touchGestureTaken = false;
     bool m_syntheticCancel = false;
+    bool m_tapButtonTaken = false;
 };
 
 }

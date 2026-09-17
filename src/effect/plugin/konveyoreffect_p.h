@@ -10,6 +10,7 @@
 #include "input/inputfilter.h"
 #include "input/shortcutmanager.h"
 #include "input/spillinputfilter.h"
+#include "input/touchpadcontactreader.h"
 #include "kwin/desktopsync.h"
 #include "kwin/minimizerule.h"
 #include "kwin/outputregistry.h"
@@ -89,6 +90,7 @@ struct KonveyorEffect::Private
     std::unique_ptr<SpillInputFilter> spillInput;
     std::unique_ptr<InputFilter> input;
     std::unique_ptr<GestureFilter> gestureInput;
+    std::unique_ptr<TouchpadContactReader> touchpadContacts;
     std::unique_ptr<DBusService> dbus;
     QTimer flushTimer;
     QTimer animationTimer;
