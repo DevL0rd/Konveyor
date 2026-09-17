@@ -243,6 +243,8 @@ Item {
         if (!live || !packagesEnabled)
             return ""
         const text = query.trim()
+        if (!/[a-zA-Z]/.test(text))
+            return ""
         if (searchMode === "packages")
             return text.length >= 2 ? text : ""
         if (searchMode !== "all")
@@ -415,7 +417,7 @@ Item {
                 const key = friend.appid || friend.game
                 if (!byGame[key]) {
                     const owned = data.games.find(game => friend.appid && game.appid === friend.appid) || null
-                    byGame[key] = { key: key, appid: friend.appid || "", name: friend.game, capsule: friend.capsule || "", game: owned, friends: [] }
+                    byGame[key] = { key: key, appid: friend.appid || "", name: friend.game, header: friend.header || "", game: owned, friends: [] }
                 }
                 byGame[key].friends.push(friend)
             }

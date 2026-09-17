@@ -73,7 +73,7 @@ Item {
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             sourceSize.width: Math.round(width * 1.5)
-            source: card.entry.game === null && card.entry.appid ? "https://cdn.cloudflare.steamstatic.com/steam/apps/" + card.entry.appid + "/header.jpg" : ""
+            source: card.entry.game === null ? card.entry.header : ""
         }
         Rectangle {
             anchors.fill: parent

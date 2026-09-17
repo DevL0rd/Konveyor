@@ -29,6 +29,36 @@ SNAP = os.path.join(RUNDIR, "friends.json")
 STEAM_ROOTS = [os.path.join(HOME, ".local/share/Steam"),
                os.path.join(HOME, ".steam/steam")]
 API = "https://api.steampowered.com"
+HEADER_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache")), APP, "headers.json")
+
+
+def load_headers():
+    try:
+        with open(HEADER_CACHE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def resolve_headers(appids):
+    cache = load_headers()
+    missing = [appid for appid in appids if appid and appid not in cache]
+    for appid in missing[:8]:
+        url = f"https://store.steampowered.com/api/appdetails?appids={appid}&filters=basic"
+        try:
+            with urllib.request.urlopen(url, timeout=6) as r:
+                body = json.load(r)
+            info = body.get(appid, {})
+            cache[appid] = (info.get("data") or {}).get("header_image", "") if info.get("success") else ""
+        except Exception:
+            continue
+    if missing:
+        os.makedirs(os.path.dirname(HEADER_CACHE), exist_ok=True)
+        tmp = HEADER_CACHE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(cache, f)
+        os.replace(tmp, HEADER_CACHE)
+    return cache
 
 
 # ---------------------------------------------------------------- config / ids
@@ -138,6 +168,9 @@ def build_snapshot(cfg):
     ids = get_friend_ids(key, sid)
     players = get_summaries(key, ids) if ids else []
     friends = [friend_full(p) for p in players]
+    headers = resolve_headers(sorted({f["appid"] for f in friends if f["appid"]}))
+    for f in friends:
+        f["header"] = headers.get(f["appid"], "") if f["appid"] else ""
     friends.sort(key=lambda f: f["name"].lower())
     by_appid = {}
     for p in players:

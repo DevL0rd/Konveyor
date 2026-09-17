@@ -137,7 +137,7 @@ PopScroll {
         const list = [heroApp, heroGame]
         for (let i = 0; i < slots.count; ++i) {
             const slot = slots.itemAt(i)
-            if (slot && slot.item)
+            if (slot && slot.item && slot.item.hasContent)
                 list.push.apply(list, slot.item.grids ? slot.item.grids() : [])
         }
         list.push(packagesResults.grid)
@@ -181,7 +181,8 @@ PopScroll {
         property alias cellHeight: resultGrid.cellHeight
         property alias cellWidth: resultGrid.cellWidth
         property bool busy: false
-        visible: resultGrid.count > 0 || busy
+        readonly property bool hasContent: resultGrid.count > 0 || busy
+        visible: hasContent
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
         SectionHeader {
@@ -517,7 +518,17 @@ PopScroll {
         ColumnLayout {
             id: runnerKind
             property string kind
-            visible: kindGroups.count > 0
+            property int contentCount: 0
+            readonly property bool hasContent: contentCount > 0
+            function recount() {
+                let total = 0
+                for (let i = 0; i < kindGroups.count; ++i) {
+                    const group = kindGroups.itemAt(i)
+                    if (group)
+                        total += group.grid.count
+                }
+                contentCount = total
+            }
             spacing: Kirigami.Units.largeSpacing * 1.5
             function grids() {
                 const list = []
@@ -534,14 +545,20 @@ PopScroll {
                 delegate: ResultGroup {
                     required property var modelData
                     readonly property var runnerGroup: launcherData.runner.modelForRow(modelData)
-                    title: runnerGroup ? runnerGroup.name : ""
+                    Connections {
+                        target: grid
+                        function onCountChanged() { runnerKind.recount() }
+                    }
+                    title: runnerKind.kind === "answer" ? i18n("Answer") : runnerGroup ? runnerGroup.name : ""
+                    trailing: runnerKind.kind === "answer" ? "" : grid.count + ""
                     cellWidth: runnerKind.kind === "answer" ? width : Math.floor(width / Math.max(1, Math.floor(width / page.rowWidth)))
                     cellHeight: Kirigami.Units.gridUnit * (runnerKind.kind === "answer" ? 3.8 : 3.2)
                     model: runnerGroup
                     delegate: KickerRow {
                         id: runnerRow
                         emphasize: runnerKind.kind === "answer"
-                        trailing: runnerKind.kind === "answer" ? i18n("Enter copies") : ""
+                        subtitle: runnerKind.kind === "answer" ? page.term + " =" : (model.description || "")
+                        trailing: runnerKind.kind === "answer" ? i18n("Enter copies the result") : ""
                         function activate() {
                             if (runnerKind.kind === "answer") {
                                 launcherData.copyText(model.display || "")
@@ -552,8 +569,14 @@ PopScroll {
                         }
                     }
                 }
-                onItemAdded: Qt.callLater(page.rebuildSections)
-                onItemRemoved: Qt.callLater(page.rebuildSections)
+                onItemAdded: {
+                    runnerKind.recount()
+                    Qt.callLater(page.rebuildSections)
+                }
+                onItemRemoved: {
+                    runnerKind.recount()
+                    Qt.callLater(page.rebuildSections)
+                }
             }
         }
     }
@@ -562,12 +585,15 @@ PopScroll {
         id: slots
         model: page.order
         delegate: Loader {
+            id: slot
             required property string modelData
             Layout.fillWidth: true
-            visible: item !== null && item.visible
+            Layout.preferredHeight: item && item.hasContent ? item.implicitHeight : 0
+            visible: item !== null && item.hasContent
             active: modelData !== "apps" || page.appGroup !== null
             sourceComponent: modelData === "apps" ? appsSlot : modelData === "games" ? gamesSlot : modelData === "friends" ? friendsSlot : runnerSlot
             onLoaded: {
+                item.width = Qt.binding(() => slot.width)
                 if (sourceComponent === runnerSlot)
                     item.kind = Qt.binding(() => modelData)
                 Qt.callLater(page.rebuildSections)
@@ -608,6 +634,26 @@ PopScroll {
                 launcher.select(grid, index)
                 openMenu()
             }
+        }
+    }
+
+    RowLayout {
+        visible: page.totalResults === 0 && page.term !== "" && (launcherData.runner.querying || (launcherData.packagesBusy && page.showPackages))
+        Layout.fillWidth: true
+        Layout.topMargin: Kirigami.Units.gridUnit * 2
+        spacing: Kirigami.Units.largeSpacing
+        Kirigami.Icon {
+            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+            Layout.preferredHeight: Layout.preferredWidth
+            source: "search-symbolic"
+            color: launcher.ink
+            isMask: true
+            opacity: 0.4
+        }
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            text: launcherData.packagesBusy && page.showPackages ? i18n("Nothing here yet — still checking files and Shelly packages…") : i18n("Searching…")
+            opacity: 0.55
         }
     }
 
