@@ -50,13 +50,13 @@ MouseArea {
         height: Math.round(compact.thickness * 0.34)
         width: height
         radius: height / 2
-        color: "#43a047"
+        color: Kirigami.Theme.textColor
         border.width: 1.5
         border.color: Kirigami.Theme.backgroundColor
         PlasmaComponents.Label {
             anchors.centerIn: parent
             text: root.friendsPlaying > 9 ? "9+" : root.friendsPlaying
-            color: "white"
+            color: Kirigami.Theme.backgroundColor
             font.weight: Font.Bold
             font.pixelSize: Math.round(parent.height * (root.friendsPlaying > 9 ? 0.5 : 0.66))
         }

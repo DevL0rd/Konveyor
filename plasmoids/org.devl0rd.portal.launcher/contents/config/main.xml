@@ -28,6 +28,7 @@
         <entry name="searchPackages" type="Bool"><default>true</default></entry>
         <entry name="searchWindows" type="Bool"><default>true</default></entry>
         <entry name="appsView" type="String"><default>grid</default></entry>
+        <entry name="appsCategory" type="String"><default></default></entry>
         <entry name="learnedRanking" type="String"><default></default></entry>
         <entry name="searchOrder" type="String"><default>answer,apps,games,windows,settings,files,friends,commands,other</default></entry>
     </group>

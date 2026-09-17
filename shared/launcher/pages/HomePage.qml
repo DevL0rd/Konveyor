@@ -32,12 +32,13 @@ PopScroll {
         Layout.fillWidth: true
         Layout.bottomMargin: Kirigami.Units.smallSpacing
         Kirigami.Heading {
-            level: 1
+            level: launcher.compact ? 2 : 1
             text: page.greeting
             elide: Text.ElideRight
             Layout.fillWidth: true
         }
         PlasmaComponents.Label {
+            visible: !launcher.compact
             text: page.today
             opacity: 0.6
         }

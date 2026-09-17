@@ -86,6 +86,7 @@ ColumnLayout {
         }
 
         PlasmaComponents.Label {
+            visible: !launcher.compact
             text: i18np("%1 game", "%1 games", page.shown.length)
             opacity: 0.5
         }
@@ -94,6 +95,7 @@ ColumnLayout {
 
         Segment {
             id: sortButton
+            iconOnly: launcher.compact
             text: i18n("Sort: %1", (page.sortDefs.find(entry => entry.key === page.sort) || page.sortDefs[0]).label)
             iconName: "view-sort-symbolic"
             onClicked: sortMenu.popup(sortButton, 0, sortButton.height)
@@ -120,7 +122,7 @@ ColumnLayout {
         }
 
         SegmentGroup {
-            visible: page.view !== "list"
+            visible: page.view !== "list" && !launcher.compact
             Segment {
                 iconOnly: true
                 iconName: "zoom-out-symbolic"

@@ -15,6 +15,27 @@ ColumnLayout {
     readonly property string sort: Plasmoid.configuration.appsSort
     readonly property bool listView: Plasmoid.configuration.appsView === "list"
     property int categoryRow: 0
+    onCategoryRowChanged: {
+        const label = launcherData.rootModel.labelForRow(categoryRow)
+        if (label !== "" && label !== Plasmoid.configuration.appsCategory)
+            Plasmoid.configuration.appsCategory = label
+    }
+    function restoreCategory() {
+        const wanted = Plasmoid.configuration.appsCategory
+        if (wanted === "")
+            return
+        for (let row = 0; row < launcherData.rootModel.count; ++row) {
+            if (launcherData.rootModel.labelForRow(row) === wanted) {
+                categoryRow = row
+                return
+            }
+        }
+    }
+    Connections {
+        target: launcherData.rootModel
+        function onCountChanged() { page.restoreCategory() }
+    }
+    Component.onCompleted: restoreCategory()
     readonly property var categoryModel: launcherData.rootModel.count > categoryRow ? launcherData.rootModel.modelForRow(categoryRow) : null
     property var letters: []
 
@@ -243,12 +264,14 @@ ColumnLayout {
         }
 
         PlasmaComponents.Label {
+            visible: !launcher.compact
             text: i18np("%1 app", "%1 apps", page.activeGroup.count)
             opacity: 0.5
         }
 
         Segment {
             id: sortButton
+            iconOnly: launcher.compact
             text: i18n("Sort: %1", (page.sortDefs.find(entry => entry.key === page.sort) || page.sortDefs[0]).label)
             iconName: "view-sort-symbolic"
             onClicked: sortMenu.popup(sortButton, 0, sortButton.height)
@@ -275,6 +298,7 @@ ColumnLayout {
         }
 
         SegmentGroup {
+            visible: !launcher.compact
             Segment {
                 iconOnly: true
                 iconName: "zoom-out-symbolic"

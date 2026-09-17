@@ -484,20 +484,21 @@ FocusScope {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.largeSpacing
-            spacing: Kirigami.Units.largeSpacing * 1.5
+            anchors.margins: launcher.compact ? Kirigami.Units.smallSpacing * 1.5 : Kirigami.Units.largeSpacing
+            spacing: launcher.compact ? Kirigami.Units.largeSpacing : Kirigami.Units.largeSpacing * 1.5
             scale: 0.97 + 0.03 * launcher.progress
             transformOrigin: Item.Top
 
             Item {
                 id: topBar
                 Layout.fillWidth: true
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 2.6
+                Layout.preferredHeight: Kirigami.Units.gridUnit * (launcher.compact ? 2.2 : 2.6)
                 readonly property real gap: Kirigami.Units.largeSpacing * 2
                 readonly property real sideWidth: Math.max(Kirigami.Units.gridUnit * 13, statusRow.implicitWidth)
 
                 RowLayout {
                     id: identity
+                    visible: !launcher.compact
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     width: topBar.sideWidth
@@ -529,8 +530,10 @@ FocusScope {
 
                 Rectangle {
                     id: searchBox
-                    anchors.centerIn: parent
-                    width: Math.max(Kirigami.Units.gridUnit * 16, Math.min(Kirigami.Units.gridUnit * 44, parent.width - (topBar.sideWidth + topBar.gap) * 2))
+                    anchors.centerIn: launcher.compact ? undefined : parent
+                    anchors.verticalCenter: launcher.compact ? parent.verticalCenter : undefined
+                    x: 0
+                    width: launcher.compact ? parent.width - statusRow.implicitWidth - Kirigami.Units.largeSpacing : Math.max(Kirigami.Units.gridUnit * 16, Math.min(Kirigami.Units.gridUnit * 44, parent.width - (topBar.sideWidth + topBar.gap) * 2))
                     height: parent.height
                     radius: height / 2
                     color: field.activeFocus ? Qt.alpha(launcher.ink, 0.09) : launcher.well
@@ -654,10 +657,11 @@ FocusScope {
                     spacing: Kirigami.Units.smallSpacing
 
                     FriendsPill {
-                        Layout.rightMargin: Kirigami.Units.largeSpacing
+                        Layout.rightMargin: launcher.compact ? 0 : Kirigami.Units.largeSpacing
                     }
 
                     ColumnLayout {
+                        visible: !launcher.compact
                         spacing: 0
                         Layout.rightMargin: Kirigami.Units.largeSpacing
                         PlasmaComponents.Label {
@@ -686,6 +690,7 @@ FocusScope {
                     }
                     PlasmaComponents.ToolButton {
                         id: powerButton
+                        visible: !launcher.compact
                         icon.name: "system-shutdown-symbolic"
                         display: PlasmaComponents.AbstractButton.IconOnly
                         text: i18n("Power and session")
@@ -706,8 +711,8 @@ FocusScope {
                 ColumnLayout {
                     z: 2
                     Layout.fillHeight: true
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 4.4
-                    Layout.maximumWidth: Kirigami.Units.gridUnit * 4.4
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * (launcher.compact ? 3.6 : 4.4)
+                    Layout.maximumWidth: Layout.preferredWidth
                     spacing: Kirigami.Units.smallSpacing
 
                     Repeater {
@@ -719,9 +724,14 @@ FocusScope {
                             readonly property bool current: !launcher.searching && launcher.page === modelData.key
                             readonly property int badge: modelData.key === "friends" ? launcherData.friendsInGame : 0
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3.4
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * (launcher.compact ? 3 : 3.4)
                             hoverEnabled: true
-                            onClicked: launcher.goToPage(modelData.key)
+                            property bool hintDismissed: false
+                            onClicked: {
+                                hintDismissed = true
+                                launcher.goToPage(modelData.key)
+                            }
+                            onExited: hintDismissed = false
 
                             Rectangle {
                                 anchors.fill: parent
@@ -774,7 +784,7 @@ FocusScope {
                             }
                             Rectangle {
                                 id: railHint
-                                readonly property bool wanted: railItem.containsMouse && !hintDelay.running
+                                readonly property bool wanted: railItem.containsMouse && !hintDelay.running && !railItem.hintDismissed
                                 visible: opacity > 0
                                 opacity: wanted ? 1 : 0
                                 Behavior on opacity { NumberAnimation { duration: 120 } }
@@ -847,6 +857,8 @@ FocusScope {
                 Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.preferredWidth: 0
+                    Layout.minimumWidth: 0
 
                     Repeater {
                         id: pageLoaders
@@ -874,6 +886,7 @@ FocusScope {
             }
 
             Rectangle {
+                visible: !launcher.compact
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
                 color: launcher.hairline
@@ -881,6 +894,7 @@ FocusScope {
             }
 
             RowLayout {
+                visible: !launcher.compact
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.largeSpacing * 2
                 opacity: launcher.contentProgress

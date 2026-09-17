@@ -82,7 +82,7 @@ MouseArea {
         }
 
         PlasmaComponents.Label {
-            text: pill.inGame > 0 ? i18n("%1 in game · %2 online", pill.inGame, pill.online) : i18np("%1 online", "%1 online", pill.online)
+            text: launcher.compact ? (pill.inGame > 0 ? pill.inGame + "" : pill.online + "") : pill.inGame > 0 ? i18n("%1 in game · %2 online", pill.inGame, pill.online) : i18np("%1 online", "%1 online", pill.online)
             font.pointSize: Kirigami.Theme.smallFont.pointSize
             font.weight: Font.DemiBold
             opacity: 0.85
