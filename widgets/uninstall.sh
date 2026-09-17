@@ -12,10 +12,10 @@ PLASMOIDS=(
     org.devl0rd.routermon.clients org.devl0rd.routermon.speedtest org.devl0rd.routermon.panel
     org.devl0rd.logmon.journal
     org.devl0rd.portal org.devl0rd.portal.friends org.devl0rd.portal.launcher
-    dev.devl0rd.keyboardtoggle dev.devl0rd.screenrotate
+    dev.devl0rd.screenrotate
 )
 COMMANDS=(sysmon-collect procmon-collect procmon-mangohud routermon-collect routermon-ctl routermon-speedtest logmon-collect
-    portal-games portal-packages portal-launcher portal-friends linux-plasma-keyboard-toggle linux-plasma-screen-rotate)
+    portal-games portal-packages portal-launcher portal-friends linux-plasma-screen-rotate)
 RUNTIME_DIRS=(Linux-System-Monitor Linux-Process-Mon Linux-Router-Monitor Linux-Log-Monitor Plasma-App-Portal)
 
 [[ $EUID -ne 0 ]] || die "run the widget uninstaller as your normal user"

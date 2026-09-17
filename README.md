@@ -306,7 +306,7 @@ Speeds, WiFi radios, every device, AdGuard Home and a speed test for ASUS router
   </tr>
   <tr>
     <td valign="top"><img alt="Steam Friends popup" src="docs/media/widgets/steam-friends.gif"><p align="center"><b>Steam Friends</b> — online, in game, join and chat</p></td>
-    <td valign="top" align="center"><br><img alt="Keyboard Toggle and Screen Rotate buttons" src="docs/media/widgets/toggles.png"><p align="center"><b>Keyboard Toggle</b> and <b>Screen Rotate</b> — one tap opens or closes the on-screen keyboard, or gives the screen a quarter turn</p></td>
+    <td valign="top" align="center"><br><img alt="Screen Rotate button" src="docs/media/widgets/screen-rotate.png"><p align="center"><b>Screen Rotate</b> — one tap gives the screen a quarter turn</p></td>
   </tr>
 </table>
 

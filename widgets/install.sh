@@ -56,7 +56,6 @@ link_commands() {
     link_command portals/bin/portal-packages
     link_command portals/bin/portal-launcher
     link_command portals/bin/portal-friends
-    install -m755 "$WIDGETS_DIR/keyboard-toggle/bin/linux-plasma-keyboard-toggle" "$BIN_DIR/linux-plasma-keyboard-toggle"
     install -m755 "$WIDGETS_DIR/screen-rotate/bin/linux-plasma-screen-rotate" "$BIN_DIR/linux-plasma-screen-rotate"
 }
 
@@ -69,6 +68,7 @@ create_configs() {
 
 main() {
     check_commands
+    remove_keyboard_toggle
     link_commands
     create_configs
     say "Letting MangoHud report frame rates to Process Monitor"

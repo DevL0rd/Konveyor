@@ -160,7 +160,6 @@ install_plasmoids() {
         esac
         install_plasmoid "$plasmoid"
     done
-    install_plasmoid "$root/keyboard-toggle/plasmoid"
     install_plasmoid "$root/screen-rotate/plasmoid"
 }
 
@@ -188,6 +187,14 @@ DESKTOP
     busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel doRegister as 4 "$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games" >/dev/null
     busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setShortcut asaiu 4 "$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games" 1 "$meta_g" 2 >/dev/null
     say "Meta+G opens the Kontrol Panel on Games"
+}
+
+remove_keyboard_toggle() {
+    if kpackagetool6 -t Plasma/Applet -r dev.devl0rd.keyboardtoggle >/dev/null 2>&1; then
+        say "Removed the Keyboard Toggle widget; it now lives in KBoard"
+    fi
+    rm -f "$BIN_DIR/linux-plasma-keyboard-toggle"
+    rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/linux-plasma-keyboard-toggle"
 }
 
 take_over_launcher_and_restart() {
