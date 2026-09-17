@@ -1,0 +1,6 @@
+{
+  "_comment": "Copy this to ~/.config/Plasma-App-Portal/config.json and paste your key. Get a free key at https://steamcommunity.com/dev/apikey (any domain works in the form). Your SteamID is auto-detected from the Steam client; only set it to override.",
+  "steam_api_key": "PASTE_YOUR_STEAM_WEB_API_KEY_HERE",
+  "steamid": "",
+  "poll_interval": 10
+}

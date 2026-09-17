@@ -1,0 +1,446 @@
+#!/usr/bin/env python3
+"""
+Plasma-App-Portal :: games backend.
+
+Enumerates installed *games* from the freedesktop menu (any .desktop with the
+`Game` category) -- the same entries the app menu shows, so the list stays in
+sync and reflects whatever is actually installed. For each game it resolves art:
+
+  * Steam games  -> the appid is in the .desktop Exec (steam://rungameid/<id>)
+                    or Icon (steam_icon_<id>); art comes from Steam's local
+                    library cache (library_600x900 / hero / logo / header).
+  * Other games  -> no Steam art; the widget shows the app icon on a placeholder
+                    card. Users can attach custom art (see --set-art).
+
+Usage:
+  portal-games                     print the games library as JSON
+  portal-games --set-art ID FILE   set custom portrait art for a game
+  portal-games --reset-art ID      drop the custom art override
+  portal-games --track KEY         record KEY (app url / game id) as just-launched
+  portal-games --track-app ID      record an app by desktop id under its file:// url, like App Portal does
+  portal-games --usage             print the usage map (key -> last-launched epoch)
+  portal-games --hidden            print the list of hidden desktop ids
+  portal-games --hide ID           hide a desktop id from App Portal and the launcher
+  portal-games --unhide ID         show it again
+  portal-games --folders           print the pinned-app folders
+  portal-games --folder-create FOLDER NAME ID ID...   make a folder from pinned apps (takes them out of other folders)
+  portal-games --folder-add FOLDER ID          put a pinned app into a folder
+  portal-games --folder-remove ID              take an app out of its folder (empty folders are deleted)
+  portal-games --folder-rename FOLDER NAME     rename a folder
+  portal-games --folder-delete FOLDER          dissolve a folder, keeping its apps pinned
+"""
+import json
+import os
+import re
+import shutil
+import sqlite3
+import subprocess
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+XDG_DATA_HOME = os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local/share"))
+XDG_DATA_DIRS = os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")
+
+APP_DIRS = [os.path.join(XDG_DATA_HOME, "applications")] + \
+           [os.path.join(d, "applications") for d in XDG_DATA_DIRS] + \
+           [os.path.join(XDG_DATA_HOME, "flatpak/exports/share/applications"),
+            "/var/lib/flatpak/exports/share/applications"]
+
+STEAM_ROOTS = [os.path.join(HOME, ".local/share/Steam"),
+               os.path.join(HOME, ".steam/steam"),
+               os.path.join(HOME, ".var/app/com.valvesoftware.Steam/data/Steam")]
+
+STATE_DIR = os.path.join(XDG_DATA_HOME, "Plasma-App-Portal")
+ART_DIR = os.path.join(STATE_DIR, "art")
+OVERRIDES = os.path.join(STATE_DIR, "overrides.json")
+USAGE = os.path.join(STATE_DIR, "usage.json")
+HIDDEN = os.path.join(STATE_DIR, "hidden.json")
+FOLDERS = os.path.join(STATE_DIR, "folders.json")    # key -> last-launched epoch (apps + games)
+
+FIELD_CODES = re.compile(r"%[uUfFickdDnNvm]")
+APPID_RE = re.compile(r"rungameid/(\d+)|steam_app_(\d+)|steam_icon_(\d+)|/(\d+)/")
+
+
+def parse_desktop(path):
+    """Minimal [Desktop Entry] parser -> dict (first section only)."""
+    out, in_entry = {}, False
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.rstrip("\n")
+                if line.startswith("["):
+                    in_entry = line.strip() == "[Desktop Entry]"
+                    continue
+                if in_entry and "=" in line and not line.startswith("#"):
+                    k, _, v = line.partition("=")
+                    out.setdefault(k.strip(), v.strip())   # keep first (un-localized)
+    except OSError:
+        return None
+    return out
+
+
+def steam_appid(entry, desktop_id):
+    for blob in (entry.get("Exec", ""), entry.get("Icon", ""), desktop_id):
+        m = APPID_RE.search(blob)
+        if m:
+            return next(g for g in m.groups() if g)
+    return None
+
+
+def steam_art(appid):
+    """Return {portrait,hero,logo,header} for an appid.
+
+    Steam has two on-disk layouts: older entries keep named files directly under
+    librarycache/<appid>/ (library_600x900.jpg, ...); newer ones nest them one
+    hash-dir deep (<appid>/<hash>/library_600x900.jpg). We scan both and match by
+    filename prefix, so it works regardless of Steam version.
+    """
+    art = {}
+    for root in STEAM_ROOTS:
+        base = os.path.join(root, "appcache/librarycache", appid)
+        if not os.path.isdir(base):
+            continue
+        files = []
+        try:
+            for entry in os.listdir(base):
+                p = os.path.join(base, entry)
+                if os.path.isfile(p):
+                    files.append(p)
+                elif os.path.isdir(p):
+                    files += [os.path.join(p, s) for s in os.listdir(p)
+                              if os.path.isfile(os.path.join(p, s))]
+        except OSError:
+            continue
+
+        def pick(pred):
+            for f in files:
+                if pred(os.path.basename(f).lower()):
+                    return f
+            return None
+
+        for key, pred in (("portrait", lambda n: n.startswith("library_600x900")),
+                          ("hero", lambda n: n.startswith("library_hero") and "blur" not in n),
+                          ("logo", lambda n: n.startswith("logo.")),
+                          ("header", lambda n: n.startswith("library_header") or n.startswith("header."))):
+            f = pick(pred)
+            if f:
+                art[key] = f
+        if art:
+            break
+    return art
+
+
+def _load_json(path):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def load_overrides():
+    return _load_json(OVERRIDES)
+
+
+def load_usage():
+    return _load_json(USAGE)
+
+
+def collect():
+    overrides = load_overrides()
+    usage = load_usage()
+    seen, games = set(), []
+    for d in APP_DIRS:
+        if not os.path.isdir(d):
+            continue
+        for name in os.listdir(d):
+            if not name.endswith(".desktop") or name in seen:
+                continue
+            entry = parse_desktop(os.path.join(d, name))
+            if not entry or entry.get("Type", "Application") != "Application":
+                continue
+            cats = entry.get("Categories", "")
+            if "Game" not in cats.split(";"):
+                continue
+            if entry.get("NoDisplay", "").lower() == "true" or entry.get("Hidden", "").lower() == "true":
+                continue
+            seen.add(name)
+            desktop_id = name[:-len(".desktop")]
+            appid = steam_appid(entry, desktop_id)
+            art = steam_art(appid) if appid else {}
+            ov = overrides.get(desktop_id)
+            if ov and os.path.isfile(ov):
+                art = dict(art, portrait=ov)
+            launch = FIELD_CODES.sub("", entry.get("Exec", "")).strip()
+            games.append({
+                "id": desktop_id,
+                "name": entry.get("Name", desktop_id),
+                "icon": entry.get("Icon", ""),
+                "appid": appid or "",
+                "launch": launch,
+                "portrait": art.get("portrait", ""),
+                "hero": art.get("hero", ""),
+                "logo": art.get("logo", ""),
+                "header": art.get("header", ""),
+                "has_art": "portrait" in art,
+                "custom_art": bool(ov and os.path.isfile(ov)),
+                "last": usage.get(desktop_id, 0),
+            })
+    games.sort(key=lambda g: g["name"].lower())
+    return {"generated": time.time(), "count": len(games), "games": games}
+
+
+FAV_AGENT = "org.kde.plasma.favorites.applications"
+KACT_DB = os.path.join(XDG_DATA_HOME, "kactivitymanagerd/resources/database")
+
+
+def resolve_desktop(desktop_id):
+    for d in APP_DIRS:
+        p = os.path.join(d, desktop_id)
+        if os.path.isfile(p):
+            return p, parse_desktop(p)
+    return None, None
+
+
+def resource_to_id(res):
+    """Map a KActivities favourite resource to a .desktop id."""
+    if res.startswith("applications:"):
+        return res[len("applications:"):]
+    if res.endswith(".desktop"):
+        return res
+    if res == "preferred://browser":
+        try:
+            out = subprocess.run(["xdg-settings", "get", "default-web-browser"],
+                                 capture_output=True, text=True, timeout=4).stdout.strip()
+            return out or None
+        except Exception:
+            return None
+    return None
+
+
+def favorites():
+    out, seen = [], set()
+    rows = []
+    if os.path.isfile(KACT_DB):
+        try:
+            c = sqlite3.connect("file:%s?mode=ro" % KACT_DB, uri=True)
+            rows = c.execute(
+                "SELECT targettedResource FROM ResourceLink WHERE initiatingAgent=?",
+                (FAV_AGENT,)).fetchall()
+            c.close()
+        except sqlite3.Error:
+            rows = []
+    for (res,) in rows:
+        res = str(res)
+        if res in seen:
+            continue
+        seen.add(res)
+        did = resource_to_id(res)
+        entry = path = None
+        if did and did.endswith(".desktop"):
+            path, entry = resolve_desktop(did)
+        # like the start menu: hide favourites whose app isn't installed (couldn't
+        # resolve a .desktop). NoDisplay apps that ARE installed still show (e.g. the
+        # default browser favourited via preferred://browser).
+        if not entry:
+            continue
+        out.append({"resource": res, "id": did,
+                    "name": entry.get("Name", did),
+                    "icon": entry.get("Icon", ""),
+                    "launch": FIELD_CODES.sub("", entry.get("Exec", "")).strip()})
+    out.sort(key=lambda f: f["name"].lower())
+    return {"favorites": out}
+
+
+def fav_link(resource, link):
+    # match the format Kickoff stores (applications:<id>) for plain desktop ids
+    if resource.endswith(".desktop") and "://" not in resource and not resource.startswith("applications:"):
+        resource = "applications:" + resource
+    method = "LinkResourceToActivity" if link else "UnlinkResourceFromActivity"
+    try:
+        subprocess.run(["gdbus", "call", "--session", "--dest", "org.kde.ActivityManager",
+                        "--object-path", "/ActivityManager/Resources/Linking",
+                        "--method", "org.kde.ActivityManager.ResourcesLinking." + method,
+                        FAV_AGENT, resource, ":global"],
+                       capture_output=True, timeout=6)
+        return 0
+    except Exception as e:
+        sys.stderr.write("dbus call failed: %s\n" % e)
+        return 1
+
+
+def track(key):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    usage = load_usage()
+    usage[key] = time.time()
+    with open(USAGE, "w") as f:
+        json.dump(usage, f)
+    return 0
+
+
+def load_hidden():
+    data = _load_json(HIDDEN)
+    return sorted(data) if isinstance(data, list) else []
+
+
+def set_hidden(desktop_id, hidden):
+    key = desktop_id[len("applications:"):] if desktop_id.startswith("applications:") else desktop_id
+    key = key[:-len(".desktop")] if key.endswith(".desktop") else key
+    current = set(load_hidden())
+    if hidden:
+        current.add(key)
+    else:
+        current.discard(key)
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = HIDDEN + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(sorted(current), f)
+    os.replace(tmp, HIDDEN)
+    return 0
+
+
+def load_folders():
+    data = _load_json(FOLDERS)
+    folders = []
+    for entry in data if isinstance(data, list) else []:
+        if isinstance(entry, dict) and entry.get("id") and isinstance(entry.get("apps"), list):
+            folders.append({"id": str(entry["id"]), "name": str(entry.get("name") or ""),
+                            "apps": [str(app) for app in entry["apps"] if app]})
+    return folders
+
+
+def save_folders(folders):
+    folders = [folder for folder in folders if folder["apps"]]
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = FOLDERS + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(folders, f)
+    os.replace(tmp, FOLDERS)
+    return 0
+
+
+def take_out(folders, app_ids):
+    for folder in folders:
+        folder["apps"] = [app for app in folder["apps"] if app not in app_ids]
+
+
+def folder_create(folder_id, name, app_ids):
+    folders = [folder for folder in load_folders() if folder["id"] != folder_id]
+    take_out(folders, app_ids)
+    folders.append({"id": folder_id, "name": name, "apps": list(dict.fromkeys(app_ids))})
+    return save_folders(folders)
+
+
+def folder_add(folder_id, app_id):
+    folders = load_folders()
+    target = next((folder for folder in folders if folder["id"] == folder_id), None)
+    if target is None:
+        sys.stderr.write("no such folder: %s\n" % folder_id)
+        return 1
+    take_out(folders, [app_id])
+    target["apps"].append(app_id)
+    return save_folders(folders)
+
+
+def folder_remove(app_id):
+    folders = load_folders()
+    take_out(folders, [app_id])
+    return save_folders(folders)
+
+
+def folder_rename(folder_id, name):
+    folders = load_folders()
+    for folder in folders:
+        if folder["id"] == folder_id:
+            folder["name"] = name
+    return save_folders(folders)
+
+
+def folder_delete(folder_id):
+    return save_folders([folder for folder in load_folders() if folder["id"] != folder_id])
+
+
+def set_art(desktop_id, src):
+    if not os.path.isfile(src):
+        sys.stderr.write("no such file: %s\n" % src)
+        return 1
+    os.makedirs(ART_DIR, exist_ok=True)
+    ext = os.path.splitext(src)[1] or ".jpg"
+    dst = os.path.join(ART_DIR, desktop_id + ext)
+    shutil.copyfile(src, dst)
+    ov = load_overrides()
+    ov[desktop_id] = dst
+    with open(OVERRIDES, "w") as f:
+        json.dump(ov, f, indent=2)
+    print(dst)
+    return 0
+
+
+def reset_art(desktop_id):
+    ov = load_overrides()
+    p = ov.pop(desktop_id, None)
+    if p and os.path.isfile(p) and os.path.dirname(p) == ART_DIR:
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+    with open(OVERRIDES, "w") as f:
+        json.dump(ov, f, indent=2)
+    return 0
+
+
+def main():
+    a = sys.argv[1:]
+    if not a:
+        json.dump(collect(), sys.stdout, separators=(",", ":"))
+        return 0
+    if a[0] == "--set-art" and len(a) == 3:
+        return set_art(a[1], a[2])
+    if a[0] == "--reset-art" and len(a) == 2:
+        return reset_art(a[1])
+    if a[0] == "--track" and len(a) == 2:
+        return track(a[1])
+    if a[0] == "--track-app" and len(a) == 2:
+        did = a[1] if a[1].endswith(".desktop") else a[1] + ".desktop"
+        path, _ = resolve_desktop(did)
+        if not path:
+            sys.stderr.write("no such application: %s\n" % did)
+            return 1
+        return track("file://" + path)
+    if a[0] == "--usage":
+        json.dump(load_usage(), sys.stdout, separators=(",", ":"))
+        return 0
+    if a[0] == "--hidden":
+        json.dump(load_hidden(), sys.stdout)
+        return 0
+    if a[0] == "--hide" and len(a) == 2:
+        return set_hidden(a[1], True)
+    if a[0] == "--unhide" and len(a) == 2:
+        return set_hidden(a[1], False)
+    if a[0] == "--folders":
+        json.dump(load_folders(), sys.stdout)
+        return 0
+    if a[0] == "--folder-create" and len(a) >= 5:
+        return folder_create(a[1], a[2], a[3:])
+    if a[0] == "--folder-add" and len(a) == 3:
+        return folder_add(a[1], a[2])
+    if a[0] == "--folder-remove" and len(a) == 2:
+        return folder_remove(a[1])
+    if a[0] == "--folder-rename" and len(a) == 3:
+        return folder_rename(a[1], a[2])
+    if a[0] == "--folder-delete" and len(a) == 2:
+        return folder_delete(a[1])
+    if a[0] == "--favorites":
+        json.dump(favorites(), sys.stdout, separators=(",", ":"))
+        return 0
+    if a[0] == "--fav-add" and len(a) == 2:
+        return fav_link(a[1], True)
+    if a[0] == "--fav-remove" and len(a) == 2:
+        return fav_link(a[1], False)
+    sys.stderr.write(__doc__)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,17 @@
+{
+    "KPlugin": {
+        "Id": "org.devl0rd.portal",
+        "Name": "App Portal",
+        "Description": "App launcher with category filtering and a rich, animated games view with Steam art",
+        "Icon": "applications-all",
+        "Authors": [
+            { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
+        ],
+        "Category": "Application Launchers",
+        "License": "MIT",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Linux-Plasma-Portals"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

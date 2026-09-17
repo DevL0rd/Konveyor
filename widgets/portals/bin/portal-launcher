@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""
+Plasma-App-Portal :: launcher requests.
+
+Asks the running Portal Launcher to open a page. The launcher watches the request
+file, so this returns immediately and nothing polls.
+
+Usage:
+  portal-launcher PAGE     open the launcher on PAGE (home, apps, games, files, friends, system);
+                           if it is already open on PAGE it closes
+"""
+import json
+import os
+import sys
+import time
+
+PAGES = ("home", "apps", "games", "files", "friends", "system")
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in PAGES:
+        sys.stderr.write(__doc__)
+        return 2
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
+    folder = os.path.join(runtime, "Plasma-App-Portal")
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, "launcher-request.json")
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump({"page": sys.argv[1], "id": time.time_ns()}, f)
+    os.replace(tmp, path)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

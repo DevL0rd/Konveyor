@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+    <group name="General">
+        <entry name="icon" type="String"><default>start-here-kde-plasma-symbolic</default></entry>
+        <entry name="label" type="String"><default></default></entry>
+        <entry name="showLabel" type="Bool"><default>false</default></entry>
+        <entry name="cardWidth" type="Int"><default>90</default></entry>
+        <entry name="cardHeight" type="Int"><default>56</default></entry>
+        <entry name="dimStrength" type="Double"><default>0.55</default></entry>
+        <entry name="defaultPage" type="String"><default>home</default></entry>
+        <entry name="tileSize" type="Int"><default>52</default></entry>
+        <entry name="showRecentApps" type="Bool"><default>true</default></entry>
+        <entry name="showRecentFiles" type="Bool"><default>true</default></entry>
+        <entry name="showGames" type="Bool"><default>true</default></entry>
+        <entry name="showFriends" type="Bool"><default>true</default></entry>
+        <entry name="gamesView" type="String"><default>grid</default></entry>
+        <entry name="gamesSort" type="String"><default>recent</default></entry>
+        <entry name="gameCardSize" type="Int"><default>10</default></entry>
+        <entry name="appsSort" type="String"><default>name</default></entry>
+        <entry name="searchFiles" type="Bool"><default>true</default></entry>
+        <entry name="searchSettings" type="Bool"><default>true</default></entry>
+        <entry name="searchCalculator" type="Bool"><default>true</default></entry>
+        <entry name="searchCommands" type="Bool"><default>true</default></entry>
+        <entry name="searchWeb" type="Bool"><default>false</default></entry>
+        <entry name="searchPackages" type="Bool"><default>true</default></entry>
+        <entry name="searchWindows" type="Bool"><default>true</default></entry>
+        <entry name="appsView" type="String"><default>grid</default></entry>
+        <entry name="appsCategory" type="String"><default></default></entry>
+        <entry name="learnedRanking" type="String"><default></default></entry>
+        <entry name="searchOrder" type="String"><default>answer,apps,games,windows,settings,files,friends,commands,other</default></entry>
+    </group>
+</kcfg>

@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+"""
+Plasma-App-Portal :: friends presence collector.
+
+Asks the Steam Web API who your friends are and what they're playing, then
+groups them by appid so the Games view can badge each card and list the
+friends in a right-click menu. Needs a free Steam Web API key in the config
+(see config.example.json); your SteamID is auto-detected from the Steam client
+but can be overridden in the config.
+
+Privacy note: the Web API only reports friends whose "game details" are public.
+"Join Game" is offered for everyone as a best-effort steam:// call -- the real
+join/lobby token isn't exposed over the Web API, so it may not connect for
+every game.
+
+Modes:
+  portal-friends --check      one poll, print SAFE counts (never the key)
+  portal-friends --snapshot   print the cached JSON snapshot (for the widget)
+  portal-friends --serve      resident: refresh the snapshot every interval
+  portal-friends --set-key K  write the Steam Web API key into the config
+"""
+import os, re, sys, json, time, urllib.parse, urllib.request, urllib.error
+
+HOME = os.path.expanduser("~")
+APP = "Plasma-App-Portal"
+CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
+SNAP = os.path.join(RUNDIR, "friends.json")
+STEAM_ROOTS = [os.path.join(HOME, ".local/share/Steam"),
+               os.path.join(HOME, ".steam/steam")]
+API = "https://api.steampowered.com"
+HEADER_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache")), APP, "headers.json")
+
+
+def load_headers():
+    try:
+        with open(HEADER_CACHE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def resolve_headers(appids):
+    cache = load_headers()
+    missing = [appid for appid in appids if appid and appid not in cache]
+    for appid in missing[:8]:
+        url = f"https://store.steampowered.com/api/appdetails?appids={appid}&filters=basic"
+        try:
+            with urllib.request.urlopen(url, timeout=6) as r:
+                body = json.load(r)
+            info = body.get(appid, {})
+            cache[appid] = (info.get("data") or {}).get("header_image", "") if info.get("success") else ""
+        except Exception:
+            continue
+    if missing:
+        os.makedirs(os.path.dirname(HEADER_CACHE), exist_ok=True)
+        tmp = HEADER_CACHE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(cache, f)
+        os.replace(tmp, HEADER_CACHE)
+    return cache
+
+
+# ---------------------------------------------------------------- config / ids
+def load_config():
+    try:
+        with open(CONFIG) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def detect_steamid():
+    """Most-recent SteamID64 from the Steam client's loginusers.vdf."""
+    for root in STEAM_ROOTS:
+        p = os.path.join(root, "config/loginusers.vdf")
+        if not os.path.exists(p):
+            continue
+        txt = open(p, encoding="utf-8", errors="ignore").read()
+        best = None
+        for m in re.finditer(r'"(7656\d{13})"\s*\{(.*?)\}', txt, re.S):
+            sid, body = m.group(1), m.group(2)
+            best = best or sid
+            if '"MostRecent"' in body and '"1"' in body:
+                return sid
+        if best:
+            return best
+    return ""
+
+
+# ---------------------------------------------------------------- steam web api
+def api(path, params, key):
+    q = urllib.parse.urlencode({**params, "key": key})
+    req = urllib.request.Request(f"{API}/{path}/?{q}",
+                                 headers={"User-Agent": "portal-friends"})
+    with urllib.request.urlopen(req, timeout=12) as r:
+        return json.load(r)
+
+
+def get_friend_ids(key, sid):
+    d = api("ISteamUser/GetFriendList/v1", {"steamid": sid, "relationship": "friend"}, key)
+    return [f["steamid"] for f in d.get("friendslist", {}).get("friends", [])]
+
+
+def get_summaries(key, ids):
+    out = []
+    for i in range(0, len(ids), 100):
+        d = api("ISteamUser/GetPlayerSummaries/v2",
+                {"steamids": ",".join(ids[i:i + 100])}, key)
+        out.extend(d.get("response", {}).get("players", []))
+    return out
+
+
+def friend_entry(p, appid):
+    sid = p.get("steamid")
+    return {
+        "steamid": sid,
+        "name": p.get("personaname", ""),
+        "avatar": p.get("avatarmedium", ""),
+        "game": p.get("gameextrainfo", ""),
+        # action links the widget menu fires via steam:// (xdg-open)
+        "profile": f"steam://url/SteamIDPage/{sid}",
+        "watch": f"steam://broadcast/watch/{sid}",
+        "message": f"steam://friends/message/{sid}",
+        # best-effort join: the real lobby token isn't on the Web API, so this
+        # may just no-op/launch for some games -- offered anyway, by request
+        "join": f"steam://joinlobby/{appid}/{sid}",
+    }
+
+
+def friend_full(p):
+    """Full per-friend record for the Steam Friends applet (online or not)."""
+    sid = p.get("steamid", "")
+    appid = str(p.get("gameid") or "")
+    # personastate: 0 offline, 1 online, 2 busy, 3 away, 4 snooze, 5/6 online
+    state = int(p.get("personastate") or 0)
+    return {
+        "steamid": sid,
+        "name": p.get("personaname", ""),
+        "avatar": p.get("avatarfull") or p.get("avatarmedium", ""),
+        "state": state,
+        "ingame": bool(appid),
+        "appid": appid,
+        "game": p.get("gameextrainfo", ""),
+        "lastlogoff": p.get("lastlogoff", 0),
+        "country": p.get("loccountrycode", ""),
+        # store-art capsule, addressable from the appid alone (no extra API call)
+        "capsule": (f"https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}"
+                    "/capsule_184x69.jpg") if appid else "",
+        # steam:// actions (and a browser profile fallback)
+        "profile": f"steam://url/SteamIDPage/{sid}",
+        "profile_web": p.get("profileurl") or f"https://steamcommunity.com/profiles/{sid}",
+        "chat": f"steam://friends/message/{sid}",
+        "watch": f"steam://broadcast/watch/{sid}",
+        "join": f"steam://joinlobby/{appid}/{sid}" if appid else "",
+    }
+
+
+def build_snapshot(cfg):
+    key = (cfg.get("steam_api_key") or "").strip()
+    if not key or "PASTE" in key:
+        return {"ts": time.time(), "ok": False, "by_appid": {},
+                "error": "no steam_api_key in config"}
+    sid = (cfg.get("steamid") or "").strip() or detect_steamid()
+    if not sid:
+        return {"ts": time.time(), "ok": False, "by_appid": {},
+                "error": "could not determine SteamID"}
+    ids = get_friend_ids(key, sid)
+    players = get_summaries(key, ids) if ids else []
+    friends = [friend_full(p) for p in players]
+    headers = resolve_headers(sorted({f["appid"] for f in friends if f["appid"]}))
+    for f in friends:
+        f["header"] = headers.get(f["appid"], "") if f["appid"] else ""
+    friends.sort(key=lambda f: f["name"].lower())
+    by_appid = {}
+    for p in players:
+        appid = str(p.get("gameid") or "")
+        if appid:
+            by_appid.setdefault(appid, []).append(friend_entry(p, appid))
+    for lst in by_appid.values():
+        lst.sort(key=lambda f: f["name"].lower())
+    return {"ts": time.time(), "ok": True, "self": sid,
+            "count": len(ids), "friends": friends, "by_appid": by_appid,
+            "error": ""}
+
+
+# ---------------------------------------------------------------- modes
+def write_snapshot(snap):
+    os.makedirs(RUNDIR, exist_ok=True)
+    tmp = SNAP + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(snap, f)
+    os.replace(tmp, SNAP)
+
+
+def cmd_check():
+    cfg = load_config()
+    snap = build_snapshot(cfg)
+    if not snap["ok"]:
+        print("NOT OK:", snap["error"])
+        print(f"  config:  {CONFIG} (exists: {os.path.exists(CONFIG)})")
+        print(f"  steamid: {cfg.get('steamid') or detect_steamid() or 'unknown'}")
+        return 1
+    n_friends_ingame = sum(len(v) for v in snap["by_appid"].values())
+    print(f"OK  steamid={snap['self']}  friends={snap['count']}  "
+          f"appids-with-friends={len(snap['by_appid'])}  friends-in-game={n_friends_ingame}")
+    for appid, lst in list(snap["by_appid"].items())[:8]:
+        print(f"  appid {appid}: {len(lst)} -> {[f['name'] for f in lst]} "
+              f"({lst[0]['game']})")
+    return 0
+
+
+def cmd_serve():
+    interval = float(load_config().get("poll_interval", 60))
+    while True:
+        try:
+            write_snapshot(build_snapshot(load_config()))
+        except Exception as e:
+            try:
+                write_snapshot({"ts": time.time(), "ok": False, "by_appid": {},
+                                "error": str(e)})
+            except Exception:
+                pass
+            sys.stderr.write(f"portal-friends: {e}\n")
+        time.sleep(interval)
+
+
+def cmd_snapshot():
+    try:
+        sys.stdout.write(open(SNAP).read())
+    except Exception:
+        sys.stdout.write('{"ts":0,"ok":false,"by_appid":{},"error":"no snapshot"}')
+
+
+def cmd_set_key():
+    """Write the Steam Web API key into the config (preserving other fields)."""
+    key = (sys.argv[2] if len(sys.argv) > 2 else "").strip()
+    if not key:
+        print("no key given")
+        return 1
+    cfg = load_config() or {}
+    cfg["steam_api_key"] = key
+    cfg.setdefault("steamid", "")
+    cfg.setdefault("poll_interval", 10)
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    tmp = CONFIG + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(cfg, f, indent=2)
+    os.replace(tmp, CONFIG)
+    print("ok")
+    return 0
+
+
+def main():
+    arg = sys.argv[1] if len(sys.argv) > 1 else "--check"
+    return {"--check": cmd_check, "--serve": cmd_serve,
+            "--snapshot": cmd_snapshot, "--set-key": cmd_set_key}.get(arg, cmd_check)()
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)
