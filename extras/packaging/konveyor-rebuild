@@ -20,4 +20,7 @@ fi
 
 runuser -u "$owner" -- cmake --build "$build_dir"
 cmake --install "$build_dir" >/dev/null
-echo "konveyor: rebuilt for the new KWin; log out and back in to load it"
+if [[ -x $source_dir/widgets/desktop-hider/desktop-containment ]]; then
+    runuser -u "$owner" -- env HOME="$(getent passwd "$owner" | cut -d: -f6)" "$source_dir/widgets/desktop-hider/desktop-containment" install || true
+fi
+echo "konveyor: rebuilt for the new KWin and Plasma; log out and back in to load it"

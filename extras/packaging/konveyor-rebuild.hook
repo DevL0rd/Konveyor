@@ -3,9 +3,10 @@ Operation = Install
 Operation = Upgrade
 Type = Package
 Target = kwin
+Target = plasma-desktop
 
 [Action]
-Description = Rebuilding Konveyor for the updated KWin...
+Description = Rebuilding Konveyor for the updated KWin and Plasma...
 When = PostTransaction
 Exec = /usr/lib/konveyor/konveyor-rebuild
 Depends = cmake

@@ -78,6 +78,7 @@ main() {
     install_collector_service
     install_plasmoids
     install_games_shortcut
+    "$WIDGETS_DIR/desktop-hider/desktop-containment" install
     if $RESTART_PLASMA; then
         take_over_launcher_and_restart
     else

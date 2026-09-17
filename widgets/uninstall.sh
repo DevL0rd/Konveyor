@@ -64,6 +64,7 @@ main() {
     say "Restoring the application launcher and removing the widgets"
     systemctl --user stop "$PLASMA_SERVICE" 2>/dev/null || true
     python3 "$WIDGETS_DIR/service/panel-launcher" uninstall "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
+    "$WIDGETS_DIR/desktop-hider/desktop-containment" uninstall
     for item in "${PLASMOIDS[@]}"; do
         kpackagetool6 -t Plasma/Applet -r "$item" >/dev/null 2>&1 && say "  removed $item" || true
     done
