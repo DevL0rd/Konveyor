@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+    <group name="General">
+        <entry name="pollInterval" type="Int"><default>500</default></entry>
+        <entry name="maxRows" type="Int"><default>1000</default></entry>
+        <entry name="searchLimit" type="Int"><default>5000</default></entry>
+        <entry name="stickLines" type="Int"><default>4</default></entry>
+        <entry name="defaultLevel" type="Int"><default>0</default></entry>
+        <entry name="mutedApps" type="String"><default></default></entry>
+        <entry name="showApp" type="Bool"><default>true</default></entry>
+        <entry name="wrapMessages" type="Bool"><default>false</default></entry>
+        <entry name="accentColor" type="String"><default></default></entry>
+        <entry name="compactShowWarnings" type="Bool"><default>true</default></entry>
+        <entry name="middleClickPause" type="Bool"><default>true</default></entry>
+        <entry name="lastSeen" type="String"><default></default></entry>
+        <entry name="showActivity" type="Bool"><default>true</default></entry>
+    </group>
+</kcfg>

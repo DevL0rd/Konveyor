@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""
+Linux-Log-Monitor :: resident collector.
+
+Follows the systemd journal (`journalctl -f -o json`) -- the single most
+complete live log on a Linux box: it already absorbs the kernel ring buffer
+(dmesg), every systemd unit's stdout/stderr, and anything sent via syslog. We
+keep the last N entries in a ring buffer and mirror it to a tmpfs JSON file that
+the Plasma widget reads in-process via XHR (no process spawned per poll).
+
+Run as a systemd --user service:  logmon-collect --serve
+
+Optional environment:
+  LOGMON_MAX_LINES   ring-buffer size (default 600)
+  LOGMON_JOURNAL_ARGS  extra args appended to journalctl (e.g. "_UID=1000")
+"""
+import json
+import os
+import sys
+import time
+import fcntl
+import signal
+import threading
+import subprocess
+from collections import deque
+
+APP = "Linux-Log-Monitor"
+RUNTIME = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+CACHE_DIR = os.path.join(RUNTIME, APP)
+CACHE = os.path.join(CACHE_DIR, "log.json")
+LOCK = os.path.join(CACHE_DIR, "serve.lock")
+
+MAX_LINES = int(os.environ.get("LOGMON_MAX_LINES", "2000"))  # >= widget's max live buffer
+SEED = min(MAX_LINES, 500)          # lines shown immediately on start
+FLUSH_INTERVAL = 0.1                # flush ~immediately on new lines (caps bursts to 10/s)
+OUTPUT_FIELDS = "MESSAGE,PRIORITY,SYSLOG_IDENTIFIER,_COMM,_SYSTEMD_UNIT,UNIT,_TRANSPORT,_PID,SYSLOG_PID"
+HEARTBEAT = 5.0                     # refresh `ts` even when idle (liveness)
+
+
+def parse(raw):
+    """One journal JSON record -> compact dict, or None to skip."""
+    raw = raw.strip()
+    if not raw:
+        return None
+    try:
+        j = json.loads(raw)
+    except ValueError:
+        return None
+
+    msg = j.get("MESSAGE", "")
+    if isinstance(msg, list):          # binary message -> bytes
+        try:
+            msg = bytes(msg).decode("utf-8", "replace")
+        except Exception:
+            msg = str(msg)
+
+    try:
+        t = int(j.get("__REALTIME_TIMESTAMP", 0))      # microseconds, unique key
+    except (TypeError, ValueError):
+        t = 0
+    try:
+        p = int(j.get("PRIORITY", 6))                  # 0 emerg .. 7 debug
+    except (TypeError, ValueError):
+        p = 6
+
+    unit = j.get("_SYSTEMD_UNIT") or j.get("UNIT") or ""
+    ident = j.get("SYSLOG_IDENTIFIER") or j.get("_COMM")
+    if not ident:
+        if j.get("_TRANSPORT") == "kernel":
+            ident = "kernel"
+        else:
+            ident = unit[:-8] if unit.endswith(".service") else (unit or "?")
+    pid = j.get("_PID") or j.get("SYSLOG_PID") or ""
+
+    return {"t": t, "p": p, "id": str(ident)[:40], "u": unit, "pid": str(pid), "m": msg}
+
+
+def write_cache(lines, alive=True):
+    payload = {"ts": time.time(), "alive": alive, "lines": lines}
+    tmp = CACHE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(payload, f, separators=(",", ":"))
+    os.replace(tmp, CACHE)
+
+
+def serve():
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+    # single instance: hold an exclusive lock for the life of the process
+    lock_fd = open(LOCK, "w")
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.stderr.write("another logmon-collect --serve is already running\n")
+        return 0
+
+    cmd = ["journalctl", "-f", "-o", "json", "--all", "--output-fields=" + OUTPUT_FIELDS, "--no-pager", "-n", str(SEED)]
+    extra = os.environ.get("LOGMON_JOURNAL_ARGS", "").split()
+    if extra:
+        cmd += extra
+
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                            text=True, bufsize=1)
+
+    ring = deque(maxlen=MAX_LINES)
+    state = {"dirty": True, "dead": False}
+
+    def reader():
+        for raw in proc.stdout:
+            rec = parse(raw)
+            if rec is not None:
+                ring.append(rec)
+                state["dirty"] = True
+        state["dead"] = True
+
+    t = threading.Thread(target=reader, daemon=True)
+    t.start()
+
+    def shutdown(*_):
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, shutdown)
+    signal.signal(signal.SIGINT, shutdown)
+
+    last = 0.0
+    write_cache(list(ring))            # create the file straight away
+    while True:
+        if state["dead"]:
+            write_cache(list(ring), alive=False)
+            return 1                   # let systemd restart us
+        now = time.monotonic()
+        if state["dirty"] and (now - last) >= FLUSH_INTERVAL:
+            write_cache(list(ring))
+            last, state["dirty"] = now, False
+        elif (now - last) >= HEARTBEAT:
+            write_cache(list(ring))    # heartbeat: keep `ts` fresh for liveness
+            last = now
+        time.sleep(0.1)
+
+
+def main():
+    if "--serve" in sys.argv[1:]:
+        sys.exit(serve())
+    sys.stderr.write(__doc__)
+    sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

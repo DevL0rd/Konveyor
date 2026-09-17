@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Runtime / state (only created at runtime, never in repo)
+*.log
+*.tmp
+
+# Shared QML components are kept once in shared/lib and synced into each
+# widget by install.sh -- don't track the per-widget copies.
+plasmoids/*/contents/ui/lib/

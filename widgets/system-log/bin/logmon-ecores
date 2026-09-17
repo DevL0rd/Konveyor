@@ -1,0 +1,38 @@
+#!/usr/bin/python3 -S
+"""Print the efficiency/compact-core CPU list for this machine, or nothing if the
+CPU isn't hybrid. Used by install.sh to pin the resident collector.
+
+Detection (vendor-neutral):
+  1. Intel hybrid exposes the E-core list explicitly at /sys/devices/cpu_atom/cpus.
+  2. Otherwise infer from max clock: efficiency/compact cores (Intel E, AMD Zen 5c,
+     ARM LITTLE) boost meaningfully lower than the performance cores.
+"""
+import glob
+import os
+
+
+def main():
+    atom = "/sys/devices/cpu_atom/cpus"          # Intel hybrid, authoritative
+    if os.path.exists(atom):
+        s = open(atom).read().strip()
+        if s:
+            print(s)
+            return
+
+    freqs = {}
+    for d in glob.glob("/sys/devices/system/cpu/cpu[0-9]*"):
+        try:
+            freqs[int(d.rsplit("cpu", 1)[1])] = int(open(d + "/cpufreq/cpuinfo_max_freq").read())
+        except (OSError, ValueError):
+            pass
+    if len(freqs) > 1:
+        top = max(freqs.values())
+        # >10% below the top clock = a real efficiency tier (ignores the ~1-3%
+        # per-core "preferred core" boost variation seen on AMD/Intel)
+        eff = sorted(c for c, f in freqs.items() if f < top * 0.9)
+        if eff and len(eff) < len(freqs):
+            print(",".join(str(c) for c in eff))
+
+
+if __name__ == "__main__":
+    main()
