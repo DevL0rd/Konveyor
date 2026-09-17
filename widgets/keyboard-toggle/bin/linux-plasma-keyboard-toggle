@@ -9,6 +9,7 @@ readonly OBJECT=/VirtualKeyboard
 readonly INTERFACE=org.kde.kwin.VirtualKeyboard
 readonly STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/linux-plasma-keyboard-toggle"
 readonly SAVED_MODE="$STATE_DIR/mode"
+readonly WATCHER_PID="$STATE_DIR/watcher.pid"
 
 property() {
     busctl --user get-property "$SERVICE" "$OBJECT" "$INTERFACE" "$1" | cut -d' ' -f2
@@ -16,6 +17,35 @@ property() {
 
 set_property() {
     busctl --user set-property "$SERVICE" "$OBJECT" "$INTERFACE" "$1" "$2" "$3"
+}
+
+restore_mode() {
+    if [[ -f $SAVED_MODE ]]; then
+        set_property mode i "$(<"$SAVED_MODE")"
+        rm -f "$SAVED_MODE"
+    fi
+}
+
+restore_when_hidden() {
+    coproc MONITOR { exec gdbus monitor --session --dest "$SERVICE" --object-path "$OBJECT"; }
+    while read -r line <&"${MONITOR[0]}"; do
+        [[ $line == *"$INTERFACE.visibleChanged"* ]] || continue
+        [[ -f $SAVED_MODE ]] || break
+        if [[ $(property visible) == false ]]; then
+            restore_mode
+            break
+        fi
+    done
+    kill "$MONITOR_PID" 2>/dev/null || true
+    rm -f "$WATCHER_PID"
+}
+
+start_watcher() {
+    if [[ -f $WATCHER_PID ]] && kill -0 "$(<"$WATCHER_PID")" 2>/dev/null; then
+        return
+    fi
+    setsid "$0" watch >/dev/null 2>&1 < /dev/null &
+    printf '%s\n' "$!" >"$WATCHER_PID"
 }
 
 open_keyboard() {
@@ -26,15 +56,13 @@ open_keyboard() {
     [[ $mode == 0 ]] && set_property mode i 1
     set_property active b true
     busctl --user call "$SERVICE" "$OBJECT" "$INTERFACE" forceActivate
+    start_watcher
     printf 'open\n'
 }
 
 close_keyboard() {
     set_property active b false
-    if [[ -f $SAVED_MODE ]]; then
-        set_property mode i "$(<"$SAVED_MODE")"
-        rm -f "$SAVED_MODE"
-    fi
+    restore_mode
     sleep 0.3
     if [[ $(property visible) == true ]]; then
         pkill -x plasma-keyboard || true
@@ -44,6 +72,7 @@ close_keyboard() {
 
 case "${1:-toggle}" in
 open) open_keyboard ;;
+watch) restore_when_hidden ;;
 close) close_keyboard ;;
 state) [[ $(property visible) == true ]] && printf 'open\n' || printf 'closed\n' ;;
 toggle)
