@@ -7,6 +7,7 @@ import org.kde.kirigamiaddons.components as Components
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
+import "lib"
 
 FocusScope {
     id: launcher
@@ -23,6 +24,11 @@ FocusScope {
     property string page: "home"
     property var visited: ({ home: true })
     property int sectionIndex: 0
+    property int railIndex: -1
+    property var sidebarDrag: null
+    property Item hoveredPin: null
+    readonly property real railPinHeight: Kirigami.Units.gridUnit * (compact ? 2.3 : 2.5)
+    readonly property real railPinIcon: compact ? Kirigami.Units.iconSizes.smallMedium + 4 : Kirigami.Units.iconSizes.medium
     property bool warm: false
     Timer {
         id: warmTimer
@@ -179,6 +185,9 @@ FocusScope {
         Qt.callLater(resetSelection)
     }
     function closeNow() {
+        hoveredPin = null
+        sidebarDrag = null
+        railIndex = -1
         openAnimation.stop()
         menu.close()
         closeAnimation.restart()
@@ -224,6 +233,7 @@ FocusScope {
     }
     function goToPage(key) {
         openFolder = ""
+        railIndex = -1
         page = key
         markVisited(key)
         field.text = ""
@@ -284,6 +294,7 @@ FocusScope {
         easing.type: Easing.OutCubic
     }
     function resetSelection() {
+        railIndex = -1
         const sections = liveSections()
         if (sections.length === 0)
             return
@@ -293,6 +304,8 @@ FocusScope {
         applySection(sections, 0)
     }
     function select(section, index) {
+        if (railIndex >= 0)
+            leaveRail()
         if (section.currentIndex === index && section.sectionActive)
             return
         const sections = liveSections()
@@ -315,10 +328,51 @@ FocusScope {
             return null
         return sections[sectionIndex]
     }
-    function navigate(dx, dy) {
+    function enterRail() {
         const sections = liveSections()
-        if (sections.length === 0)
+        for (const section of sections)
+            section.sectionActive = false
+        railIndex = 0
+        showPin(0)
+    }
+    function leaveRail() {
+        railIndex = -1
+        const sections = liveSections()
+        if (sections[sectionIndex])
+            applySection(sections, sectionIndex, false)
+    }
+    function showPin(index) {
+        const step = railPinHeight + pinsView.spacing
+        const top = index * step
+        let target = pinsView.contentY
+        if (top < pinsView.contentY)
+            target = top
+        else if (top + railPinHeight > pinsView.contentY + pinsView.height)
+            target = top + railPinHeight - pinsView.height
+        target = Math.max(0, Math.min(target, pinsView.contentHeight - pinsView.height))
+        if (Math.abs(target - pinsView.contentY) < 1)
             return
+        scrollAnimation.target = pinsView
+        scrollAnimation.to = target
+        scrollAnimation.restart()
+    }
+    function navigate(dx, dy) {
+        if (railIndex >= 0) {
+            const count = launcherData.sidebarPins.length
+            if (dx > 0 || count === 0) {
+                leaveRail()
+            } else if (dy !== 0) {
+                railIndex = Math.max(0, Math.min(count - 1, railIndex + dy))
+                showPin(railIndex)
+            }
+            return
+        }
+        const sections = liveSections()
+        if (sections.length === 0) {
+            if (dx < 0 && launcherData.sidebarPins.length > 0)
+                enterRail()
+            return
+        }
         if (sectionIndex >= sections.length) {
             resetSelection()
             return
@@ -329,8 +383,17 @@ FocusScope {
             applySection(sections, sectionIndex)
             return
         }
+        const pins = launcherData.sidebarPins.length > 0
+        if (dx < 0 && pins && current.columns > 0 && current.currentIndex % current.columns === 0) {
+            enterRail()
+            return
+        }
         if (current.move(dx, dy)) {
             applySection(sections, sectionIndex)
+            return
+        }
+        if (dx < 0 && pins) {
+            enterRail()
             return
         }
         if (dy > 0 && sectionIndex + 1 < sections.length) {
@@ -344,6 +407,7 @@ FocusScope {
         }
     }
     function stepSection(forward) {
+        railIndex = -1
         const sections = liveSections()
         if (sections.length <= 1) {
             const view = currentView()
@@ -357,12 +421,28 @@ FocusScope {
         sections[next].reset()
         applySection(sections, next)
     }
+    function currentPin() {
+        return railIndex >= 0 ? launcherData.sidebarPins[railIndex] || null : null
+    }
     function activateCurrent() {
+        const pin = currentPin()
+        if (pin) {
+            if (pin.missing)
+                openMenu(sidebarEntries(pin, railIndex), pinsView.itemAtIndex(railIndex))
+            else
+                openPin(pin)
+            return
+        }
         const section = currentSection()
         if (section)
             section.activate()
     }
     function menuForCurrent() {
+        const pin = currentPin()
+        if (pin) {
+            openMenu(sidebarEntries(pin, railIndex), pinsView.itemAtIndex(railIndex))
+            return
+        }
         const section = currentSection()
         if (section)
             section.openMenu()
@@ -374,6 +454,119 @@ FocusScope {
         const item = section.itemAtIndex(section.currentIndex)
         if (item && item.favoriteId)
             togglePin(item.favoriteId)
+    }
+
+    function sidebarPinCurrent() {
+        const pin = currentPin()
+        if (pin) {
+            launcherData.removeSidebar(pin)
+            railIndex = Math.min(railIndex, launcherData.sidebarPins.length - 1)
+            if (railIndex < 0)
+                leaveRail()
+            return
+        }
+        const section = currentSection()
+        if (!section || section.currentIndex < 0)
+            return
+        const item = section.itemAtIndex(section.currentIndex)
+        if (item && item.sidebarEntry)
+            launcherData.toggleSidebar(item.sidebarEntry)
+    }
+    function sidebarToggleEntry(entry) {
+        if (!entry)
+            return []
+        const pinned = launcherData.isOnSidebar(entry)
+        return [{ text: pinned ? i18n("Unpin from sidebar") : i18n("Pin to sidebar"), icon: pinned ? "window-unpin" : "window-pin", run: () => launcherData.toggleSidebar(entry) }]
+    }
+    function openPin(pin) {
+        if (launcherData.openSidebarPin(pin))
+            root.hide()
+    }
+    function sidebarEntries(pin, index) {
+        const count = launcherData.sidebarPins.length
+        const game = launcherData.sidebarGame(pin)
+        const entries = []
+        if (pin.missing) {
+            entries.push({ text: pin.kind === "path" ? i18n("“%1” no longer exists", pin.name) : i18n("“%1” is not installed", pin.name), icon: "emblem-unavailable", disabled: true })
+            entries.push({ text: i18n("Remove from sidebar"), icon: "edit-delete-remove", run: () => launcherData.removeSidebar(pin) })
+        } else {
+            entries.push({ text: game && game.launch ? i18n("Play") : i18n("Open"), icon: game && game.launch ? "media-playback-start" : pin.kind === "path" ? "document-open" : "system-run", run: () => launcher.openPin(pin) })
+            if (pin.kind === "path" && pin.folder !== true)
+                entries.push({ text: i18n("Open containing folder"), icon: "folder-open", run: () => { launcherData.showSidebarPinInFolder(pin); root.hide() } })
+            entries.push({ text: i18n("Unpin from sidebar"), icon: "window-unpin", run: () => launcherData.removeSidebar(pin) })
+        }
+        entries.push({ separator: true })
+        entries.push({ text: i18n("Move up"), icon: "go-up-symbolic", disabled: index <= 0, run: () => launcherData.moveSidebar(index, index - 1) })
+        entries.push({ text: i18n("Move down"), icon: "go-down-symbolic", disabled: index >= count - 1, run: () => launcherData.moveSidebar(index, index + 1) })
+        return entries
+    }
+    function pinHovered(item, on) {
+        if (on)
+            hoveredPin = item
+        else if (hoveredPin === item)
+            hoveredPin = null
+    }
+    function sidebarDragMove(item, x, y, entry, from, icon) {
+        if (!entry)
+            return false
+        const point = item.mapToItem(content, x, y)
+        const inRail = item.mapToItem(rail, x, y)
+        const inView = item.mapToItem(pinsView, x, y)
+        const over = inRail.x >= -Kirigami.Units.largeSpacing && inRail.x <= rail.width + Kirigami.Units.largeSpacing && inRail.y >= 0 && inRail.y <= rail.height
+        const count = launcherData.sidebarPins.length
+        const step = railPinHeight + pinsView.spacing
+        const slot = inView.y < 0 ? 0 : inView.y > pinsView.height ? count : Math.floor((inView.y + pinsView.contentY + step / 2) / step)
+        sidebarDrag = {
+            entry: entry,
+            from: from,
+            icon: icon === undefined ? entry.icon : icon,
+            index: Math.max(0, Math.min(count, slot)),
+            over: over,
+            removing: from >= 0 && !over,
+            x: point.x,
+            y: point.y,
+            edge: over ? (inView.y < railPinHeight * 0.6 ? -1 : inView.y > pinsView.height - railPinHeight * 0.6 ? 1 : 0) : 0,
+            item: item,
+            itemX: x,
+            itemY: y
+        }
+        hoveredPin = null
+        return over
+    }
+    function sidebarDragEnd() {
+        const drag = sidebarDrag
+        sidebarDrag = null
+        if (!drag)
+            return false
+        if (drag.from >= 0) {
+            if (drag.removing)
+                launcherData.removeSidebar(drag.entry)
+            else
+                launcherData.moveSidebar(drag.from, drag.index > drag.from ? drag.index - 1 : drag.index)
+            return true
+        }
+        if (!drag.over)
+            return false
+        const existing = launcherData.sidebarIndex(drag.entry)
+        launcherData.addSidebar(drag.entry, existing >= 0 && existing < drag.index ? drag.index - 1 : drag.index)
+        return true
+    }
+    function sidebarDragCancel() {
+        sidebarDrag = null
+    }
+    Timer {
+        interval: 16
+        repeat: true
+        running: launcher.sidebarDrag !== null && launcher.sidebarDrag.edge !== 0
+        onTriggered: {
+            const drag = launcher.sidebarDrag
+            const limit = Math.max(0, pinsView.contentHeight - pinsView.height)
+            const next = Math.max(0, Math.min(limit, pinsView.contentY + drag.edge * Kirigami.Units.gridUnit * 0.35))
+            if (next === pinsView.contentY)
+                return
+            pinsView.contentY = next
+            launcher.sidebarDragMove(drag.item, drag.itemX, drag.itemY, drag.entry, drag.from, drag.icon)
+        }
     }
 
     function isPinned(favoriteId) {
@@ -394,8 +587,11 @@ FocusScope {
         if (model && model.trigger(index, "", null) !== false)
             root.hide()
     }
-    function kickerEntries(model, index, actions, favoriteId) {
+    function kickerEntries(model, index, actions, favoriteId, url) {
         const entries = [{ text: i18n("Open"), icon: "system-run", run: () => launcher.trigger(model, index, favoriteId) }]
+        const label = model && model.labelForRow ? model.labelForRow(index) : ""
+        for (const entry of sidebarToggleEntry(launcherData.sidebarEntryFor(favoriteId, url, label)))
+            entries.push(entry)
         if (favoriteId) {
             const pinned = isPinned(favoriteId)
             entries.push({ text: pinned ? i18n("Unpin from Home") : i18n("Pin to Home"), icon: pinned ? "window-unpin" : "window-pin", run: () => launcher.togglePin(favoriteId) })
@@ -433,6 +629,8 @@ FocusScope {
     }
     function gameEntries(game) {
         const entries = [{ text: i18n("Play"), icon: "media-playback-start", run: () => { launcher.remember("game:" + game.id); launcherData.launchGame(game); root.hide() } }]
+        for (const entry of sidebarToggleEntry(launcherData.sidebarEntryForGame(game)))
+            entries.push(entry)
         if (game.appid) {
             entries.push({ separator: true })
             entries.push({ text: i18n("Store page"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally("steam://store/" + game.appid); root.hide() } })
@@ -660,6 +858,8 @@ FocusScope {
                                         view.undo()
                                 } else if (ctrl && event.key === Qt.Key_Comma) {
                                     launcher.goToPage("settings")
+                                } else if (ctrl && (event.modifiers & Qt.ShiftModifier) && event.key === Qt.Key_P) {
+                                    launcher.sidebarPinCurrent()
                                 } else if (ctrl && event.key === Qt.Key_P) {
                                     launcher.pinCurrent()
                                 } else if (alt && event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
@@ -773,9 +973,10 @@ FocusScope {
                 transform: Translate { y: (1 - launcher.contentProgress) * Kirigami.Units.gridUnit * 0.8 }
 
                 ColumnLayout {
+                    id: rail
                     z: 2
                     Layout.fillHeight: true
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * (launcher.compact ? 3.6 : 4.4)
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * (launcher.compact ? 3.1 : 3.8)
                     Layout.maximumWidth: Layout.preferredWidth
                     spacing: Kirigami.Units.smallSpacing
 
@@ -788,7 +989,7 @@ FocusScope {
                             readonly property bool current: !launcher.searching && launcher.page === modelData.key
                             readonly property int badge: modelData.key === "friends" ? launcherData.friendsInGame : 0
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * (launcher.compact ? 3 : 3.4)
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * (launcher.compact ? 2.7 : 3)
                             hoverEnabled: true
                             property bool hintDismissed: false
                             onClicked: {
@@ -808,7 +1009,7 @@ FocusScope {
                                 visible: railItem.badge > 0
                                 anchors.top: parent.top
                                 anchors.right: parent.right
-                                anchors.margins: Kirigami.Units.smallSpacing
+                                anchors.margins: Kirigami.Units.smallSpacing * 0.6
                                 width: Math.max(height, badgeLabel.implicitWidth + Kirigami.Units.smallSpacing * 1.5)
                                 height: badgeLabel.implicitHeight
                                 radius: height / 2
@@ -827,7 +1028,7 @@ FocusScope {
                                 visible: launcher.altHeld && railItem.index < 9
                                 anchors.top: parent.top
                                 anchors.left: parent.left
-                                anchors.margins: Kirigami.Units.smallSpacing
+                                anchors.margins: Kirigami.Units.smallSpacing * 0.6
                                 width: Math.max(height, altKey.implicitWidth + Kirigami.Units.smallSpacing * 1.5)
                                 height: altKey.implicitHeight + 2
                                 radius: Kirigami.Units.cornerRadius
@@ -913,7 +1114,50 @@ FocusScope {
                         model: launcher.pageDefs.filter(def => def.key !== "settings")
                         delegate: railButton
                     }
-                    Item { Layout.fillHeight: true }
+                    Rectangle {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: rail.width * 0.5
+                        Layout.preferredHeight: 1
+                        color: launcher.hairline
+                        opacity: pinsView.count > 0 || (launcher.sidebarDrag !== null && launcher.sidebarDrag.over) ? 1 : 0
+                    }
+                    ListView {
+                        id: pinsView
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        spacing: Kirigami.Units.smallSpacing
+                        boundsBehavior: Flickable.StopAtBounds
+                        interactive: contentHeight > height
+                        flickDeceleration: 4000
+                        maximumFlickVelocity: 2400
+                        model: launcherData.sidebarPins
+                        delegate: RailPin {}
+                        onCountChanged: if (launcher.railIndex >= count) launcher.railIndex = count - 1
+                        onMovingChanged: if (moving) launcher.hoveredPin = null
+
+                        Rectangle {
+                            parent: pinsView
+                            z: -1
+                            anchors.fill: parent
+                            radius: Kirigami.Units.cornerRadius * 2
+                            color: launcher.hoverFill
+                            border.width: 1
+                            border.color: launcher.hairline
+                            opacity: launcher.sidebarDrag !== null && launcher.sidebarDrag.from < 0 && launcher.sidebarDrag.over ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 120 } }
+                        }
+                        Rectangle {
+                            readonly property var drag: launcher.sidebarDrag
+                            visible: drag !== null && drag.over && !(drag.from >= 0 && (drag.index === drag.from || drag.index === drag.from + 1))
+                            x: pinsView.width * 0.15
+                            width: pinsView.width * 0.7
+                            height: 2
+                            radius: 1
+                            y: drag ? Math.max(0, drag.index * (launcher.railPinHeight + pinsView.spacing) - pinsView.spacing / 2 - 1) : 0
+                            color: launcher.ink
+                        }
+                    }
                     Repeater {
                         model: launcher.pageDefs.filter(def => def.key === "settings")
                         delegate: railButton
@@ -981,6 +1225,7 @@ FocusScope {
                         { key: "↵", text: i18n("Open") },
                         { key: "Alt ↵", text: i18n("Actions") },
                         { key: "Ctrl P", text: i18n("Pin") },
+                        { key: "Ctrl ⇧ P", text: i18n("Pin to sidebar") },
                         { key: "Tab", text: i18n("Next group") },
                         { key: "Ctrl Tab", text: i18n("Next page") },
                         { key: "Alt 1–" + launcher.pageDefs.length, text: i18n("Go to page") },
@@ -1017,6 +1262,97 @@ FocusScope {
                     text: launcher.searching ? i18n("Prefixes: g games · a apps · f files · s packages · @ friends · = math · > command") : i18n("Type anywhere to search")
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                     opacity: 0.45
+                }
+            }
+        }
+
+        Timer {
+            id: pinHintDelay
+            interval: 450
+            running: pinHint.target !== null
+        }
+        Rectangle {
+            id: pinHint
+            readonly property Item target: launcher.hoveredPin || (launcher.railIndex >= 0 ? pinsView.itemAtIndex(launcher.railIndex) : null)
+            property var pin: null
+            onTargetChanged: if (target) pin = target.modelData
+            readonly property bool wanted: target !== null && !pinHintDelay.running && launcher.sidebarDrag === null && !menu.visible
+            visible: opacity > 0
+            opacity: wanted ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 120 } }
+            x: {
+                target
+                rail.width
+                return Math.round(rail.mapToItem(content, rail.width, 0).x + Kirigami.Units.largeSpacing)
+            }
+            y: {
+                pinsView.contentY
+                launcher.contentProgress
+                return target ? Math.round(target.mapToItem(content, 0, target.height / 2).y - height / 2) : y
+            }
+            width: pinHintRow.implicitWidth + Kirigami.Units.largeSpacing * 1.5
+            height: pinHintRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+            radius: height / 2
+            color: Qt.rgba(0.08, 0.08, 0.09, 0.96)
+            border.width: 1
+            border.color: launcher.hairline
+            RowLayout {
+                id: pinHintRow
+                anchors.centerIn: parent
+                spacing: Kirigami.Units.smallSpacing * 1.5
+                PlasmaComponents.Label {
+                    text: pinHint.pin ? pinHint.pin.name : ""
+                    color: "white"
+                }
+                PlasmaComponents.Label {
+                    readonly property var game: pinHint.pin ? launcherData.sidebarGame(pinHint.pin) : null
+                    text: !pinHint.pin ? "" : pinHint.pin.missing ? i18n("Missing") : game ? i18n("Game") : pinHint.pin.kind === "app" ? i18n("App") : pinHint.pin.folder ? i18n("Folder") : i18n("File")
+                    color: pinHint.pin && pinHint.pin.missing ? Kirigami.Theme.negativeTextColor : "white"
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    opacity: pinHint.pin && pinHint.pin.missing ? 1 : 0.55
+                }
+            }
+        }
+
+        Item {
+            id: dragGhost
+            readonly property var drag: launcher.sidebarDrag
+            readonly property var game: drag ? launcherData.sidebarGame(drag.entry) : null
+            visible: drag !== null
+            width: launcher.railPinIcon
+            height: width
+            x: drag ? drag.x - width / 2 : 0
+            y: drag ? drag.y - height / 2 : 0
+            opacity: drag && drag.removing ? 0.55 : 0.9
+            Loader {
+                anchors.fill: parent
+                active: dragGhost.game !== null && !!dragGhost.game.appid
+                sourceComponent: GameArt {
+                    game: dragGhost.game
+                    wide: false
+                    showLogo: false
+                    radius: Kirigami.Units.cornerRadius
+                }
+            }
+            Kirigami.Icon {
+                anchors.fill: parent
+                visible: !(dragGhost.game !== null && !!dragGhost.game.appid)
+                source: dragGhost.drag ? dragGhost.drag.icon || (dragGhost.drag.entry.kind === "path" ? "folder" : "application-x-executable") : ""
+                fallback: "application-x-executable"
+            }
+            Rectangle {
+                visible: dragGhost.drag !== null && (dragGhost.drag.removing || (dragGhost.drag.from < 0 && dragGhost.drag.over))
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: -Kirigami.Units.smallSpacing
+                width: Math.round(parent.width * 0.5)
+                height: width
+                radius: width / 2
+                color: dragGhost.drag && dragGhost.drag.removing ? Kirigami.Theme.negativeBackgroundColor : Kirigami.Theme.positiveBackgroundColor
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    anchors.margins: 2
+                    source: dragGhost.drag && dragGhost.drag.removing ? "list-remove-symbolic" : "list-add-symbolic"
                 }
             }
         }

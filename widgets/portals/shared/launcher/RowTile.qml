@@ -23,6 +23,7 @@ Item {
     property color ringColor: "transparent"
     property var game: null
     property bool emphasize: false
+    property var sidebarEntry: null
     readonly property bool containsMouse: mouse.containsMouse
     default property alias extra: extraRow.data
     signal clicked()
@@ -43,8 +44,40 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
+        property point pressPoint
+        property bool dragging: false
+        property bool suppressClick: false
+        preventStealing: dragging
         onEntered: tile.hovered()
+        onPressed: function(event) {
+            pressPoint = Qt.point(event.x, event.y)
+            suppressClick = false
+        }
+        onPositionChanged: function(event) {
+            if (!(event.buttons & Qt.LeftButton) || !tile.sidebarEntry)
+                return
+            const dx = Math.abs(event.x - pressPoint.x)
+            const dy = Math.abs(event.y - pressPoint.y)
+            if (!dragging && Math.hypot(dx, dy) > Qt.styleHints.startDragDistance && dx > dy)
+                dragging = true
+            if (dragging)
+                launcher.sidebarDragMove(mouse, event.x, event.y, tile.sidebarEntry, -1, tile.game ? "" : tile.iconSource)
+        }
+        onReleased: {
+            if (!dragging)
+                return
+            dragging = false
+            suppressClick = true
+            launcher.sidebarDragEnd()
+        }
+        onCanceled: {
+            if (dragging)
+                launcher.sidebarDragCancel()
+            dragging = false
+        }
         onClicked: function(event) {
+            if (suppressClick)
+                return
             if (event.button === Qt.RightButton)
                 tile.rightClicked()
             else

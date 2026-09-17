@@ -10,6 +10,7 @@ Item {
     readonly property var grid: GridView.view
     readonly property var game: modelData
     readonly property var playing: launcherData.friendsFor(game)
+    readonly property var sidebarEntry: launcherData.sidebarEntryForGame(game)
 
     width: grid.cellWidth
     height: grid.cellHeight
@@ -20,6 +21,14 @@ Item {
     }
     function openMenu() {
         launcher.openMenu(launcher.gameEntries(game), tile)
+    }
+
+    DragHandler {
+        target: null
+        yAxis.enabled: false
+        grabPermissions: PointerHandler.CanTakeOverFromAnything
+        onCentroidChanged: if (active) launcher.sidebarDragMove(tile, centroid.position.x, centroid.position.y, tile.sidebarEntry, -1, tile.game.icon)
+        onActiveChanged: if (!active) launcher.sidebarDragEnd()
     }
 
     GameCard {

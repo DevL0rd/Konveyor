@@ -436,6 +436,134 @@ Item {
         readFolders()
     }
 
+    property var sidebarPins: []
+    property int sidebarWrites: 0
+    property string sidebarQueued: ""
+    P5Support.DataSource {
+        id: sidebarSource
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            if (data.sidebarWrites > 0)
+                return
+            let parsed = []
+            try {
+                parsed = JSON.parse(result.stdout || "[]")
+            } catch (error) {
+                return
+            }
+            const list = Array.isArray(parsed) ? parsed : []
+            if (JSON.stringify(list) !== JSON.stringify(data.sidebarPins))
+                data.sidebarPins = list
+        }
+    }
+    P5Support.DataSource {
+        id: sidebarWriter
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            if (data.sidebarQueued !== "") {
+                const next = data.sidebarQueued
+                data.sidebarQueued = ""
+                connectSource(next)
+                return
+            }
+            data.sidebarWrites = 0
+            data.readSidebar()
+        }
+    }
+    function readSidebar() {
+        sidebarSource.connectSource(portalBin + " --sidebar # " + Date.now())
+    }
+    FileWatcher {
+        path: data.statePath + "/sidebar.json"
+        onChanged: if (data.sidebarWrites === 0) data.readSidebar()
+    }
+    function sidebarKey(pin) {
+        return pin ? pin.kind + ":" + pin.id : ""
+    }
+    function setSidebar(list) {
+        sidebarPins = list
+        const command = portalBin + " --sidebar-set " + shq(JSON.stringify(list.map(pin => ({ kind: pin.kind, id: pin.id, name: pin.name || "" })))) + " # " + Date.now()
+        if (sidebarWrites > 0) {
+            sidebarQueued = command
+            return
+        }
+        sidebarWrites = 1
+        sidebarWriter.connectSource(command)
+    }
+    function sidebarEntryFor(favoriteId, url, name, icon) {
+        const id = String(favoriteId || "")
+        const link = String(url || "")
+        const label = String(name || "")
+        const iconName = typeof icon === "string" ? icon : ""
+        if (id.startsWith("applications:") || id.endsWith(".desktop"))
+            return { kind: "app", id: desktopKey(id), name: label, icon: iconName }
+        const path = link.startsWith("file://") ? link : id.startsWith("file://") ? id : id.startsWith("/") ? "file://" + encodeURI(id) : ""
+        if (path === "")
+            return null
+        return { kind: "path", id: path.replace(/(.)\/$/, "$1"), name: label, icon: iconName }
+    }
+    function sidebarEntryForGame(game) {
+        return game && game.id ? { kind: "app", id: game.id, name: game.name || "", icon: game.icon || "" } : null
+    }
+    function sidebarIndex(entry) {
+        const key = sidebarKey(entry)
+        return key === "" ? -1 : sidebarPins.findIndex(pin => sidebarKey(pin) === key)
+    }
+    function isOnSidebar(entry) {
+        return sidebarIndex(entry) >= 0
+    }
+    function addSidebar(entry, at) {
+        if (!entry)
+            return
+        const list = sidebarPins.filter(pin => sidebarKey(pin) !== sidebarKey(entry))
+        const index = at === undefined || at < 0 ? list.length : Math.min(at, list.length)
+        list.splice(index, 0, Object.assign({ missing: false }, entry))
+        setSidebar(list)
+    }
+    function removeSidebar(entry) {
+        const key = sidebarKey(entry)
+        setSidebar(sidebarPins.filter(pin => sidebarKey(pin) !== key))
+    }
+    function toggleSidebar(entry) {
+        if (isOnSidebar(entry))
+            removeSidebar(entry)
+        else
+            addSidebar(entry)
+    }
+    function moveSidebar(from, to) {
+        const target = Math.max(0, Math.min(to, sidebarPins.length - 1))
+        if (from < 0 || from >= sidebarPins.length || from === target)
+            return
+        const list = sidebarPins.slice()
+        const moved = list.splice(from, 1)[0]
+        list.splice(target, 0, moved)
+        setSidebar(list)
+    }
+    function sidebarGame(pin) {
+        return pin && pin.kind === "app" ? gameByDesktop[pin.id] || null : null
+    }
+    function openSidebarPin(pin) {
+        if (!pin || pin.missing)
+            return false
+        if (pin.kind === "path") {
+            Qt.openUrlExternally(pin.id)
+            return true
+        }
+        const game = sidebarGame(pin)
+        if (game && game.launch) {
+            launchGame(game)
+            return true
+        }
+        run("kstart --application " + shq(pin.id + ".desktop"))
+        trackApp(pin.id)
+        return true
+    }
+    function showSidebarPinInFolder(pin) {
+        run("dbus-send --session --type=method_call --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:" + shq(pin.id) + " string:")
+    }
+
     property var folders: []
     property var favoriteIds: []
     property var pinnedEntries: []
@@ -674,6 +802,7 @@ Item {
     onLiveChanged: {
         if (!live)
             return
+        readSidebar()
         refreshGames()
         if (friendsPath === "")
             pathSource.connectSource("printf %s \"$XDG_RUNTIME_DIR/Plasma-App-Portal/friends.json\"")

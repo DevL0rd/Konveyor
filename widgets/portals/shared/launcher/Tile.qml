@@ -19,10 +19,12 @@ Item {
     property bool dropTarget: false
     property bool dropInto: false
     property var folderIcons: []
+    property var sidebarEntry: null
     readonly property bool isFolder: folderIcons.length > 0
     readonly property bool dragging: mouse.dragging
     signal reorderMove(point position)
     signal reorderDrop(point position)
+    signal reorderCancel()
     signal clicked()
     signal rightClicked()
     signal hovered()
@@ -146,7 +148,7 @@ Item {
         property bool suppressClick: false
         anchors.fill: parent
         hoverEnabled: true
-        preventStealing: tile.reorderable
+        preventStealing: tile.reorderable || dragging
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onEntered: tile.hovered()
         onPressed: function(event) {
@@ -154,21 +156,36 @@ Item {
             suppressClick = false
         }
         onPositionChanged: function(event) {
-            if (!tile.reorderable || !(event.buttons & Qt.LeftButton))
+            if (!(event.buttons & Qt.LeftButton) || (!tile.reorderable && !tile.sidebarEntry))
                 return
-            if (!dragging && Math.hypot(event.x - pressPoint.x, event.y - pressPoint.y) > Qt.styleHints.startDragDistance)
+            const dx = Math.abs(event.x - pressPoint.x)
+            const dy = Math.abs(event.y - pressPoint.y)
+            if (!dragging && Math.hypot(dx, dy) > Qt.styleHints.startDragDistance && (tile.reorderable || dx > dy))
                 dragging = true
-            if (dragging)
+            if (!dragging)
+                return
+            if (tile.sidebarEntry)
+                launcher.sidebarDragMove(mouse, event.x, event.y, tile.sidebarEntry, -1, tile.iconSource)
+            if (tile.reorderable)
                 tile.reorderMove(Qt.point(event.x, event.y))
         }
         onReleased: function(event) {
-            if (dragging) {
+            if (!dragging)
+                return
+            dragging = false
+            suppressClick = true
+            if (tile.sidebarEntry && launcher.sidebarDragEnd())
+                tile.reorderCancel()
+            else if (tile.reorderable)
                 tile.reorderDrop(Qt.point(event.x, event.y))
-                dragging = false
-                suppressClick = true
-            }
         }
-        onCanceled: dragging = false
+        onCanceled: {
+            if (dragging) {
+                launcher.sidebarDragCancel()
+                tile.reorderCancel()
+            }
+            dragging = false
+        }
         onClicked: function(event) {
             if (suppressClick)
                 return

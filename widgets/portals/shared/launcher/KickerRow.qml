@@ -9,6 +9,7 @@ RowTile {
     readonly property string favoriteId: model.favoriteId || ""
     property var sourceModel: grid ? grid.model : null
     property int sourceIndex: index
+    sidebarEntry: launcherData.sidebarEntryFor(favoriteId, model.url, model.display)
 
     width: grid ? grid.cellWidth : 0
     height: grid ? grid.cellHeight : 0
@@ -24,7 +25,7 @@ RowTile {
         launcher.trigger(sourceModel, sourceIndex)
     }
     function openMenu() {
-        launcher.openMenu(launcher.kickerEntries(sourceModel, sourceIndex, model.hasActionList ? model.actionList : [], favoriteId), tile)
+        launcher.openMenu(launcher.kickerEntries(sourceModel, sourceIndex, model.hasActionList ? model.actionList : [], favoriteId, model.url), tile)
     }
 
     onHovered: launcher.select(grid, index)

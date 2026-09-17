@@ -195,6 +195,7 @@ ColumnLayout {
                 readonly property var grid: GridView.view
                 readonly property var playing: launcherData.friendsFor(modelData)
                 readonly property bool selected: GridView.isCurrentItem && grid.sectionActive
+                readonly property var sidebarEntry: launcherData.sidebarEntryForGame(modelData)
                 width: grid.cellWidth
                 height: grid.cellHeight
 

@@ -12,6 +12,7 @@ Tile {
         return folderEntry ? null : launcherData.favoriteRow(modelData.favIndex)
     }
     readonly property string favoriteId: row ? row.favoriteId : ""
+    sidebarEntry: folderEntry ? null : launcherData.sidebarEntryFor(favoriteId, "", label)
     readonly property bool insideFolder: !!grid && grid.folderId !== undefined && grid.folderId !== ""
 
     width: grid ? grid.cellWidth : 0
@@ -48,6 +49,11 @@ Tile {
         grid.dragIndex = index
         grid.dropIndex = spot.outside ? -1 : spot.target
         grid.dropInto = spot.into
+    }
+    onReorderCancel: {
+        grid.dragIndex = -1
+        grid.dropIndex = -1
+        grid.dropInto = false
     }
     onReorderDrop: function(position) {
         const spot = locate(position)

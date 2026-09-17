@@ -28,8 +28,11 @@ Usage:
   portal-games --folder-remove ID              take an app out of its folder (empty folders are deleted)
   portal-games --folder-rename FOLDER NAME     rename a folder
   portal-games --folder-delete FOLDER          dissolve a folder, keeping its apps pinned
+  portal-games --sidebar                       print the launcher sidebar pins, resolved (name, icon, missing)
+  portal-games --sidebar-set JSON              replace the sidebar pins with a [{kind, id, name}] list
 """
 import json
+import mimetypes
 import os
 import re
 import shutil
@@ -37,6 +40,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+import urllib.parse
 
 HOME = os.path.expanduser("~")
 XDG_DATA_HOME = os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local/share"))
@@ -57,6 +61,7 @@ OVERRIDES = os.path.join(STATE_DIR, "overrides.json")
 USAGE = os.path.join(STATE_DIR, "usage.json")
 HIDDEN = os.path.join(STATE_DIR, "hidden.json")
 FOLDERS = os.path.join(STATE_DIR, "folders.json")    # key -> last-launched epoch (apps + games)
+SIDEBAR = os.path.join(STATE_DIR, "sidebar.json")
 
 FIELD_CODES = re.compile(r"%[uUfFickdDnNvm]")
 APPID_RE = re.compile(r"rungameid/(\d+)|steam_app_(\d+)|steam_icon_(\d+)|/(\d+)/")
@@ -361,6 +366,90 @@ def folder_delete(folder_id):
     return save_folders([folder for folder in load_folders() if folder["id"] != folder_id])
 
 
+def clean_sidebar(data):
+    pins, seen = [], set()
+    for entry in data if isinstance(data, list) else []:
+        if not isinstance(entry, dict) or entry.get("kind") not in ("app", "path"):
+            continue
+        pin_id = entry.get("id")
+        if not isinstance(pin_id, str) or not pin_id or (entry["kind"], pin_id) in seen:
+            continue
+        seen.add((entry["kind"], pin_id))
+        pins.append({"kind": entry["kind"], "id": pin_id, "name": str(entry.get("name") or "")})
+    return pins
+
+
+def load_sidebar():
+    return clean_sidebar(_load_json(SIDEBAR))
+
+
+def save_sidebar(pins):
+    if pins == load_sidebar():
+        return 0
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = SIDEBAR + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(pins, f)
+    os.replace(tmp, SIDEBAR)
+    return 0
+
+
+USER_DIR_ICONS = {"DESKTOP": "user-desktop", "DOWNLOAD": "folder-download", "TEMPLATES": "folder-templates",
+                  "PUBLICSHARE": "folder-public", "DOCUMENTS": "folder-documents", "MUSIC": "folder-music",
+                  "PICTURES": "folder-pictures", "VIDEOS": "folder-videos"}
+
+
+def user_dir_icons():
+    icons = {os.path.realpath(HOME): "user-home"}
+    config = os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config"))
+    try:
+        with open(os.path.join(config, "user-dirs.dirs")) as f:
+            for line in f:
+                match = re.match(r'XDG_(\w+)_DIR="(.*)"', line.strip())
+                if match and match.group(1) in USER_DIR_ICONS:
+                    path = os.path.realpath(match.group(2).replace("$HOME", HOME))
+                    if path != os.path.realpath(HOME):
+                        icons[path] = USER_DIR_ICONS[match.group(1)]
+    except OSError:
+        pass
+    return icons
+
+
+def resolve_pin(pin):
+    out = dict(pin)
+    if pin["kind"] == "app":
+        path, entry = resolve_desktop(pin["id"] + ".desktop")
+        out["missing"] = not entry
+        out["name"] = (entry or {}).get("Name") or pin["name"] or pin["id"]
+        out["icon"] = (entry or {}).get("Icon") or "application-x-executable"
+        return out
+    local = urllib.parse.unquote(urllib.parse.urlparse(pin["id"]).path) if pin["id"].startswith("file://") else pin["id"]
+    is_dir = os.path.isdir(local)
+    out["missing"] = not os.path.exists(local)
+    out["folder"] = is_dir
+    out["path"] = local
+    out["name"] = pin["name"] or os.path.basename(local.rstrip("/")) or local
+    if is_dir:
+        out["icon"] = user_dir_icons().get(os.path.realpath(local), "folder")
+    else:
+        mime = mimetypes.guess_type(local)[0] or ""
+        out["icon"] = mime.replace("/", "-") if mime else "text-x-generic"
+        out["generic"] = mime.split("/")[0] + "-x-generic" if mime else "text-x-generic"
+    return out
+
+
+def sidebar_set(text):
+    try:
+        data = json.loads(text)
+    except ValueError:
+        sys.stderr.write("sidebar: invalid JSON\n")
+        return 1
+    if not isinstance(data, list):
+        sys.stderr.write("sidebar: expected a list\n")
+        return 1
+    return save_sidebar(clean_sidebar(data))
+
+
 def set_art(desktop_id, src):
     if not os.path.isfile(src):
         sys.stderr.write("no such file: %s\n" % src)
@@ -431,6 +520,11 @@ def main():
         return folder_rename(a[1], a[2])
     if a[0] == "--folder-delete" and len(a) == 2:
         return folder_delete(a[1])
+    if a[0] == "--sidebar":
+        json.dump([resolve_pin(pin) for pin in load_sidebar()], sys.stdout, separators=(",", ":"))
+        return 0
+    if a[0] == "--sidebar-set" and len(a) == 2:
+        return sidebar_set(a[1])
     if a[0] == "--favorites":
         json.dump(favorites(), sys.stdout, separators=(",", ":"))
         return 0

@@ -167,6 +167,7 @@ ColumnLayout {
             required property int index
             readonly property var view: GridView.view
             readonly property string favoriteId: model.favoriteId || ""
+            sidebarEntry: launcherData.sidebarEntryFor(favoriteId, "", model.display)
             width: view ? view.cellWidth : 0
             height: view ? view.cellHeight : 0
             iconSize: page.tileSize
@@ -207,6 +208,7 @@ ColumnLayout {
             readonly property var view: GridView.view
             readonly property string favoriteId: model.favoriteId || ""
             readonly property var gameEntry: launcherData.gameForApp(favoriteId)
+            sidebarEntry: launcherData.sidebarEntryFor(favoriteId, "", model.display)
             width: view ? view.cellWidth : 0
             height: view ? view.cellHeight : 0
             iconSource: model.decoration

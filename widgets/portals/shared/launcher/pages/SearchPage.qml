@@ -325,6 +325,7 @@ PopScroll {
             readonly property int sourceRow: DelegateModel.itemsIndex
             readonly property var grid: GridView.view
             readonly property string favoriteId: model.favoriteId || ""
+            readonly property var sidebarEntry: launcherData.sidebarEntryFor(favoriteId, "", model.display)
             width: grid ? grid.cellWidth : 0
             height: grid ? grid.cellHeight : 0
             iconSource: model.decoration
@@ -392,6 +393,7 @@ PopScroll {
             required property var modelData
             readonly property var grid: GridView.view
             readonly property var playing: launcherData.friendsFor(modelData)
+            readonly property var sidebarEntry: launcherData.sidebarEntryForGame(modelData)
             width: grid.cellWidth
             height: grid.cellHeight
             label: modelData.name
@@ -482,6 +484,7 @@ PopScroll {
                 required property var modelData
                 readonly property var grid: GridView.view
                 readonly property var playing: launcherData.friendsFor(modelData)
+                sidebarEntry: launcherData.sidebarEntryForGame(modelData)
                 width: grid.cellWidth
                 height: grid.cellHeight
                 game: modelData.appid ? modelData : null
