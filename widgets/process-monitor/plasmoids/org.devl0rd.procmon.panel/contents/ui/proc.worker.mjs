@@ -261,6 +261,13 @@ function compactSignature(focus, sum) {
 WorkerScript.onMessage = function(msg) {
     var s = msg.state
     var focus
+    if (msg.panel) {
+        var compact
+        try { compact = JSON.parse(readSnapshot(msg.panel)) } catch (e) { return }
+        WorkerScript.sendMessage({ focus: compact.focus, summary: compact.summary, full: false,
+                                   compactSig: compactSignature(compact.focus, compact.summary) })
+        return
+    }
     if (msg.path) {
         var text = readSnapshot(msg.path)
         if (!text || !ingest(text, s)) return

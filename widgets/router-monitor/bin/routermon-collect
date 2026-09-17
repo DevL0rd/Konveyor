@@ -134,7 +134,8 @@ def _session_request(cfg, args):
 
 
 def fetch_remote(cfg, do_ping=True, do_slow=True, do_static=False):
-    args = (f"{cfg.get('ping_target', '8.8.8.8')} {1 if do_ping else 0} "
+    ping_mode = do_ping if do_ping in (2, 3) else (1 if do_ping else 0)
+    args = (f"{cfg.get('ping_target', '8.8.8.8')} {ping_mode} "
             f"{1 if do_slow else 0} {1 if do_static else 0}")
     try:
         out = _session_request(cfg, args)
@@ -274,13 +275,17 @@ def build(cfg, prev):
     # (~2.6s and ~0.6s) never blocks the fast snapshot. build() carries both.
     prev_ping = prev.get("ping") or {}
 
-    raw = fetch_remote(cfg, False, do_slow)
+    ping_due = tick == 1 or tick % slow_every == 0
+    raw = fetch_remote(cfg, 2 if ping_due else 3, do_slow)
     p = parse_remote(raw)
     now = _num(p.get("TS"), float, time.time())
     dt = now - prev.get("ts", now) if prev else 0
 
     ping_rtt = prev_ping.get("rtt", 0)
     ping_loss = prev_ping.get("loss", 0)
+    if p.get("ping_rtt"):
+        ping_rtt = round(_num(p.get("ping_rtt"), float, ping_rtt), 1)
+        ping_loss = _num(p.get("ping_loss"), int, ping_loss)
 
     # ---- FAST: throughput, cpu, per-station signal/traffic ----
     ifr = {}
@@ -592,13 +597,6 @@ def serve():
                 if dns is not None:
                     snap["dns"] = dns
                     prev["dns_cache"] = dns
-                    _atomic_write(CACHE, snap)
-            if ok and slow_due:
-                pg = compute_ping(cfg)
-                if pg is not None:
-                    prev["ping"] = pg
-                    snap.setdefault("network", {})["ping_rtt"] = pg["rtt"]
-                    snap["network"]["ping_loss"] = pg["loss"]
                     _atomic_write(CACHE, snap)
         # subtract the work time so each cycle is ~interval, not interval + work
         time.sleep(max(0.0, interval - (time.monotonic() - start)))

@@ -33,6 +33,9 @@ except (ValueError, OSError):
 APP = "Linux-Process-Mon"
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 DATA = os.path.join(RUNDIR, "data.json")
+PANEL_DIR = os.path.join(RUNDIR, "panel")
+PANEL = os.path.join(PANEL_DIR, "panel.json")
+FOCUS = os.path.join(RUNDIR, "focus")
 CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
 MANGO_DIR = os.path.join(RUNDIR, "mangohud")
 
@@ -609,8 +612,94 @@ def build():
     _prev["t"] = ticks
     _prev["io"] = io
     _prev["when"] = now
-    return {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL,
+    snap = {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL,
             "vram_total": vram_total(), "procs": list(rows.values())}
+    _panel["rows"] = rows
+    _panel["totals"] = totals
+    return snap
+
+
+_panel = {"rows": {}, "totals": {}, "focus": 0, "focus_stamp": None, "sig": None}
+
+
+def _bytes_text(b):
+    if b >= 1099511627776:
+        return "%.1fT" % (b / 1099511627776)
+    if b >= 1073741824:
+        return "%.1fG" % (b / 1073741824)
+    if b >= 1048576:
+        return "%dM" % round(b / 1048576)
+    if b >= 1024:
+        return "%dK" % round(b / 1024)
+    return "%dB" % round(b)
+
+
+def _read_focus():
+    try:
+        stamp = os.stat(FOCUS).st_mtime_ns
+    except OSError:
+        return 0
+    if stamp != _panel["focus_stamp"]:
+        _panel["focus_stamp"] = stamp
+        try:
+            with open(FOCUS) as f:
+                _panel["focus"] = int(f.read().strip() or 0)
+        except (OSError, ValueError):
+            _panel["focus"] = 0
+    return _panel["focus"]
+
+
+def panel_snapshot(snap):
+    rows = _panel["rows"]
+    totals = _panel["totals"]
+    cpu = gpu = vram = 0
+    gpu_top = None
+    for row in snap["procs"]:
+        cpu += row.get("cpu", 0)
+        g = row.get("gpu", 0)
+        gpu += g
+        vram += row.get("vram", 0)
+        if g > 0 and (gpu_top is None or g > gpu_top["gpu"]):
+            gpu_top = {"pid": row["pid"], "name": row["name"], "gpu": g}
+    summary = {"count": len(snap["procs"]), "cpu": min(100, cpu), "gpu": min(100, gpu), "vram": vram,
+               "memTotal": snap["mem_total"], "vramTotal": snap["vram_total"], "ncpu": snap["ncpu"], "gpuTop": gpu_top}
+    focus = None
+    pid = _read_focus()
+    row = rows.get(pid) if pid else None
+    if row is not None:
+        best = None
+        for other in rows.values():
+            if "fps" not in other:
+                continue
+            current, steps = other, 0
+            while current is not None and steps < 64:
+                if current["pid"] == pid:
+                    if best is None or other["fps"] > best["fps"]:
+                        best = other
+                    break
+                current = rows.get(current["ppid"]) if current["ppid"] > 0 else None
+                steps += 1
+        total = totals.get(pid, [0] * 8)
+        parent = rows.get(row["ppid"]) if row["ppid"] > 0 else None
+        focus = {"pid": pid, "ppid": row["ppid"], "name": row["name"], "icon": row.get("icon", ""),
+                 "parentName": parent["name"] if parent else "",
+                 "cpu": round(total[0], 1), "gpu": total[3], "ram": total[1], "vram": total[6], "disk": total[7],
+                 "threads": total[2], "enc": total[4], "dec": total[5],
+                 "fps": best["fps"] if best else -1, "frametime": best["frametime"] if best else 0,
+                 "fpsLow": best["fps_low"] if best else 0}
+    if focus is None:
+        sig = ("-", summary["count"], round(summary["cpu"]), round(summary["gpu"]))
+    else:
+        sig = (focus["pid"], focus["name"], focus["icon"], focus["parentName"], round(focus["cpu"]), round(focus["gpu"]),
+               _bytes_text(focus["vram"]), _bytes_text(focus["ram"]), focus["fps"], "%.1f" % focus["frametime"], focus["fpsLow"])
+    if sig == _panel["sig"]:
+        return
+    _panel["sig"] = sig
+    os.makedirs(PANEL_DIR, exist_ok=True)
+    tmp = PANEL + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(json.dumps({"focus": focus, "summary": summary}, separators=(",", ":")))
+    os.replace(tmp, PANEL)
 
 
 def aggregate(procs, kids, totals):
@@ -649,7 +738,9 @@ def cmd_serve():
     os.makedirs(MANGO_DIR, exist_ok=True)
     build()                                                # prime CPU/disk deltas
     time.sleep(0.5)                                        # real delta before first write
-    write_snapshot(build())
+    snap = build()
+    write_snapshot(snap)
+    panel_snapshot(snap)
     last = time.time()
     global _poll_interval
     config_stamp = None
@@ -667,7 +758,9 @@ def cmd_serve():
         if elapsed >= interval:
             last = time.time()
             try:
-                write_snapshot(build())
+                snap = build()
+                write_snapshot(snap)
+                panel_snapshot(snap)
             except Exception as e:
                 sys.stderr.write(f"procmon-collect: {e}\n")
         else:

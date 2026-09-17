@@ -134,7 +134,24 @@ if [ "$DO_STATIC" = "1" ]; then
 fi
 
 ############ PING (least often) ############
-if [ "$DO_PING" = "1" ]; then
+if [ "$DO_PING" = "2" ] || [ "$DO_PING" = "3" ]; then
+	if [ -s /tmp/lrm-ping.out ]; then
+		while read -r line; do echo "$line"; done </tmp/lrm-ping.out
+	fi
+	ping_pid=""
+	[ -f /tmp/lrm-ping.pid ] && read -r ping_pid </tmp/lrm-ping.pid
+	if [ "$DO_PING" = "2" ] && { [ -z "$ping_pid" ] || ! kill -0 "$ping_pid" 2>/dev/null; }; then
+		(
+			png=$(ping -c 3 -w 4 "$PING_TARGET" 2>/dev/null)
+			{
+				echo "ping_loss=$(echo "$png" | sed -n 's/.*, \([0-9]*\)% packet loss.*/\1/p')"
+				echo "ping_rtt=$(echo "$png" | sed -n 's#.*= [0-9.]*/\([0-9.]*\)/.*#\1#p')"
+			} >/tmp/lrm-ping.tmp
+			mv /tmp/lrm-ping.tmp /tmp/lrm-ping.out
+		) </dev/null >/dev/null 2>&1 &
+		echo $! >/tmp/lrm-ping.pid
+	fi
+elif [ "$DO_PING" = "1" ]; then
 	png=$(ping -c 3 -w 4 "$PING_TARGET" 2>/dev/null)
 	echo "ping_loss=$(echo "$png" | sed -n 's/.*, \([0-9]*\)% packet loss.*/\1/p')"
 	echo "ping_rtt=$(echo "$png" | sed -n 's#.*= [0-9.]*/\([0-9.]*\)/.*#\1#p')"

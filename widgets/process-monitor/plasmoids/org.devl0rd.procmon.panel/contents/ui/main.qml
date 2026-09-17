@@ -105,7 +105,14 @@ PlasmoidItem {
     }
     readonly property var activeIcon: tasks.activeTask ? tasks.data(tasks.activeTask, Qt.DecorationRole) : null
     readonly property int focusPid: activePid
-    onFocusPidChanged: requestRebuild()
+    onFocusPidChanged: {
+        writeFocus()
+        requestRebuild()
+    }
+    function writeFocus() {
+        if (runtimeDir)
+            run("printf %s " + focusPid + " > " + shq(runtimeDir + "/focus"))
+    }
 
     function colOf(key) {
         return allColumns.find(column => column.key === key) || null
@@ -148,22 +155,35 @@ PlasmoidItem {
         return Kirigami.Theme.negativeTextColor
     }
 
-    property string cachePath
+    property string runtimeDir
+    readonly property string cachePath: runtimeDir ? runtimeDir + "/data.json" : ""
+    readonly property string panelPath: runtimeDir ? runtimeDir + "/panel/panel.json" : ""
+    readonly property bool compactOnly: inPanel && !popupAlive
+    onCompactOnlyChanged: read()
     P5Support.DataSource {
         id: pathHelper
         engine: "executable"
         onNewData: function(source, data) {
-            root.cachePath = (data.stdout || "").trim()
+            root.runtimeDir = (data.stdout || "").trim()
             disconnectSource(source)
+            root.writeFocus()
             root.read()
         }
     }
     function read() {
-        if (cachePath && worker.ready)
+        if (!runtimeDir || !worker.ready)
+            return
+        if (compactOnly)
+            worker.sendMessage({ panel: panelPath, state: workerState() })
+        else
             worker.sendMessage({ path: cachePath, state: workerState() })
     }
     FileWatcher {
-        path: root.dataWanted ? root.cachePath : ""
+        path: root.dataWanted && !root.compactOnly ? root.cachePath : ""
+        onChanged: root.read()
+    }
+    FileWatcher {
+        path: root.dataWanted && root.compactOnly ? root.panelPath : ""
         onChanged: root.read()
     }
     function workerState() {
@@ -225,7 +245,7 @@ PlasmoidItem {
     }
     onSearchTextChanged: requestRebuild()
     Component.onCompleted: {
-        pathHelper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Linux-Process-Mon/data.json\"")
+        pathHelper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Linux-Process-Mon\"")
         applyInterval()
     }
     function applyInterval() {
