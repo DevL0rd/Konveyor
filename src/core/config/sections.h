@@ -27,6 +27,8 @@ InsertHintPart decodeInsertHintPart(const Kdl::Node &node);
 Struts decodeStruts(const Kdl::Node &node);
 QList<PresetSize> decodePresetSizes(const Kdl::Node &node);
 std::optional<PresetSize> decodeDefaultPresetSize(const Kdl::Node &node);
+QList<PresetSize> defaultColumnWidthPresets();
+QList<PresetSize> defaultWindowHeightPresets();
 CornerRadius decodeCornerRadius(const Kdl::Node &node);
 HotCorners decodeHotCorners(const Kdl::Node &node);
 

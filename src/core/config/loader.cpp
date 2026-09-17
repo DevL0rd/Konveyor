@@ -18,11 +18,6 @@ Paint solidPaint(int red, int green, int blue, int alpha)
     return Paint {ColorSource::Explicit, QColor(red, green, blue, alpha), std::nullopt};
 }
 
-QList<PresetSize> defaultPresets()
-{
-    return {Proportion {0.25}, Proportion {1.0 / 3.0}, Proportion {0.5}, Proportion {2.0 / 3.0}};
-}
-
 QString sourceLineOf(const LoadContext &context, const Kdl::Location &location)
 {
     const auto text = context.texts.constFind(location.file);
@@ -103,8 +98,8 @@ Config defaultConfig()
     config.layout.border.inactive = solidPaint(80, 80, 80, 255);
     config.layout.border.urgent = solidPaint(155, 0, 0, 255);
     config.layout.insertHint.paint = solidPaint(127, 200, 255, 128);
-    config.layout.presetColumnWidths = defaultPresets();
-    config.layout.presetWindowHeights = defaultPresets();
+    config.layout.presetColumnWidths = defaultColumnWidthPresets();
+    config.layout.presetWindowHeights = defaultWindowHeightPresets();
     config.animations = defaultAnimations();
     return config;
 }

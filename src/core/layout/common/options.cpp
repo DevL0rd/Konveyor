@@ -8,7 +8,12 @@ namespace Konveyor::Layout
 namespace
 {
 
-QList<Config::PresetSize> defaultPresets()
+QList<Config::PresetSize> defaultColumnWidthPresets()
+{
+    return {Config::Proportion {0.25}, Config::Proportion {0.5}, Config::Proportion {0.75}, Config::Proportion {1.0}};
+}
+
+QList<Config::PresetSize> defaultWindowHeightPresets()
 {
     return {Config::Proportion {0.25}, Config::Proportion {1.0 / 3.0}, Config::Proportion {0.5}, Config::Proportion {2.0 / 3.0}};
 }
@@ -19,10 +24,10 @@ Config::Layout normalizedLayout(const Config::Layout &layout)
 {
     Config::Layout result = layout;
     if (result.presetColumnWidths.isEmpty()) {
-        result.presetColumnWidths = defaultPresets();
+        result.presetColumnWidths = defaultColumnWidthPresets();
     }
     if (result.presetWindowHeights.isEmpty()) {
-        result.presetWindowHeights = defaultPresets();
+        result.presetWindowHeights = defaultWindowHeightPresets();
     }
     return result;
 }

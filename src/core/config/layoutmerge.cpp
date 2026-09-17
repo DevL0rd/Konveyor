@@ -5,13 +5,18 @@
 namespace Konveyor::Config
 {
 
-namespace
+QList<PresetSize> defaultColumnWidthPresets()
 {
+    return {Proportion {0.25}, Proportion {0.5}, Proportion {0.75}, Proportion {1.0}};
+}
 
-QList<PresetSize> defaultPresets()
+QList<PresetSize> defaultWindowHeightPresets()
 {
     return {Proportion {0.25}, Proportion {1.0 / 3.0}, Proportion {0.5}, Proportion {2.0 / 3.0}};
 }
+
+namespace
+{
 
 void mergeTabIndicator(TabIndicator &base, const TabIndicatorPart &part)
 {
@@ -133,10 +138,10 @@ Layout mergedLayout(Layout base, const LayoutPart &part)
         mergeInsertHint(base.insertHint, *part.insertHint);
     }
     if (base.presetColumnWidths.isEmpty()) {
-        base.presetColumnWidths = defaultPresets();
+        base.presetColumnWidths = defaultColumnWidthPresets();
     }
     if (base.presetWindowHeights.isEmpty()) {
-        base.presetWindowHeights = defaultPresets();
+        base.presetWindowHeights = defaultWindowHeightPresets();
     }
     return base;
 }

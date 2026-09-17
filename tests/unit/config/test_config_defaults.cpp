@@ -38,10 +38,12 @@ void TestConfigDefaults::defaultLayoutValues()
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Normal);
     QCOMPARE(layout.presetColumnWidths.size(), 4);
     QCOMPARE(proportionOf(layout.presetColumnWidths.at(0)), 0.25);
-    QCOMPARE(proportionOf(layout.presetColumnWidths.at(1)), 1.0 / 3.0);
-    QCOMPARE(proportionOf(layout.presetColumnWidths.at(2)), 0.5);
-    QCOMPARE(proportionOf(layout.presetColumnWidths.at(3)), 2.0 / 3.0);
-    QCOMPARE(layout.presetWindowHeights, layout.presetColumnWidths);
+    QCOMPARE(proportionOf(layout.presetColumnWidths.at(1)), 0.5);
+    QCOMPARE(proportionOf(layout.presetColumnWidths.at(2)), 0.75);
+    QCOMPARE(proportionOf(layout.presetColumnWidths.at(3)), 1.0);
+    QCOMPARE(layout.presetWindowHeights.size(), 4);
+    QCOMPARE(proportionOf(layout.presetWindowHeights.at(1)), 1.0 / 3.0);
+    QCOMPARE(proportionOf(layout.presetWindowHeights.at(3)), 2.0 / 3.0);
     QVERIFY(layout.defaultColumnWidth.has_value());
     QCOMPARE(proportionOf(*layout.defaultColumnWidth), 0.25);
     QCOMPARE(layout.rememberWindowSizes, false);
