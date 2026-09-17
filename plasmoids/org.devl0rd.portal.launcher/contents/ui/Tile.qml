@@ -42,8 +42,11 @@ Item {
 
         Item {
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: tile.game !== null && tile.game.appid ? Math.round(tile.iconSize * 0.68) : tile.iconSize
-            Layout.preferredHeight: tile.iconSize
+            readonly property bool art: tile.game !== null && tile.game.appid !== ""
+            Layout.preferredWidth: art ? Math.round(tile.iconSize * 0.84) : tile.iconSize
+            Layout.preferredHeight: art ? Math.round(tile.iconSize * 1.26) : tile.iconSize
+            Layout.topMargin: art ? -Math.round(tile.iconSize * 0.13) : 0
+            Layout.bottomMargin: art ? -Math.round(tile.iconSize * 0.13) : 0
             GameArt {
                 anchors.fill: parent
                 visible: tile.game !== null && tile.game.appid !== ""

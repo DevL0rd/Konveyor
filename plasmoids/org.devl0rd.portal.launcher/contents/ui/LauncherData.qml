@@ -119,6 +119,30 @@ Item {
         id: recentAppsModel
         shownItems: Kicker.RecentUsageModel.OnlyApps
     }
+    property var recentRank: ({})
+    Instantiator {
+        id: recentProbe
+        model: recentAppsModel
+        delegate: QtObject {
+            required property var model
+            readonly property string favoriteId: model.favoriteId || ""
+        }
+        onObjectAdded: recentRankTimer.restart()
+        onObjectRemoved: recentRankTimer.restart()
+    }
+    Timer {
+        id: recentRankTimer
+        interval: 0
+        onTriggered: {
+            const rank = {}
+            for (let i = 0; i < recentProbe.count; ++i) {
+                const object = recentProbe.objectAt(i)
+                if (object && object.favoriteId)
+                    rank[data.desktopKey(object.favoriteId)] = i
+            }
+            data.recentRank = rank
+        }
+    }
 
     Kicker.RecentUsageModel {
         id: recentDocsModel

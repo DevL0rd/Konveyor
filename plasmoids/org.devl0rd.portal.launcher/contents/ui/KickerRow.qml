@@ -16,6 +16,8 @@ RowTile {
     label: model.display || ""
     query: launcher.searching ? launcher.term : ""
     subtitle: model.description || ""
+    readonly property var gameEntry: launcher.searching ? null : launcherData.gameForApp(favoriteId)
+    game: gameEntry && gameEntry.appid ? gameEntry : null
     selected: GridView.isCurrentItem && !!grid && grid.sectionActive
 
     function activate() {

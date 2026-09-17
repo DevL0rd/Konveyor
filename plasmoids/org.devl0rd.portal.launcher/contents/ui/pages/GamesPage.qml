@@ -66,66 +66,11 @@ ColumnLayout {
         Plasmoid.configuration.gameCardSize = Math.max(6, Math.min(18, Plasmoid.configuration.gameCardSize + steps))
     }
 
-    component Segment: MouseArea {
-        id: segment
-        property string text
-        property string iconName
-        property bool current: false
-        property bool iconOnly: false
-        implicitWidth: (iconOnly ? 0 : segmentLabel.implicitWidth) + (iconName !== "" ? Kirigami.Units.iconSizes.small + (iconOnly ? 0 : Kirigami.Units.smallSpacing) : 0) + Kirigami.Units.largeSpacing * 2
-        implicitHeight: Kirigami.Units.gridUnit * 1.9
-        hoverEnabled: true
-        Rectangle {
-            anchors.fill: parent
-            radius: height / 2
-            color: segment.current ? launcher.selectedFill : segment.containsMouse ? launcher.hoverFill : "transparent"
-            border.width: segment.current ? 1 : 0
-            border.color: launcher.hairline
-        }
-        RowLayout {
-            anchors.centerIn: parent
-            spacing: Kirigami.Units.smallSpacing
-            Kirigami.Icon {
-                visible: segment.iconName !== ""
-                Layout.preferredWidth: Kirigami.Units.iconSizes.small
-                Layout.preferredHeight: Layout.preferredWidth
-                source: segment.iconName
-                color: launcher.ink
-                isMask: true
-                opacity: segment.current ? 1 : 0.65
-            }
-            PlasmaComponents.Label {
-                id: segmentLabel
-                visible: !segment.iconOnly
-                text: segment.text
-                font.weight: segment.current ? Font.DemiBold : Font.Normal
-                opacity: segment.current ? 1 : 0.7
-            }
-        }
-        QQC2.ToolTip.visible: iconOnly && containsMouse
-        QQC2.ToolTip.text: text
-    }
-
-    component Group: Rectangle {
-        default property alias content: groupRow.data
-        implicitWidth: groupRow.implicitWidth + Kirigami.Units.smallSpacing
-        implicitHeight: groupRow.implicitHeight + Kirigami.Units.smallSpacing
-        radius: height / 2
-        color: launcher.well
-        border.width: 1
-        border.color: launcher.hairline
-        RowLayout {
-            id: groupRow
-            anchors.centerIn: parent
-            spacing: 0
-        }
-    }
-
     RowLayout {
         Layout.fillWidth: true
         spacing: Kirigami.Units.largeSpacing
 
-        Group {
+        SegmentGroup {
             Repeater {
                 model: page.filters
                 Segment {
@@ -173,7 +118,7 @@ ColumnLayout {
             }
         }
 
-        Group {
+        SegmentGroup {
             visible: page.view !== "list"
             Segment {
                 iconOnly: true
@@ -189,7 +134,7 @@ ColumnLayout {
             }
         }
 
-        Group {
+        SegmentGroup {
             Repeater {
                 model: page.viewDefs
                 Segment {
