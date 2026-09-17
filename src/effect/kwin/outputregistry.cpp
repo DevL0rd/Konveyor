@@ -1,6 +1,9 @@
 #include "kwin/outputregistry.h"
 
 #include <core/output.h>
+#include <inputmethod.h>
+#include <inputpanelv1window.h>
+#include <main.h>
 #include <workspace.h>
 
 #include <QTimer>
@@ -23,6 +26,7 @@ void OutputRegistry::start()
             Q_EMIT activeOutputChanged(output->name());
         }
     });
+    watchKeyboard();
     refresh();
 }
 
@@ -33,8 +37,40 @@ Layout::OutputInfo OutputRegistry::infoOf(KWin::LogicalOutput *output)
     info.makeModelSerial = QStringList {output->manufacturer(), output->model(), output->serialNumber()}.join(QLatin1Char(' ')).trimmed();
     info.geometry = output->geometryF();
     info.workArea = KWin::workspace()->clientArea(KWin::MaximizeArea, output);
+    if (const std::optional<QRectF> keyboard = keyboardAreaOn(output)) {
+        info.workArea.setBottom(std::min(info.workArea.bottom(), keyboard->top()));
+    }
     info.scale = output->scale();
     return info;
+}
+
+void OutputRegistry::watchKeyboard()
+{
+    KWin::InputMethod *inputMethod = KWin::kwinApp()->inputMethod();
+    if (!inputMethod) {
+        return;
+    }
+    connect(inputMethod, &KWin::InputMethod::visibleChanged, this, &OutputRegistry::scheduleRefresh);
+    connect(inputMethod, &KWin::InputMethod::panelChanged, this, [this, inputMethod]() {
+        if (KWin::InputPanelV1Window *panel = inputMethod->panel()) {
+            connect(panel, &KWin::Window::frameGeometryChanged, this, &OutputRegistry::scheduleRefresh, Qt::UniqueConnection);
+        }
+        scheduleRefresh();
+    });
+}
+
+std::optional<QRectF> OutputRegistry::keyboardAreaOn(KWin::LogicalOutput *output)
+{
+    const KWin::InputMethod *inputMethod = KWin::kwinApp()->inputMethod();
+    const KWin::InputPanelV1Window *panel = inputMethod ? inputMethod->panel() : nullptr;
+    if (!panel || !inputMethod->isVisible() || panel->mode() == KWin::InputPanelV1Window::Mode::Overlay) {
+        return std::nullopt;
+    }
+    const QRectF area = panel->frameGeometry();
+    if (!output->geometryF().intersects(area)) {
+        return std::nullopt;
+    }
+    return area;
 }
 
 KWin::LogicalOutput *OutputRegistry::outputNamed(const QString &name) const

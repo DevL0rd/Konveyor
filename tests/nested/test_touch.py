@@ -12,21 +12,11 @@ library=org.kde.breeze
 theme=Breeze
 """
 
-SCRIPT = """
-export QT_QPA_PLATFORM=wayland
-for name in A B C; do
-    qml6 {client} -- $name 700 500 &
-    sleep 2
-done
-sleep 3
-python3 {runner} > "$KONVEYOR_REPORT" 2>&1
-"""
-
 
 def main():
-    from nested import run_script
+    from nested import run_runner
 
-    return run_script(SCRIPT.format(client=HERE / "clients" / "client.qml", runner=HERE / "runners" / "touch.py"), timeout=180, extra_kwinrc=BREEZE_DECORATION)
+    return run_runner(HERE / "runners" / "touch.py", timeout=180, extra_kwinrc=BREEZE_DECORATION)
 
 
 if __name__ == "__main__":

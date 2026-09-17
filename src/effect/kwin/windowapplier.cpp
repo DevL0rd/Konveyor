@@ -6,6 +6,8 @@
 
 #include <KDecoration3/Decoration>
 #include <core/output.h>
+#include <inputmethod.h>
+#include <main.h>
 #include <scene/borderradius.h>
 #include <window.h>
 #include <workspace.h>
@@ -50,7 +52,7 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             m_appliedFrames.insert(state.id, frame);
         }
         applySizingMode(window, state);
-        applyGeometry(window, frame);
+        applyGeometry(window, frame, !state.isFloating);
         applyBorderRadius(window, state);
         if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
             window->setOpacity(state.ruleOpacity);
@@ -114,7 +116,7 @@ QRectF WindowApplier::placedFrame(const Layout::WindowState &state)
     return Layout::parkedFrame(frame, homeRect, outputs);
 }
 
-void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame) const
+void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, bool tiled) const
 {
     if (frame.isEmpty()) {
         return;
@@ -125,9 +127,14 @@ void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame) con
         }
         return;
     }
-    if (!nearlyEqual(window->moveResizeGeometry(), frame)) {
-        window->moveResize(frame);
+    if (nearlyEqual(window->moveResizeGeometry(), frame)) {
+        return;
     }
+    const KWin::InputMethod *inputMethod = KWin::kwinApp()->inputMethod();
+    if (tiled && inputMethod && inputMethod->activeWindow() == window) {
+        window->setVirtualKeyboardGeometry(KWin::RectF());
+    }
+    window->moveResize(frame);
 }
 
 void WindowApplier::applyBorderRadius(KWin::Window *window, const Layout::WindowState &state)

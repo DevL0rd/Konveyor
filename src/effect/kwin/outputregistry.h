@@ -6,6 +6,8 @@
 #include <QObject>
 #include <QStringList>
 
+#include <optional>
+
 namespace KWin
 {
 class LogicalOutput;
@@ -24,6 +26,7 @@ public:
     void start();
 
     static Layout::OutputInfo infoOf(KWin::LogicalOutput *output);
+    static std::optional<QRectF> keyboardAreaOn(KWin::LogicalOutput *output);
     KWin::LogicalOutput *outputNamed(const QString &name) const;
     QList<Layout::OutputInfo> outputs() const;
     QStringList orderedNames() const;
@@ -36,6 +39,7 @@ Q_SIGNALS:
 
 private:
     void scheduleRefresh();
+    void watchKeyboard();
     void refresh();
 
     QHash<QString, Layout::OutputInfo> m_known;
