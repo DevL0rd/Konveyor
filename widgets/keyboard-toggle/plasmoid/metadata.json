@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "dmhzmxn@gmail.com",
+                "Name": "DevL0rd"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "Shows and hides the virtual keyboard and indicates whether it is currently visible.",
+        "Icon": "input-keyboard",
+        "Id": "dev.devl0rd.keyboardtoggle",
+        "License": "GPL-3.0-or-later",
+        "Name": "Keyboard Toggle",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Linux-Plasma-Keyboard-Toggle"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

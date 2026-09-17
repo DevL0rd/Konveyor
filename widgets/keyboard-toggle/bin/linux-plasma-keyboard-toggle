@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 DevL0rd <dmhzmxn@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+busctl --user call org.kde.KWin /VirtualKeyboard org.kde.kwin.VirtualKeyboard forceActivate
+printf 'done\n'
