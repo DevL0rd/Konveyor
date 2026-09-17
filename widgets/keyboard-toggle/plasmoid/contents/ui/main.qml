@@ -1,4 +1,5 @@
 import QtCore
+import QtQml.Models
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
@@ -24,6 +25,27 @@ PlasmoidItem {
     function showKeyboard() {
         runner.connectSource(showCommand)
         triggered()
+    }
+
+    Timer {
+        id: screenSettle
+        interval: 750
+        onTriggered: runner.connectSource(root.showCommand + " restart")
+    }
+
+    Connections {
+        target: Qt.application
+        function onScreensChanged() { screenSettle.restart() }
+    }
+
+    Instantiator {
+        model: Qt.application.screens
+        delegate: Connections {
+            required property var modelData
+            target: modelData
+            function onWidthChanged() { screenSettle.restart() }
+            function onHeightChanged() { screenSettle.restart() }
+        }
     }
 
     P5Support.DataSource {

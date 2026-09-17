@@ -71,10 +71,22 @@ close_keyboard() {
     printf 'closed\n'
 }
 
+restart_keyboard() {
+    mkdir -p "$RUNTIME_DIR"
+    exec 9>"$RUNTIME_DIR/restart.lock"
+    flock -n 9 || return 0
+    local pid
+    pid=$(pgrep -xo plasma-keyboard) || return 0
+    (($(ps -o etimes= -p "$pid") >= 2)) || return 0
+    kill "$pid"
+    printf 'restarted\n'
+}
+
 case "${1:-toggle}" in
 open) open_keyboard ;;
 watch) restore_when_hidden ;;
 close) close_keyboard ;;
+restart) restart_keyboard ;;
 state) [[ $(property visible) == true ]] && printf 'open\n' || printf 'closed\n' ;;
 toggle)
     if [[ $(property visible) == true ]]; then
@@ -84,7 +96,7 @@ toggle)
     fi
     ;;
 *)
-    printf 'usage: linux-plasma-keyboard-toggle [toggle|open|close|state]\n' >&2
+    printf 'usage: linux-plasma-keyboard-toggle [toggle|open|close|restart|state]\n' >&2
     exit 2
     ;;
 esac
