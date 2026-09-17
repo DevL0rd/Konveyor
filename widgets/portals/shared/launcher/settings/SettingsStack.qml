@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls as QQC2
+import org.kde.kirigami as Kirigami
 import org.kde.konveyor.settings
 
 QQC2.StackView {
@@ -34,8 +35,36 @@ QQC2.StackView {
         const floor = headers.length > 0 ? top(headers[0]) : 0
         const target = collect(flick.contentItem, stack.reveal, []).find(entry => top(entry) >= floor)
         stack.revealed()
-        if (target)
-            flick.contentY = Math.max(0, Math.min(top(target) - flick.height * 0.25, flick.contentHeight - flick.height))
+        if (!target)
+            return
+        flick.contentY = Math.max(0, Math.min(top(target) - flick.height * 0.25, flick.contentHeight - flick.height))
+        const spot = target.mapToItem(flick.contentItem, 0, 0)
+        flashComponent.createObject(flick.contentItem, {
+            x: spot.x - Kirigami.Units.smallSpacing,
+            y: spot.y - Kirigami.Units.smallSpacing,
+            width: target.width + Kirigami.Units.smallSpacing * 2,
+            height: target.height + Kirigami.Units.smallSpacing * 2
+        })
+    }
+    Component {
+        id: flashComponent
+        Rectangle {
+            id: flash
+            z: 100
+            radius: Kirigami.Units.cornerRadius * 2
+            color: Qt.alpha(Kirigami.Theme.highlightColor, 0.1)
+            border.width: 1.5
+            border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.75)
+            opacity: 0
+            SequentialAnimation {
+                running: true
+                PauseAnimation { duration: 180 }
+                NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 220; easing.type: Easing.OutCubic }
+                PauseAnimation { duration: 900 }
+                NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 700; easing.type: Easing.InOutCubic }
+                ScriptAction { script: flash.destroy() }
+            }
+        }
     }
     function open(file) {
         const component = PageFactory.component(file)

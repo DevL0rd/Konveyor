@@ -144,7 +144,6 @@ PopScroll {
             if (slot && slot.item && slot.item.hasContent)
                 list.push.apply(list, slot.item.grids ? slot.item.grids() : [])
         }
-        list.push(settingResults.grid)
         list.push(shortcutResults.grid)
         list.push(packagesResults.grid)
         let total = 0
@@ -190,14 +189,13 @@ PopScroll {
         property alias delegate: resultGrid.delegate
         property alias cellHeight: resultGrid.cellHeight
         property alias cellWidth: resultGrid.cellWidth
-        property bool busy: false
-        readonly property bool hasContent: resultGrid.count > 0 || busy
+        readonly property bool hasContent: resultGrid.count > 0
         visible: hasContent
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
         SectionHeader {
             title: group.title
-            trailing: group.busy && resultGrid.count === 0 ? i18n("searching…") : group.trailing
+            trailing: group.trailing
         }
         TileGrid {
             id: resultGrid
@@ -531,7 +529,7 @@ PopScroll {
             property int contentCount: 0
             readonly property bool hasContent: contentCount > 0
             function recount() {
-                let total = 0
+                let total = konveyorSettings.grid.count
                 for (let i = 0; i < kindGroups.count; ++i) {
                     const group = kindGroups.itemAt(i)
                     if (group)
@@ -541,13 +539,21 @@ PopScroll {
             }
             spacing: Kirigami.Units.largeSpacing * 1.5
             function grids() {
-                const list = []
+                const list = [konveyorSettings.grid]
                 for (let i = 0; i < kindGroups.count; ++i) {
                     const group = kindGroups.itemAt(i)
                     if (group)
                         list.push(group.grid)
                 }
                 return list
+            }
+            KonveyorSettingsGroup {
+                id: konveyorSettings
+                model: runnerKind.kind === "settings" ? page.settingMatches : []
+                Connections {
+                    target: konveyorSettings.grid
+                    function onCountChanged() { runnerKind.recount() }
+                }
             }
             Repeater {
                 id: kindGroups
@@ -611,10 +617,8 @@ PopScroll {
         }
     }
 
-    ResultGroup {
-        id: settingResults
+    component KonveyorSettingsGroup: ResultGroup {
         title: i18n("Konveyor settings")
-        model: page.settingMatches
         delegate: RowTile {
             required property int index
             required property var modelData
@@ -672,8 +676,7 @@ PopScroll {
     ResultGroup {
         id: packagesResults
         title: i18n("Install with Shelly")
-        visible: page.showPackages && (grid.count > 0 || (busy && (page.totalResults > 0 || page.mode === "packages")))
-        busy: launcherData.packagesBusy
+        visible: page.showPackages && grid.count > 0
         model: page.showPackages ? launcherData.packages : []
         delegate: RowTile {
             id: packageRow
