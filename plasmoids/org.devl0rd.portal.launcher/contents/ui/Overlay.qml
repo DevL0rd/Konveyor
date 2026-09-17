@@ -22,6 +22,13 @@ Item {
         card.y = Math.round(screenRect.y + (screenRect.height - card.height) / 2)
     }
 
+    Connections {
+        target: root
+        function onPageRequested(page) {
+            view.goToPage(page)
+        }
+    }
+
     Window {
         id: dim
 
@@ -81,6 +88,7 @@ Item {
                 overlay.placeCard()
                 card.requestActivate()
             }
+            onPageChanged: root.currentPage = page
             onCloseFinished: {
                 card.visible = false
                 dim.visible = false

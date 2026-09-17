@@ -155,14 +155,16 @@ FocusScope {
         running: true
         onTriggered: {
             launcher.applyPendingPins()
-            if (launcher.wanted)
+            if (launcher.wanted && !launcher.shown)
                 launcher.openNow()
         }
     }
 
     function openNow() {
         closeAnimation.stop()
-        page = pageDefs.some(def => def.key === Plasmoid.configuration.defaultPage) ? Plasmoid.configuration.defaultPage : "home"
+        const wantedPage = root.requestedPage || Plasmoid.configuration.defaultPage
+        root.requestedPage = ""
+        page = pageDefs.some(def => def.key === wantedPage) ? wantedPage : "home"
         markVisited(page)
         openFolder = ""
         field.text = ""

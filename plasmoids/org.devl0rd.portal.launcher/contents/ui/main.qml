@@ -5,6 +5,8 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
+import QtCore
+import "lib"
 
 PlasmoidItem {
     id: root
@@ -16,6 +18,49 @@ PlasmoidItem {
     property string panelScreen
     property var pendingPins: []
     signal pinsRequested()
+    property string requestedPage: ""
+    property string currentPage: ""
+    signal pageRequested(string page)
+
+    readonly property real startedAt: Date.now()
+    readonly property string requestPath: String(StandardPaths.writableLocation(StandardPaths.RuntimeLocation)).replace(/^file:\/\//, "") + "/Plasma-App-Portal/launcher-request.json"
+    property string lastRequest: ""
+    function readRequest() {
+        const xhr = new XMLHttpRequest()
+        xhr.open("GET", "file://" + requestPath)
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || !xhr.responseText)
+                return
+            let request = null
+            try {
+                request = JSON.parse(xhr.responseText)
+            } catch (error) {
+                return
+            }
+            const id = String(request.id || "")
+            if (id === "" || id === root.lastRequest)
+                return
+            root.lastRequest = id
+            if (Number(request.id) / 1000000 < root.startedAt)
+                return
+            root.handleRequest(String(request.page || "home"))
+        }
+        xhr.send()
+    }
+    function handleRequest(page) {
+        if (open && currentPage === page) {
+            hide()
+        } else if (open) {
+            pageRequested(page)
+        } else {
+            requestedPage = page
+            show(true, "")
+        }
+    }
+    FileWatcher {
+        path: root.requestPath
+        onChanged: root.readRequest()
+    }
 
     function pinFiles(urls) {
         const files = urls.map(url => decodeURIComponent(String(url).replace(/^file:\/\//, ""))).filter(path => path.endsWith(".desktop"))

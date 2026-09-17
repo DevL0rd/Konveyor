@@ -37,7 +37,39 @@ chmod +x "$REPO_DIR/bin/portal-games"
 ln -sf "$REPO_DIR/bin/portal-games" "$BIN_DIR/portal-games"
 chmod +x "$REPO_DIR/bin/portal-packages"
 ln -sf "$REPO_DIR/bin/portal-packages" "$BIN_DIR/portal-packages"
-echo "Linked portal-games into $BIN_DIR"
+chmod +x "$REPO_DIR/bin/portal-launcher"
+ln -sf "$REPO_DIR/bin/portal-launcher" "$BIN_DIR/portal-launcher"
+echo "Linked portal-games, portal-packages and portal-launcher into $BIN_DIR"
+
+# --- 1a. Meta+G opens the Portal Launcher on its Games page ---
+GAMES_DESKTOP_ID="org.devl0rd.portal.launcher.games.desktop"
+APPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+mkdir -p "$APPS_DIR"
+cat > "$APPS_DIR/$GAMES_DESKTOP_ID" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Portal Launcher: Games
+Comment=Open the Portal Launcher on its Games page
+Exec=$BIN_DIR/portal-launcher games
+Icon=input-gamepad-symbolic
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Meta+G
+DESKTOP
+command -v kbuildsycoca6 >/dev/null 2>&1 && kbuildsycoca6 >/dev/null 2>&1
+if command -v busctl >/dev/null 2>&1; then
+    META_G=268435527
+    GRID_KEYS=$(busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel shortcut as 4 kwin "Grid View" KWin "Toggle Grid View" 2>/dev/null)
+    case " $GRID_KEYS " in
+        *" $META_G "*)
+            busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setForeignShortcut asai 4 kwin "Grid View" KWin "Toggle Grid View" 0 \
+                && echo "Freed Meta+G from KWin's Grid View"
+            ;;
+    esac
+    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel doRegister as 4 $GAMES_DESKTOP_ID _launch "Portal Launcher: Games" "Portal Launcher: Games" >/dev/null 2>&1
+    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setShortcut asaiu 4 $GAMES_DESKTOP_ID _launch "Portal Launcher: Games" "Portal Launcher: Games" 1 $META_G 2 >/dev/null \
+        && echo "Meta+G opens the Portal Launcher on Games"
+fi
 
 # --- 1b. friends-presence backend + config + resident service ---
 chmod +x "$REPO_DIR/bin/portal-friends"

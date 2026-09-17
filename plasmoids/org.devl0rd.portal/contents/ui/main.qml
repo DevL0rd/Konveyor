@@ -15,6 +15,7 @@ PlasmoidItem {
     readonly property bool openedByKey: false
     readonly property string openScreen: ""
     property var pendingPins: []
+    property string requestedPage: ""
     signal pinsRequested()
 
     Plasmoid.icon: panelIcon
