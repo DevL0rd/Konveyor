@@ -100,6 +100,16 @@ struct Engine::Private
     void applyRememberedSize(NewWindowPlan &plan, const QString &appId) const;
     bool appHasWindow(const QString &appId) const;
     bool placeInAppGroup(Tile &tile, const NewWindowPlan &plan, Workspace &workspace, MonitorAddRequest &request);
+    const Config::Layout &layoutForMonitor(std::size_t monitorIndex) const;
+    struct AppStackRequest
+    {
+        bool activate = false;
+        std::size_t maxRows = 1;
+        bool byPlacement = false;
+    };
+    void stackIntoColumns(
+        std::size_t monitorIndex, Workspace &workspace, const std::vector<std::size_t> &columns, Tile tile, const AppStackRequest &stack);
+    void reflowMonitorLayout(Monitor &monitor, const Config::Layout &previous);
 
     std::optional<WindowId> target(std::optional<WindowId> requested) const;
     Workspace *workspaceForTarget(std::optional<WindowId> requested);

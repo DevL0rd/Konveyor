@@ -37,6 +37,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
             remember-window-positions
             group-app-windows "off"
             max-rows-per-column 5
+            new-window-placement "stack"
             float-child-windows
             default-column-display "tabbed"
             background-color "#123456"
@@ -53,6 +54,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
     QCOMPARE(layout.rememberWindowPositions, true);
     QCOMPARE(layout.groupAppWindows, GroupAppWindows::Off);
     QCOMPARE(layout.maxRowsPerColumn, 5);
+    QCOMPARE(layout.newWindowPlacement, NewWindowPlacement::Stack);
     QCOMPARE(layout.floatChildWindows, true);
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Tabbed);
     QCOMPARE(layout.backgroundColor, QColor(0x12, 0x34, 0x56));

@@ -26,6 +26,12 @@ const QStringList &groupModes()
     return modes;
 }
 
+const QStringList &placementModes()
+{
+    static const QStringList modes {QStringLiteral("column"), QStringLiteral("stack")};
+    return modes;
+}
+
 const QStringList &columnDisplays()
 {
     static const QStringList displays {QStringLiteral("normal"), QStringLiteral("tabbed")};
@@ -69,6 +75,9 @@ void addLayoutSizingHandlers(NodeTable &table, LayoutPart &part)
         [&part](const Kdl::Node &node) { part.groupAppWindows = static_cast<GroupAppWindows>(keywordArgument(node, groupModes())); });
     table.insert(QStringLiteral("max-rows-per-column"),
         [&part](const Kdl::Node &node) { part.maxRowsPerColumn = static_cast<int>(integerArgument(node, Range {1, 64})); });
+    table.insert(QStringLiteral("new-window-placement"), [&part](const Kdl::Node &node) {
+        part.newWindowPlacement = static_cast<NewWindowPlacement>(keywordArgument(node, placementModes()));
+    });
     table.insert(QStringLiteral("float-child-windows"), [&part](const Kdl::Node &node) { part.floatChildWindows = flagArgument(node); });
     table.insert(QStringLiteral("empty-workspace-above-first"),
         [&part](const Kdl::Node &node) { part.emptyWorkspaceAboveFirst = flagArgument(node); });

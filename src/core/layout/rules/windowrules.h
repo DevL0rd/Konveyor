@@ -27,6 +27,7 @@ struct EffectiveWindowRules
     std::optional<bool> manage;
     std::optional<Config::ColumnPosition> columnPosition;
     std::optional<Config::GroupAppWindows> groupAppWindows;
+    std::optional<Config::NewWindowPlacement> newWindowPlacement;
     std::optional<int> maxRowsPerColumn;
     std::optional<bool> floatChildWindows;
     std::optional<int> minWidth;

@@ -22,15 +22,6 @@ QList<int> rowsPerColumn(Fixture &fixture, const QList<Layout::WindowId> &ids)
     return rows.values();
 }
 
-Config::WindowRule ruleFor(const QString &appId)
-{
-    Config::WindowRule rule;
-    Config::Match match;
-    match.appId = QRegularExpression(QStringLiteral("^") + appId + QStringLiteral("$"));
-    rule.matches.append(match);
-    return rule;
-}
-
 }
 
 class TestLayoutGroups : public QObject

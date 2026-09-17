@@ -27,6 +27,23 @@ binds {
 
 You get gaps, borders, a focus ring, tab indicators, preset widths, centering modes, per-monitor and per-workspace overrides, window rules, animation springs and key binds. Two KDE-specific extras: `active-color "accent"` follows the KDE accent color, and `gestures { titlebar-drag "scroll-view" }` scrolls the row when you drag a window by its title bar.
 
+## Placing new windows
+
+`new-window-placement "column"` (the default) gives every new window its own column. `new-window-placement "stack"` adds it as a row to the focused column until the column holds `max-rows-per-column` windows, then opens a new column; rows share the height evenly. With `group-app-windows "beside"` a new window stacks into its app's last column instead of the focused one. `new-window-placement`, `group-app-windows` and `max-rows-per-column` work globally, inside `monitor-profile` and `output` layout blocks, and per app in window rules.
+
+The default config ships a `portrait` monitor profile for screens taller than they are wide: columns fill the width and stack two windows, so Mod+Left/Right flips between full-width pages and Mod+Up/Down moves between the rows, then on to the workspace above or below.
+
+```kdl
+monitor-profile "portrait" {
+    match aspect-ratio-below=1.0
+    layout {
+        default-column-width { proportion 1.0; }
+        new-window-placement "stack"
+        max-rows-per-column 2
+    }
+}
+```
+
 ## Touch and gestures
 
 Konveyor drives the scrolling row from touchpads and touchscreens:

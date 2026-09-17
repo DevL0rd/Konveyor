@@ -66,6 +66,8 @@ public:
     void insertTileAfter(WindowId rightOf, Tile tile, bool activate, ColumnWidth width, bool fillsWidth);
     std::vector<std::size_t> appColumnIndices(const QString &appId) const;
     void addToAppStack(const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows);
+    void markPlacementStack(WindowId window);
+    void reflowForLayout(const Config::Layout &from, const Config::Layout &to);
     void addColumn(std::optional<std::size_t> idx, Column column, bool activate, std::optional<Config::AnimationParams> anim);
     DetachedTile removeTile(WindowId id);
     DetachedTile detachTileAt(std::size_t columnIndex, std::size_t tileIndex, std::optional<Config::AnimationParams> anim);
@@ -156,6 +158,10 @@ public:
     QString verifyColumns() const;
 
 private:
+    void stackLooseColumns(std::size_t maxRows);
+    std::size_t stackRun(const std::vector<quint64> &run, std::size_t maxRows);
+    void unstackPlacementColumns(const std::optional<Config::PresetSize> &width);
+    bool isLooseColumn(const Column &column) const;
     struct Location
     {
         std::size_t column;
@@ -223,6 +229,7 @@ private:
 
     std::vector<Column> m_columns;
     bool m_defaultWidthsPending = false;
+    std::optional<Config::PresetSize> m_replacedDefaultWidth;
     std::size_t m_activeColumnIndex = 0;
     std::optional<ResizeSession> m_resize;
     StripScroll m_scroll;

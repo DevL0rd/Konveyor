@@ -128,7 +128,7 @@ Some windows don't belong in a row. Lift one out with a single key, move it and 
   <tr>
     <td valign="top">
       <h4>📐 Per-monitor profiles</h4>
-      Give your ultrawide narrower columns than your laptop, automatically.
+      Give your ultrawide narrower columns than your laptop, automatically. Portrait screens get full-width columns that stack two windows.
     </td>
     <td valign="top">
       <h4>🧩 Window rules</h4>

@@ -46,6 +46,15 @@ inline Config::Config instantConfig()
     return config;
 }
 
+inline Config::WindowRule ruleFor(const QString &appId)
+{
+    Config::WindowRule rule;
+    Config::Match match;
+    match.appId = QRegularExpression(QStringLiteral("^") + appId + QStringLiteral("$"));
+    rule.matches.append(match);
+    return rule;
+}
+
 inline Config::Action action(
     const QString &name, const QStringList &arguments = {}, const QList<std::pair<QString, QString>> &properties = {})
 {

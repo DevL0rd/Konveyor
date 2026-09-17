@@ -15,6 +15,7 @@ private Q_SLOTS:
     void parsesWorkspaces();
     void rejectsDuplicateWorkspaceNames();
     void rejectsDisallowedWorkspaceLayoutNodes();
+    void monitorProfilesSetPlacement();
 };
 
 void TestConfigOutputs::parsesOutput()
@@ -115,6 +116,32 @@ void TestConfigOutputs::rejectsDisallowedWorkspaceLayoutNodes()
             .message.contains(QStringLiteral("not allowed inside `monitor-profile.layout`")));
     QVERIFY(mustFail(QStringLiteral("output \"DP-1\" {\n layout {\n remember-window-positions\n }\n}\n"))
             .message.contains(QStringLiteral("not allowed inside `output.layout`")));
+}
+
+void TestConfigOutputs::monitorProfilesSetPlacement()
+{
+    const Config config = parsed(QStringLiteral(R"(
+        layout {
+            max-rows-per-column 3
+        }
+        monitor-profile "portrait" {
+            match aspect-ratio-below=1.0
+            layout {
+                new-window-placement "stack"
+                max-rows-per-column 2
+                group-app-windows "stack"
+            }
+        }
+    )"));
+    const MonitorProfile &portrait = config.monitorProfiles.at(0);
+    QCOMPARE(portrait.matches.at(0).aspectRatioBelow, std::optional(1.0));
+    QCOMPARE(portrait.layout->newWindowPlacement, NewWindowPlacement::Stack);
+    QCOMPARE(portrait.layout->maxRowsPerColumn, 2);
+    QCOMPARE(portrait.layout->groupAppWindows, GroupAppWindows::Stack);
+    QCOMPARE(config.layout.maxRowsPerColumn, 3);
+    QCOMPARE(config.layout.newWindowPlacement, NewWindowPlacement::Column);
+    QVERIFY(mustFail(QStringLiteral("workspace \"a\" {\n layout {\n new-window-placement \"stack\"\n }\n}\n"))
+            .message.contains(QStringLiteral("not allowed inside `workspace.layout`")));
 }
 
 QTEST_MAIN(TestConfigOutputs)

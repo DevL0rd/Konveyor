@@ -144,6 +144,7 @@ void ColumnStrip::insertIntoColumn(std::size_t colIndex, std::optional<std::size
 {
     const double prevNextX = columnOffset(colIndex + 1);
     Column &target = m_columns[colIndex];
+    target.stackedByPlacement = false;
     const std::size_t idx = tileIndex.value_or(target.tiles.size());
     std::size_t prevActiveTileIndex = target.activeTileIndex;
 

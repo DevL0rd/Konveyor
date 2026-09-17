@@ -49,6 +49,12 @@ enum class GroupAppWindows
     Stack
 };
 
+enum class NewWindowPlacement
+{
+    Column,
+    Stack
+};
+
 enum class ColumnDisplay
 {
     Normal,

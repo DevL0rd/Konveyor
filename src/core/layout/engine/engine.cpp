@@ -97,8 +97,10 @@ void Engine::updateOutput(const OutputInfo &output)
     d->outputInfos.insert(output.name, output);
     Monitor *monitor = d->monitorByName(output.name);
     monitor->setArea(d->areaFor(output));
+    const Config::Layout previous = monitor->layoutOverride() ? *monitor->layoutOverride() : d->config.layout;
     monitor->setLayoutOverride(layoutForOutput(d->config, output.name, output.geometry.size()));
     monitor->updateConfig(d->options);
+    d->reflowMonitorLayout(*monitor, previous);
     d->refresh();
 }
 

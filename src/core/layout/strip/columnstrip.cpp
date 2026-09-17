@@ -18,13 +18,17 @@ ColumnStrip::ColumnStrip(QSizeF viewSize, QRectF parentArea, double scale, const
 void ColumnStrip::updateConfig(QSizeF viewSize, QRectF parentArea, double scale, OptionsPtr options)
 {
     const AreaInfo area {viewSize, workAreaWithStruts(parentArea, scale, options->layout.struts), parentArea, scale};
-    const bool defaultWidthChanged = m_options->layout.defaultColumnWidth != options->layout.defaultColumnWidth;
+    const std::optional<Config::PresetSize> previousDefaultWidth = m_options->layout.defaultColumnWidth;
+    const bool defaultWidthChanged = previousDefaultWidth != options->layout.defaultColumnWidth;
     for (Column &column : m_columns) {
         column.updateConfig(area, options);
     }
     m_area = area;
     m_options = std::move(options);
-    m_defaultWidthsPending = m_defaultWidthsPending || (defaultWidthChanged && !m_columns.empty());
+    if (defaultWidthChanged && !m_columns.empty() && !m_defaultWidthsPending) {
+        m_replacedDefaultWidth = previousDefaultWidth;
+        m_defaultWidthsPending = true;
+    }
     if (!m_columns.empty() && !m_scroll.isSwiping()) {
         scrollToColumn(std::nullopt, m_activeColumnIndex, std::nullopt);
     }
@@ -43,10 +47,14 @@ std::optional<std::optional<Config::PresetSize>> ColumnStrip::ruleWidthFor(const
 void ColumnStrip::applyDefaultColumnWidths()
 {
     m_defaultWidthsPending = false;
+    const std::optional<ColumnWidth> replaced
+        = m_replacedDefaultWidth ? std::optional(ColumnWidth::fromPreset(*m_replacedDefaultWidth)) : std::nullopt;
+    m_replacedDefaultWidth.reset();
     for (Column &column : m_columns) {
         const std::optional<std::optional<Config::PresetSize>> rule = ruleWidthFor(column);
         const std::optional<Config::PresetSize> preset = rule ? *rule : m_options->layout.defaultColumnWidth;
-        if (!preset) {
+        const bool customized = !rule && replaced && (column.fillsWidth || column.widthSetting != *replaced);
+        if (!preset || customized) {
             continue;
         }
         column.widthSetting = ColumnWidth::fromPreset(*preset);

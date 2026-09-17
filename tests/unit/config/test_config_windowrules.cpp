@@ -27,6 +27,7 @@ void TestConfigWindowRules::parsesWindowRuleMatchers()
             open-floating true
             manage false
             group-app-windows "stack"
+            new-window-placement "column"
             max-rows-per-column 2
             float-child-windows true
         }
@@ -37,6 +38,7 @@ void TestConfigWindowRules::parsesWindowRuleMatchers()
     QVERIFY(rule.matches.first().appId.has_value());
     QCOMPARE(rule.matches.first().appId->pattern(), QStringLiteral("^firefox$"));
     QCOMPARE(rule.groupAppWindows, std::optional(GroupAppWindows::Stack));
+    QCOMPARE(rule.newWindowPlacement, std::optional(NewWindowPlacement::Column));
     QCOMPARE(rule.maxRowsPerColumn, std::optional(2));
     QCOMPARE(rule.floatChildWindows, std::optional(true));
     QCOMPARE(rule.matches.first().title->pattern(), QStringLiteral("Picture-in-Picture"));

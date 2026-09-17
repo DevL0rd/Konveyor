@@ -114,6 +114,10 @@ void addOpenHandlers(NodeTable &table, WindowRule &rule)
     });
     table.insert(QStringLiteral("max-rows-per-column"),
         [&rule](const Kdl::Node &node) { rule.maxRowsPerColumn = static_cast<int>(integerArgument(node, Range {1, 64})); });
+    table.insert(QStringLiteral("new-window-placement"), [&rule](const Kdl::Node &node) {
+        rule.newWindowPlacement
+            = static_cast<NewWindowPlacement>(keywordArgument(node, {QStringLiteral("column"), QStringLiteral("stack")}));
+    });
     boolOf(QStringLiteral("float-child-windows"), rule.floatChildWindows);
     boolOf(QStringLiteral("open-focused"), rule.openFocused);
     textOf(QStringLiteral("open-on-output"), rule.openOnOutput);

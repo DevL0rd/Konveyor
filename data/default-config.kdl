@@ -35,6 +35,12 @@ layout {
     group-app-windows "beside"
     max-rows-per-column 3
 
+    // "column" gives every new window its own column. "stack" adds it as a
+    // row to the focused column until that column holds max-rows-per-column
+    // windows, then opens a new column. Monitor profiles and window rules can
+    // choose differently.
+    new-window-placement "column"
+
     // Float every window an app opens while it already has one open.
     // Off globally; window rules turn it on per app (Steam below).
     float-child-windows false
@@ -105,6 +111,22 @@ gestures {
 }
 
 animations {
+}
+
+// Screens taller than they are wide: every column fills the width and holds
+// two windows stacked, so Mod+Left/Right flips between full-width pages and
+// Mod+Up/Down moves between the two rows.
+monitor-profile "portrait" {
+    match aspect-ratio-below=1.0
+    layout {
+        default-column-width { proportion 1.0; }
+        preset-column-widths {
+            proportion 0.5
+            proportion 1.0
+        }
+        new-window-placement "stack"
+        max-rows-per-column 2
+    }
 }
 
 monitor-profile "ultrawide" {

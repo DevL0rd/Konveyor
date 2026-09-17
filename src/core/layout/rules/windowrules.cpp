@@ -56,6 +56,7 @@ void applyOpenRules(EffectiveWindowRules &resolved, const Config::WindowRule &ru
     assignIfSet(resolved.manage, rule.manage);
     assignIfSet(resolved.columnPosition, rule.columnPosition);
     assignIfSet(resolved.groupAppWindows, rule.groupAppWindows);
+    assignIfSet(resolved.newWindowPlacement, rule.newWindowPlacement);
     assignIfSet(resolved.maxRowsPerColumn, rule.maxRowsPerColumn);
     assignIfSet(resolved.floatChildWindows, rule.floatChildWindows);
 }

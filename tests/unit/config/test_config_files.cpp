@@ -39,8 +39,14 @@ void TestConfigFiles::loadsRepositoryDefaultConfig()
     QCOMPARE(result->config.layout.focusRing.active.source, ColorSource::SystemAccent);
     QCOMPARE(result->config.layout.border.enabled, false);
     QVERIFY(!result->config.windowRules.isEmpty());
-    QCOMPARE(result->config.monitorProfiles.size(), 1);
-    const MonitorProfile &ultrawide = result->config.monitorProfiles.at(0);
+    QCOMPARE(result->config.monitorProfiles.size(), 2);
+    const MonitorProfile &portrait = result->config.monitorProfiles.at(0);
+    QCOMPARE(portrait.matches.value(0).aspectRatioBelow, std::optional(1.0));
+    QCOMPARE(std::get<Proportion>(*portrait.layout->defaultColumnWidth).value, 1.0);
+    QCOMPARE(portrait.layout->newWindowPlacement, NewWindowPlacement::Stack);
+    QCOMPARE(portrait.layout->maxRowsPerColumn, 2);
+    QCOMPARE(result->config.layout.newWindowPlacement, NewWindowPlacement::Column);
+    const MonitorProfile &ultrawide = result->config.monitorProfiles.at(1);
     QCOMPARE(ultrawide.matches.value(0).aspectRatioAbove, std::optional(2.0));
     QCOMPARE(std::get<Proportion>(*ultrawide.layout->defaultColumnWidth).value, 0.25);
     QCOMPARE(std::get<Proportion>(*result->config.layout.defaultColumnWidth).value, 0.25);

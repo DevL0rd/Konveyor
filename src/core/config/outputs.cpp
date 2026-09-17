@@ -10,8 +10,15 @@ namespace
 
 const QStringList &globalOnlyLayoutNodes()
 {
-    static const QStringList names {QStringLiteral("remember-window-sizes"), QStringLiteral("remember-window-positions"),
-        QStringLiteral("group-app-windows"), QStringLiteral("max-rows-per-column"), QStringLiteral("float-child-windows")};
+    static const QStringList names {
+        QStringLiteral("remember-window-sizes"), QStringLiteral("remember-window-positions"), QStringLiteral("float-child-windows")};
+    return names;
+}
+
+const QStringList &monitorOnlyLayoutNodes()
+{
+    static const QStringList names {
+        QStringLiteral("group-app-windows"), QStringLiteral("max-rows-per-column"), QStringLiteral("new-window-placement")};
     return names;
 }
 
@@ -105,7 +112,8 @@ void decodeWorkspace(LoadContext &context, const Kdl::Node &node)
         QStringLiteral("open-on-output"), [&workspace](const Kdl::Node &child) { workspace.openOnOutput = stringArgument(child); });
     table.insert(QStringLiteral("layout"), [&workspace](const Kdl::Node &child) {
         rejectNodes(child,
-            globalOnlyLayoutNodes() + QStringList {QStringLiteral("empty-workspace-above-first"), QStringLiteral("insert-hint")},
+            globalOnlyLayoutNodes() + monitorOnlyLayoutNodes()
+                + QStringList {QStringLiteral("empty-workspace-above-first"), QStringLiteral("insert-hint")},
             QStringLiteral("workspace.layout"));
         workspace.layoutPart = decodeLayoutPart(child, false);
     });

@@ -55,8 +55,22 @@ void mergeInsertHint(InsertHint &base, const InsertHintPart &part)
     mergePaint(base.paint, part.paint);
 }
 
+void mergeLayoutPlacement(Layout &base, const LayoutPart &part)
+{
+    if (part.groupAppWindows) {
+        base.groupAppWindows = *part.groupAppWindows;
+    }
+    if (part.maxRowsPerColumn) {
+        base.maxRowsPerColumn = *part.maxRowsPerColumn;
+    }
+    if (part.newWindowPlacement) {
+        base.newWindowPlacement = *part.newWindowPlacement;
+    }
+}
+
 void mergeLayoutSizing(Layout &base, const LayoutPart &part)
 {
+    mergeLayoutPlacement(base, part);
     if (part.gaps) {
         base.gaps = *part.gaps;
     }
@@ -74,12 +88,6 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     }
     if (part.rememberWindowPositions) {
         base.rememberWindowPositions = *part.rememberWindowPositions;
-    }
-    if (part.groupAppWindows) {
-        base.groupAppWindows = *part.groupAppWindows;
-    }
-    if (part.maxRowsPerColumn) {
-        base.maxRowsPerColumn = *part.maxRowsPerColumn;
     }
     if (part.floatChildWindows) {
         base.floatChildWindows = *part.floatChildWindows;
