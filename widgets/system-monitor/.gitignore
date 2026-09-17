@@ -1,0 +1,18 @@
+# Local config -- never commit it.
+config.json
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Shared QML/JS components synced from the shared/common submodule by install.sh
+plasmoids/*/contents/ui/lib/
+
+plasmoids/org.devl0rd.sysmon/contents/ui/*.qml
+plasmoids/org.devl0rd.sysmon/contents/config/main.xml
