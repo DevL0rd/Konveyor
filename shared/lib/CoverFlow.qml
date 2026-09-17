@@ -114,53 +114,62 @@ Item {
                 z: -1
             }
 
-            GameCard {
-                id: cfCard
+            readonly property bool near: tile.visible || tile.ad < 2
+
+            Loader {
+                id: cardLoader
                 anchors.fill: parent
-                game: modelData
-                friendCount: cf.friendCountFor(modelData)
-                friends: cf.friendsFor(modelData)
-                showTitle: cf.showTitles
-                lift: false
-                selected: cf.highlightCenter && tile.ad < 0.5
-                disarmOnExit: false
-                armed: !cf.launchOnCenterClick && tile.ad < 0.5 && cf.centerArmed
-                onCardClicked: {
-                    if (cf.launchOnCenterClick && tile.ad < 0.5) {
-                        cf.launchRequested(modelData)
-                        return
+                active: tile.near
+                sourceComponent: GameCard {
+                    game: modelData
+                    friendCount: cf.friendCountFor(modelData)
+                    friends: cf.friendsFor(modelData)
+                    showTitle: cf.showTitles
+                    lift: false
+                    selected: cf.highlightCenter && tile.ad < 0.5
+                    disarmOnExit: false
+                    armed: !cf.launchOnCenterClick && tile.ad < 0.5 && cf.centerArmed
+                    onCardClicked: {
+                        if (cf.launchOnCenterClick && tile.ad < 0.5) {
+                            cf.launchRequested(modelData)
+                            return
+                        }
+                        cf.glideTo(cf.pos + tile.d)
+                        cf.centerArmed = true
                     }
-                    cf.glideTo(cf.pos + tile.d)
-                    cf.centerArmed = true
+                    onLaunchRequested: cf.launchRequested(modelData)
+                    onMenuRequested: cf.menuRequested(modelData)
                 }
-                onLaunchRequested: cf.launchRequested(modelData)
-                onMenuRequested: cf.menuRequested(modelData)
             }
 
-            Item {
+            Loader {
                 id: reflWrap
-                anchors.top: cfCard.bottom
-                anchors.horizontalCenter: cfCard.horizontalCenter
-                width: cfCard.width
-                height: cfCard.height
-                opacity: 0.32
-                layer.enabled: true
-                layer.effect: OpacityMask {
-                    maskSource: LinearGradient {
-                        width: reflWrap.width; height: reflWrap.height
-                        start: Qt.point(0, 0); end: Qt.point(0, reflWrap.height)
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: "#c0ffffff" }
-                            GradientStop { position: tile.reflH / tile.cardH; color: "#00ffffff" }
-                            GradientStop { position: 1.0; color: "#00ffffff" }
+                anchors.top: cardLoader.bottom
+                anchors.horizontalCenter: cardLoader.horizontalCenter
+                width: cardLoader.width
+                height: cardLoader.height
+                active: tile.visible && cardLoader.item !== null
+                sourceComponent: Item {
+                    id: reflection
+                    opacity: 0.32
+                    layer.enabled: true
+                    layer.effect: OpacityMask {
+                        maskSource: LinearGradient {
+                            width: reflection.width; height: reflection.height
+                            start: Qt.point(0, 0); end: Qt.point(0, reflection.height)
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: "#c0ffffff" }
+                                GradientStop { position: tile.reflH / tile.cardH; color: "#00ffffff" }
+                                GradientStop { position: 1.0; color: "#00ffffff" }
+                            }
                         }
                     }
-                }
-                ShaderEffectSource {
-                    anchors.fill: parent
-                    sourceItem: cfCard
-                    live: true
-                    transform: Scale { origin.y: reflWrap.height / 2; yScale: -1 }
+                    ShaderEffectSource {
+                        anchors.fill: parent
+                        sourceItem: cardLoader.item
+                        live: true
+                        transform: Scale { origin.y: reflection.height / 2; yScale: -1 }
+                    }
                 }
             }
         }
