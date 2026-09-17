@@ -149,6 +149,8 @@ def split_shortcut_value(value):
 
 
 def kde_entries(taken_keys):
+    if not KGLOBALSHORTCUTS.exists():
+        return
     group = None
     for line in KGLOBALSHORTCUTS.read_text().splitlines():
         header = re.fullmatch(r"\[(.+)\]", line)

@@ -364,6 +364,10 @@ Every Konveyor setting lives in the Kontrol Panel. Press <kbd>Meta</kbd> + <kbd>
     <td width="50%"><img alt="Touch and gesture settings" src="docs/media/settings-touch.png"><p align="center"><b>Touch &amp; Gestures</b> — finger counts, swipes, pinches, taps and long presses</p></td>
     <td width="50%"><img alt="Portrait monitor profile settings" src="docs/media/settings-portrait.png"><p align="center"><b>Monitor profiles</b> — portrait screens get full-width columns that stack two windows</p></td>
   </tr>
+  <tr>
+    <td><img alt="New window settings: grouping, stacked windows per column, floating extra windows and starting width" src="docs/media/settings-new-windows.png"><p align="center"><b>New windows</b> — keep apps together, cap stacked windows, float an app's extra windows, pick a starting width</p></td>
+    <td><img alt="Scrolling, centering and remembered window size settings" src="docs/media/settings-remember.png"><p align="center"><b>Remember windows</b> — reopen apps at their last width and floating windows where you left them</p></td>
+  </tr>
 </table>
 
 <details>

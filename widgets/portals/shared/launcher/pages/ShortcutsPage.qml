@@ -131,7 +131,11 @@ Item {
                 }
 
                 PlasmaExtrasPlaceholder {
-                    visible: launcherData.shortcuts.length === 0
+                    visible: launcherData.shortcuts.length === 0 || launcherData.shortcutsError !== ""
+                    text: launcherData.shortcutsError === "" ? i18n("Reading your shortcuts…") : i18n("Couldn't read your shortcuts: %1", launcherData.shortcutsError)
+                    opacity: launcherData.shortcutsError === "" ? 0.55 : 1
+                    color: launcherData.shortcutsError === "" ? Kirigami.Theme.textColor : Kirigami.Theme.negativeTextColor
+                    wrapMode: Text.Wrap
                 }
             }
         }
@@ -157,7 +161,5 @@ Item {
         Layout.fillWidth: true
         Layout.topMargin: Kirigami.Units.gridUnit * 4
         horizontalAlignment: Text.AlignHCenter
-        text: i18n("Reading your shortcuts…")
-        opacity: 0.55
     }
 }

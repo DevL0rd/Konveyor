@@ -211,13 +211,20 @@ Item {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
-            try {
-                data.shortcuts = JSON.parse(result.stdout || "[]")
-            } catch (error) {
+            if (result["exit code"] !== 0) {
+                const lines = (result.stderr || "").trim().split("\n")
+                data.shortcutsError = lines[lines.length - 1] || i18n("konveyor-cheatsheet exited with code %1", result["exit code"])
                 return
+            }
+            try {
+                data.shortcuts = JSON.parse(result.stdout)
+                data.shortcutsError = ""
+            } catch (error) {
+                data.shortcutsError = error.message
             }
         }
     }
+    property string shortcutsError: ""
     property bool shortcutsRequested: false
     function refreshShortcuts() {
         shortcutsRequested = true
