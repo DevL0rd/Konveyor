@@ -23,6 +23,7 @@ add_subdirectory(src/core)
 add_subdirectory(src/shortcuts)
 add_subdirectory(src/cli)
 add_subdirectory(src/components)
+add_subdirectory(src/settings)
 
 if(KONVEYOR_BUILD_EFFECT)
     add_subdirectory(src/effect)
