@@ -16,7 +16,26 @@ Tile {
     iconSource: model.decoration
     label: model.display || ""
     badge: model.isNewlyInstalled === true
+    game: launcherData.gameForApp(favoriteId)
     selected: GridView.isCurrentItem && !!grid && grid.sectionActive
+    reorderable: !!grid && grid.reorderable === true
+    dropTarget: !!grid && grid.dropIndex === index && grid.dragIndex !== index && grid.dragIndex >= 0
+
+    function gridIndexAt(position) {
+        const mapped = tile.mapToItem(grid.contentItem, position.x, position.y)
+        return grid.indexAt(mapped.x, mapped.y)
+    }
+    onReorderMove: function(position) {
+        grid.dragIndex = index
+        grid.dropIndex = gridIndexAt(position)
+    }
+    onReorderDrop: function(position) {
+        const target = gridIndexAt(position)
+        grid.dragIndex = -1
+        grid.dropIndex = -1
+        if (target >= 0 && target !== index && sourceModel && sourceModel.moveRow)
+            sourceModel.moveRow(index, target)
+    }
 
     function activate() {
         launcher.trigger(sourceModel, sourceIndex)

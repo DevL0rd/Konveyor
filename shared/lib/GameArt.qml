@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import org.kde.kirigami as Kirigami
 
 Item {
@@ -67,9 +68,47 @@ Item {
         sourceSize.width: Math.round(width * 1.5)
     }
 
+    Item {
+        id: wash
+        anchors.fill: parent
+        visible: art.mode === "icon" || !image.visible
+        clip: true
+        layer.enabled: visible
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: washMask
+        }
+        Kirigami.Icon {
+            id: washIcon
+            anchors.centerIn: parent
+            width: Math.max(parent.width, parent.height) * 1.4
+            height: width
+            source: art.game ? (art.game.icon || "applications-games") : "applications-games"
+            fallback: "applications-games"
+            visible: false
+        }
+        MultiEffect {
+            anchors.fill: washIcon
+            source: washIcon
+            blurEnabled: true
+            blur: 1.0
+            blurMax: 64
+            saturation: -0.15
+            brightness: -0.35
+            opacity: 0.55
+        }
+    }
+    Rectangle {
+        id: washMask
+        anchors.fill: parent
+        radius: art.radius
+        visible: false
+        layer.enabled: true
+    }
+
     Kirigami.Icon {
         anchors.centerIn: parent
-        width: Math.round(Math.min(parent.width, parent.height) * (art.wide ? 0.42 : 0.36))
+        width: Math.round(Math.min(parent.width, parent.height) * (art.wide ? 0.46 : 0.4))
         height: width
         visible: art.mode === "icon" || !image.visible
         source: art.game ? (art.game.icon || "applications-games") : "applications-games"

@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kirigamiaddons.components as Components
 import org.kde.plasma.components as PlasmaComponents
+import "lib"
 import "lib/Highlight.js" as Highlight
 
 Item {
@@ -20,6 +21,8 @@ Item {
     property bool monochrome: false
     property bool roundIcon: false
     property color ringColor: "transparent"
+    property var game: null
+    property bool emphasize: false
     signal clicked()
     signal rightClicked()
     signal hovered()
@@ -39,8 +42,17 @@ Item {
         anchors.rightMargin: Kirigami.Units.largeSpacing
         spacing: Kirigami.Units.largeSpacing
 
+        GameArt {
+            visible: tile.game !== null
+            Layout.preferredHeight: Math.round(tile.height * 0.72)
+            Layout.preferredWidth: Math.round(Layout.preferredHeight / 0.4667)
+            game: tile.game || ({})
+            wide: true
+            showLogo: true
+            radius: Kirigami.Units.cornerRadius * 1.5
+        }
         Kirigami.Icon {
-            visible: !tile.roundIcon
+            visible: !tile.roundIcon && tile.game === null
             Layout.preferredWidth: tile.iconSize
             Layout.preferredHeight: tile.iconSize
             source: tile.roundIcon ? "" : tile.iconSource
@@ -74,6 +86,8 @@ Item {
                 text: tile.query !== "" ? Highlight.mark(tile.label, tile.query, Kirigami.Theme.textColor) : tile.label
                 textFormat: tile.query !== "" ? Text.StyledText : Text.PlainText
                 elide: Text.ElideRight
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * (tile.emphasize ? 1.5 : 1)
+                font.weight: tile.emphasize ? Font.DemiBold : Font.Normal
             }
             PlasmaComponents.Label {
                 visible: tile.subtitle !== ""

@@ -150,6 +150,11 @@ Item {
     function focusSearch() {
         field.forceActiveFocus()
     }
+    function setQuery(text) {
+        field.text = text
+        field.cursorPosition = text.length
+        field.forceActiveFocus()
+    }
     function goToPage(key) {
         page = key
         markVisited(key)
@@ -314,15 +319,18 @@ Item {
         else
             launcherData.favorites.addFavorite(favoriteId)
     }
-    function trigger(model, index) {
+    function trigger(model, index, key) {
+        remember(key)
         if (model && model.trigger(index, "", null) !== false)
             root.hide()
     }
     function kickerEntries(model, index, actions, favoriteId) {
-        const entries = [{ text: i18n("Open"), icon: "system-run", run: () => launcher.trigger(model, index) }]
+        const entries = [{ text: i18n("Open"), icon: "system-run", run: () => launcher.trigger(model, index, favoriteId) }]
         if (favoriteId) {
             const pinned = isPinned(favoriteId)
             entries.push({ text: pinned ? i18n("Unpin from Home") : i18n("Pin to Home"), icon: pinned ? "window-unpin" : "window-pin", run: () => launcher.togglePin(favoriteId) })
+            if (favoriteId.indexOf(".desktop") >= 0)
+                entries.push({ text: i18n("Hide from launcher"), icon: "view-hidden", run: () => launcherData.setHidden(favoriteId, true) })
         }
         const list = actions || []
         if (list.length > 0)
@@ -347,7 +355,7 @@ Item {
         return entries
     }
     function gameEntries(game) {
-        const entries = [{ text: i18n("Play"), icon: "media-playback-start", run: () => { launcherData.launchGame(game); root.hide() } }]
+        const entries = [{ text: i18n("Play"), icon: "media-playback-start", run: () => { launcher.remember("game:" + game.id); launcherData.launchGame(game); root.hide() } }]
         if (game.appid) {
             entries.push({ separator: true })
             entries.push({ text: i18n("Store page"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally("steam://store/" + game.appid); root.hide() } })
@@ -378,6 +386,53 @@ Item {
         if (friend.profile_web)
             entries.push({ text: i18n("Open profile in browser"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally(friend.profile_web); root.hide() } })
         return entries
+    }
+    function sessionIcon(label) {
+        const text = String(label).toLowerCase()
+        if (text.indexOf("lock") >= 0) return "system-lock-screen-symbolic"
+        if (text.indexOf("switch") >= 0) return "system-switch-user-symbolic"
+        if (text.indexOf("log") >= 0) return "system-log-out-symbolic"
+        if (text.indexOf("hibernate") >= 0) return "system-suspend-hibernate-symbolic"
+        if (text.indexOf("sleep") >= 0 || text.indexOf("suspend") >= 0) return "system-suspend-symbolic"
+        if (text.indexOf("restart") >= 0 || text.indexOf("reboot") >= 0) return "system-reboot-symbolic"
+        if (text.indexOf("shut") >= 0 || text.indexOf("power off") >= 0) return "system-shutdown-symbolic"
+        return "system-run-symbolic"
+    }
+    function powerEntries() {
+        const model = launcherData.system
+        const entries = []
+        for (let row = 0; row < model.count; ++row) {
+            const label = model.labelForRow(row)
+            const at = row
+            entries.push({ text: label, icon: sessionIcon(label), run: () => launcher.trigger(model, at) })
+        }
+        entries.push({ separator: true })
+        entries.push({ text: i18n("Session page"), icon: "go-next-symbolic", run: () => launcher.goToPage("system") })
+        return entries
+    }
+    function friendsQuickEntries(anchor) {
+        const entries = []
+        const playing = launcherData.friends.filter(friend => friend.ingame)
+        const online = launcherData.friends.filter(friend => !friend.ingame && friend.state > 0)
+        if (playing.length > 0)
+            entries.push({ text: i18n("In game"), disabled: true })
+        for (const friend of playing.slice(0, 12))
+            entries.push({ text: i18n("%1 · %2", friend.name, friend.game), icon: "input-gamepad-symbolic", run: () => Qt.callLater(() => launcher.openMenu(launcher.friendEntries(friend), anchor)) })
+        if (online.length > 0) {
+            if (entries.length > 0)
+                entries.push({ separator: true })
+            entries.push({ text: i18n("Online"), disabled: true })
+        }
+        for (const friend of online.slice(0, 8))
+            entries.push({ text: friend.name, icon: "user-available-symbolic", run: () => Qt.callLater(() => launcher.openMenu(launcher.friendEntries(friend), anchor)) })
+        if (entries.length > 0)
+            entries.push({ separator: true })
+        entries.push({ text: i18n("All friends"), icon: "system-users-symbolic", run: () => launcher.goToPage("friends") })
+        return entries
+    }
+    function remember(key) {
+        if (searching && key)
+            launcherData.learn(term, key)
     }
     function packageEntries(pkg) {
         return [
@@ -453,6 +508,12 @@ Item {
 
             Keys.forwardTo: [field]
 
+            Rectangle {
+                anchors.fill: parent
+                radius: Kirigami.Units.cornerRadius * 2
+                color: Qt.alpha(Kirigami.Theme.backgroundColor, 0.14)
+            }
+
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.largeSpacing
@@ -460,13 +521,18 @@ Item {
                 scale: 0.97 + 0.03 * launcher.progress
                 transformOrigin: Item.Top
 
-                RowLayout {
+                Item {
+                    id: topBar
                     Layout.fillWidth: true
-                    spacing: Kirigami.Units.largeSpacing * 1.5
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 2.6
+                    readonly property real gap: Kirigami.Units.largeSpacing * 2
+                    readonly property real sideWidth: Math.max(Kirigami.Units.gridUnit * 13, statusRow.implicitWidth)
 
                     RowLayout {
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 11
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 11
+                        id: identity
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: topBar.sideWidth
                         spacing: Kirigami.Units.largeSpacing
                         Components.Avatar {
                             Layout.preferredWidth: Kirigami.Units.iconSizes.medium + Kirigami.Units.smallSpacing
@@ -494,10 +560,10 @@ Item {
                     }
 
                     Rectangle {
-                        Layout.fillWidth: true
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 44
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
+                        id: searchBox
+                        anchors.centerIn: parent
+                        width: Math.max(Kirigami.Units.gridUnit * 16, Math.min(Kirigami.Units.gridUnit * 44, parent.width - (topBar.sideWidth + topBar.gap) * 2))
+                        height: parent.height
                         radius: height / 2
                         color: field.activeFocus ? Qt.alpha(launcher.ink, 0.09) : launcher.well
                         border.width: 1
@@ -568,6 +634,12 @@ Item {
                                     event.accepted = true
                                 }
                             }
+                            PlasmaComponents.Label {
+                                visible: launcher.searching && searchLoader.item !== null && searchLoader.item.totalResults > 0
+                                text: searchLoader.item ? i18np("%1 result", "%1 results", searchLoader.item.totalResults) : ""
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                opacity: 0.45
+                            }
                             Rectangle {
                                 visible: launcher.searching && launcher.mode !== "all"
                                 implicitWidth: modeLabel.implicitWidth + Kirigami.Units.largeSpacing * 1.5
@@ -596,15 +668,30 @@ Item {
                     }
 
                     RowLayout {
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 11
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 11
+                        id: statusRow
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
                         spacing: Kirigami.Units.smallSpacing
-                        Item { Layout.fillWidth: true }
-                        PlasmaComponents.Label {
-                            text: Qt.formatTime(launcherData.now, Qt.locale().timeFormat(Locale.ShortFormat))
-                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
-                            font.weight: Font.DemiBold
+
+                        FriendsPill {
                             Layout.rightMargin: Kirigami.Units.largeSpacing
+                        }
+
+                        ColumnLayout {
+                            spacing: 0
+                            Layout.rightMargin: Kirigami.Units.largeSpacing
+                            PlasmaComponents.Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: Qt.formatTime(launcherData.now, Qt.locale().timeFormat(Locale.ShortFormat))
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
+                                font.weight: Font.DemiBold
+                            }
+                            PlasmaComponents.Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: Qt.formatDate(launcherData.now, "ddd d MMM")
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                opacity: 0.55
+                            }
                         }
                         PlasmaComponents.ToolButton {
                             icon.name: "configure-symbolic"
@@ -618,11 +705,12 @@ Item {
                             QQC2.ToolTip.text: text
                         }
                         PlasmaComponents.ToolButton {
+                            id: powerButton
                             icon.name: "system-shutdown-symbolic"
                             display: PlasmaComponents.AbstractButton.IconOnly
                             text: i18n("Power and session")
-                            onClicked: launcher.goToPage("system")
-                            QQC2.ToolTip.visible: hovered
+                            onClicked: launcher.openMenu(launcher.powerEntries(), powerButton)
+                            QQC2.ToolTip.visible: hovered && !menu.visible
                             QQC2.ToolTip.text: text
                         }
                     }
@@ -648,6 +736,7 @@ Item {
                                 required property var modelData
                                 required property int index
                                 readonly property bool current: !launcher.searching && launcher.page === modelData.key
+                                readonly property int badge: modelData.key === "friends" ? launcherData.friendsInGame : 0
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: Kirigami.Units.gridUnit * 3.4
                                 hoverEnabled: true
@@ -659,6 +748,25 @@ Item {
                                     color: railItem.current ? launcher.selectedFill : railItem.containsMouse ? launcher.hoverFill : "transparent"
                                     border.width: railItem.current ? 1 : 0
                                     border.color: launcher.hairline
+                                }
+                                Rectangle {
+                                    visible: railItem.badge > 0
+                                    anchors.top: parent.top
+                                    anchors.right: parent.right
+                                    anchors.margins: Kirigami.Units.smallSpacing
+                                    width: Math.max(height, badgeLabel.implicitWidth + Kirigami.Units.smallSpacing * 1.5)
+                                    height: badgeLabel.implicitHeight
+                                    radius: height / 2
+                                    color: Qt.alpha(Kirigami.Theme.positiveTextColor, 0.22)
+                                    border.width: 1
+                                    border.color: Qt.alpha(Kirigami.Theme.positiveTextColor, 0.55)
+                                    PlasmaComponents.Label {
+                                        id: badgeLabel
+                                        anchors.centerIn: parent
+                                        text: railItem.badge
+                                        font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.85
+                                        font.weight: Font.DemiBold
+                                    }
                                 }
                                 ColumnLayout {
                                     anchors.centerIn: parent

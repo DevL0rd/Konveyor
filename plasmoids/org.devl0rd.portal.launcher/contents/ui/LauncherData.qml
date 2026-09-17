@@ -28,9 +28,11 @@ Item {
     readonly property alias user: kuser
 
     property var games: []
+    property var gameByDesktop: ({})
     property var recentGames: []
     property var friends: []
     property var friendsByAppid: ({})
+    property var playingNow: []
     property int friendsOnline: 0
     property int friendsInGame: 0
     property real gamesLoadedAt: 0
@@ -84,6 +86,8 @@ Item {
         if (Plasmoid.configuration.searchFiles)
             list.push("krunner_placesrunner", "krunner_recentdocuments", "baloosearch", "locations")
         list.push("krunner_sessions", "krunner_powerdevil")
+        if (Plasmoid.configuration.searchWindows)
+            list.push("windows")
         if (Plasmoid.configuration.searchWeb)
             list.push("krunner_webshortcuts")
         return list
@@ -150,6 +154,10 @@ Item {
                 return
             }
             const list = parsed.games || []
+            const byDesktop = {}
+            for (const game of list)
+                byDesktop[game.id] = game
+            data.gameByDesktop = byDesktop
             data.games = list
             data.recentGames = list.filter(game => game.last > 0).sort((a, b) => b.last - a.last).slice(0, 12)
             data.gamesLoadedAt = Date.now()
@@ -267,6 +275,61 @@ Item {
         games = updated
         recentGames = updated.filter(entry => entry.last > 0).sort((a, b) => b.last - a.last).slice(0, 12)
     }
+    function desktopKey(favoriteId) {
+        return String(favoriteId || "").replace(/^applications:/, "").replace(/\.desktop$/, "")
+    }
+    function gameForApp(favoriteId) {
+        if (!favoriteId)
+            return null
+        return gameByDesktop[desktopKey(favoriteId)] || null
+    }
+
+    readonly property var hiddenSet: {
+        const set = {}
+        for (const id of Plasmoid.configuration.hiddenApps)
+            set[desktopKey(id)] = true
+        return set
+    }
+    function isHidden(favoriteId) {
+        return !!favoriteId && hiddenSet[desktopKey(favoriteId)] === true
+    }
+    function setHidden(favoriteId, hidden) {
+        const key = desktopKey(favoriteId)
+        const list = Plasmoid.configuration.hiddenApps.filter(id => desktopKey(id) !== key)
+        if (hidden)
+            list.push(key)
+        Plasmoid.configuration.hiddenApps = list
+    }
+
+    property var learned: {
+        try {
+            return JSON.parse(Plasmoid.configuration.learnedRanking || "{}")
+        } catch (error) {
+            return {}
+        }
+    }
+    function learn(query, key) {
+        const term = String(query || "").trim().toLowerCase()
+        if (term === "" || !key)
+            return
+        const next = Object.assign({}, learned)
+        for (let length = 1; length <= Math.min(term.length, 24); ++length) {
+            const prefix = term.substring(0, length)
+            const counts = Object.assign({}, next[prefix] || {})
+            counts[key] = (counts[key] || 0) + 1
+            next[prefix] = counts
+        }
+        learned = next
+        Plasmoid.configuration.learnedRanking = JSON.stringify(next)
+    }
+    function learnedFor(query) {
+        const term = String(query || "").trim().toLowerCase()
+        const counts = learned[term.substring(0, 24)]
+        if (!counts)
+            return []
+        return Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+    }
+
     function friendsFor(game) {
         return game && game.appid && friendsByAppid[game.appid] ? friendsByAppid[game.appid] : []
     }
@@ -302,6 +365,18 @@ Item {
             })
             data.friends = list
             data.friendsByAppid = parsed.by_appid || {}
+            const byGame = {}
+            for (const friend of list) {
+                if (!friend.ingame)
+                    continue
+                const key = friend.appid || friend.game
+                if (!byGame[key]) {
+                    const owned = data.games.find(game => friend.appid && game.appid === friend.appid) || null
+                    byGame[key] = { key: key, appid: friend.appid || "", name: friend.game, capsule: friend.capsule || "", game: owned, friends: [] }
+                }
+                byGame[key].friends.push(friend)
+            }
+            data.playingNow = Object.values(byGame).sort((a, b) => b.friends.length - a.friends.length || String(a.name).localeCompare(String(b.name)))
             data.friendsOnline = list.filter(f => f.state > 0).length
             data.friendsInGame = list.filter(f => f.ingame).length
         }

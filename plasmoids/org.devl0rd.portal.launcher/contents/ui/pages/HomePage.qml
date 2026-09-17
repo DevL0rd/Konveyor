@@ -9,7 +9,7 @@ import ".."
 PopScroll {
     id: page
 
-    readonly property var sections: [pinned, recentApps, playing, recentFiles]
+    readonly property var sections: [pinned, recentApps, friendsPlaying, playing, recentFiles]
     readonly property int tileSize: Plasmoid.configuration.tileSize
     readonly property string greeting: {
         launcher.shown
@@ -50,12 +50,13 @@ PopScroll {
     PlasmaComponents.Label {
         visible: launcherData.favorites.count === 0
         Layout.fillWidth: true
-        text: i18n("Right-click any app and choose Pin to Home, or press Ctrl+P on it.")
+        text: i18n("Pin apps here: right-click any app and choose Pin to Home, press Ctrl+P on it, or drop a .desktop file on the launcher button.")
         opacity: 0.6
         wrapMode: Text.Wrap
     }
     TileGrid {
         id: pinned
+        reorderable: true
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.round(page.tileSize + Kirigami.Units.gridUnit * 3.6)
@@ -83,9 +84,27 @@ PopScroll {
     }
 
     SectionHeader {
+        visible: friendsPlaying.visible
+        title: i18n("Friends playing now")
+        trailing: i18np("%1 friend in game", "%1 friends in game", launcherData.friendsInGame)
+        actionText: i18n("All friends")
+        onActionClicked: launcher.goToPage("friends")
+    }
+    TileGrid {
+        id: friendsPlaying
+        visible: Plasmoid.configuration.showFriends && launcherData.playingNow.length > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: implicitHeight
+        cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
+        cellHeight: Math.round(cellWidth * 0.4667)
+        limit: columns
+        model: launcherData.playingNow
+        delegate: PlayingNowCard {}
+    }
+
+    SectionHeader {
         visible: playing.visible
         title: i18n("Continue playing")
-        trailing: launcherData.friendsInGame > 0 ? i18np("%1 friend in game", "%1 friends in game", launcherData.friendsInGame) : ""
         actionText: i18n("All games")
         onActionClicked: launcher.goToPage("games")
     }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "lib"
 
 Item {
     id: tile
@@ -13,17 +14,25 @@ Item {
     property bool badge: false
     property int iconSize: 48
     property bool monochrome: false
+    property var game: null
+    property bool reorderable: false
+    property bool dropTarget: false
+    readonly property bool dragging: mouse.dragging
+    signal reorderMove(point position)
+    signal reorderDrop(point position)
     signal clicked()
     signal rightClicked()
     signal hovered()
+
+    opacity: dragging ? 0.45 : 1
 
     Rectangle {
         anchors.fill: parent
         anchors.margins: 3
         radius: Kirigami.Units.cornerRadius * 2.5
-        color: tile.selected ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
-        border.width: tile.selected ? 1 : 0
-        border.color: launcher.selectedLine
+        color: tile.selected || tile.dropTarget ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
+        border.width: tile.selected || tile.dropTarget ? 1 : 0
+        border.color: tile.dropTarget ? Qt.alpha(Kirigami.Theme.textColor, 0.8) : launcher.selectedLine
     }
 
     ColumnLayout {
@@ -33,9 +42,19 @@ Item {
 
         Item {
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: tile.iconSize
+            Layout.preferredWidth: tile.game !== null && tile.game.appid ? Math.round(tile.iconSize * 0.68) : tile.iconSize
             Layout.preferredHeight: tile.iconSize
+            GameArt {
+                anchors.fill: parent
+                visible: tile.game !== null && tile.game.appid !== ""
+                game: tile.game || ({})
+                wide: false
+                showLogo: false
+                radius: Kirigami.Units.cornerRadius
+                scale: mouse.pressed ? 0.92 : 1
+            }
             Kirigami.Icon {
+                visible: tile.game === null || !tile.game.appid
                 anchors.fill: parent
                 source: tile.iconSource
                 fallback: "application-x-executable"
@@ -79,11 +98,36 @@ Item {
 
     MouseArea {
         id: mouse
+        property point pressPoint
+        property bool dragging: false
+        property bool suppressClick: false
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onEntered: tile.hovered()
+        onPressed: function(event) {
+            pressPoint = Qt.point(event.x, event.y)
+            suppressClick = false
+        }
+        onPositionChanged: function(event) {
+            if (!tile.reorderable || !(event.buttons & Qt.LeftButton))
+                return
+            if (!dragging && Math.hypot(event.x - pressPoint.x, event.y - pressPoint.y) > Qt.styleHints.startDragDistance)
+                dragging = true
+            if (dragging)
+                tile.reorderMove(Qt.point(event.x, event.y))
+        }
+        onReleased: function(event) {
+            if (dragging) {
+                tile.reorderDrop(Qt.point(event.x, event.y))
+                dragging = false
+                suppressClick = true
+            }
+        }
+        onCanceled: dragging = false
         onClicked: function(event) {
+            if (suppressClick)
+                return
             if (event.button === Qt.RightButton)
                 tile.rightClicked()
             else
