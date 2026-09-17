@@ -72,6 +72,7 @@ struct WindowRule
     std::optional<ColumnPosition> columnPosition;
     std::optional<GroupAppWindows> groupAppWindows;
     std::optional<int> maxRowsPerColumn;
+    std::optional<bool> floatChildWindows;
 
     std::optional<double> opacity;
     std::optional<int> minWidth;

@@ -150,6 +150,13 @@ ColumnLayout {
         }
     }
 
+    RuleTriStateRow {
+        path: section.rulePath + "/float-child-windows"
+        label: "Float its extra windows"
+        description: "Its first window tiles; any more it opens while one is already open float above the row"
+        iconName: "window-keep-above"
+    }
+
     StackLimitRow {
         path: section.rulePath + "/max-rows-per-column"
         label: "Most stacked per column"

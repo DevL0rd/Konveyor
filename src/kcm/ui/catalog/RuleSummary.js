@@ -124,6 +124,7 @@ function effects(rule) {
         list.push("up to " + maxRows + " stacked per column");
     }
     list.push(...boolEffect(rule, "open-floating", "opens floating", "opens tiled"));
+    list.push(...boolEffect(rule, "float-child-windows", "floats its extra windows", "tiles its extra windows"));
     list.push(...boolEffect(rule, "open-maximized", "opens maximized", "doesn't open maximized"));
     list.push(...boolEffect(rule, "open-maximized-to-edges", "opens maximized to the edges", "doesn't open maximized to the edges"));
     list.push(...boolEffect(rule, "open-fullscreen", "opens fullscreen", "doesn't open fullscreen"));

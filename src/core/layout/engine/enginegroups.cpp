@@ -7,6 +7,25 @@
 namespace Konveyor::Layout
 {
 
+bool Engine::Private::appHasWindow(const QString &appId) const
+{
+    if (appId.isEmpty()) {
+        return false;
+    }
+    const auto ownsWindow = [&appId](const Workspace &workspace) {
+        const auto isApp = [&appId](const Tile &tile) { return tile.window().properties().appId == appId; };
+        return std::ranges::any_of(workspace.floating().tiles(), isApp)
+            || std::ranges::any_of(
+                workspace.scrolling().columns(), [&isApp](const Column &column) { return std::ranges::any_of(column.tiles, isApp); });
+    };
+    for (const Monitor &monitor : monitors) {
+        if (std::ranges::any_of(monitor.workspaces(), ownsWindow)) {
+            return true;
+        }
+    }
+    return std::ranges::any_of(orphanWorkspaces, ownsWindow);
+}
+
 bool Engine::Private::placeInAppGroup(Tile &tile, const NewWindowPlan &plan, Workspace &workspace, MonitorAddRequest &request)
 {
     if (plan.isFloating || plan.parent || plan.workspace || plan.fillsWidth || plan.wantsFullscreen || plan.wantsMaximized) {

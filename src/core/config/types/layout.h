@@ -24,6 +24,7 @@ struct Layout
     bool rememberWindowPositions = false;
     GroupAppWindows groupAppWindows = GroupAppWindows::Beside;
     int maxRowsPerColumn = 3;
+    bool floatChildWindows = false;
     QList<PresetSize> presetWindowHeights;
     Struts struts;
     Border focusRing;
@@ -48,6 +49,7 @@ struct LayoutPart
     std::optional<bool> rememberWindowPositions;
     std::optional<GroupAppWindows> groupAppWindows;
     std::optional<int> maxRowsPerColumn;
+    std::optional<bool> floatChildWindows;
     std::optional<QList<PresetSize>> presetWindowHeights;
     std::optional<Struts> struts;
     std::optional<BorderRule> focusRing;

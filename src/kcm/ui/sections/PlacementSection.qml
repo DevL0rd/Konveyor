@@ -82,6 +82,20 @@ ColumnLayout {
 
         ScopedRow {
             scope: root
+            key: "float-child-windows"
+            visible: !root.overrideMode
+            label: "Float an app's extra windows"
+            description: "The first window of an app tiles; any more it opens (friends lists, chats, settings) float above the row. Window rules can turn this on or off per app."
+            iconName: "window-keep-above"
+
+            ScopedSwitch {
+                isOn: root.values["float-child-windows"] === true
+                onSwitched: on => LayoutKeys.writeFlag(kcm, root.scopePath, root.overrideMode, "float-child-windows", on)
+            }
+        }
+
+        ScopedRow {
+            scope: root
             key: "default-column-width"
             label: "Starting width"
             description: "How wide a new column is. Window rules can override this per app."

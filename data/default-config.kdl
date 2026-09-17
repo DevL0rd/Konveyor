@@ -35,6 +35,10 @@ layout {
     group-app-windows "beside"
     max-rows-per-column 3
 
+    // Float every window an app opens while it already has one open.
+    // Off globally; window rules turn it on per app (Steam below).
+    float-child-windows false
+
     focus-ring {
         width 4
         // "accent" follows the KDE accent color.
@@ -114,6 +118,13 @@ window-rule {
 window-rule {
     match app-id=r#"^org\.kde\.konsole$"#
     group-app-windows "stack"
+}
+
+// Steam opens its friends list, chats and game properties as separate
+// windows. Its main window tiles and the rest float above the row.
+window-rule {
+    match app-id=r#"^steam$"#
+    float-child-windows true
 }
 
 window-rule {

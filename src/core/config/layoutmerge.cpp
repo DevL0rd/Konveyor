@@ -81,6 +81,9 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     if (part.maxRowsPerColumn) {
         base.maxRowsPerColumn = *part.maxRowsPerColumn;
     }
+    if (part.floatChildWindows) {
+        base.floatChildWindows = *part.floatChildWindows;
+    }
     if (part.emptyWorkspaceAboveFirst) {
         base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;
     }

@@ -113,6 +113,36 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void floatChildWindowsFloatsAnAppsLaterWindows()
+    {
+        Config::Config config = groupConfig(Config::GroupAppWindows::Beside);
+        config.layout.floatChildWindows = true;
+        Fixture fixture(config);
+        const auto main = fixture.add(QStringLiteral("steam"));
+        const auto friends = fixture.add(QStringLiteral("steam"));
+        const auto editor = fixture.add(QStringLiteral("editor"));
+        QVERIFY(!fixture.state(main).isFloating);
+        QVERIFY(fixture.state(friends).isFloating);
+        QVERIFY(!fixture.state(editor).isFloating);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void floatChildWindowsRuleAppliesPerApp()
+    {
+        Config::Config config = groupConfig(Config::GroupAppWindows::Beside);
+        Config::WindowRule steam = ruleFor(QStringLiteral("steam"));
+        steam.floatChildWindows = true;
+        config.windowRules.append(steam);
+        Fixture fixture(config);
+        fixture.add(QStringLiteral("steam"));
+        const auto chat = fixture.add(QStringLiteral("steam"));
+        fixture.add(QStringLiteral("term"));
+        const auto secondTerm = fixture.add(QStringLiteral("term"));
+        QVERIFY(fixture.state(chat).isFloating);
+        QVERIFY(!fixture.state(secondTerm).isFloating);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void offKeepsTheOldBehaviour()
     {
         Fixture fixture(groupConfig(Config::GroupAppWindows::Off));

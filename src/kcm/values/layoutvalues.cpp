@@ -62,6 +62,7 @@ QVariantMap layoutValues(const Config::Layout &layout)
         {QStringLiteral("remember-window-positions"), layout.rememberWindowPositions},
         {QStringLiteral("group-app-windows"), groupModes.at(static_cast<qsizetype>(layout.groupAppWindows))},
         {QStringLiteral("max-rows-per-column"), layout.maxRowsPerColumn},
+        {QStringLiteral("float-child-windows"), layout.floatChildWindows},
         {QStringLiteral("default-column-display"),
             layout.defaultColumnDisplay == Config::ColumnDisplay::Tabbed ? QStringLiteral("tabbed") : QStringLiteral("normal")},
         {QStringLiteral("preset-column-widths"), sizesValue(layout.presetColumnWidths)},

@@ -48,6 +48,7 @@ void TestConfigDefaults::defaultLayoutValues()
     QCOMPARE(layout.rememberWindowPositions, false);
     QCOMPARE(layout.groupAppWindows, GroupAppWindows::Beside);
     QCOMPARE(layout.maxRowsPerColumn, 3);
+    QCOMPARE(layout.floatChildWindows, false);
     QCOMPARE(layout.struts, Struts {});
     QCOMPARE(layout.backgroundColor, QColor(0x40, 0x40, 0x40));
 }
