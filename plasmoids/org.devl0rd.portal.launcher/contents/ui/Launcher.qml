@@ -82,8 +82,29 @@ Item {
         searchMode: launcher.mode
     }
 
+    function applyPendingPins() {
+        if (root.pendingPins.length === 0)
+            return
+        for (const path of root.pendingPins) {
+            if (!launcherData.favorites.isFavorite(path))
+                launcherData.favorites.addFavorite(path)
+        }
+        root.pendingPins = []
+    }
+    Connections {
+        target: root
+        function onPinsRequested() { launcher.applyPendingPins() }
+    }
     onWantedChanged: wanted ? openNow() : closeNow()
-    Component.onCompleted: if (wanted) openNow()
+    Timer {
+        interval: 0
+        running: true
+        onTriggered: {
+            launcher.applyPendingPins()
+            if (launcher.wanted)
+                launcher.openNow()
+        }
+    }
 
     function pickScreen() {
         const screens = Qt.application.screens

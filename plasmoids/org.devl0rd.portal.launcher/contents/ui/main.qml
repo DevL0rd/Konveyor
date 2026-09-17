@@ -14,6 +14,18 @@ PlasmoidItem {
     property bool created: false
     property string openScreen
     property string panelScreen
+    property var pendingPins: []
+    signal pinsRequested()
+
+    function pinFiles(urls) {
+        const files = urls.map(url => decodeURIComponent(String(url).replace(/^file:\/\//, ""))).filter(path => path.endsWith(".desktop"))
+        if (files.length === 0)
+            return false
+        pendingPins = pendingPins.concat(files)
+        created = true
+        pinsRequested()
+        return true
+    }
 
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property string buttonIcon: Plasmoid.configuration.icon || "start-here-kde-plasma-symbolic"
@@ -23,7 +35,7 @@ PlasmoidItem {
     preferredRepresentation: compactRepresentation
     activationTogglesExpanded: false
     toolTipMainText: i18n("Portal Launcher")
-    toolTipSubText: i18n("Apps, games, files and friends")
+    toolTipSubText: i18n("Apps, games, files and friends · Meta opens it · drop an app here to pin it")
 
     function show(byKey, screen) {
         openedByKey = byKey
@@ -77,6 +89,19 @@ PlasmoidItem {
         Layout.minimumHeight: root.vertical ? width : 0
         Layout.maximumHeight: root.vertical ? width : Infinity
 
+        DropArea {
+            id: dropArea
+            anchors.fill: parent
+            keys: ["text/uri-list"]
+            onEntered: function(drag) {
+                drag.accepted = drag.hasUrls && drag.urls.some(url => String(url).endsWith(".desktop"))
+            }
+            onDropped: function(drop) {
+                if (drop.hasUrls && root.pinFiles(drop.urls))
+                    drop.acceptProposedAction()
+            }
+        }
+
         RowLayout {
             id: buttonRow
             anchors.centerIn: parent
@@ -85,7 +110,7 @@ PlasmoidItem {
                 Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                 Layout.preferredHeight: Layout.preferredWidth
                 source: root.buttonIcon
-                active: button.containsMouse || root.open
+                active: button.containsMouse || root.open || dropArea.containsDrag
             }
             PlasmaComponents.Label {
                 visible: button.showLabel

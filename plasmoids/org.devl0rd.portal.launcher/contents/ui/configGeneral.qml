@@ -29,6 +29,41 @@ Kirigami.FormLayout {
     property string cfg_gamesSort
     property int cfg_gameCardSize
     property string cfg_appsSort
+    property string cfg_appsView
+    property alias cfg_searchWindows: searchWindows.checked
+    property var cfg_hiddenApps: []
+    property string cfg_learnedRanking
+    property string cfg_searchOrder
+
+    readonly property var groupLabels: ({
+        answer: i18n("Answers (calculator, units)"),
+        apps: i18n("Applications"),
+        games: i18n("Games"),
+        windows: i18n("Open windows"),
+        settings: i18n("System Settings"),
+        files: i18n("Files and places"),
+        friends: i18n("Friends"),
+        commands: i18n("Commands"),
+        other: i18n("Everything else")
+    })
+    readonly property var orderList: {
+        const known = ["answer", "apps", "games", "windows", "settings", "files", "friends", "commands", "other"]
+        const wanted = String(form.cfg_searchOrder || "").split(",").map(key => key.trim()).filter(key => known.indexOf(key) >= 0)
+        for (const key of known) {
+            if (wanted.indexOf(key) < 0)
+                wanted.push(key)
+        }
+        return wanted
+    }
+    function moveGroup(index, delta) {
+        const list = orderList.slice()
+        const target = index + delta
+        if (target < 0 || target >= list.length)
+            return
+        const item = list.splice(index, 1)[0]
+        list.splice(target, 0, item)
+        form.cfg_searchOrder = list.join(",")
+    }
 
     QQC2.Button {
         Kirigami.FormData.label: i18n("Icon:")
@@ -107,5 +142,95 @@ Kirigami.FormLayout {
     QQC2.CheckBox { id: searchCalculator; text: i18n("Calculations and unit conversions") }
     QQC2.CheckBox { id: searchCommands; text: i18n("Shell commands") }
     QQC2.CheckBox { id: searchWeb; text: i18n("Web search shortcuts") }
-    QQC2.CheckBox { id: searchPackages; text: i18n("Packages to install with Shelly") }
+    QQC2.CheckBox { id: searchPackages; text: i18n("Packages to install with Shelly (always listed last)") }
+    QQC2.CheckBox { id: searchWindows; text: i18n("Open windows") }
+
+    ColumnLayout {
+        Kirigami.FormData.label: i18n("Result order:")
+        spacing: 0
+        Repeater {
+            model: form.orderList
+            RowLayout {
+                required property string modelData
+                required property int index
+                QQC2.Label {
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 12
+                    text: (index + 1) + ".  " + (form.groupLabels[modelData] || modelData)
+                }
+                QQC2.ToolButton {
+                    icon.name: "go-up"
+                    enabled: index > 0
+                    onClicked: form.moveGroup(index, -1)
+                }
+                QQC2.ToolButton {
+                    icon.name: "go-down"
+                    enabled: index < form.orderList.length - 1
+                    onClicked: form.moveGroup(index, 1)
+                }
+            }
+        }
+        QQC2.Label {
+            text: i18n("Best match always comes first and Shelly packages always last.")
+            opacity: 0.6
+        }
+    }
+    RowLayout {
+        Kirigami.FormData.label: i18n("Learned results:")
+        QQC2.Button {
+            text: i18n("Forget what I usually open")
+            enabled: form.cfg_learnedRanking !== "" && form.cfg_learnedRanking !== "{}"
+            onClicked: form.cfg_learnedRanking = ""
+        }
+    }
+
+    Item { Kirigami.FormData.isSection: true }
+
+    QQC2.ComboBox {
+        Kirigami.FormData.label: i18n("Apps sorted by:")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: i18n("Name"), value: "name" },
+            { text: i18n("Recently used"), value: "recent" },
+            { text: i18n("Recently installed"), value: "installed" }
+        ]
+        Component.onCompleted: currentIndex = Math.max(0, indexOfValue(form.cfg_appsSort))
+        onActivated: form.cfg_appsSort = currentValue
+    }
+    QQC2.ComboBox {
+        Kirigami.FormData.label: i18n("Apps shown as:")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: i18n("Grid"), value: "grid" },
+            { text: i18n("List"), value: "list" }
+        ]
+        Component.onCompleted: currentIndex = Math.max(0, indexOfValue(form.cfg_appsView))
+        onActivated: form.cfg_appsView = currentValue
+    }
+    ColumnLayout {
+        Kirigami.FormData.label: i18n("Hidden apps:")
+        spacing: 0
+        QQC2.Label {
+            visible: form.cfg_hiddenApps.length === 0
+            text: i18n("None. Right-click an app and choose Hide from launcher.")
+            opacity: 0.6
+        }
+        Repeater {
+            model: form.cfg_hiddenApps
+            RowLayout {
+                required property string modelData
+                QQC2.Label {
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 12
+                    text: modelData
+                    elide: Text.ElideRight
+                }
+                QQC2.Button {
+                    text: i18n("Unhide")
+                    icon.name: "view-visible"
+                    onClicked: form.cfg_hiddenApps = form.cfg_hiddenApps.filter(id => id !== modelData)
+                }
+            }
+        }
+    }
 }
