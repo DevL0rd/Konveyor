@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "dmhzmxn@gmail.com",
+                "Name": "DevL0rd"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "Hide desktop widgets while a normal window is visible",
+        "EnabledByDefault": false,
+        "Icon": "user-desktop",
+        "Id": "devl0rd-hide-desktop-widgets",
+        "License": "GPL-3.0-or-later",
+        "Name": "Auto-hide Desktop Widgets",
+        "Version": "1.0.0"
+    },
+    "X-Plasma-API": "javascript"
+}
