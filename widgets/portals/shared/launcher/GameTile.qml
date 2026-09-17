@@ -36,7 +36,7 @@ Item {
         anchors.margins: tile.grid.cardSpacing !== undefined ? tile.grid.cardSpacing : Kirigami.Units.largeSpacing * 0.75
         game: tile.game
         wide: tile.grid.wideCards === true
-        showTitle: tile.grid.showTitles !== false
+        showTitle: tile.grid.showTitles !== false || launcher.touchMode
         friendCount: tile.playing.length
         friends: tile.playing
         selected: tile.GridView.isCurrentItem && tile.grid.sectionActive

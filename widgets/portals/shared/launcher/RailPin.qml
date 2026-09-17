@@ -19,11 +19,12 @@ MouseArea {
     property point pressPoint
     property bool dragging: false
     property bool suppressClick: false
+    property bool held: false
 
     width: view ? view.width : 0
     height: launcher.railPinHeight
     hoverEnabled: true
-    preventStealing: true
+    preventStealing: !launcher.touchMode || dragging
     acceptedButtons: Qt.LeftButton | Qt.RightButton
     opacity: lifted ? 0.3 : 1
 
@@ -31,11 +32,23 @@ MouseArea {
     onPressed: function(event) {
         pressPoint = Qt.point(event.x, event.y)
         suppressClick = false
+        held = false
+    }
+    onPressAndHold: function(event) {
+        if (!launcher.touchMode || dragging) {
+            event.accepted = false
+            return
+        }
+        held = true
+        launcher.railIndex = -1
+        launcher.openMenu(launcher.sidebarEntries(modelData, index), pin)
     }
     onPositionChanged: function(event) {
-        if (!(event.buttons & Qt.LeftButton))
+        if (held || !(event.buttons & Qt.LeftButton))
             return
-        if (!dragging && Math.hypot(event.x - pressPoint.x, event.y - pressPoint.y) > Qt.styleHints.startDragDistance)
+        const dx = Math.abs(event.x - pressPoint.x)
+        const dy = Math.abs(event.y - pressPoint.y)
+        if (!dragging && Math.hypot(dx, dy) > Qt.styleHints.startDragDistance && (!launcher.touchMode || !view.interactive || dx > dy))
             dragging = true
         if (dragging)
             launcher.sidebarDragMove(pin, event.x, event.y, modelData, index, modelData.icon)

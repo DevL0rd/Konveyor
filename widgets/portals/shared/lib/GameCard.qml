@@ -152,6 +152,7 @@ Item {
     }
 
     HoverHandler { id: hover }
-    TapHandler { acceptedButtons: Qt.LeftButton; onTapped: card.cardClicked() }
-    TapHandler { acceptedButtons: Qt.RightButton; onTapped: card.menuRequested() }
+    TapHandler { acceptedButtons: Qt.LeftButton; acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad | PointerDevice.Stylus | PointerDevice.Airbrush | PointerDevice.Puck; onTapped: card.cardClicked() }
+    TapHandler { acceptedDevices: PointerDevice.TouchScreen; onTapped: card.cardClicked(); onLongPressed: card.menuRequested() }
+    TapHandler { acceptedButtons: Qt.RightButton; acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad | PointerDevice.Stylus | PointerDevice.Airbrush | PointerDevice.Puck; onTapped: card.menuRequested() }
 }

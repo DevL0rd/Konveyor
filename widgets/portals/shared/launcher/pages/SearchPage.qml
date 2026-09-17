@@ -235,6 +235,12 @@ PopScroll {
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onEntered: heroCard.hovered()
+            onPressAndHold: function(event) {
+                if (launcher.touchMode)
+                    heroCard.rightClicked()
+                else
+                    event.accepted = false
+            }
             onClicked: function(event) {
                 if (event.button === Qt.RightButton)
                     heroCard.rightClicked()

@@ -273,6 +273,14 @@ ColumnLayout {
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onEntered: launcher.select(row.grid, row.index)
+                    onPressAndHold: function(event) {
+                        if (!launcher.touchMode) {
+                            event.accepted = false
+                            return
+                        }
+                        launcher.select(row.grid, row.index)
+                        row.openMenu()
+                    }
                     onClicked: function(event) {
                         launcher.select(row.grid, row.index)
                         if (event.button === Qt.RightButton)

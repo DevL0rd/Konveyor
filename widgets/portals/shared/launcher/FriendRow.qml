@@ -41,7 +41,7 @@ RowTile {
     }
 
     PlasmaComponents.ToolButton {
-        visible: row.containsMouse || row.selected || hovered
+        visible: row.containsMouse || row.selected || hovered || launcher.touchMode
         icon.name: "dialog-messages"
         display: PlasmaComponents.AbstractButton.IconOnly
         text: i18n("Chat")
@@ -50,7 +50,7 @@ RowTile {
         QQC2.ToolTip.text: text
     }
     PlasmaComponents.ToolButton {
-        visible: (row.containsMouse || row.selected || hovered) && !!row.friend.join && row.friend.ingame
+        visible: (row.containsMouse || row.selected || hovered || launcher.touchMode) && !!row.friend.join && row.friend.ingame
         icon.name: "media-playback-start"
         display: PlasmaComponents.AbstractButton.IconOnly
         text: i18n("Join game")

@@ -27,6 +27,9 @@ FocusScope {
     property int railIndex: -1
     property var sidebarDrag: null
     property Item hoveredPin: null
+    property bool touchMode: false
+    property bool touchDown: false
+    property var pendingMenu: null
     readonly property real railPinHeight: Kirigami.Units.gridUnit * (compact ? 2.3 : 2.5)
     readonly property real railPinIcon: compact ? Kirigami.Units.iconSizes.smallMedium + 4 : Kirigami.Units.iconSizes.medium
     property bool warm: false
@@ -486,6 +489,10 @@ FocusScope {
         const count = launcherData.sidebarPins.length
         const game = launcherData.sidebarGame(pin)
         const entries = []
+        if (touchMode && !pin.missing) {
+            entries.push({ text: pin.name, disabled: true })
+            entries.push({ separator: true })
+        }
         if (pin.missing) {
             entries.push({ text: pin.kind === "path" ? i18n("“%1” no longer exists", pin.name) : i18n("“%1” is not installed", pin.name), icon: "emblem-unavailable", disabled: true })
             entries.push({ text: i18n("Remove from sidebar"), icon: "edit-delete-remove", run: () => launcherData.removeSidebar(pin) })
@@ -719,6 +726,22 @@ FocusScope {
         ]
     }
     function openMenu(entries, item) {
+        if (touchMode) {
+            pendingMenu = { entries: entries, item: item }
+            if (!touchDown)
+                Qt.callLater(showPendingMenu)
+            return
+        }
+        showMenu(entries, item)
+    }
+    function showPendingMenu() {
+        if (!pendingMenu || touchDown)
+            return
+        const pending = pendingMenu
+        pendingMenu = null
+        showMenu(pending.entries, pending.item)
+    }
+    function showMenu(entries, item) {
         menu.entries = entries
         if (item)
             menu.popup(item, item.width / 2, item.height / 2)
@@ -960,6 +983,15 @@ FocusScope {
                         text: i18n("Power and session")
                         onClicked: launcher.openMenu(launcher.powerEntries(), powerButton)
                         QQC2.ToolTip.visible: hovered && !menu.visible
+                        QQC2.ToolTip.text: text
+                    }
+                    PlasmaComponents.ToolButton {
+                        visible: !launcher.compact
+                        icon.name: "window-close-symbolic"
+                        display: PlasmaComponents.AbstractButton.IconOnly
+                        text: i18n("Close (Esc)")
+                        onClicked: root.hide()
+                        QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
                     }
                 }
@@ -1374,6 +1406,25 @@ FocusScope {
                 }
             }
             onClosed: field.forceActiveFocus()
+        }
+
+        Item {
+            anchors.fill: parent
+            z: 1000
+            PointHandler {
+                acceptedDevices: PointerDevice.TouchScreen
+                onActiveChanged: {
+                    launcher.touchDown = active
+                    if (active)
+                        launcher.touchMode = true
+                    else if (launcher.pendingMenu)
+                        Qt.callLater(launcher.showPendingMenu)
+                }
+            }
+            PointHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onActiveChanged: if (active) launcher.touchMode = false
+            }
         }
     }
 

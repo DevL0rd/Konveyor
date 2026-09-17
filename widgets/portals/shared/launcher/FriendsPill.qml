@@ -21,6 +21,12 @@ MouseArea {
     implicitHeight: Kirigami.Units.gridUnit * 2.1
     hoverEnabled: true
     acceptedButtons: Qt.LeftButton | Qt.RightButton
+    onPressAndHold: function(event) {
+        if (launcher.touchMode)
+            launcher.openMenu(launcher.friendsQuickEntries(pill), pill)
+        else
+            event.accepted = false
+    }
     onClicked: function(event) {
         if (event.button === Qt.RightButton)
             launcher.openMenu(launcher.friendsQuickEntries(pill), pill)

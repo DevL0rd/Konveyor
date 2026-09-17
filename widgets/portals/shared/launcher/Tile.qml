@@ -146,21 +146,31 @@ Item {
         property point pressPoint
         property bool dragging: false
         property bool suppressClick: false
+        property bool held: false
         anchors.fill: parent
         hoverEnabled: true
-        preventStealing: tile.reorderable || dragging
+        preventStealing: (tile.reorderable && !launcher.touchMode) || dragging
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onEntered: tile.hovered()
         onPressed: function(event) {
             pressPoint = Qt.point(event.x, event.y)
             suppressClick = false
+            held = false
+        }
+        onPressAndHold: function(event) {
+            if (!launcher.touchMode || dragging) {
+                event.accepted = false
+                return
+            }
+            held = true
+            tile.rightClicked()
         }
         onPositionChanged: function(event) {
-            if (!(event.buttons & Qt.LeftButton) || (!tile.reorderable && !tile.sidebarEntry))
+            if (held || !(event.buttons & Qt.LeftButton) || (!tile.reorderable && !tile.sidebarEntry))
                 return
             const dx = Math.abs(event.x - pressPoint.x)
             const dy = Math.abs(event.y - pressPoint.y)
-            if (!dragging && Math.hypot(dx, dy) > Qt.styleHints.startDragDistance && (tile.reorderable || dx > dy))
+            if (!dragging && Math.hypot(dx, dy) > Qt.styleHints.startDragDistance && ((tile.reorderable && !launcher.touchMode) || dx > dy))
                 dragging = true
             if (!dragging)
                 return

@@ -43,6 +43,7 @@ Item {
 
     MouseArea {
         anchors.fill: parent
+        preventStealing: true
         function update(mouse) {
             const dx = mouse.x - width / 2;
             const dy = mouse.y - height / 2;

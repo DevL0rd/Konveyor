@@ -47,14 +47,24 @@ Item {
         property point pressPoint
         property bool dragging: false
         property bool suppressClick: false
+        property bool held: false
         preventStealing: dragging
         onEntered: tile.hovered()
         onPressed: function(event) {
             pressPoint = Qt.point(event.x, event.y)
             suppressClick = false
+            held = false
+        }
+        onPressAndHold: function(event) {
+            if (!launcher.touchMode || dragging) {
+                event.accepted = false
+                return
+            }
+            held = true
+            tile.rightClicked()
         }
         onPositionChanged: function(event) {
-            if (!(event.buttons & Qt.LeftButton) || !tile.sidebarEntry)
+            if (held || !(event.buttons & Qt.LeftButton) || !tile.sidebarEntry)
                 return
             const dx = Math.abs(event.x - pressPoint.x)
             const dy = Math.abs(event.y - pressPoint.y)
