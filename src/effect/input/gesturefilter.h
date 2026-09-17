@@ -22,6 +22,7 @@ struct GestureHandlers
     std::function<bool(qint32, qint64)> touchUp;
     std::function<void()> touchCancel;
     std::function<void()> touchSequenceStarted;
+    std::function<void(bool)> multiTouchChanged;
     std::function<bool()> takesTouchpadTapButton;
 };
 

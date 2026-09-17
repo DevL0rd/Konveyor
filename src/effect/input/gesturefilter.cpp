@@ -76,6 +76,9 @@ bool GestureFilter::touchDown(KWin::TouchDownEvent *event)
         m_touchGestureTaken = false;
         m_handlers.touchSequenceStarted();
     }
+    if (KWin::input()->touch()->touchPointCount() == 2 && m_handlers.multiTouchChanged) {
+        m_handlers.multiTouchChanged(true);
+    }
     const bool consumed = m_handlers.touchDown(event->id, event->pos, millisecondsOf(event->time));
     if (consumed && !m_touchGestureTaken) {
         m_touchGestureTaken = true;
@@ -96,6 +99,9 @@ bool GestureFilter::touchUp(KWin::TouchUpEvent *event)
     const bool consumed = m_handlers.touchUp(event->id, millisecondsOf(event->time));
     if (KWin::input()->touch()->touchPointCount() == 0) {
         m_touchGestureTaken = false;
+        if (m_handlers.multiTouchChanged) {
+            m_handlers.multiTouchChanged(false);
+        }
     }
     return consumed;
 }

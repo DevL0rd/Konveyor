@@ -47,9 +47,17 @@ public Q_SLOTS:
     Q_SCRIPTABLE QString LoadConfigFile(const QString &path);
     Q_SCRIPTABLE QString LastBind() const;
     Q_SCRIPTABLE QString Gestures() const;
+    Q_SCRIPTABLE bool MultiTouchActive() const;
+
+    void setMultiTouchActive(bool active);
+
+Q_SIGNALS:
+    Q_SCRIPTABLE void MultiTouchChanged(bool active);
 
 private:
     static QString compact(const QJsonDocument &document);
+
+    bool m_multiTouchActive = false;
 
     DBusHandlers m_handlers;
     bool m_registered = false;

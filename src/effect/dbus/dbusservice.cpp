@@ -100,4 +100,18 @@ QString DBusService::Gestures() const
     return compact(m_handlers.gestures());
 }
 
+
+bool DBusService::MultiTouchActive() const
+{
+    return m_multiTouchActive;
+}
+
+void DBusService::setMultiTouchActive(bool active)
+{
+    if (active == m_multiTouchActive) {
+        return;
+    }
+    m_multiTouchActive = active;
+    Q_EMIT MultiTouchChanged(active);
+}
 }

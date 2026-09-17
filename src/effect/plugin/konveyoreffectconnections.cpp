@@ -36,6 +36,11 @@ void KonveyorEffect::installInputFilter()
             scheduleFlush();
         },
         [this] { routeGesture(d->gestures.resetTouches()); },
+        [this](bool active) {
+            if (d->dbus) {
+                d->dbus->setMultiTouchActive(active);
+            }
+        },
         [this] { return d->gestures.takesTouchpadTapButton(); },
     });
     d->touchpadContacts = std::make_unique<TouchpadContactReader>(TouchpadContactHandlers {
