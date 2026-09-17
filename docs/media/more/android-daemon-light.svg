@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
+<defs>
+<linearGradient id="bgl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3f7fd"/><stop offset="1" stop-color="#dde8f7"/></linearGradient>
+<linearGradient id="scriml" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f3f7fd" stop-opacity="1"/><stop offset="0.36" stop-color="#f3f7fd" stop-opacity="0.9"/><stop offset="0.5" stop-color="#f3f7fd" stop-opacity="0"/></linearGradient>
+<linearGradient id="deskl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d99f3" stop-opacity=".55"/><stop offset="1" stop-color="#8a5cd6" stop-opacity=".55"/></linearGradient>
+<radialGradient id="halol"><stop offset="0" stop-color="#1d99f3" stop-opacity="0.18"/><stop offset="1" stop-color="#1d99f3" stop-opacity="0"/></radialGradient>
+<clipPath id="clipl"><rect width="1280" height="400" rx="24"/></clipPath>
+<clipPath id="monl"><rect x="0" y="0" width="400" height="236" rx="10"/></clipPath>
+<symbol id="homel" viewBox="0 0 100 212">
+<defs><linearGradient id="walll" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a6fd8"/><stop offset=".55" stop-color="#7b5cd6"/><stop offset="1" stop-color="#e0607e"/></linearGradient></defs>
+<rect width="100" height="212" fill="url(#walll)"/>
+<text x="50" y="52" text-anchor="middle" fill="#fff" style="font:300 30px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif">9:41</text>
+<rect x="28" y="60" width="44" height="4" rx="2" fill="#fff" opacity=".75"/>
+<circle cx="17" cy="110" r="8.5" fill="#d3e3fd"/>
+<circle cx="39" cy="110" r="8.5" fill="#ffdad6"/>
+<circle cx="61" cy="110" r="8.5" fill="#c4eed0"/>
+<circle cx="83" cy="110" r="8.5" fill="#ffdcc1"/>
+<circle cx="17" cy="136" r="8.5" fill="#e8def8"/>
+<circle cx="39" cy="136" r="8.5" fill="#c2e7ff"/>
+<circle cx="61" cy="136" r="8.5" fill="#fff1b8"/>
+<circle cx="83" cy="136" r="8.5" fill="#dde3ea"/>
+<rect x="10" y="164" width="80" height="12" rx="6" fill="#f0f4f9" opacity=".92"/>
+<circle cx="17" cy="193" r="8.5" fill="#c4eed0"/>
+<circle cx="39" cy="193" r="8.5" fill="#d3e3fd"/>
+<circle cx="61" cy="193" r="8.5" fill="#ffdad6"/>
+<circle cx="83" cy="193" r="8.5" fill="#dde3ea"/>
+<rect x="38" y="206" width="24" height="2" rx="1" fill="#fff" opacity=".8"/></symbol>
+<symbol id="chatl" viewBox="0 0 100 212">
+<rect width="100" height="212" fill="#111418"/>
+<circle cx="18" cy="22" r="7" fill="#7d5260"/>
+<rect x="30" y="17" width="30" height="5" rx="2.5" fill="#e2e2e6"/>
+<rect x="30" y="25" width="18" height="3" rx="1.5" fill="#9aa0a6"/>
+<rect x="8" y="44" width="58" height="15" rx="7.5" fill="#2a2f36"/>
+<rect x="28" y="65" width="64" height="15" rx="7.5" fill="#a8c7fa"/>
+<rect x="8" y="86" width="50" height="15" rx="7.5" fill="#2a2f36"/>
+<rect x="22" y="107" width="70" height="15" rx="7.5" fill="#a8c7fa"/>
+<rect x="8" y="128" width="60" height="15" rx="7.5" fill="#2a2f36"/>
+<rect x="48" y="149" width="44" height="15" rx="7.5" fill="#a8c7fa"/>
+<rect x="8" y="170" width="40" height="15" rx="7.5" fill="#2a2f36"/>
+<rect x="6" y="188" width="88" height="14" rx="7" fill="#2a2f36"/><circle cx="87" cy="195" r="5" fill="#a8c7fa"/>
+<rect x="38" y="206" width="24" height="2" rx="1" fill="#fff" opacity=".6"/></symbol>
+<style>
+.title{font:800 84px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif;letter-spacing:-2px}
+.sub{font:500 26px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.pill{font:600 17px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.h{font:700 22px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.b{font:500 16px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.s{font:600 13px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif;letter-spacing:.6px}
+.m{font:600 14px 'JetBrains Mono','Fira Code',Menlo,Consolas,monospace}
+
+.scrA{animation:scrA 10s steps(1) infinite}.scrB{animation:scrB 10s steps(1) infinite}
+@keyframes scrA{0%{opacity:1}30%{opacity:0}80%{opacity:1}}
+@keyframes scrB{0%{opacity:0}30%{opacity:1}80%{opacity:0}}
+.usb{animation:usb 10s ease-in-out infinite}.air{animation:air 10s ease-in-out infinite}
+@keyframes usb{0%,42%{opacity:1}50%,92%{opacity:0}100%{opacity:1}}
+@keyframes air{0%,42%{opacity:0}50%,92%{opacity:1}100%{opacity:0}}
+.wave{animation:wave 1.8s ease-out infinite;transform-origin:1168px 150px;transform-box:view-box}
+.wave2{animation-delay:.6s}.wave3{animation-delay:1.2s}
+@keyframes wave{0%{opacity:0;transform:scale(.6)}30%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+.pulse{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+</style>
+</defs>
+<g clip-path="url(#clipl)">
+<rect width="1280" height="400" fill="url(#bgl)"/>
+<circle cx="960" cy="210" r="320" fill="url(#halol)"/>
+<g transform="translate(724,62) scale(.84)">
+<rect x="-8" y="-8" width="416" height="252" rx="16" fill="#ffffff" stroke="#cfd9ea" stroke-width="2"/>
+<g clip-path="url(#monl)"><rect width="400" height="236" fill="url(#deskl)"/>
+<rect width="400" height="22" fill="#eef2f8" opacity=".95"/>
+<rect x="12" y="7" width="10" height="8" rx="2" fill="#8391ad" opacity=".7"/>
+<rect x="32" y="7" width="10" height="8" rx="2" fill="#8391ad" opacity=".7"/>
+<rect x="52" y="7" width="10" height="8" rx="2" fill="#8391ad" opacity=".7"/>
+<rect x="72" y="7" width="10" height="8" rx="2" fill="#8391ad" opacity=".7"/>
+<g class="pulse"><rect x="352" y="4" width="14" height="14" rx="3" fill="#16a34a" opacity=".25"/><rect x="356" y="6" width="6" height="10" rx="1.5" fill="none" stroke="#16a34a" stroke-width="1.6"/></g>
+<rect x="374" y="7" width="16" height="8" rx="2" fill="#8391ad" opacity=".7"/>
+<rect x="26" y="44" width="200" height="150" rx="8" fill="#ffffff" opacity=".9"/>
+<rect x="40" y="64" width="150" height="8" rx="4" fill="#e8eef7"/>
+<rect x="40" y="86" width="127" height="8" rx="4" fill="#e8eef7"/>
+<rect x="40" y="108" width="104" height="8" rx="4" fill="#e8eef7"/>
+<rect x="40" y="130" width="81" height="8" rx="4" fill="#e8eef7"/>
+<rect x="40" y="152" width="128" height="8" rx="4" fill="#e8eef7"/>
+<rect x="262" y="34" width="112" height="190" rx="10" fill="#ffffff" opacity=".96" stroke="#cfd9ea"/>
+<rect x="270" y="42" width="8" height="8" rx="2" fill="#16a34a"/><rect x="284" y="43" width="46" height="6" rx="3" fill="#4a5775" opacity=".7"/>
+<g transform="translate(290,56)">
+<g class="scrA"><use href="#homel" width="56" height="119"/></g><g class="scrB"><use href="#chatl" width="56" height="119"/></g></g>
+<rect x="270" y="182" width="96" height="16" rx="8" fill="#e8eef7"/>
+<circle cx="281.0" cy="190" r="3" fill="#4a5775" opacity=".7"/>
+<circle cx="299.5" cy="190" r="3" fill="#4a5775" opacity=".7"/>
+<circle cx="318.0" cy="190" r="3" fill="#4a5775" opacity=".7"/>
+<circle cx="336.5" cy="190" r="3" fill="#4a5775" opacity=".7"/>
+<circle cx="355.0" cy="190" r="3" fill="#4a5775" opacity=".7"/>
+</g>
+<rect x="180" y="244" width="40" height="24" fill="#eef2f8"/><rect x="130" y="266" width="140" height="10" rx="5" fill="#eef2f8"/>
+</g>
+<g class="usb"><path d="M1168 352 C1168 392, 892 392, 892 294" fill="none" stroke="#8391ad" stroke-width="5" stroke-linecap="round"/>
+<path id="cablel" d="M1168 352 C1168 392, 892 392, 892 294" fill="none" stroke="#1d99f3" stroke-width="2" stroke-dasharray="6 10" opacity=".9"><animate attributeName="stroke-dashoffset" from="64" to="0" dur="1.2s" repeatCount="indefinite"/></path>
+<circle r="4.5" fill="#1d99f3"><animateMotion dur="1.2s" begin="0s" repeatCount="indefinite" path="M1168 352 C1168 392, 892 392, 892 294"/></circle>
+<circle r="4.5" fill="#1d99f3"><animateMotion dur="1.2s" begin="0.6s" repeatCount="indefinite" path="M1168 352 C1168 392, 892 392, 892 294"/></circle>
+<g transform="translate(1030,385)"><rect x="-34" y="-15" width="68" height="30" rx="15" fill="#ffffff" stroke="#1d99f3" stroke-width="1.5"/><text y="6" text-anchor="middle" class="pill" fill="#1d99f3">USB</text></g></g>
+<g class="air">
+<path class="wave" d="M1124 116 A62 62 0 0 1 1212 116" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/>
+<path class="wave wave2" d="M1124 116 A62 62 0 0 1 1212 116" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/>
+<path class="wave wave3" d="M1124 116 A62 62 0 0 1 1212 116" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/>
+<path d="M1106 246 C1092 246, 1092 222, 1076 222" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="3 9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="48" to="0" dur="1s" repeatCount="indefinite"/></path>
+<g transform="translate(1076,40)"><rect x="-38" y="-15" width="76" height="30" rx="15" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/><text y="6" text-anchor="middle" class="pill" fill="#16a34a">Wi-Fi</text></g></g>
+<g transform="translate(1112,138)"><rect width="112" height="214" rx="17.92" fill="#0d0f14" stroke="#cfd9ea" stroke-width="2"/><g class="scrA"><use href="#homel" x="6.72" y="6.72" width="98.56" height="200.56"/></g><g class="scrB"><use href="#chatl" x="6.72" y="6.72" width="98.56" height="200.56"/></g><circle cx="56.0" cy="11.719999999999999" r="2.4" fill="#0d0f14"/></g>
+<rect width="1280" height="400" fill="url(#scriml)"/>
+<text x="64" y="186" class="title" style="font-size:76px" fill="#10172a" textLength="560" lengthAdjust="spacingAndGlyphs">Android-Daemon</text>
+<text x="68" y="232" class="sub" fill="#4a5775">Your Android phone, part of your Plasma desktop</text>
+<g transform="translate(68,270)">
+<rect x="0" width="118" height="36" rx="18" fill="#1d99f3" opacity="0.16"/><text x="59.0" y="24" text-anchor="middle" class="pill" fill="#1d99f3">Plasma 6</text>
+<rect x="130" width="104" height="36" rx="18" fill="#1d99f3" opacity="0.16"/><text x="182.0" y="24" text-anchor="middle" class="pill" fill="#1d99f3">scrcpy</text>
+<rect x="246" width="136" height="36" rx="18" fill="#1d99f3" opacity="0.16"/><text x="314.0" y="24" text-anchor="middle" class="pill" fill="#1d99f3">USB + Wi-Fi</text>
+</g></g></svg>

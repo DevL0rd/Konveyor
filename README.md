@@ -29,7 +29,8 @@
   <a href="#widgets"><b>Konveyor widgets</b></a> ·
   <a href="#settings"><b>Settings</b></a> ·
   <a href="#shortcuts"><b>Shortcuts</b></a> ·
-  <a href="#faq"><b>FAQ</b></a>
+  <a href="#faq"><b>FAQ</b></a> ·
+  <a href="#more"><b>More projects</b></a>
 </p>
 
 <p align="center">
@@ -462,6 +463,50 @@ Yes. Install with <code>./install.sh --no-widgets</code>, or put the launcher ba
 <br>
 Turn Konveyor off under <b>Desktop Effects</b>, or run <code>./uninstall.sh</code>. Your shortcuts and window rules are restored.
 </details>
+
+---
+
+<a id="more"></a>
+
+## 🧰 More from DevL0rd
+
+Other Plasma projects made to sit on the same desktop. Click a banner to open it on GitHub.
+
+<p align="center">
+  <a href="https://github.com/DevL0rd/RVC-Voice-Changer">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/media/more/rvc-voice-changer-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/media/more/rvc-voice-changer-light.svg">
+      <img alt="RVC Voice Changer — Real-time AI voice changing for Plasma" src="docs/media/more/rvc-voice-changer-dark.svg" width="600">
+    </picture>
+  </a>
+  <br>
+  <a href="https://github.com/DevL0rd/RVC-Voice-Changer"><b>RVC Voice Changer</b></a> · Sound like anyone, in every app.
+</p>
+
+<p align="center">
+  <a href="https://github.com/DevL0rd/Android-Daemon">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/media/more/android-daemon-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/media/more/android-daemon-light.svg">
+      <img alt="Android-Daemon — Your Android phone, part of your Plasma desktop" src="docs/media/more/android-daemon-dark.svg" width="600">
+    </picture>
+  </a>
+  <br>
+  <a href="https://github.com/DevL0rd/Android-Daemon"><b>Android-Daemon</b></a> · Your phone, right on your desktop.
+</p>
+
+<p align="center">
+  <a href="https://github.com/DevL0rd/Syncthing-Monitor">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/media/more/syncthing-monitor-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/media/more/syncthing-monitor-light.svg">
+      <img alt="Syncthing Monitor — Syncthing, live in your Plasma panel" src="docs/media/more/syncthing-monitor-dark.svg" width="600">
+    </picture>
+  </a>
+  <br>
+  <a href="https://github.com/DevL0rd/Syncthing-Monitor"><b>Syncthing Monitor</b></a> · Your sync, at a glance.
+</p>
 
 ---
 

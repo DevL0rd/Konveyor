@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
+<defs>
+<linearGradient id="bgd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#182544"/></linearGradient>
+<linearGradient id="scrimd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0b1020" stop-opacity="1"/><stop offset="0.42" stop-color="#0b1020" stop-opacity="0.9"/><stop offset="0.56" stop-color="#0b1020" stop-opacity="0"/></linearGradient>
+<clipPath id="clipd"><rect width="1280" height="400" rx="24"/></clipPath>
+<style>
+.title{font:800 66px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif;letter-spacing:-2px}
+.sub{font:500 26px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.pill{font:600 17px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.label{font:600 15px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.spin{animation:spin 3.2s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ring{animation:fill 6s cubic-bezier(.45,0,.2,1) infinite}
+@keyframes fill{0%{stroke-dashoffset:213.6}70%,100%{stroke-dashoffset:0}}
+.done{animation:done 6s linear infinite}
+@keyframes done{0%,68%{opacity:0}74%,96%{opacity:1}100%{opacity:0}}
+.busy{animation:busy 6s linear infinite}
+@keyframes busy{0%,66%{opacity:1}72%,98%{opacity:0}100%{opacity:1}}
+.wave{animation:wave 4s linear infinite}
+@keyframes wave{to{transform:translateX(-120px)}}
+.pulse{animation:pulse 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.35}}
+.p0{animation:p0 6s cubic-bezier(.45,0,.2,1) infinite;transform-box:fill-box;transform-origin:left center}
+@keyframes p0{0%{transform:scaleX(0.15)}62%,100%{transform:scaleX(1)}}
+.p1{animation:p1 6s cubic-bezier(.45,0,.2,1) infinite;transform-box:fill-box;transform-origin:left center}
+@keyframes p1{0%{transform:scaleX(0.4)}65%,100%{transform:scaleX(1)}}
+.p2{animation:p2 6s cubic-bezier(.45,0,.2,1) infinite;transform-box:fill-box;transform-origin:left center}
+@keyframes p2{0%{transform:scaleX(0.05)}68%,100%{transform:scaleX(1)}}
+.m00{animation:m00 2.6s cubic-bezier(.5,0,.5,1) 0.00s infinite}
+@keyframes m00{0%{transform:translate(816px,113.0px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(903px,152.15px);opacity:0}}
+.m01{animation:m01 2.6s cubic-bezier(.5,0,.5,1) 1.30s infinite}
+@keyframes m01{0%{transform:translate(903px,152.15px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(816px,113.0px);opacity:0}}
+.m10{animation:m10 2.6s cubic-bezier(.5,0,.5,1) 0.35s infinite}
+@keyframes m10{0%{transform:translate(903px,247.85px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(836px,287.0px);opacity:0}}
+.m11{animation:m11 2.6s cubic-bezier(.5,0,.5,1) 1.65s infinite}
+@keyframes m11{0%{transform:translate(836px,287.0px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(903px,247.85px);opacity:0}}
+.m20{animation:m20 2.6s cubic-bezier(.5,0,.5,1) 0.70s infinite}
+@keyframes m20{0%{transform:translate(1162px,113.0px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(1099px,152.15px);opacity:0}}
+.m21{animation:m21 2.6s cubic-bezier(.5,0,.5,1) 2.00s infinite}
+@keyframes m21{0%{transform:translate(1099px,152.15px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(1162px,113.0px);opacity:0}}
+.m30{animation:m30 2.6s cubic-bezier(.5,0,.5,1) 1.05s infinite}
+@keyframes m30{0%{transform:translate(1099px,247.85px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(1150px,287.0px);opacity:0}}
+.m31{animation:m31 2.6s cubic-bezier(.5,0,.5,1) 2.35s infinite}
+@keyframes m31{0%{transform:translate(1150px,287.0px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translate(1099px,247.85px);opacity:0}}
+</style>
+</defs>
+<g clip-path="url(#clipd)">
+<rect width="1280" height="400" fill="url(#bgd)"/>
+<path d="M816 113.0 L903 152.15" stroke="#3a4768" stroke-width="2.5" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/>
+<path d="M836 287.0 L903 247.85" stroke="#3a4768" stroke-width="2.5" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/>
+<path d="M1162 113.0 L1099 152.15" stroke="#3a4768" stroke-width="2.5" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/>
+<path d="M1150 287.0 L1099 247.85" stroke="#3a4768" stroke-width="2.5" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/>
+<g><rect x="716" y="70" width="100" height="86" rx="14" fill="#1b2031" stroke="#2f3852"/><rect x="744.0" y="89" width="44" height="29" rx="4" fill="none" stroke="#aab6d3" stroke-width="3"/><rect x="763.0" y="118" width="6" height="6" fill="#aab6d3"/><rect x="754.0" y="123" width="24" height="3" rx="1.5" fill="#aab6d3"/><circle cx="800" cy="86" r="5" fill="#9ece6a" class="pulse" style="animation-delay:0.0s"/><circle cx="800" cy="86" r="5" fill="#9ece6a"/><text x="766.0" y="146" text-anchor="middle" class="label" fill="#aab6d3">desktop</text></g>
+<g><rect x="736" y="244" width="100" height="86" rx="14" fill="#1b2031" stroke="#2f3852"/><rect x="774.0" y="259" width="24" height="40" rx="5" fill="none" stroke="#aab6d3" stroke-width="3"/><rect x="782.0" y="291" width="8" height="3" rx="1.5" fill="#aab6d3"/><circle cx="820" cy="260" r="5" fill="#9ece6a" class="pulse" style="animation-delay:0.5s"/><circle cx="820" cy="260" r="5" fill="#9ece6a"/><text x="786.0" y="320" text-anchor="middle" class="label" fill="#aab6d3">Pixel 9</text></g>
+<g><rect x="1162" y="70" width="100" height="86" rx="14" fill="#1b2031" stroke="#2f3852"/><rect x="1191.0" y="87" width="42" height="11" rx="3" fill="none" stroke="#aab6d3" stroke-width="2.6"/><circle cx="1226.0" cy="92.5" r="2" fill="#aab6d3"/><rect x="1191.0" y="101" width="42" height="11" rx="3" fill="none" stroke="#aab6d3" stroke-width="2.6"/><circle cx="1226.0" cy="106.5" r="2" fill="#aab6d3"/><rect x="1191.0" y="115" width="42" height="11" rx="3" fill="none" stroke="#aab6d3" stroke-width="2.6"/><circle cx="1226.0" cy="120.5" r="2" fill="#aab6d3"/><circle cx="1246" cy="86" r="5" fill="#9ece6a" class="pulse" style="animation-delay:1.0s"/><circle cx="1246" cy="86" r="5" fill="#9ece6a"/><text x="1212.0" y="146" text-anchor="middle" class="label" fill="#aab6d3">nas</text></g>
+<g><rect x="1150" y="244" width="100" height="86" rx="14" fill="#1b2031" stroke="#2f3852"/><rect x="1181.0" y="263" width="38" height="26" rx="3" fill="none" stroke="#aab6d3" stroke-width="3"/><path d="M1173.0 294 h54 l-4 6 h-46 z" fill="#aab6d3"/><circle cx="1234" cy="260" r="5" fill="#9ece6a" class="pulse" style="animation-delay:1.5s"/><circle cx="1234" cy="260" r="5" fill="#9ece6a"/><text x="1200.0" y="320" text-anchor="middle" class="label" fill="#aab6d3">laptop</text></g>
+<rect x="903" y="62" width="196" height="276" rx="16" fill="#1b2031" stroke="#3daee9" stroke-width="3"/><rect x="904.5" y="63.5" width="193" height="40" rx="14" fill="#232a3f"/><rect x="904.5" y="90" width="193" height="14" fill="#232a3f"/><path d="M919 75 h10 l4 4 h14 v16 h-28 z" fill="#3daee9"/><circle cx="946" cy="93" r="4.5" fill="#9ece6a" stroke="#232a3f" stroke-width="2"/><rect x="959" y="77" width="92" height="8" rx="4" fill="#aab6d3" opacity="0.7"/><rect x="959" y="89" width="110" height="6" rx="3" fill="#262e45"/><circle cx="955" cy="158" r="34" fill="none" stroke="#262e45" stroke-width="9"/><g class="busy"><circle cx="955" cy="158" r="34" fill="none" stroke="#e0af68" stroke-width="9" stroke-linecap="round" stroke-dasharray="213.6" class="ring" transform="rotate(-90 955 158)"/></g><circle cx="955" cy="158" r="34" fill="none" stroke="#9ece6a" stroke-width="9" class="done"/><g class="busy"><g class="spin"><path d="M942 156 a13 13 0 0 1 22 -8" fill="none" stroke="#aab6d3" stroke-width="3.2" stroke-linecap="round"/><path d="M968 160 a13 13 0 0 1 -22 8" fill="none" stroke="#aab6d3" stroke-width="3.2" stroke-linecap="round"/><path d="M967 143 v8 h-8" fill="none" stroke="#aab6d3" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M943 173 v-8 h8" fill="none" stroke="#aab6d3" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></g></g><path d="M942 159 l9 9 l17 -19" fill="none" stroke="#9ece6a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" class="done"/><rect x="1003" y="128" width="38" height="7" rx="3.5" fill="#7dcfff" opacity="0.9"/><rect x="1047" y="128" width="36" height="7" rx="3.5" fill="#e0af68" opacity="0.9"/><clipPath id="waved"><rect x="1001" y="142" width="84" height="44"/></clipPath><g clip-path="url(#waved)"><g class="wave"><polyline points="999.0,172.0 1005.0,157.7 1011.0,156.2 1017.0,150.5 1023.0,156.1 1029.0,161.1 1035.0,165.3 1041.0,157.9 1047.0,151.6 1053.0,154.1 1059.0,154.9 1065.0,167.4 1071.0,161.0 1077.0,159.2 1083.0,150.4 1089.0,155.1 1095.0,157.4 1101.0,167.3 1107.0,160.3 1113.0,153.7 1119.0,152.8 1125.0,152.9 1131.0,163.0 1137.0,164.7 1143.0,162.3 1149.0,151.2 1155.0,154.9 1161.0,154.3 1167.0,164.4 1173.0,163.2 1179.0,156.6 1185.0,152.5 1191.0,151.8 1197.0,159.1 1203.0,163.9 1209.0,164.6" fill="none" stroke="#7dcfff" stroke-width="2.5" stroke-linejoin="round"/></g></g><rect x="919" y="232" width="16" height="13" rx="3" fill="#7aa2f7" opacity="0.9"/><rect x="943" y="233" width="70" height="8" rx="4" fill="#262e45"/><rect x="943" y="249" width="140" height="5" rx="2.5" fill="#262e45"/><rect x="943" y="249" width="140" height="5" rx="2.5" fill="#7aa2f7" class="p0"/><rect x="919" y="264" width="16" height="13" rx="3" fill="#bb9af7" opacity="0.9"/><rect x="943" y="265" width="52" height="8" rx="4" fill="#262e45"/><rect x="943" y="281" width="140" height="5" rx="2.5" fill="#262e45"/><rect x="943" y="281" width="140" height="5" rx="2.5" fill="#bb9af7" class="p1"/><rect x="919" y="296" width="16" height="13" rx="3" fill="#7dcfff" opacity="0.9"/><rect x="943" y="297" width="84" height="8" rx="4" fill="#262e45"/><rect x="943" y="313" width="140" height="5" rx="2.5" fill="#262e45"/><rect x="943" y="313" width="140" height="5" rx="2.5" fill="#7dcfff" class="p2"/>
+<g class="m00" style="transform:translate(816px,113.0px)"><circle r="5.5" fill="#3daee9"/><circle r="10" fill="#3daee9" opacity="0.22"/></g>
+<g class="m01" style="transform:translate(903px,152.15px)"><circle r="5.5" fill="#3daee9"/><circle r="10" fill="#3daee9" opacity="0.22"/></g>
+<g class="m10" style="transform:translate(903px,247.85px)"><circle r="5.5" fill="#9ece6a"/><circle r="10" fill="#9ece6a" opacity="0.22"/></g>
+<g class="m11" style="transform:translate(836px,287.0px)"><circle r="5.5" fill="#9ece6a"/><circle r="10" fill="#9ece6a" opacity="0.22"/></g>
+<g class="m20" style="transform:translate(1162px,113.0px)"><circle r="5.5" fill="#bb9af7"/><circle r="10" fill="#bb9af7" opacity="0.22"/></g>
+<g class="m21" style="transform:translate(1099px,152.15px)"><circle r="5.5" fill="#bb9af7"/><circle r="10" fill="#bb9af7" opacity="0.22"/></g>
+<g class="m30" style="transform:translate(1099px,247.85px)"><circle r="5.5" fill="#e0af68"/><circle r="10" fill="#e0af68" opacity="0.22"/></g>
+<g class="m31" style="transform:translate(1150px,287.0px)"><circle r="5.5" fill="#e0af68"/><circle r="10" fill="#e0af68" opacity="0.22"/></g>
+<rect width="1280" height="400" fill="url(#scrimd)"/>
+<text x="64" y="180" class="title" fill="#f4f7ff">Syncthing Monitor</text>
+<text x="68" y="226" class="sub" fill="#aab6d3">Syncthing, live in your Plasma panel</text>
+<g transform="translate(68,264)">
+<rect x="0" width="118" height="36" rx="18" fill="#3daee9" opacity="0.16"/><text x="59.0" y="24" text-anchor="middle" class="pill" fill="#3daee9">Plasma 6</text><rect x="130" width="124" height="36" rx="18" fill="#3daee9" opacity="0.16"/><text x="192.0" y="24" text-anchor="middle" class="pill" fill="#3daee9">Syncthing</text><rect x="266" width="132" height="36" rx="18" fill="#3daee9" opacity="0.16"/><text x="332.0" y="24" text-anchor="middle" class="pill" fill="#3daee9">Open source</text>
+</g>
+</g>
+</svg>
