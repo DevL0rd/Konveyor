@@ -921,6 +921,7 @@ Item {
 
             QQC2.Menu {
                 id: menu
+                popupType: QQC2.Popup.Window
 
                 property var entries: []
 

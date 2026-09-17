@@ -99,6 +99,7 @@ ColumnLayout {
             onClicked: sortMenu.popup(sortButton, 0, sortButton.height)
             QQC2.Menu {
                 id: sortMenu
+                popupType: QQC2.Popup.Window
                 onClosed: launcher.focusSearch()
                 Instantiator {
                     model: page.sortDefs

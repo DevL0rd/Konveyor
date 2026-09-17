@@ -216,6 +216,7 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: i18n("Name"), value: "name" },
+            { text: i18n("Most used"), value: "popular" },
             { text: i18n("Recently used"), value: "recent" },
             { text: i18n("Recently installed"), value: "installed" }
         ]

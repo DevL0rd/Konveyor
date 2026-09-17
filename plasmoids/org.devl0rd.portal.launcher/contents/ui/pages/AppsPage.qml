@@ -20,6 +20,7 @@ ColumnLayout {
 
     readonly property var sortDefs: [
         { key: "name", label: i18n("Name") },
+        { key: "popular", label: i18n("Most used") },
         { key: "recent", label: i18n("Recently used") },
         { key: "installed", label: i18n("Recently installed") }
     ]
@@ -54,6 +55,10 @@ ColumnLayout {
         const id = launcherData.desktopKey(entry.model.favoriteId || "")
         if (page.sort === "recent") {
             const rank = launcherData.recentRank[id]
+            return rank === undefined ? 100000 : rank
+        }
+        if (page.sort === "popular") {
+            const rank = launcherData.popularRank[id]
             return rank === undefined ? 100000 : rank
         }
         if (page.sort === "installed")
@@ -122,6 +127,7 @@ ColumnLayout {
     Connections {
         target: launcherData
         function onRecentRankChanged() { if (page.sort === "recent") arrangeTimer.restart() }
+        function onPopularRankChanged() { if (page.sort === "popular") arrangeTimer.restart() }
     }
 
     DelegateModel {
@@ -245,7 +251,27 @@ ColumnLayout {
             id: sortButton
             text: i18n("Sort: %1", (page.sortDefs.find(entry => entry.key === page.sort) || page.sortDefs[0]).label)
             iconName: "view-sort-symbolic"
-            onClicked: launcher.openMenu(page.sortDefs.map(entry => ({ text: entry.label, icon: entry.key === page.sort ? "checkmark" : "", run: () => { Plasmoid.configuration.appsSort = entry.key; Qt.callLater(launcher.resetSelection) } })), sortButton)
+            onClicked: sortMenu.popup(sortButton, 0, sortButton.height)
+            QQC2.Menu {
+                id: sortMenu
+                popupType: QQC2.Popup.Window
+                onClosed: launcher.focusSearch()
+                Instantiator {
+                    model: page.sortDefs
+                    delegate: PlasmaComponents.MenuItem {
+                        required property var modelData
+                        text: modelData.label
+                        checkable: true
+                        checked: page.sort === modelData.key
+                        onTriggered: {
+                            Plasmoid.configuration.appsSort = modelData.key
+                            Qt.callLater(launcher.resetSelection)
+                        }
+                    }
+                    onObjectAdded: (index, object) => sortMenu.insertItem(index, object)
+                    onObjectRemoved: (index, object) => sortMenu.removeItem(object)
+                }
+            }
         }
 
         SegmentGroup {

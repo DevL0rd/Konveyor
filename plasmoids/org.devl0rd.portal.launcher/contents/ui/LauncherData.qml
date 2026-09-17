@@ -122,6 +122,41 @@ Item {
         shownItems: Kicker.RecentUsageModel.OnlyApps
     }
     property var recentRank: ({})
+    property var popularRank: ({})
+    readonly property bool popularWanted: live && Plasmoid.configuration.appsSort === "popular"
+    Loader {
+        active: data.popularWanted
+        sourceComponent: Item {
+            Kicker.RecentUsageModel {
+                id: popularModel
+                shownItems: Kicker.RecentUsageModel.OnlyApps
+                ordering: Kicker.RecentUsageModel.Popular
+            }
+            Instantiator {
+                id: popularProbe
+                model: popularModel
+                delegate: QtObject {
+                    required property var model
+                    readonly property string favoriteId: model.favoriteId || ""
+                }
+                onObjectAdded: popularTimer.restart()
+                onObjectRemoved: popularTimer.restart()
+            }
+            Timer {
+                id: popularTimer
+                interval: 0
+                onTriggered: {
+                    const rank = {}
+                    for (let i = 0; i < popularProbe.count; ++i) {
+                        const object = popularProbe.objectAt(i)
+                        if (object && object.favoriteId)
+                            rank[data.desktopKey(object.favoriteId)] = i
+                    }
+                    data.popularRank = rank
+                }
+            }
+        }
+    }
     Instantiator {
         id: recentProbe
         model: recentAppsModel
