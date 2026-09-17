@@ -1,6 +1,6 @@
 # Configuration
 
-Open **System Settings → Window Management → Konveyor** (or the Configure button next to Konveyor in Desktop Effects). Every option has a page there with a live preview: layout, look, motion, mouse, touch and gestures, shortcuts, window rules, monitors, workspaces and Plasma integration. Press Apply and the change is live. `systemsettings kcm_konveyor shortcuts` opens a page directly.
+Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the Kontrol Panel's sidebar, or press the gear (<kbd>Ctrl</kbd> + <kbd>,</kbd>). Every option has a page there with a live preview: layout, look, motion, mouse, touch and gestures, shortcuts, window rules, monitors, workspaces and Plasma integration. Changes apply instantly, and Undo (<kbd>Ctrl</kbd> + <kbd>Z</kbd>) takes them back. `portal-launcher settings` opens the page directly. The Kontrol Panel comes with the Konveyor widgets; if you installed with `--no-widgets`, edit the file below instead.
 
 The settings page edits `~/.config/konveyor/config.kdl` in place and keeps your comments and formatting, so you can use both.
 

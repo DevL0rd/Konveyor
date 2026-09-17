@@ -31,7 +31,7 @@ target_sources(konveyor_settings PRIVATE
     values/paintvalues.cpp
 )
 
-ecm_target_qml_sources(konveyor_settings SOURCES qml/SettingsHub.qml qml/PageFactory.js)
+ecm_target_qml_sources(konveyor_settings SOURCES qml/PageFactory.js)
 ecm_target_qml_sources(konveyor_settings PATH catalog SOURCES
     qml/catalog/Actions.js
     qml/catalog/BindKeys.js
@@ -65,13 +65,11 @@ ecm_target_qml_sources(konveyor_settings PATH components SOURCES
     qml/components/BindOptions.qml
     qml/components/CardHeader.qml
     qml/components/Card.qml
-    qml/components/CategoryTile.qml
     qml/components/ChoiceCards.qml
     qml/components/ColorField.qml
     qml/components/CornerRadiusEditor.qml
     qml/components/EdgeScrollCard.qml
     qml/components/GradientOptions.qml
-    qml/components/HeroBanner.qml
     qml/components/ModifiedBadge.qml
     qml/components/ModKeyPicker.qml
     qml/components/NamedWorkspaceCard.qml
@@ -79,7 +77,6 @@ ecm_target_qml_sources(konveyor_settings PATH components SOURCES
     qml/components/PaintEditor.qml
     qml/components/PresetSizeBars.qml
     qml/components/PreviewStage.qml
-    qml/components/SearchResults.qml
     qml/components/Segmented.qml
     qml/components/SettingRow.qml
     qml/components/SettingsPage.qml

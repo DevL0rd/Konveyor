@@ -65,9 +65,19 @@ build() {
     as_owner cmake --build "$BUILD_DIR"
 }
 
+remove_stale_files() {
+    local previous="$KONVEYOR_STATE_DIR/install_manifest.txt" current="$BUILD_DIR/install_manifest.txt" file
+    [[ -f $previous ]] || return 0
+    while IFS= read -r file; do
+        [[ $file == "$KONVEYOR_PREFIX"/* && $file != *..* && ( -f $file || -L $file ) ]] || continue
+        run_root rm -f "$file"
+    done < <(comm -23 <(sort -u "$previous") <(sort -u "$current"))
+}
+
 install_files() {
     say "Installing to $KONVEYOR_PREFIX"
     run_root cmake --install "$BUILD_DIR" >/dev/null
+    remove_stale_files
     run_root install -Dm644 "$BUILD_DIR/install_manifest.txt" "$KONVEYOR_STATE_DIR/install_manifest.txt"
 }
 
@@ -188,6 +198,9 @@ main() {
     printf 'widgets=%s\n' "$WIDGETS" >"$OPTIONS_FILE"
     if $WIDGETS; then
         "$SOURCE_DIR/widgets/install.sh"
+        say "Settings: press Meta+K and open Settings in the Kontrol Panel"
+    else
+        say "Settings live in the Kontrol Panel, which comes with the widgets; without them, edit ~/.config/konveyor/config.kdl"
     fi
     say "Config file: ~/.config/konveyor/config.kdl (created on first start)"
 }

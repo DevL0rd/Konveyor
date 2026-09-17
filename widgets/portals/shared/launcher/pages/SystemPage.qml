@@ -124,7 +124,7 @@ PopScroll {
         cellHeight: Kirigami.Units.gridUnit * 3
         model: [
             { name: i18n("System Settings"), description: i18n("Configure the whole desktop"), icon: "configure-symbolic", command: "systemsettings" },
-            { name: i18n("Konveyor"), description: i18n("Tiling layout, rules and shortcuts"), icon: "view-split-left-right-symbolic", command: "kcmshell6 kcm_konveyor" },
+            { name: i18n("Konveyor"), description: i18n("Tiling layout, rules and shortcuts"), icon: "view-split-left-right-symbolic", command: "", page: "settings" },
             { name: i18n("Launcher settings"), description: i18n("Icon, size, pages and search"), icon: "start-here-kde-plasma-symbolic", command: "" },
             { name: i18n("Displays"), description: i18n("Resolution, scale and arrangement"), icon: "video-display-symbolic", command: "kcmshell6 kcm_kscreen" },
             { name: i18n("Audio"), description: i18n("Devices and volume"), icon: "audio-volume-high-symbolic", command: "kcmshell6 kcm_pulseaudio" },
@@ -143,6 +143,10 @@ PopScroll {
             subtitle: modelData.description
             selected: GridView.isCurrentItem && grid.sectionActive
             function activate() {
+                if (modelData.page) {
+                    launcher.goToPage(modelData.page)
+                    return
+                }
                 root.hide()
                 if (modelData.command === "")
                     Plasmoid.internalAction("configure").trigger()

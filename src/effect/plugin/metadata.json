@@ -10,6 +10,5 @@
         "EnabledByDefault": false,
         "License": "GPL-3.0-or-later",
         "Name": "Konveyor"
-    },
-    "X-KDE-ConfigModule": "kcm_konveyor"
+    }
 }

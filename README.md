@@ -245,7 +245,7 @@ Everything the widgets need is installed for you, and one background service fee
 
 ## 🎛️ Settings that show you
 
-Open **System Settings → Window Management → Konveyor**. Every option has a live preview, so you can see exactly what a change does before you hit Apply.
+Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the Kontrol Panel, or hit the gear. Every option has a live preview, changes apply instantly, and Undo takes them back.
 
 <p align="center"><img alt="A tour through the Konveyor settings pages" src="docs/media/settings-tour.gif" width="88%"></p>
 
