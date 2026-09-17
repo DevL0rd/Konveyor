@@ -68,7 +68,10 @@ private:
     bool handleTouchDown(qint32 id, const QPointF &position, qint64 timestampMs);
     bool handleTouchMotion(qint32 id, const QPointF &position, qint64 timestampMs);
     bool handleTouchUp(qint32 id);
-    bool isTouchLongPress() const;
+    bool holdsToDecide(Layout::WindowId id, int phase);
+    void decidePendingTouchMove(qint64 timestampMs);
+    void showKdeOverview(bool open);
+    void connectOverviewSync();
     void followActiveWindow();
     void applyFocusRequest();
     void focusWindowUnderPointer(const QPointF &position);

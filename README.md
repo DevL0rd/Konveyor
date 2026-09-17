@@ -303,9 +303,15 @@ Open **System Settings → Window Management → Konveyor**. Every option has a 
 | <kbd>Meta</kbd> + <kbd>K</kbd> | Open the Kontrol Panel on Shortcuts |
 | <kbd>Meta</kbd> | Open the Kontrol Panel |
 | <kbd>Meta</kbd> + <kbd>G</kbd> | Open the Kontrol Panel on your games |
+| 3 fingers ←→ on the touchpad or touchscreen | Scroll the row |
+| 3 fingers ↑↓ on the touchpad or touchscreen | Switch workspace |
+| 4 fingers ←→ | Merge the window into the next column, or pop it out |
+| 4 fingers ↑↓ | Carry the window to the workspace above or below |
+| 4-finger pinch | Open or close KDE's Overview |
+| Hold a title bar on a touchscreen, then drag | Move the window |
 
 > [!NOTE]
-> Konveyor leaves KDE's own shortcuts alone — <kbd>Alt</kbd> + <kbd>F4</kbd>, <kbd>Meta</kbd> + <kbd>L</kbd>, screenshots and the rest work as always. Change anything from the **Shortcuts** settings page.
+> Konveyor leaves KDE's own shortcuts alone — <kbd>Alt</kbd> + <kbd>F4</kbd>, <kbd>Meta</kbd> + <kbd>L</kbd>, screenshots and the rest work as always. Change anything from the **Shortcuts** settings page. The 3- and 4-finger swipes replace KDE's desktop-switching and Overview swipes; pick other finger counts, or turn gestures off, on the **Touch & Gestures** settings page.
 
 ---
 

@@ -17,10 +17,38 @@ QPointF KonveyorEffect::interactionPoint() const
     return d->gestures.touchPointCount() > 0 && touch ? *touch : KWin::effects->cursorPos();
 }
 
-bool KonveyorEffect::isTouchLongPress() const
+bool KonveyorEffect::holdsToDecide(Layout::WindowId id, int phase)
 {
-    const qint64 now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    return d->gestures.touchPointCount() == 1 && d->gestures.isLongPress(now);
+    if (d->touchMovePending == id) {
+        if (phase == interactivePhaseEnd) {
+            d->touchMovePending.reset();
+        }
+        return true;
+    }
+    const Config::MultiTouch &touch = d->config.config().gestures.touchscreen;
+    if (phase != interactivePhaseStart || d->gestures.touchPointCount() != 1 || !touch.enabled || !touch.longPressToMove) {
+        return false;
+    }
+    d->touchMovePending = id;
+    return true;
+}
+
+void KonveyorEffect::decidePendingTouchMove(qint64 timestampMs)
+{
+    if (!d->touchMovePending || !d->gestures.hasFirstTouchMoved()) {
+        return;
+    }
+    const Layout::WindowId id = *std::exchange(d->touchMovePending, std::nullopt);
+    KWin::Window *window = d->windows.windowOf(id);
+    if (!window) {
+        return;
+    }
+    if (d->gestures.isLongPress(timestampMs)) {
+        d->touchLift = id;
+        handleWindowMove(id, window, interactivePhaseStart);
+    } else {
+        handleTitlebarDrag(id, window, interactivePhaseStart);
+    }
 }
 
 bool KonveyorEffect::handleTouchDown(qint32 id, const QPointF &position, qint64 timestampMs)
@@ -37,20 +65,18 @@ bool KonveyorEffect::handleTouchMotion(qint32 id, const QPointF &position, qint6
     if (routeGesture(d->gestures.touchMotion(id, position, timestampMs))) {
         return true;
     }
+    decidePendingTouchMove(timestampMs);
     if (d->titlebarDrag && d->gestures.touchPointCount() == 1) {
         handlePointerMotion(position, timestampMs);
-        return true;
     }
     return false;
 }
 
 bool KonveyorEffect::handleTouchUp(qint32 id)
 {
-    const bool dragging = d->titlebarDrag.has_value();
     const bool consumed = routeGesture(d->gestures.touchUp(id));
-    if (dragging && d->gestures.touchPointCount() == 0) {
+    if (d->gestures.touchPointCount() == 0) {
         endTitlebarDrag();
-        return true;
     }
     return consumed;
 }

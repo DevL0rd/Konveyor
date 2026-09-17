@@ -95,4 +95,9 @@ QString DBusService::LastBind() const
     return compact(m_handlers.lastBind());
 }
 
+QString DBusService::Gestures() const
+{
+    return compact(m_handlers.gestures());
+}
+
 }

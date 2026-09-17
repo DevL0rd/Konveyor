@@ -27,6 +27,7 @@ KonveyorEffect::KonveyorEffect()
     connect(&d->accent, &AccentColor::changed, this, &KonveyorEffect::scheduleFlush);
     connectRegistries();
     connectDesktopSync();
+    connectOverviewSync();
     installInputFilter();
     startDBusService();
     d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
@@ -266,6 +267,8 @@ Layout::Hooks KonveyorEffect::makeHooks()
         }
         qInfo() << "konveyor: action left to KDE:" << name;
     };
+    hooks.toggleOverview = [this] { showKdeOverview(d->engine.isOverviewOpen()); };
+    hooks.setOverviewOpen = [this](bool open) { showKdeOverview(open); };
     hooks.windowMemoryChanged = [this] { d->memorySaveTimer.start(); };
     hooks.focusWindow = [this](Layout::WindowId id) {
         d->focusRequest = id;

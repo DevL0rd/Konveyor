@@ -73,8 +73,8 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
         return;
     }
     const bool scrollOnDrag = d->config.config().gestures.titlebarDrag == Config::TitlebarDrag::ScrollView;
-    if (isMove && phase == interactivePhaseStart && scrollOnDrag && isTouchLongPress()) {
-        d->touchLift = id;
+    if (isMove && scrollOnDrag && holdsToDecide(id, phase)) {
+        return;
     }
     const bool lifted = d->touchLift == id;
     if (!isMove) {

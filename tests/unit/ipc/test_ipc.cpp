@@ -84,6 +84,30 @@ private Q_SLOTS:
         QVERIFY(json.value(QStringLiteral("layout")).toObject().value(QStringLiteral("pos_in_scrolling_layout")).isNull());
     }
 
+    void gesturesJsonListsOnlyActiveGestures()
+    {
+        Config::Gestures gestures;
+        gestures.touchpad.verticalSwipe = Config::VerticalSwipe::Off;
+        gestures.touchpad.windowHorizontalSwipe = Config::WindowHorizontalSwipe::Off;
+        gestures.touchscreen.windowVerticalSwipe = Config::WindowVerticalSwipe::Off;
+        gestures.touchscreen.pinchFingers = 5;
+        gestures.touchscreen.longPressMs = 700;
+        const QJsonArray array = Ipc::gesturesToJson(gestures);
+        QCOMPARE(array.size(), 8);
+        QCOMPARE(array[0].toObject()[QStringLiteral("motion")].toString(), QStringLiteral("swipe-horizontal"));
+        QCOMPARE(array[1].toObject()[QStringLiteral("motion")].toString(), QStringLiteral("window-swipe-vertical"));
+        QCOMPARE(array[2].toObject()[QStringLiteral("motion")].toString(), QStringLiteral("pinch"));
+        QCOMPARE(array[2].toObject()[QStringLiteral("fingers")].toInt(), 4);
+        QCOMPARE(array[5].toObject()[QStringLiteral("action")].toString(), QStringLiteral("consume-or-expel"));
+        QCOMPARE(array[6].toObject()[QStringLiteral("fingers")].toInt(), 5);
+        QCOMPARE(array[7].toObject()[QStringLiteral("action")].toString(), QStringLiteral("move-window"));
+        QCOMPARE(array[7].toObject()[QStringLiteral("hold-ms")].toInt(), 700);
+
+        gestures.touchpad.enabled = false;
+        gestures.touchscreen.enabled = false;
+        QVERIFY(Ipc::gesturesToJson(gestures).isEmpty());
+    }
+
     void workspaceJsonHasNullNameWhenUnnamed()
     {
         Layout::WorkspaceState state;

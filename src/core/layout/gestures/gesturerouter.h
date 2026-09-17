@@ -26,6 +26,7 @@ public:
     explicit GestureRouter(Engine &engine);
 
     void setConfig(const Config::Gestures &gestures);
+    const Config::Gestures &config() const { return m_config; }
 
     bool touchpadSwipeBegin(int fingers, const QString &output);
     bool touchpadSwipeUpdate(QPointF delta, qint64 timestampMs);
@@ -43,6 +44,7 @@ public:
     bool isTouchGestureActive() const { return m_touch.active; }
     std::optional<QPointF> lastTouchPosition() const { return m_lastTouch; }
     bool isLongPress(qint64 timestampMs) const;
+    bool hasFirstTouchMoved() const { return m_firstTouchMoved; }
 
 private:
     enum class Axis
@@ -51,6 +53,8 @@ private:
         Horizontal,
         Vertical,
         Pinch,
+        WindowHorizontal,
+        WindowVertical,
         Ignored
     };
 
@@ -63,12 +67,24 @@ private:
         QPointF pending;
         bool allowsSwipe = false;
         bool allowsPinch = false;
+        bool allowsWindowSwipe = false;
+        double travel = 0.0;
         bool pinchTriggered = false;
         double startSpread = 0.0;
     };
 
     const Config::MultiTouch &settingsFor(GestureDevice device) const;
-    void beginGesture(Swipe &gesture, GestureDevice device, const QString &output, bool allowsSwipe, bool allowsPinch);
+    struct Allowed
+    {
+        bool swipe = false;
+        bool pinch = false;
+        bool windowSwipe = false;
+    };
+
+    static Allowed allowedFor(const Config::MultiTouch &settings, int fingers);
+    void beginGesture(Swipe &gesture, GestureDevice device, const QString &output, Allowed allowed);
+    bool decideAxis(Swipe &gesture, QPointF delta);
+    void feedWindowSwipe(Swipe &gesture, double delta);
     void feedTranslation(Swipe &gesture, QPointF delta, qint64 timestampMs);
     void feedPinch(Swipe &gesture, double scale);
     bool finishGesture(Swipe &gesture);

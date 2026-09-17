@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+"""Drive the row with fake touchscreen swipes, pinches, taps and long presses in a nested KWin."""
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE / "harness"))
+
+BREEZE_DECORATION = """
+[org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+"""
+
+SCRIPT = """
+export QT_QPA_PLATFORM=wayland
+for name in A B C; do
+    qml6 {client} -- $name 700 500 &
+    sleep 2
+done
+sleep 3
+python3 {runner} > "$KONVEYOR_REPORT" 2>&1
+"""
+
+
+def main():
+    from nested import run_script
+
+    return run_script(SCRIPT.format(client=HERE / "clients" / "client.qml", runner=HERE / "runners" / "touch.py"), timeout=180, extra_kwinrc=BREEZE_DECORATION)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

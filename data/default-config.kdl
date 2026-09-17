@@ -71,8 +71,10 @@ gestures {
     // windows can always be resized.
     // resize-tiled-windows
 
-    // Multi-finger touchpad gestures. The finger counts used here replace the
-    // matching KDE gestures; other finger counts keep their KDE behavior.
+    // Multi-finger touchpad gestures. 3-finger swipes move the row, 4-finger
+    // swipes push the focused window into the next column or to another
+    // workspace, and a 4-finger pinch opens KDE's Overview. The finger counts
+    // used here replace the matching KDE gestures.
     touchpad {
         swipe-fingers 3
         pinch-fingers 4
@@ -80,6 +82,9 @@ gestures {
         horizontal-swipe "scroll-view"
         vertical-swipe "switch-workspace"
         pinch "toggle-overview"
+        window-swipe-fingers 4
+        window-horizontal-swipe "consume-or-expel"
+        window-vertical-swipe "move-to-workspace"
     }
 
     // Touchscreen gestures. One finger still taps, scrolls and drags title bars;
@@ -91,6 +96,9 @@ gestures {
         horizontal-swipe "scroll-view"
         vertical-swipe "switch-workspace"
         pinch "toggle-overview"
+        window-swipe-fingers 4
+        window-horizontal-swipe "consume-or-expel"
+        window-vertical-swipe "move-to-workspace"
         long-press-to-move
         long-press-ms 500
     }

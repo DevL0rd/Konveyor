@@ -20,6 +20,7 @@ struct DBusHandlers
     std::function<QString(const QString &)> loadConfigFile;
     std::function<bool()> overviewOpen;
     std::function<QJsonDocument()> lastBind;
+    std::function<QJsonDocument()> gestures;
 };
 
 class DBusService : public QObject
@@ -45,6 +46,7 @@ public Q_SLOTS:
     Q_SCRIPTABLE QString Action(const QString &json);
     Q_SCRIPTABLE QString LoadConfigFile(const QString &path);
     Q_SCRIPTABLE QString LastBind() const;
+    Q_SCRIPTABLE QString Gestures() const;
 
 private:
     static QString compact(const QJsonDocument &document);

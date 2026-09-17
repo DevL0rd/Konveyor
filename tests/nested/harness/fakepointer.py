@@ -27,3 +27,9 @@ def click(x, y):
     move(x, y)
     subprocess.run([binary(), "click", str(x), str(y)], check=True)
     time.sleep(0.5)
+
+
+def touch(fingers, x, y, dx=0, dy=0, radius=0, end_radius=None, hold_ms=0, steps=20):
+    end = radius if end_radius is None else end_radius
+    subprocess.run([binary(), "touch", *(str(value) for value in (fingers, x, y, dx, dy, radius, end, hold_ms, steps))], check=True)
+    time.sleep(1.0)

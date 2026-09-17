@@ -107,6 +107,63 @@ QJsonObject bindToJson(const Config::Bind &bind)
     return object;
 }
 
+namespace
+{
+
+QJsonObject gestureToJson(const QString &device, int fingers, const QString &motion, const QString &action, bool natural)
+{
+    return {
+        {QStringLiteral("device"), device},
+        {QStringLiteral("fingers"), fingers},
+        {QStringLiteral("motion"), motion},
+        {QStringLiteral("action"), action},
+        {QStringLiteral("natural"), natural},
+    };
+}
+
+void appendDeviceGestures(QJsonArray &array, const QString &device, const Config::MultiTouch &touch)
+{
+    if (!touch.enabled) {
+        return;
+    }
+    if (touch.horizontalSwipe == Config::HorizontalSwipe::ScrollView) {
+        array.append(gestureToJson(
+            device, touch.swipeFingers, QStringLiteral("swipe-horizontal"), QStringLiteral("scroll-view"), touch.naturalSwipe));
+    }
+    if (touch.verticalSwipe == Config::VerticalSwipe::SwitchWorkspace) {
+        array.append(gestureToJson(
+            device, touch.swipeFingers, QStringLiteral("swipe-vertical"), QStringLiteral("switch-workspace"), touch.naturalSwipe));
+    }
+    if (touch.windowHorizontalSwipe == Config::WindowHorizontalSwipe::ConsumeOrExpel) {
+        array.append(gestureToJson(device, touch.windowSwipeFingers, QStringLiteral("window-swipe-horizontal"),
+            QStringLiteral("consume-or-expel"), touch.naturalSwipe));
+    }
+    if (touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveToWorkspace) {
+        array.append(gestureToJson(device, touch.windowSwipeFingers, QStringLiteral("window-swipe-vertical"),
+            QStringLiteral("move-to-workspace"), touch.naturalSwipe));
+    }
+    if (touch.pinch == Config::PinchAction::ToggleOverview) {
+        array.append(
+            gestureToJson(device, touch.pinchFingers, QStringLiteral("pinch"), QStringLiteral("toggle-overview"), touch.naturalSwipe));
+    }
+}
+
+}
+
+QJsonArray gesturesToJson(const Config::Gestures &gestures)
+{
+    QJsonArray array;
+    appendDeviceGestures(array, QStringLiteral("touchpad"), gestures.touchpad);
+    appendDeviceGestures(array, QStringLiteral("touchscreen"), gestures.touchscreen);
+    if (gestures.touchscreen.enabled && gestures.touchscreen.longPressToMove) {
+        QJsonObject press = gestureToJson(QStringLiteral("touchscreen"), 1, QStringLiteral("long-press"), QStringLiteral("move-window"),
+            gestures.touchscreen.naturalSwipe);
+        press[QStringLiteral("hold-ms")] = gestures.touchscreen.longPressMs;
+        array.append(press);
+    }
+    return array;
+}
+
 QJsonObject actionToJson(const ActionRequest &request)
 {
     QJsonObject properties;

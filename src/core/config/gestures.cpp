@@ -82,6 +82,18 @@ void decodeMultiTouch(const Kdl::Node &node, MultiTouch &touch, bool isTouchscre
         touch.pinch = keywordArgument(child, {QStringLiteral("toggle-overview"), QStringLiteral("off")}) == 0 ? PinchAction::ToggleOverview
                                                                                                               : PinchAction::Off;
     });
+    table.insert(QStringLiteral("window-swipe-fingers"),
+        [&touch](const Kdl::Node &child) { touch.windowSwipeFingers = static_cast<int>(integerArgument(child, Range {2, 5})); });
+    table.insert(QStringLiteral("window-horizontal-swipe"), [&touch](const Kdl::Node &child) {
+        touch.windowHorizontalSwipe = keywordArgument(child, {QStringLiteral("consume-or-expel"), QStringLiteral("off")}) == 0
+            ? WindowHorizontalSwipe::ConsumeOrExpel
+            : WindowHorizontalSwipe::Off;
+    });
+    table.insert(QStringLiteral("window-vertical-swipe"), [&touch](const Kdl::Node &child) {
+        touch.windowVerticalSwipe = keywordArgument(child, {QStringLiteral("move-to-workspace"), QStringLiteral("off")}) == 0
+            ? WindowVerticalSwipe::MoveToWorkspace
+            : WindowVerticalSwipe::Off;
+    });
     if (isTouchscreen) {
         table.insert(
             QStringLiteral("long-press-to-move"), [&touch](const Kdl::Node &child) { touch.longPressToMove = flagArgument(child); });

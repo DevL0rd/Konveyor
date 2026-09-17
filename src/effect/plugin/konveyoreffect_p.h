@@ -104,6 +104,7 @@ struct KonveyorEffect::Private
     std::optional<Layout::WindowId> focusRequest;
     std::optional<Layout::WindowId> titlebarDrag;
     std::optional<Layout::WindowId> touchLift;
+    std::optional<Layout::WindowId> touchMovePending;
     QHash<Layout::WindowId, QString> homeOutputs;
     QHash<KWin::Window *, Layout::RestorePlacement> minimizedPlacements;
 

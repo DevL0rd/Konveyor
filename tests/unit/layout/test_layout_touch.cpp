@@ -89,7 +89,7 @@ private Q_SLOTS:
     {
         Rig rig;
         rig.fixture.add();
-        QVERIFY(!rig.router.touchpadSwipeBegin(4, Output));
+        QVERIFY(!rig.router.touchpadSwipeBegin(5, Output));
         QVERIFY(!rig.router.touchpadSwipeUpdate(QPointF(-400.0, 0.0), 10));
         QVERIFY(!rig.router.touchpadSwipeEnd());
     }
@@ -138,6 +138,74 @@ private Q_SLOTS:
         QVERIFY(!rig.router.touchpadSwipeEnd());
         rig.fixture.advance(1);
         QCOMPARE(activeWorkspaceIndex(rig.fixture.engine()), 1);
+    }
+
+    void touchpadFourFingerSwipeMergesColumns()
+    {
+        Rig rig;
+        const auto a = rig.fixture.add(QStringLiteral("a"));
+        const auto b = rig.fixture.add(QStringLiteral("b"));
+        QCOMPARE(rig.fixture.state(b).columnIndex, 1);
+        QVERIFY(rig.router.touchpadSwipeBegin(4, Output));
+        QVERIFY(rig.router.touchpadSwipeUpdate(QPointF(-30.0, 0.0), 10));
+        QVERIFY(rig.router.touchpadSwipeUpdate(QPointF(-150.0, 0.0), 20));
+        QVERIFY(rig.router.touchpadSwipeEnd());
+        rig.fixture.settle();
+        QCOMPARE(rig.fixture.state(b).columnIndex, rig.fixture.state(a).columnIndex);
+        QCOMPARE(rig.fixture.state(b).tileIndex, 1);
+
+        QVERIFY(rig.router.touchpadSwipeBegin(4, Output));
+        rig.router.touchpadSwipeUpdate(QPointF(30.0, 0.0), 10);
+        rig.router.touchpadSwipeUpdate(QPointF(150.0, 0.0), 20);
+        rig.router.touchpadSwipeEnd();
+        rig.fixture.settle();
+        QCOMPARE(rig.fixture.state(b).columnIndex, rig.fixture.state(a).columnIndex + 1);
+        VERIFY_INVARIANTS(rig.fixture);
+    }
+
+    void touchscreenWindowSwipesRepeat()
+    {
+        Rig rig;
+        const auto a = rig.fixture.add(QStringLiteral("a"));
+        const auto b = rig.fixture.add(QStringLiteral("b"));
+        const auto swipe = [&rig](double dx) {
+            for (qint32 id = 0; id < 4; ++id) {
+                rig.router.touchDown(id, QPointF(1000.0 + id * 40.0, 600.0), 0, Output);
+            }
+            for (int step = 1; step <= 30; ++step) {
+                for (qint32 id = 0; id < 4; ++id) {
+                    rig.router.touchMotion(id, QPointF(1000.0 + id * 40.0 + dx * step / 30.0, 600.0), step * 16);
+                }
+            }
+            for (qint32 id = 0; id < 4; ++id) {
+                rig.router.touchUp(id);
+            }
+            rig.fixture.settle();
+        };
+        swipe(-400.0);
+        QCOMPARE(rig.fixture.state(b).columnIndex, rig.fixture.state(a).columnIndex);
+        swipe(400.0);
+        QCOMPARE(rig.fixture.state(b).columnIndex, rig.fixture.state(a).columnIndex + 1);
+    }
+
+    void fourFingerVerticalSwipeCarriesTheWindowToAnotherWorkspace()
+    {
+        Rig rig;
+        rig.fixture.add(QStringLiteral("a"));
+        const auto b = rig.fixture.add(QStringLiteral("b"));
+        const int start = rig.fixture.state(b).workspaceIndex;
+        for (qint32 id = 0; id < 4; ++id) {
+            rig.router.touchDown(id, QPointF(400.0 + id * 60.0, 700.0), 0, Output);
+        }
+        for (int step = 1; step <= 8; ++step) {
+            for (qint32 id = 0; id < 4; ++id) {
+                rig.router.touchMotion(id, QPointF(400.0 + id * 60.0, 700.0 + step * 50.0), step * 10);
+            }
+        }
+        rig.router.touchUp(0);
+        rig.fixture.advance(1);
+        QCOMPARE(rig.fixture.state(b).workspaceIndex, start + 1);
+        VERIFY_INVARIANTS(rig.fixture);
     }
 
     void touchpadPinchTogglesTheOverview()
@@ -213,6 +281,7 @@ private Q_SLOTS:
         QVERIFY(!rig.router.isLongPress(1200));
         QVERIFY(rig.router.isLongPress(1600));
         rig.router.touchMotion(0, QPointF(140, 100), 1650);
+        QVERIFY(rig.router.hasFirstTouchMoved());
         QVERIFY(rig.router.isLongPress(1700));
         rig.router.touchUp(0);
 

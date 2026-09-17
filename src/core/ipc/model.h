@@ -30,6 +30,7 @@ QJsonObject windowToJson(const WindowIdentity &identity, const Layout::WindowSta
 QJsonObject workspaceToJson(const Layout::WorkspaceState &state);
 QJsonObject outputToJson(const Layout::OutputInfo &info);
 QJsonObject bindToJson(const Config::Bind &bind);
+QJsonArray gesturesToJson(const Config::Gestures &gestures);
 
 QJsonObject actionToJson(const ActionRequest &request);
 std::expected<ActionRequest, QString> actionFromJson(const QJsonObject &object);

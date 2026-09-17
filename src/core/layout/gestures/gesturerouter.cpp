@@ -16,6 +16,8 @@ constexpr double TouchMoveThreshold = 12.0;
 constexpr double PinchInScale = 0.8;
 constexpr double PinchOutScale = 1.25;
 constexpr double PinchSpreadThreshold = 0.2;
+constexpr double TouchpadWindowStep = 160.0;
+constexpr double TouchscreenWindowStep = 320.0;
 
 double lengthOf(QPointF point)
 {
@@ -38,46 +40,98 @@ const Config::MultiTouch &GestureRouter::settingsFor(GestureDevice device) const
     return device == GestureDevice::Touchpad ? m_config.touchpad : m_config.touchscreen;
 }
 
-void GestureRouter::beginGesture(Swipe &gesture, GestureDevice device, const QString &output, bool allowsSwipe, bool allowsPinch)
+GestureRouter::Allowed GestureRouter::allowedFor(const Config::MultiTouch &settings, int fingers)
+{
+    if (!settings.enabled) {
+        return {};
+    }
+    Allowed allowed;
+    allowed.swipe = fingers == settings.swipeFingers
+        && (settings.horizontalSwipe != Config::HorizontalSwipe::Off || settings.verticalSwipe != Config::VerticalSwipe::Off);
+    allowed.pinch = fingers == settings.pinchFingers && settings.pinch != Config::PinchAction::Off;
+    allowed.windowSwipe = !allowed.swipe && fingers == settings.windowSwipeFingers
+        && (settings.windowHorizontalSwipe != Config::WindowHorizontalSwipe::Off
+            || settings.windowVerticalSwipe != Config::WindowVerticalSwipe::Off);
+    return allowed;
+}
+
+void GestureRouter::beginGesture(Swipe &gesture, GestureDevice device, const QString &output, Allowed allowed)
 {
     gesture = Swipe {};
     gesture.active = true;
     gesture.device = device;
     gesture.output = output;
-    gesture.allowsSwipe = allowsSwipe;
-    gesture.allowsPinch = allowsPinch;
+    gesture.allowsSwipe = allowed.swipe;
+    gesture.allowsPinch = allowed.pinch;
+    gesture.allowsWindowSwipe = allowed.windowSwipe;
+}
+
+bool GestureRouter::decideAxis(Swipe &gesture, QPointF delta)
+{
+    const Config::MultiTouch &settings = settingsFor(gesture.device);
+    const bool touchpad = gesture.device == GestureDevice::Touchpad;
+    gesture.pending += delta;
+    if (lengthOf(gesture.pending) < (gesture.allowsPinch ? AxisThreshold * 3.0 : AxisThreshold)) {
+        return false;
+    }
+    const bool horizontal = std::abs(gesture.pending.x()) >= std::abs(gesture.pending.y());
+    if (gesture.allowsSwipe && horizontal && settings.horizontalSwipe == Config::HorizontalSwipe::ScrollView) {
+        gesture.axis = Axis::Horizontal;
+        m_engine.beginSwipe(gesture.output, touchpad);
+    } else if (gesture.allowsSwipe && !horizontal && settings.verticalSwipe == Config::VerticalSwipe::SwitchWorkspace) {
+        gesture.axis = Axis::Vertical;
+        m_engine.beginWorkspaceSwipe(gesture.output, touchpad);
+    } else if (gesture.allowsWindowSwipe && horizontal && settings.windowHorizontalSwipe != Config::WindowHorizontalSwipe::Off) {
+        gesture.axis = Axis::WindowHorizontal;
+    } else if (gesture.allowsWindowSwipe && !horizontal && settings.windowVerticalSwipe != Config::WindowVerticalSwipe::Off) {
+        gesture.axis = Axis::WindowVertical;
+    } else {
+        gesture.axis = Axis::Ignored;
+        return false;
+    }
+    return true;
+}
+
+void GestureRouter::feedWindowSwipe(Swipe &gesture, double delta)
+{
+    gesture.travel += delta;
+    const bool horizontal = gesture.axis == Axis::WindowHorizontal;
+    const double step = gesture.device == GestureDevice::Touchpad ? TouchpadWindowStep : TouchscreenWindowStep;
+    while (std::abs(gesture.travel) >= step) {
+        const bool forward = gesture.travel > 0.0;
+        gesture.travel -= forward ? step : -step;
+        const QString name = horizontal
+            ? (forward ? QStringLiteral("consume-or-expel-window-right") : QStringLiteral("consume-or-expel-window-left"))
+            : (forward ? QStringLiteral("move-window-to-workspace-down") : QStringLiteral("move-window-to-workspace-up"));
+        m_engine.perform(Config::Action {name, {}, {}});
+    }
 }
 
 void GestureRouter::feedTranslation(Swipe &gesture, QPointF delta, qint64 timestampMs)
 {
-    const Config::MultiTouch &settings = settingsFor(gesture.device);
     const bool touchpad = gesture.device == GestureDevice::Touchpad;
-    const double sign = settings.naturalSwipe ? -1.0 : 1.0;
+    const double sign = settingsFor(gesture.device).naturalSwipe ? -1.0 : 1.0;
     if (gesture.axis == Axis::Undecided) {
-        if (!gesture.allowsSwipe) {
-            return;
-        }
-        gesture.pending += delta;
-        if (lengthOf(gesture.pending) < AxisThreshold) {
-            return;
-        }
-        const bool horizontal = std::abs(gesture.pending.x()) >= std::abs(gesture.pending.y());
-        if (horizontal && settings.horizontalSwipe == Config::HorizontalSwipe::ScrollView) {
-            gesture.axis = Axis::Horizontal;
-            m_engine.beginSwipe(gesture.output, touchpad);
-        } else if (!horizontal && settings.verticalSwipe == Config::VerticalSwipe::SwitchWorkspace) {
-            gesture.axis = Axis::Vertical;
-            m_engine.beginWorkspaceSwipe(gesture.output, touchpad);
-        } else {
-            gesture.axis = Axis::Ignored;
+        if ((!gesture.allowsSwipe && !gesture.allowsWindowSwipe) || !decideAxis(gesture, delta)) {
             return;
         }
         delta = gesture.pending;
     }
-    if (gesture.axis == Axis::Horizontal) {
+    switch (gesture.axis) {
+    case Axis::Horizontal:
         m_engine.updateSwipe(sign * delta.x(), timestampMs, touchpad);
-    } else if (gesture.axis == Axis::Vertical) {
+        break;
+    case Axis::Vertical:
         m_engine.updateWorkspaceSwipe(sign * delta.y(), timestampMs, touchpad);
+        break;
+    case Axis::WindowHorizontal:
+        feedWindowSwipe(gesture, delta.x());
+        break;
+    case Axis::WindowVertical:
+        feedWindowSwipe(gesture, delta.y());
+        break;
+    default:
+        break;
     }
 }
 
@@ -112,16 +166,12 @@ bool GestureRouter::finishGesture(Swipe &gesture)
 
 bool GestureRouter::touchpadSwipeBegin(int fingers, const QString &output)
 {
-    const Config::MultiTouch &settings = m_config.touchpad;
-    if (!settings.enabled || fingers != settings.swipeFingers) {
+    Allowed allowed = allowedFor(m_config.touchpad, fingers);
+    allowed.pinch = false;
+    if (!allowed.swipe && !allowed.windowSwipe) {
         return false;
     }
-    const bool allowsSwipe
-        = settings.horizontalSwipe != Config::HorizontalSwipe::Off || settings.verticalSwipe != Config::VerticalSwipe::Off;
-    if (!allowsSwipe) {
-        return false;
-    }
-    beginGesture(m_touchpad, GestureDevice::Touchpad, output, true, false);
+    beginGesture(m_touchpad, GestureDevice::Touchpad, output, allowed);
     return true;
 }
 
@@ -145,7 +195,7 @@ bool GestureRouter::touchpadPinchBegin(int fingers)
     if (!settings.enabled || fingers != settings.pinchFingers || settings.pinch == Config::PinchAction::Off) {
         return false;
     }
-    beginGesture(m_touchpad, GestureDevice::Touchpad, QString(), false, true);
+    beginGesture(m_touchpad, GestureDevice::Touchpad, QString(), Allowed {false, true, false});
     return true;
 }
 
@@ -202,18 +252,15 @@ bool GestureRouter::touchDown(qint32 id, QPointF position, qint64 timestampMs, c
     }
     m_points.insert(id, position);
     m_lastTouch = position;
-    const Config::MultiTouch &settings = m_config.touchscreen;
-    if (!settings.enabled) {
+    if (!m_config.touchscreen.enabled) {
         return false;
     }
-    const int count = static_cast<int>(m_points.size());
-    const bool allowsSwipe = count == settings.swipeFingers
-        && (settings.horizontalSwipe != Config::HorizontalSwipe::Off || settings.verticalSwipe != Config::VerticalSwipe::Off);
-    const bool allowsPinch = count == settings.pinchFingers && settings.pinch != Config::PinchAction::Off;
+    const Allowed allowed = allowedFor(m_config.touchscreen, static_cast<int>(m_points.size()));
     if (m_touch.active) {
         if (m_touch.axis == Axis::Undecided) {
-            m_touch.allowsSwipe = allowsSwipe;
-            m_touch.allowsPinch = allowsPinch;
+            m_touch.allowsSwipe = allowed.swipe;
+            m_touch.allowsPinch = allowed.pinch;
+            m_touch.allowsWindowSwipe = allowed.windowSwipe;
             m_touch.pending = QPointF();
         }
         m_gestureIds.insert(id);
@@ -221,10 +268,10 @@ bool GestureRouter::touchDown(qint32 id, QPointF position, qint64 timestampMs, c
         m_touch.startSpread = spread();
         return true;
     }
-    if (!allowsSwipe && !allowsPinch) {
+    if (!allowed.swipe && !allowed.pinch && !allowed.windowSwipe) {
         return false;
     }
-    beginGesture(m_touch, GestureDevice::Touchscreen, output, allowsSwipe, allowsPinch);
+    beginGesture(m_touch, GestureDevice::Touchscreen, output, allowed);
     m_gestureIds.insert(id);
     m_lastCentroid = centroid();
     m_touch.startSpread = spread();

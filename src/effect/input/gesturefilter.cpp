@@ -70,6 +70,7 @@ bool GestureFilter::pinchGestureCancelled(KWin::PointerPinchGestureCancelEvent *
 
 bool GestureFilter::touchDown(KWin::TouchDownEvent *event)
 {
+    m_downIds.insert(event->id);
     const bool consumed = m_handlers.touchDown(event->id, event->pos, millisecondsOf(event->time));
     if (consumed && !m_touchGestureTaken) {
         m_touchGestureTaken = true;
@@ -88,7 +89,8 @@ bool GestureFilter::touchMotion(KWin::TouchMotionEvent *event)
 bool GestureFilter::touchUp(KWin::TouchUpEvent *event)
 {
     const bool consumed = m_handlers.touchUp(event->id);
-    if (!consumed) {
+    m_downIds.remove(event->id);
+    if (m_downIds.isEmpty()) {
         m_touchGestureTaken = false;
     }
     return consumed;
@@ -100,6 +102,7 @@ bool GestureFilter::touchCancel()
         return false;
     }
     m_touchGestureTaken = false;
+    m_downIds.clear();
     m_handlers.touchCancel();
     return false;
 }

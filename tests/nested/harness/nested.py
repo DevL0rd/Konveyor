@@ -105,9 +105,9 @@ def run_runner(runner, timeout, extra_config="", output_count=1):
     return run_script(script, timeout, extra_config, output_count=output_count)
 
 
-def run_script(script, timeout, extra_config="", xwayland=False, output_count=1):
+def run_script(script, timeout, extra_config="", xwayland=False, output_count=1, extra_kwinrc=""):
     config = (REPO / "data" / "default-config.kdl").read_text() + extra_config
-    session = NestedSession(config_kdl=config, xwayland=xwayland, output_count=output_count)
+    session = NestedSession(config_kdl=config, extra_kwinrc=extra_kwinrc, xwayland=xwayland, output_count=output_count)
     report = session.root / "report.txt"
     session.start(f'export KONVEYOR_REPORT="{report}"\nexport KONVEYOR_KWIN_LOG="{session.log_path}"\n' + script)
     try:

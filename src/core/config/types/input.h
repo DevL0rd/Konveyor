@@ -53,6 +53,18 @@ enum class PinchAction
     Off
 };
 
+enum class WindowHorizontalSwipe
+{
+    ConsumeOrExpel,
+    Off
+};
+
+enum class WindowVerticalSwipe
+{
+    MoveToWorkspace,
+    Off
+};
+
 struct MultiTouch
 {
     bool enabled = true;
@@ -62,6 +74,9 @@ struct MultiTouch
     HorizontalSwipe horizontalSwipe = HorizontalSwipe::ScrollView;
     VerticalSwipe verticalSwipe = VerticalSwipe::SwitchWorkspace;
     PinchAction pinch = PinchAction::ToggleOverview;
+    int windowSwipeFingers = 4;
+    WindowHorizontalSwipe windowHorizontalSwipe = WindowHorizontalSwipe::ConsumeOrExpel;
+    WindowVerticalSwipe windowVerticalSwipe = WindowVerticalSwipe::MoveToWorkspace;
     bool longPressToMove = true;
     int longPressMs = 500;
     bool operator==(const MultiTouch &) const = default;

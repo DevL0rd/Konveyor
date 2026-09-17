@@ -51,6 +51,7 @@ void KonveyorEffect::startDBusService()
         [this](const QString &path) { return d->config.load(path); },
         [this] { return readEngine().isOverviewOpen(); },
         [this] { return lastBindJson(); },
+        [this] { return QJsonDocument(Ipc::gesturesToJson(d->gestures.config())); },
     });
     d->dbus->registerService();
 }
