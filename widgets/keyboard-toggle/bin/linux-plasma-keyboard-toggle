@@ -7,9 +7,10 @@ set -euo pipefail
 readonly SERVICE=org.kde.KWin
 readonly OBJECT=/VirtualKeyboard
 readonly INTERFACE=org.kde.kwin.VirtualKeyboard
-readonly STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/linux-plasma-keyboard-toggle"
+readonly RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}/linux-plasma-keyboard-toggle"
+readonly STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/linux-plasma-keyboard-toggle"
 readonly SAVED_MODE="$STATE_DIR/mode"
-readonly WATCHER_PID="$STATE_DIR/watcher.pid"
+readonly WATCHER_PID="$RUNTIME_DIR/watcher.pid"
 
 property() {
     busctl --user get-property "$SERVICE" "$OBJECT" "$INTERFACE" "$1" | cut -d' ' -f2
@@ -49,7 +50,7 @@ start_watcher() {
 }
 
 open_keyboard() {
-    mkdir -p "$STATE_DIR"
+    mkdir -p "$STATE_DIR" "$RUNTIME_DIR"
     local mode
     mode=$(property mode)
     [[ -f $SAVED_MODE ]] || printf '%s\n' "$mode" >"$SAVED_MODE"
