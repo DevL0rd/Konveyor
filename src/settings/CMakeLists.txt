@@ -147,7 +147,9 @@ ecm_target_qml_sources(konveyor_settings PATH previews SOURCES
     qml/previews/MotionOverview.qml
     qml/previews/NewColumnDiagram.qml
     qml/previews/PaintFrame.qml
+    qml/previews/PlacementDiagram.qml
     qml/previews/PlasmaPreview.qml
+    qml/previews/ProfileGlance.qml
     qml/previews/StripPreview.qml
     qml/previews/TabIndicatorPreview.qml
     qml/previews/TitlebarDragDemo.qml

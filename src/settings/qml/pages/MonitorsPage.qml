@@ -78,14 +78,15 @@ SettingsPage {
                 required property var modelData
                 required property int index
                 Layout.fillWidth: true
-                iconName: "video-display"
+                iconName: MonitorSummary.isPortrait(modelData.node) ? "phone" : "video-display"
                 heading: MonitorSummary.nameOf(modelData)
                 subtitle: MonitorSummary.describeProfile(modelData.node)
                 detail: {
                     const used = page.usedBy(heading);
                     const count = MonitorSummary.overrideCount(modelData.node);
+                    const layout = MonitorSummary.describeLayout(modelData.node);
                     return (used.length ? "Used by " + used.join(" and ") : "Not used by a connected monitor")
-                        + " · " + (count === 1 ? "1 layout change" : count + " layout changes");
+                        + " · " + (layout.length ? Kdl.titleCase(layout) : (count === 1 ? "1 layout change" : count + " layout changes"));
                 }
                 active: page.usedBy(heading).length > 0
                 canMoveUp: index > 0

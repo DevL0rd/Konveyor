@@ -58,6 +58,10 @@ SettingsPage {
             Layout.margins: Kirigami.Units.largeSpacing
             spacing: Kirigami.Units.largeSpacing
 
+            ProfileGlance {
+                node: page.profile
+            }
+
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
@@ -65,6 +69,14 @@ SettingsPage {
                 Kirigami.Heading {
                     level: 3
                     text: page.profileName
+                }
+
+                QQC2.Label {
+                    readonly property string layout: page.exists ? MonitorSummary.describeLayout(page.profile) : ""
+                    visible: layout.length > 0
+                    text: Kdl.titleCase(layout)
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
                 }
 
                 QQC2.Label {

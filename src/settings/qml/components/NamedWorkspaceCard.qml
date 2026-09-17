@@ -134,7 +134,7 @@ ColumnLayout {
         Layout.fillWidth: true
         sourceComponent: LayoutOverrides {
             scopePath: card.path + "/layout"
-            excluded: ["empty-workspace-above-first", "insert-hint"]
+            excluded: ["empty-workspace-above-first", "insert-hint", "group-app-windows", "max-rows-per-column", "new-window-placement"]
         }
     }
 }

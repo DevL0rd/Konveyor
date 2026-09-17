@@ -21,11 +21,13 @@ function describeMatch(match) {
         const parsed = Kdl.parseTextMatch(props.name);
         parts.push(parsed.mode === "is" ? "named " + parsed.text : "with a name matching a pattern");
     }
+    if (props["aspect-ratio-below"] !== undefined && Number(props["aspect-ratio-below"]) <= 1 && props["aspect-ratio-above"] === undefined) {
+        parts.push("portrait (taller than wide)");
+    } else if (props["aspect-ratio-below"] !== undefined) {
+        parts.push("narrower than " + ratioLabel(props["aspect-ratio-below"]));
+    }
     if (props["aspect-ratio-above"] !== undefined) {
         parts.push("wider than " + ratioLabel(props["aspect-ratio-above"]));
-    }
-    if (props["aspect-ratio-below"] !== undefined) {
-        parts.push("narrower than " + ratioLabel(props["aspect-ratio-below"]));
     }
     if (props["width-above"] !== undefined) {
         parts.push("more than " + Math.round(props["width-above"]) + " px wide");
@@ -48,6 +50,38 @@ function describeProfile(profile) {
         return "Every monitor that no earlier profile claims";
     }
     return Kdl.titleCase(matches.map(describeMatch).join(" or "));
+}
+
+function layoutChild(node, name) {
+    const layout = (node.children || []).find(child => child.name === "layout");
+    return layout ? (layout.children || []).find(child => child.name === name) : undefined;
+}
+
+function isPortrait(node) {
+    return (node.children || []).some(child => child.name === "match" && child.props
+        && child.props["aspect-ratio-below"] !== undefined && Number(child.props["aspect-ratio-below"]) <= 1);
+}
+
+function columnWidth(node) {
+    const width = layoutChild(node, "default-column-width");
+    const proportion = width ? (width.children || []).find(child => child.name === "proportion") : undefined;
+    return proportion ? Number(proportion.args[0]) : undefined;
+}
+
+function describeLayout(node) {
+    const parts = [];
+    const width = columnWidth(node);
+    if (width !== undefined) {
+        parts.push(width >= 1 ? "full-width columns" : Math.round(width * 100) + "% columns");
+    }
+    const placement = layoutChild(node, "new-window-placement");
+    const rows = layoutChild(node, "max-rows-per-column");
+    if (placement && placement.args[0] === "stack") {
+        parts.push(rows ? "stacks " + rows.args[0] + " per column" : "stacks new windows");
+    } else if (placement) {
+        parts.push("a column per window");
+    }
+    return parts.join(", ");
 }
 
 function overrideCount(node) {

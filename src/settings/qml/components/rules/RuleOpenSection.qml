@@ -151,6 +151,23 @@ ColumnLayout {
         }
     }
 
+    SettingRow {
+        label: "New windows"
+        description: "Whether it gets its own column or stacks into the focused column"
+        iconName: "view-split-left-right"
+
+        Segmented {
+            readonly property var placement: section.argOf("new-window-placement")
+            currentValue: placement === undefined ? "default" : placement
+            options: [
+                { value: "default", label: "Default" },
+                { value: "column", label: "Own column" },
+                { value: "stack", label: "Stack" }
+            ]
+            onChosen: value => value === "default" ? SettingsStore.remove(section.rulePath + "/new-window-placement") : SettingsStore.setValue(section.rulePath + "/new-window-placement", [value])
+        }
+    }
+
     RuleTriStateRow {
         path: section.rulePath + "/float-child-windows"
         label: "Float its extra windows"

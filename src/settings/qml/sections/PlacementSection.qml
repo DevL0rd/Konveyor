@@ -45,8 +45,28 @@ ColumnLayout {
 
         ScopedRow {
             scope: root
+            key: "new-window-placement"
+            inheritedSummary: root.values["new-window-placement"] === "stack" ? "stack in the focused column" : "own column"
+            wideControl: true
+            label: "Give each new window"
+            description: "Stacking fills the focused column up to the most stacked windows per column, then opens a new column. Portrait monitors stack two by default. Window rules can choose per app."
+            iconName: "view-split-left-right"
+
+            ChoiceCards {
+                width: parent.width
+                currentValue: root.values["new-window-placement"]
+                cardHeight: Kirigami.Units.gridUnit * 7
+                onChosen: value => LayoutKeys.write(SettingsStore, root.scopePath, "new-window-placement", value)
+                options: [
+                    { value: "column", title: "Its own column", description: "Every window gets a column", preview: placeColumnDiagram },
+                    { value: "stack", title: "A row in the focused column", description: "Columns fill up before a new one opens", preview: placeStackDiagram }
+                ]
+            }
+        }
+
+        ScopedRow {
+            scope: root
             key: "group-app-windows"
-            visible: !root.overrideMode
             inheritedSummary: ({ off: "off", beside: "beside", stack: "stacked" })[root.values["group-app-windows"]] || ""
             wideControl: true
             label: "Windows from an app that's already open"
@@ -69,9 +89,8 @@ ColumnLayout {
         ScopedRow {
             scope: root
             key: "max-rows-per-column"
-            visible: !root.overrideMode
             label: "Most stacked windows per column"
-            description: "When an app's columns are full, a new column opens and its windows are spread evenly, with any extra on the left."
+            description: "When a column is full, a new column opens and the windows are spread evenly, with any extra on the left."
             iconName: "view-split-top-bottom"
 
             ValueSlider {
@@ -213,6 +232,24 @@ ColumnLayout {
         id: rightDiagram
         NewColumnDiagram {
             side: "right"
+            running: parent && parent.selected === true
+        }
+    }
+
+    Component {
+        id: placeColumnDiagram
+        PlacementDiagram {
+            stack: false
+            rows: Math.max(1, root.values["max-rows-per-column"] || 2)
+            running: parent && parent.selected === true
+        }
+    }
+
+    Component {
+        id: placeStackDiagram
+        PlacementDiagram {
+            stack: true
+            rows: Math.max(1, root.values["max-rows-per-column"] || 2)
             running: parent && parent.selected === true
         }
     }

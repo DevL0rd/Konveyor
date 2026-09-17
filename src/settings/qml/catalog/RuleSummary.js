@@ -119,6 +119,10 @@ function effects(rule) {
     if (group !== undefined) {
         list.push(({ off: "doesn't group with its app", beside: "opens beside its app", stack: "stacks with its app" })[group]);
     }
+    const placement = firstArg(child(rule, "new-window-placement"));
+    if (placement !== undefined) {
+        list.push(placement === "stack" ? "stacks into the focused column" : "opens in its own column");
+    }
     const maxRows = firstArg(child(rule, "max-rows-per-column"));
     if (maxRows !== undefined) {
         list.push("up to " + maxRows + " stacked per column");
