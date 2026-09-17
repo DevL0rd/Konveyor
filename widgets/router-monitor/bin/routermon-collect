@@ -68,18 +68,82 @@ def ssh_base(cfg):
     ]
 
 
-def fetch_remote(cfg, do_ping=True, do_slow=True, do_static=False):
+SESSION_DONE = b"__LRM_DONE__"
+SESSION_TIMEOUT = 20
+_session = {"proc": None, "cmd": None}
+
+
+def _close_session():
+    proc = _session["proc"]
+    _session["proc"] = None
+    if proc is not None:
+        try:
+            proc.kill()
+            proc.wait(timeout=2)
+        except Exception:
+            pass
+
+
+def _session_for(cfg):
     import subprocess
-    # args: ping_target, do_ping, do_slow, do_static
-    cmd = ssh_base(cfg) + [
-        f"sh {cfg.get('remote_script', '/jffs/lrm-collect.sh')} "
-        f"{cfg.get('ping_target', '8.8.8.8')} {1 if do_ping else 0} "
-        f"{1 if do_slow else 0} {1 if do_static else 0}"
-    ]
-    out = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
-    if out.returncode != 0 or "END=1" not in out.stdout:
-        raise RuntimeError(f"remote collect failed rc={out.returncode}: {out.stderr.strip()[:200]}")
-    return out.stdout
+    script = cfg.get("remote_script", "/jffs/lrm-collect.sh")
+    loop = (f"while read -r a b c d; do sh {script} \"$a\" \"$b\" \"$c\" \"$d\" </dev/null 2>/dev/null; "
+            f"echo {SESSION_DONE.decode()}; done")
+    cmd = ssh_base(cfg) + [loop]
+    proc = _session["proc"]
+    if proc is not None and (proc.poll() is not None or _session["cmd"] != cmd):
+        _close_session()
+        proc = None
+    if proc is None:
+        if not _session.get("cleanup"):
+            import atexit
+            atexit.register(_close_session)
+            _session["cleanup"] = True
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        _session["proc"], _session["cmd"] = proc, cmd
+    return proc
+
+
+def _session_request(cfg, args):
+    import select
+    proc = _session_for(cfg)
+    try:
+        proc.stdin.write(args.encode() + b"\n")
+        proc.stdin.flush()
+        fd = proc.stdout.fileno()
+        deadline = time.monotonic() + SESSION_TIMEOUT
+        chunks = []
+        tail = b""
+        marker = SESSION_DONE + b"\n"
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([fd], [], [], remaining)[0]:
+                raise RuntimeError("remote collect timed out")
+            data = os.read(fd, 65536)
+            if not data:
+                raise RuntimeError(f"remote session ended rc={proc.poll()}")
+            chunks.append(data)
+            tail = (tail + data)[-(len(marker) + 1):]
+            if tail.endswith(marker):
+                break
+    except (OSError, ValueError, RuntimeError):
+        _close_session()
+        raise
+    out = b"".join(chunks)[:-len(marker)]
+    return out.decode(errors="replace")
+
+
+def fetch_remote(cfg, do_ping=True, do_slow=True, do_static=False):
+    args = (f"{cfg.get('ping_target', '8.8.8.8')} {1 if do_ping else 0} "
+            f"{1 if do_slow else 0} {1 if do_static else 0}")
+    try:
+        out = _session_request(cfg, args)
+    except (OSError, ValueError, RuntimeError) as e:
+        raise RuntimeError(f"remote collect failed: {e}")
+    if "END=1" not in out:
+        _close_session()
+        raise RuntimeError("remote collect failed: incomplete output")
+    return out
 
 
 def parse_remote(raw):
@@ -462,7 +526,7 @@ def _merge_static(snap, sc, cfg):
 def _atomic_write(path, obj):
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
-        json.dump(obj, f)
+        f.write(json.dumps(obj))
     os.replace(tmp, path)
 
 

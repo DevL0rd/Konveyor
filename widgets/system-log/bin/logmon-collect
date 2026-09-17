@@ -79,7 +79,7 @@ def write_cache(lines, alive=True):
     payload = {"ts": time.time(), "alive": alive, "lines": lines}
     tmp = CACHE + ".tmp"
     with open(tmp, "w") as f:
-        json.dump(payload, f, separators=(",", ":"))
+        f.write(json.dumps(payload, separators=(",", ":")))
     os.replace(tmp, CACHE)
 
 
@@ -103,15 +103,17 @@ def serve():
                             text=True, bufsize=1)
 
     ring = deque(maxlen=MAX_LINES)
-    state = {"dirty": True, "dead": False}
+    state = {"dead": False}
+    changed = threading.Event()
 
     def reader():
         for raw in proc.stdout:
             rec = parse(raw)
             if rec is not None:
                 ring.append(rec)
-                state["dirty"] = True
+                changed.set()
         state["dead"] = True
+        changed.set()
 
     t = threading.Thread(target=reader, daemon=True)
     t.start()
@@ -125,20 +127,19 @@ def serve():
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
-    last = 0.0
-    write_cache(list(ring))            # create the file straight away
+    write_cache(list(ring))
+    last = time.monotonic()
     while True:
+        if changed.wait(max(0.0, HEARTBEAT - (time.monotonic() - last))):
+            since = time.monotonic() - last
+            if since < FLUSH_INTERVAL:
+                time.sleep(FLUSH_INTERVAL - since)
+            changed.clear()
         if state["dead"]:
             write_cache(list(ring), alive=False)
-            return 1                   # let systemd restart us
-        now = time.monotonic()
-        if state["dirty"] and (now - last) >= FLUSH_INTERVAL:
-            write_cache(list(ring))
-            last, state["dirty"] = now, False
-        elif (now - last) >= HEARTBEAT:
-            write_cache(list(ring))    # heartbeat: keep `ts` fresh for liveness
-            last = now
-        time.sleep(0.1)
+            return 1
+        write_cache(list(ring))
+        last = time.monotonic()
 
 
 def main():

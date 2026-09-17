@@ -20,7 +20,15 @@ Modes:
   procmon-collect --snapshot   print the cached snapshot (debug / fallback)
   procmon-collect --once       one sample to stdout (debug)
 """
-import os, sys, json, time, glob, socket
+import os, sys, json, time, glob, socket, resource
+from ctypes import byref, c_uint, c_ulonglong
+
+try:
+    _soft, _hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if _soft < _hard:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (_hard, _hard))
+except (ValueError, OSError):
+    pass
 
 APP = "Linux-Process-Mon"
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
@@ -129,13 +137,18 @@ def build_icon_map():
     return m
 
 
-def resolve_icon(comm):
+def refresh_icon_map(now):
     global _icon_map, _icon_map_when
-    now = time.time()
     if _icon_map is None or now - _icon_map_when > 300:     # rescan occasionally
-        _icon_map = build_icon_map(); _icon_map_when = now; _icon_resolved.clear()
-    if comm in _icon_resolved:
-        return _icon_resolved[comm]
+        _icon_map = build_icon_map(); _icon_map_when = now; _icon_resolved.clear(); _row_cache.clear()
+
+
+def resolve_icon(comm):
+    icon = _icon_resolved.get(comm)
+    if icon is not None:
+        return icon
+    if _icon_map is None:
+        refresh_icon_map(time.time())
     c = comm.lower()
     icon = ICON_ALIASES.get(c) or ("" if c in GENERIC_COMMS else _icon_map.get(c, "")) or ""
     _icon_resolved[comm] = icon
@@ -154,29 +167,46 @@ _O_RDONLY = os.O_RDONLY
 _io_denied = {}
 _stat_cache = {}
 _io_cache = {}
+_stat_fds = {}
+_io_fds = {}
 
 
 def read_procs():
-    """pid -> (comm, ppid, cpu ticks, rss bytes, threads, starttime)."""
+    """pid -> (comm, ppid, cpu ticks, rss bytes, threads, starttime); every stat
+    file stays open between cycles and is re-read with pread, which skips the
+    /proc path lookup that dominates open+read+close."""
     out = {}
     parsed = {}
     previous = _stat_cache
-    open_file, read_file, close_file = os.open, os.read, os.close
+    changed = set()
+    fds = _stat_fds
+    fd_get = fds.get
+    cache_get = previous.get
+    pread, open_file, close_file = os.pread, os.open, os.close
     for name in os.listdir("/proc"):
         if not name.isdigit():
             continue
-        try:
-            fd = open_file("/proc/" + name + "/stat", _O_RDONLY)
-        except OSError:
-            continue
-        try:
-            line = read_file(fd, 1024)
-        except OSError:
-            continue
-        finally:
-            close_file(fd)
         pid = int(name)
-        cached = previous.get(pid)
+        cached = cache_get(pid)
+        fd = fd_get(pid)
+        line = None
+        if fd is not None:
+            try:
+                line = pread(fd, 1024, 0)
+            except OSError:
+                close_file(fd)
+                del fds[pid]
+        if line is None:
+            try:
+                fd = open_file("/proc/" + name + "/stat", _O_RDONLY)
+            except OSError:
+                continue
+            try:
+                line = pread(fd, 1024, 0)
+            except OSError:
+                close_file(fd)
+                continue
+            fds[pid] = fd
         if cached is not None and cached[0] == line:
             parsed[pid] = cached
             out[pid] = cached[1]
@@ -189,9 +219,11 @@ def read_procs():
                   int(rest[11]) + int(rest[12]), int(rest[21]) * PAGE, int(rest[17]), rest[19])
         parsed[pid] = (line, values)
         out[pid] = values
+        changed.add(pid)
+    _close_gone(fds, out)
     _stat_cache.clear()
     _stat_cache.update(parsed)
-    return out
+    return out, changed
 
 
 def read_io(procs):
@@ -199,29 +231,47 @@ def read_io(procs):
     once denied, until the pid is reused)."""
     out = {}
     denied = _io_denied
+    denied_get = denied.get
     still = {}
     previous = _io_cache
+    cache_get = previous.get
     parsed = {}
-    open_file, read_file, close_file = os.open, os.read, os.close
+    changed = set()
+    fds = _io_fds
+    fd_get = fds.get
+    pread, open_file, close_file = os.pread, os.open, os.close
     for pid, p in procs.items():
         start = p[5]
-        if denied.get(pid) == start:
+        if denied_get(pid) == start:
             still[pid] = start
             continue
-        try:
-            fd = open_file("/proc/" + str(pid) + "/io", _O_RDONLY)
-        except PermissionError:
-            still[pid] = start
-            continue
-        except OSError:
-            continue
-        try:
-            data = read_file(fd, 512)
-        except OSError:
-            continue
-        finally:
-            close_file(fd)
-        cached = previous.get(pid)
+        fd = fd_get(pid)
+        data = None
+        if fd is not None:
+            try:
+                data = pread(fd, 512, 0)
+            except OSError:
+                close_file(fd)
+                del fds[pid]
+        if data is None:
+            try:
+                fd = open_file("/proc/" + str(pid) + "/io", _O_RDONLY)
+            except PermissionError:
+                still[pid] = start
+                continue
+            except OSError:
+                continue
+            try:
+                data = pread(fd, 512, 0)
+            except PermissionError:
+                close_file(fd)
+                still[pid] = start
+                continue
+            except OSError:
+                close_file(fd)
+                continue
+            fds[pid] = fd
+        cached = cache_get(pid)
         if cached is not None and cached[0] == data:
             parsed[pid] = cached
             out[pid] = cached[1]
@@ -233,11 +283,18 @@ def read_io(procs):
         total = int(data[rb + 11:data.find(b"\n", rb)]) + int(data[wb + 12:data.find(b"\n", wb)])
         parsed[pid] = (data, total)
         out[pid] = total
+        changed.add(pid)
+    _close_gone(fds, out)
     denied.clear()
     denied.update(still)
     _io_cache.clear()
     _io_cache.update(parsed)
-    return out
+    return out, changed
+
+
+def _close_gone(fds, alive):
+    for pid in [pid for pid in fds if pid not in alive]:
+        os.close(fds.pop(pid))
 
 
 # current GPU poll interval (seconds); cmd_serve keeps this fresh. Used only to
@@ -264,12 +321,16 @@ def vram_total():
     return _nvml["vram_total"]
 
 
+_NVML_SAMPLES = 64
+_NVML_PROCESSES = 64
+_nvml_buffers = {}
+
+
 def gpu_usage():
-    """pid -> {gpu, enc, dec (%), vram (bytes)} via NVML -- no fork, ~4ms. NVIDIA's
-    per-process utilization is sample-based (there is no instantaneous figure), so
-    each poll reports the samples in the look-back window ending now -- newest per
-    pid. No cross-poll state: a process that didn't touch the GPU in that window
-    reads 0, like the /proc metrics. Empty when no NVIDIA GPU / NVML present."""
+    """pid -> {gpu, enc, dec (%), vram (bytes)} straight from the NVML C API with
+    reused buffers. NVIDIA's per-process utilization is sample-based, so each poll
+    reports the newest sample per pid in the look-back window ending now. Empty
+    when no NVIDIA GPU / NVML present."""
     try:
         import pynvml as N
     except Exception:
@@ -280,24 +341,45 @@ def gpu_usage():
             _nvml["h"] = N.nvmlDeviceGetHandleByIndex(0)
             _nvml["init"] = True
         h = _nvml["h"]
-        # cover the gap since the previous poll (+ margin for NVML's sampling jitter)
-        # so nothing active is missed; timeStamp is unix microseconds.
         since = int((time.time() - max(1.0, _poll_interval + 0.5)) * 1e6)
-        latest = {}                                      # pid -> (ts, sm, enc, dec)
-        try:
-            for su in N.nvmlDeviceGetProcessUtilization(h, since):
+        latest = {}
+        samples = _nvml_buffers.get("samples")
+        if samples is None:
+            samples = _nvml_buffers["samples"] = (N.c_nvmlProcessUtilizationSample_t * _NVML_SAMPLES)()
+        fn = N._nvmlGetFunctionPointer("nvmlDeviceGetProcessUtilization")
+        while True:
+            count = c_uint(len(samples))
+            ret = fn(h, samples, byref(count), c_ulonglong(since))
+            if ret != N.NVML_ERROR_INSUFFICIENT_SIZE:
+                break
+            samples = _nvml_buffers["samples"] = (N.c_nvmlProcessUtilizationSample_t * (count.value * 2 + 8))()
+        if ret == N.NVML_SUCCESS:
+            for i in range(count.value):
+                su = samples[i]
                 cur = latest.get(su.pid)
                 if cur is None or su.timeStamp > cur[0]:
                     latest[su.pid] = (su.timeStamp, su.smUtil, su.encUtil, su.decUtil)
-        except N.NVMLError:
-            pass                                          # no samples in window -> all idle
         res = {}
-        for p in (N.nvmlDeviceGetComputeRunningProcesses(h)
-                  + N.nvmlDeviceGetGraphicsRunningProcesses(h)):
-            s = latest.get(p.pid)
-            res[p.pid] = {"gpu": s[1] if s else 0, "enc": s[2] if s else 0,
-                          "dec": s[3] if s else 0, "vram": (p.usedGpuMemory or 0)}
-        for pid, s in latest.items():                    # active but no VRAM-residency entry
+        missing = N.NVML_VALUE_NOT_AVAILABLE_ulonglong.value
+        for name in ("nvmlDeviceGetComputeRunningProcesses_v3", "nvmlDeviceGetGraphicsRunningProcesses_v3"):
+            procs = _nvml_buffers.get(name)
+            if procs is None:
+                procs = _nvml_buffers[name] = (N.c_nvmlProcessInfo_v3_t * _NVML_PROCESSES)()
+            fn = N._nvmlGetFunctionPointer(name)
+            while True:
+                count = c_uint(len(procs))
+                ret = fn(h, byref(count), procs)
+                if ret != N.NVML_ERROR_INSUFFICIENT_SIZE:
+                    break
+                procs = _nvml_buffers[name] = (N.c_nvmlProcessInfo_v3_t * (count.value * 2 + 8))()
+            N._nvmlCheckReturn(ret)
+            for i in range(count.value):
+                p = procs[i]
+                used = p.usedGpuMemory
+                s = latest.get(p.pid)
+                res[p.pid] = {"gpu": s[1] if s else 0, "enc": s[2] if s else 0,
+                              "dec": s[3] if s else 0, "vram": 0 if used == missing else used}
+        for pid, s in latest.items():
             if pid not in res:
                 res[pid] = {"gpu": s[1], "enc": s[2], "dec": s[3], "vram": 0}
         return res
@@ -444,14 +526,29 @@ def mangohud_frames(now):
 
 
 _prev = {"t": {}, "io": {}, "when": None}
+_row_cache = {}
 _KEYS = ("cpu", "ram", "threads", "gpu", "enc", "dec", "vram", "disk")
 _AKEYS = tuple("a" + key for key in _KEYS)
 
 
+def _base_row(pid, comm, ppid, own):
+    row = {"pid": pid, "ppid": ppid, "name": comm}
+    icon = resolve_icon(comm)
+    if icon:
+        row["icon"] = icon
+    for key, value in zip(_KEYS, own):
+        if value:
+            row[key] = value
+    if pid == 2 or ppid == 2:
+        row["kernel"] = True
+    return row
+
+
 def build():
     now = time.time()
-    procs = read_procs()
-    io = read_io(procs)
+    refresh_icon_map(now)
+    procs, stat_changed = read_procs()
+    io, io_changed = read_io(procs)
     gpu = gpu_usage()
     start_mangohud_logging()
     frames = mangohud_frames(now)
@@ -460,39 +557,47 @@ def build():
     pt, pio = _prev["t"], _prev["io"]
     cpu_scale = 100.0 / CLK / dt / NCPU if dt > 0 else 0.0
     disk_scale = 1.0 / dt if dt > 0 else 0.0
+    previous_rows = _row_cache
+    previous_get = previous_rows.get
+    gpu_get = gpu.get
+    frame_get = frames.get
+    cached_rows = {}
     ticks = {}
     totals = {}
     rows = {}
     kids = {}
-    icon_for = resolve_icon
+    kids_get = kids.get
     for pid, (comm, ppid, t, rss, threads, _start) in procs.items():
         ticks[pid] = t
-        prev_t = pt.get(pid)
-        cpu = round(max(0.0, (t - prev_t) * cpu_scale), 1) if prev_t is not None else 0.0
-        cur_io = io.get(pid)
-        prev_io = pio.get(pid)
-        disk = round(max(0.0, (cur_io - prev_io) * disk_scale)) if cur_io is not None and prev_io is not None else 0
-        g = gpu.get(pid)
-        own = [cpu, rss, threads, g["gpu"], g["enc"], g["dec"], g["vram"], disk] if g else [cpu, rss, threads, 0, 0, 0, 0, disk]
-        row = {"pid": pid, "ppid": ppid, "name": comm}
-        icon = icon_for(comm)
-        if icon:
-            row["icon"] = icon
-        for key, value in zip(_KEYS, own):
-            if value:
-                row[key] = value
-        if pid == 2 or ppid == 2:
-            row["kernel"] = True
-        frame = frames.get(pid)
-        if frame:
-            row.update(frame)
+        cached = previous_get(pid)
+        g = gpu_get(pid) if gpu else None
+        frame = frame_get(pid) if frames else None
+        if cached is not None and g is None and frame is None and pid not in stat_changed and pid not in io_changed:
+            cached_rows[pid] = cached
+            row = dict(cached[0])
+            own = cached[1][:]
+        else:
+            prev_t = pt.get(pid)
+            cpu = round(max(0.0, (t - prev_t) * cpu_scale), 1) if prev_t is not None else 0.0
+            cur_io = io.get(pid)
+            prev_io = pio.get(pid)
+            disk = round(max(0.0, (cur_io - prev_io) * disk_scale)) if cur_io is not None and prev_io is not None else 0
+            own = [cpu, rss, threads, g["gpu"], g["enc"], g["dec"], g["vram"], disk] if g else [cpu, rss, threads, 0, 0, 0, 0, disk]
+            base = _base_row(pid, comm, ppid, own)
+            if frame:
+                base.update(frame)
+            if g is None and frame is None and cpu == 0.0 and disk == 0:
+                cached_rows[pid] = (base, own[:])
+            row = dict(base)
         rows[pid] = row
         totals[pid] = own
-        children = kids.get(ppid)
+        children = kids_get(ppid)
         if children is None:
             kids[ppid] = [pid]
         else:
             children.append(pid)
+    previous_rows.clear()
+    previous_rows.update(cached_rows)
     aggregate(procs, kids, totals)
     for pid, row in rows.items():
         total = totals[pid]
@@ -566,7 +671,7 @@ def cmd_serve():
             except Exception as e:
                 sys.stderr.write(f"procmon-collect: {e}\n")
         else:
-            time.sleep(min(0.2, interval - elapsed))
+            time.sleep(interval - elapsed)
 
 
 def cmd_set_interval():
