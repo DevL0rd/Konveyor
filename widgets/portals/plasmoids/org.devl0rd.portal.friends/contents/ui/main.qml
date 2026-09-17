@@ -295,7 +295,7 @@ PlasmoidItem {
         if (k === "") return
         root.saving = true
         runner.connectSource("$HOME/.local/bin/portal-friends --set-key " + root.shq(k)
-            + " ; systemctl --user restart portal-friends.service")
+            + " ; systemctl --user restart konveyor-widgets.service")
         setupReloadTimer.restart()
     }
     Timer { id: setupReloadTimer; interval: 4000; onTriggered: root.read() }

@@ -4,3 +4,6 @@ extend-exclude = ["build/", "build-*/", "*.svg"]
 [default.extend-words]
 INVOKABLE = "INVOKABLE"
 asai = "asai"
+calculat = "calculat"
+conver = "conver"
+targetted = "targetted"
