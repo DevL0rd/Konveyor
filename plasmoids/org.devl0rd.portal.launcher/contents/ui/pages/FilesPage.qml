@@ -38,6 +38,29 @@ PopScroll {
         }
     }
 
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.largeSpacing
+        Kirigami.Heading {
+            level: 2
+            text: i18n("Files")
+            Layout.fillWidth: true
+        }
+        Segment {
+            text: i18n("Search files")
+            iconName: "search-symbolic"
+            onClicked: launcher.setQuery("f ")
+        }
+        Segment {
+            text: i18n("Open file manager")
+            iconName: "system-file-manager-symbolic"
+            onClicked: {
+                Qt.openUrlExternally(launcherData.homeUrl)
+                root.hide()
+            }
+        }
+    }
+
     SectionHeader {
         title: i18n("Places")
     }
@@ -55,10 +78,30 @@ PopScroll {
         title: i18n("Recent documents")
         trailing: documents.count > 0 ? documents.count + "" : ""
     }
-    PlasmaComponents.Label {
+    RowLayout {
         visible: documents.count === 0
-        text: i18n("Nothing opened recently")
-        opacity: 0.6
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.largeSpacing
+        Kirigami.Icon {
+            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+            Layout.preferredHeight: Layout.preferredWidth
+            source: "document-open-recent-symbolic"
+            color: launcher.ink
+            isMask: true
+            opacity: 0.35
+        }
+        ColumnLayout {
+            spacing: 0
+            PlasmaComponents.Label {
+                text: i18n("Nothing opened recently")
+                font.weight: Font.DemiBold
+                opacity: 0.8
+            }
+            PlasmaComponents.Label {
+                text: i18n("Files you open show up here. Type f and a name to search every file.")
+                opacity: 0.55
+            }
+        }
     }
     TileGrid {
         id: documents

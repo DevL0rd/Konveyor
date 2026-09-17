@@ -388,7 +388,7 @@ PopScroll {
             label: modelData.name
             game: modelData
             subtitle: playing.length > 0 ? i18np("%1 friend playing now", "%1 friends playing now", playing.length)
-                    : modelData.last > 0 ? i18n("Last played %1", Qt.formatDate(new Date(modelData.last * 1000), Qt.locale().dateFormat(Locale.ShortFormat))) : i18n("Not played yet")
+                    : modelData.last > 0 ? i18n("Played %1", launcherData.relativeTime(modelData.last)) : i18n("Not played yet")
             kind: i18n("Game")
             selected: GridView.isCurrentItem && grid.sectionActive
             actions: [
@@ -479,7 +479,7 @@ PopScroll {
                 iconSource: modelData.icon || "applications-games"
                 label: modelData.name
                 query: page.term
-                subtitle: playing.length > 0 ? i18np("%1 friend playing", "%1 friends playing", playing.length) : modelData.last > 0 ? i18n("Played %1", Qt.formatDate(new Date(modelData.last * 1000), Qt.locale().dateFormat(Locale.ShortFormat))) : modelData.appid ? i18n("Steam game") : i18n("Game")
+                subtitle: playing.length > 0 ? i18np("%1 friend playing", "%1 friends playing", playing.length) : modelData.last > 0 ? i18n("Played %1", launcherData.relativeTime(modelData.last)) : modelData.appid ? i18n("Steam game") : i18n("Game")
                 subtitleColor: playing.length > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
                 selected: GridView.isCurrentItem && grid.sectionActive
                 function activate() {

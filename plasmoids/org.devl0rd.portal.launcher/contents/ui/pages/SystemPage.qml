@@ -21,11 +21,53 @@ PopScroll {
         "shutdown": "system-shutdown-symbolic"
     })
     property string armed: ""
+    property string uptime: ""
+    property string kernel: ""
+
+    function readText(path, handler) {
+        const xhr = new XMLHttpRequest()
+        xhr.open("GET", "file://" + path)
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.responseText)
+                handler(xhr.responseText)
+        }
+        xhr.send()
+    }
+    function refreshSession() {
+        readText("/proc/uptime", text => {
+            const seconds = parseFloat(text.split(" ")[0])
+            const days = Math.floor(seconds / 86400)
+            const hours = Math.floor((seconds % 86400) / 3600)
+            const minutes = Math.floor((seconds % 3600) / 60)
+            page.uptime = days > 0 ? i18n("up %1 d %2 h", days, hours) : hours > 0 ? i18n("up %1 h %2 min", hours, minutes) : i18n("up %1 min", minutes)
+        })
+        readText("/proc/sys/kernel/osrelease", text => page.kernel = text.trim())
+    }
+    Component.onCompleted: refreshSession()
+    Connections {
+        target: launcher
+        function onShownChanged() { if (launcher.shown) page.refreshSession() }
+    }
 
     Timer {
         id: disarm
         interval: 3500
         onTriggered: page.armed = ""
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.largeSpacing
+        Kirigami.Heading {
+            level: 2
+            text: launcherData.user.fullName || launcherData.user.loginName
+        }
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            text: [launcherData.user.host, page.uptime, page.kernel].filter(part => part !== "").join(" · ")
+            opacity: 0.55
+            elide: Text.ElideRight
+        }
     }
 
     SectionHeader {
@@ -51,6 +93,7 @@ PopScroll {
             iconSize: grid.iconSize
             monochrome: true
             iconSource: isArmed ? "dialog-warning-symbolic" : (page.symbolic[actionId] || model.decoration)
+            dropTarget: isArmed
             label: isArmed ? i18n("Press again to %1", String(model.display).toLowerCase()) : model.display
             selected: GridView.isCurrentItem && grid.sectionActive
             function activate() {

@@ -1,5 +1,7 @@
 import QtQuick
+import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PlasmaComponents
 
 RowTile {
     id: row
@@ -36,6 +38,28 @@ RowTile {
     }
     function openMenu() {
         launcher.openMenu(launcher.friendEntries(friend), row)
+    }
+
+    PlasmaComponents.ToolButton {
+        visible: row.containsMouse || row.selected || hovered
+        icon.name: "dialog-messages"
+        display: PlasmaComponents.AbstractButton.IconOnly
+        text: i18n("Chat")
+        onClicked: row.activate()
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: text
+    }
+    PlasmaComponents.ToolButton {
+        visible: (row.containsMouse || row.selected || hovered) && !!row.friend.join && row.friend.ingame
+        icon.name: "media-playback-start"
+        display: PlasmaComponents.AbstractButton.IconOnly
+        text: i18n("Join game")
+        onClicked: {
+            Qt.openUrlExternally(row.friend.join)
+            root.hide()
+        }
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.text: text
     }
 
     onHovered: launcher.select(grid, index)

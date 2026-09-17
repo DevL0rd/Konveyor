@@ -1,4 +1,5 @@
 import QtQuick
+import QtCore
 import QtQuick.Dialogs
 import org.kde.plasma.plasmoid
 import org.kde.plasma.plasma5support as P5Support
@@ -26,6 +27,7 @@ Item {
     readonly property alias recentDocs: recentDocsModel
     readonly property alias places: placesModel
     readonly property alias user: kuser
+    readonly property url homeUrl: StandardPaths.writableLocation(StandardPaths.HomeLocation)
 
     property var games: []
     property var gameByDesktop: ({})
@@ -354,6 +356,23 @@ Item {
         return Object.keys(counts).sort((a, b) => counts[b] - counts[a])
     }
 
+    function relativeTime(seconds) {
+        if (!seconds)
+            return ""
+        const minutes = Math.max(0, (Date.now() / 1000 - seconds) / 60)
+        if (minutes < 60)
+            return i18n("just now")
+        if (minutes < 1440)
+            return i18np("%1 hour ago", "%1 hours ago", Math.round(minutes / 60))
+        const days = Math.round(minutes / 1440)
+        if (days === 1)
+            return i18n("yesterday")
+        if (days < 14)
+            return i18np("%1 day ago", "%1 days ago", days)
+        if (days < 60)
+            return i18np("%1 week ago", "%1 weeks ago", Math.round(days / 7))
+        return Qt.formatDate(new Date(seconds * 1000), Qt.locale().dateFormat(Locale.ShortFormat))
+    }
     function friendsFor(game) {
         return game && game.appid && friendsByAppid[game.appid] ? friendsByAppid[game.appid] : []
     }

@@ -23,6 +23,8 @@ Item {
     property color ringColor: "transparent"
     property var game: null
     property bool emphasize: false
+    readonly property bool containsMouse: mouse.containsMouse
+    default property alias extra: extraRow.data
     signal clicked()
     signal rightClicked()
     signal hovered()
@@ -34,6 +36,20 @@ Item {
         color: tile.selected ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
         border.width: tile.selected ? 1 : 0
         border.color: launcher.selectedLine
+    }
+
+    MouseArea {
+        id: mouse
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onEntered: tile.hovered()
+        onClicked: function(event) {
+            if (event.button === Qt.RightButton)
+                tile.rightClicked()
+            else
+                tile.clicked()
+        }
     }
 
     RowLayout {
@@ -105,19 +121,11 @@ Item {
             color: tile.trailingColor
             font: Kirigami.Theme.smallFont
         }
-    }
-
-    MouseArea {
-        id: mouse
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onEntered: tile.hovered()
-        onClicked: function(event) {
-            if (event.button === Qt.RightButton)
-                tile.rightClicked()
-            else
-                tile.clicked()
+        RowLayout {
+            id: extraRow
+            spacing: Kirigami.Units.smallSpacing
+            z: 2
         }
     }
+
 }

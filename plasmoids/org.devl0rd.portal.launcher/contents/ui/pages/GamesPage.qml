@@ -234,7 +234,7 @@ ColumnLayout {
                         }
                         PlasmaComponents.Label {
                             Layout.fillWidth: true
-                            text: row.modelData.last > 0 ? i18n("Last played %1", Qt.formatDate(new Date(row.modelData.last * 1000), Qt.locale().dateFormat(Locale.ShortFormat))) : i18n("Never played")
+                            text: row.modelData.last > 0 ? i18n("Played %1", launcherData.relativeTime(row.modelData.last)) : i18n("Not played yet")
                             font.pointSize: Kirigami.Theme.smallFont.pointSize
                             opacity: 0.55
                             elide: Text.ElideRight
@@ -256,8 +256,8 @@ ColumnLayout {
                         }
                     }
                     PlasmaComponents.Label {
-                        visible: row.modelData.appid !== ""
-                        text: i18n("Steam")
+                        visible: row.modelData.appid === ""
+                        text: i18n("Not on Steam")
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                         opacity: 0.4
                         Layout.rightMargin: Kirigami.Units.largeSpacing

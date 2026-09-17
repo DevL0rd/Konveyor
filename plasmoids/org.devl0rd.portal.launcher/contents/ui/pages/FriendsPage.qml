@@ -8,11 +8,50 @@ import ".."
 PopScroll {
     id: page
 
-    readonly property var sections: [inGame, online, offline]
+    readonly property var sections: [playingCards, inGame, online, offline]
+    property bool showAllOffline: false
     readonly property var inGameList: launcherData.friends.filter(friend => friend.ingame)
     readonly property var onlineList: launcherData.friends.filter(friend => !friend.ingame && friend.state > 0)
     readonly property var offlineList: launcherData.friends.filter(friend => !friend.ingame && !(friend.state > 0))
     readonly property int columnWidth: Kirigami.Units.gridUnit * 16
+
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.largeSpacing
+        Kirigami.Heading {
+            level: 2
+            text: i18n("Friends")
+        }
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            text: i18n("%1 in game · %2 online · %3 total", launcherData.friendsInGame, Math.max(0, launcherData.friendsOnline - launcherData.friendsInGame), launcherData.friends.length)
+            opacity: 0.55
+        }
+        Segment {
+            text: i18n("Open Steam friends")
+            iconName: "system-users-symbolic"
+            onClicked: {
+                Qt.openUrlExternally("steam://open/friends")
+                root.hide()
+            }
+        }
+    }
+
+    SectionHeader {
+        visible: playingCards.visible
+        title: i18n("Playing now")
+        trailing: launcherData.playingNow.length + ""
+    }
+    TileGrid {
+        id: playingCards
+        visible: launcherData.playingNow.length > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: implicitHeight
+        cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
+        cellHeight: Math.round(cellWidth * 0.4667)
+        model: launcherData.playingNow
+        delegate: PlayingNowCard {}
+    }
 
     PlasmaComponents.Label {
         visible: launcherData.friends.length === 0
@@ -58,10 +97,13 @@ PopScroll {
         visible: offline.count > 0
         title: i18n("Offline")
         trailing: offline.count + ""
+        actionText: offline.count > 10 ? (page.showAllOffline ? i18n("Show fewer") : i18n("Show all")) : ""
+        onActionClicked: page.showAllOffline = !page.showAllOffline
     }
     TileGrid {
         id: offline
         visible: count > 0
+        limit: page.showAllOffline ? -1 : 10
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / page.columnWidth)))
