@@ -306,7 +306,7 @@ Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the 
 | 3 fingers ←→ on the touchpad or touchscreen | Scroll the row |
 | 3 fingers ↑↓ on the touchpad or touchscreen | Switch workspace |
 | 4 fingers ←→ | Merge the window into the next column, or pop it out |
-| 4 fingers ↑↓ | Carry the window to the workspace above or below |
+| 4 fingers ↑↓ | Move the window up or down its column, then to the next workspace |
 | 4-finger pinch | Open or close KDE's Overview |
 | Hold a title bar on a touchscreen, then drag | Move the window |
 

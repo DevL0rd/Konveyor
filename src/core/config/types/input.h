@@ -61,7 +61,7 @@ enum class WindowHorizontalSwipe
 
 enum class WindowVerticalSwipe
 {
-    MoveToWorkspace,
+    MoveWindow,
     Off
 };
 
@@ -84,7 +84,7 @@ struct MultiTouch
     PinchAction pinch = PinchAction::ToggleOverview;
     int windowSwipeFingers = 4;
     WindowHorizontalSwipe windowHorizontalSwipe = WindowHorizontalSwipe::ConsumeOrExpel;
-    WindowVerticalSwipe windowVerticalSwipe = WindowVerticalSwipe::MoveToWorkspace;
+    WindowVerticalSwipe windowVerticalSwipe = WindowVerticalSwipe::MoveWindow;
     bool longPressToMove = true;
     int longPressMs = 500;
     TapAction threeFingerTap = TapAction::CycleWidth;

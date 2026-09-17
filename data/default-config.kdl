@@ -93,7 +93,7 @@ gestures {
         pinch "toggle-overview"
         window-swipe-fingers 4
         window-horizontal-swipe "consume-or-expel"
-        window-vertical-swipe "move-to-workspace"
+        window-vertical-swipe "move-window"
         three-finger-tap "cycle-width"
         four-finger-tap "kontrol-panel"
         five-finger-tap "off"
@@ -111,7 +111,7 @@ gestures {
         pinch "toggle-overview"
         window-swipe-fingers 4
         window-horizontal-swipe "consume-or-expel"
-        window-vertical-swipe "move-to-workspace"
+        window-vertical-swipe "move-window"
         long-press-to-move
         long-press-ms 500
         three-finger-tap "cycle-width"

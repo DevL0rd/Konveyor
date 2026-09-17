@@ -90,11 +90,22 @@ bool GestureRouter::decideAxis(Swipe &gesture, QPointF delta)
         gesture.axis = Axis::WindowHorizontal;
     } else if (gesture.allowsWindowSwipe && !horizontal && settings.windowVerticalSwipe != Config::WindowVerticalSwipe::Off) {
         gesture.axis = Axis::WindowVertical;
+        focusWindowUnderFingers(gesture);
     } else {
         gesture.axis = Axis::Ignored;
         return false;
     }
     return true;
+}
+
+void GestureRouter::focusWindowUnderFingers(const Swipe &gesture)
+{
+    if (gesture.device != GestureDevice::Touchscreen) {
+        return;
+    }
+    if (const std::optional<WindowId> window = m_engine.windowAt(centroid())) {
+        m_engine.perform(Config::Action {QStringLiteral("focus-window"), {}, {}}, window);
+    }
 }
 
 void GestureRouter::feedWindowSwipe(Swipe &gesture, double delta)
@@ -107,7 +118,7 @@ void GestureRouter::feedWindowSwipe(Swipe &gesture, double delta)
         gesture.travel -= forward ? step : -step;
         const QString name = horizontal
             ? (forward ? QStringLiteral("consume-or-expel-window-right") : QStringLiteral("consume-or-expel-window-left"))
-            : (forward ? QStringLiteral("move-window-to-workspace-down") : QStringLiteral("move-window-to-workspace-up"));
+            : (forward ? QStringLiteral("move-window-down-or-to-workspace-down") : QStringLiteral("move-window-up-or-to-workspace-up"));
         m_engine.perform(Config::Action {name, {}, {}});
     }
 }

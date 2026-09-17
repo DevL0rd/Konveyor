@@ -59,6 +59,31 @@ struct Rig
         }
     }
 
+    void fourFingerTouchSwipe(QPointF origin, QPointF delta, int steps)
+    {
+        for (qint32 id = 0; id < 4; ++id) {
+            router.touchDown(id, origin + QPointF((id - 1.5) * 40.0, 0.0), 0, Output);
+        }
+        for (int step = 1; step <= steps; ++step) {
+            for (qint32 id = 0; id < 4; ++id) {
+                router.touchMotion(id, origin + QPointF((id - 1.5) * 40.0, 0.0) + delta * step / steps, step * 16);
+            }
+        }
+        for (qint32 id = 0; id < 4; ++id) {
+            router.touchUp(id, 1000);
+        }
+        fixture.settle();
+    }
+
+    std::pair<Layout::WindowId, Layout::WindowId> twoRowColumn()
+    {
+        const Layout::WindowId top = fixture.add(QStringLiteral("a"));
+        const Layout::WindowId bottom = fixture.add(QStringLiteral("b"));
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        fixture.settle();
+        return {top, bottom};
+    }
+
     Fixture fixture;
     Layout::GestureRouter router;
     QHash<qint32, QPointF> positions;
@@ -183,23 +208,9 @@ private Q_SLOTS:
         Rig rig;
         const auto a = rig.fixture.add(QStringLiteral("a"));
         const auto b = rig.fixture.add(QStringLiteral("b"));
-        const auto swipe = [&rig](double dx) {
-            for (qint32 id = 0; id < 4; ++id) {
-                rig.router.touchDown(id, QPointF(1000.0 + id * 40.0, 600.0), 0, Output);
-            }
-            for (int step = 1; step <= 30; ++step) {
-                for (qint32 id = 0; id < 4; ++id) {
-                    rig.router.touchMotion(id, QPointF(1000.0 + id * 40.0 + dx * step / 30.0, 600.0), step * 16);
-                }
-            }
-            for (qint32 id = 0; id < 4; ++id) {
-                rig.router.touchUp(id, 1000);
-            }
-            rig.fixture.settle();
-        };
-        swipe(-400.0);
+        rig.fourFingerTouchSwipe(QPointF(1060.0, 600.0), QPointF(-400.0, 0.0), 30);
         QCOMPARE(rig.fixture.state(b).columnIndex, rig.fixture.state(a).columnIndex);
-        swipe(400.0);
+        rig.fourFingerTouchSwipe(QPointF(1060.0, 600.0), QPointF(400.0, 0.0), 30);
         QCOMPARE(rig.fixture.state(b).columnIndex, rig.fixture.state(a).columnIndex + 1);
     }
 
@@ -209,17 +220,53 @@ private Q_SLOTS:
         rig.fixture.add(QStringLiteral("a"));
         const auto b = rig.fixture.add(QStringLiteral("b"));
         const int start = rig.fixture.state(b).workspaceIndex;
-        for (qint32 id = 0; id < 4; ++id) {
-            rig.router.touchDown(id, QPointF(400.0 + id * 60.0, 700.0), 0, Output);
-        }
-        for (int step = 1; step <= 8; ++step) {
-            for (qint32 id = 0; id < 4; ++id) {
-                rig.router.touchMotion(id, QPointF(400.0 + id * 60.0, 700.0 + step * 50.0), step * 10);
-            }
-        }
-        rig.router.touchUp(0, 1000);
-        rig.fixture.advance(1);
+        rig.fourFingerTouchSwipe(rig.fixture.frame(b).center(), QPointF(0.0, 400.0), 8);
         QCOMPARE(rig.fixture.state(b).workspaceIndex, start + 1);
+        VERIFY_INVARIANTS(rig.fixture);
+    }
+
+    void touchpadFourFingerVerticalSwipeMovesThroughTheColumnFirst()
+    {
+        Rig rig;
+        const auto [a, b] = rig.twoRowColumn();
+        rig.fixture.perform(QStringLiteral("focus-window-up"));
+        rig.fixture.settle();
+        QCOMPARE(rig.fixture.focused(), std::optional(a));
+        QCOMPARE(rig.fixture.state(a).tileIndex, 0);
+        const int start = rig.fixture.state(a).workspaceIndex;
+        const auto swipeDown = [&rig] {
+            QVERIFY(rig.router.touchpadSwipeBegin(4, Output));
+            QVERIFY(rig.router.touchpadSwipeUpdate(QPointF(0.0, 30.0), 10));
+            QVERIFY(rig.router.touchpadSwipeUpdate(QPointF(0.0, 150.0), 20));
+            QVERIFY(rig.router.touchpadSwipeEnd());
+            rig.fixture.settle();
+        };
+        swipeDown();
+        QCOMPARE(rig.fixture.state(a).workspaceIndex, start);
+        QCOMPARE(rig.fixture.state(a).columnIndex, rig.fixture.state(b).columnIndex);
+        QCOMPARE(rig.fixture.state(a).tileIndex, 1);
+        QCOMPARE(rig.fixture.state(b).tileIndex, 0);
+        swipeDown();
+        QCOMPARE(rig.fixture.state(a).workspaceIndex, start + 1);
+        QCOMPARE(rig.fixture.state(b).workspaceIndex, start);
+        VERIFY_INVARIANTS(rig.fixture);
+    }
+
+    void touchscreenFourFingerVerticalSwipeMovesTheWindowUnderTheFingers()
+    {
+        Rig rig;
+        const auto [a, b] = rig.twoRowColumn();
+        QCOMPARE(rig.fixture.focused(), std::optional(b));
+        QCOMPARE(rig.fixture.state(a).tileIndex, 0);
+        const int start = rig.fixture.state(a).workspaceIndex;
+        rig.fourFingerTouchSwipe(rig.fixture.frame(a).center() - QPointF(0.0, 100.0), QPointF(0.0, 400.0), 20);
+        QCOMPARE(rig.fixture.state(a).workspaceIndex, start);
+        QCOMPARE(rig.fixture.state(a).columnIndex, rig.fixture.state(b).columnIndex);
+        QCOMPARE(rig.fixture.state(a).tileIndex, 1);
+        QCOMPARE(rig.fixture.state(b).tileIndex, 0);
+        rig.fourFingerTouchSwipe(rig.fixture.frame(a).center() - QPointF(0.0, 150.0), QPointF(0.0, 400.0), 20);
+        QCOMPARE(rig.fixture.state(a).workspaceIndex, start + 1);
+        QCOMPARE(rig.fixture.state(b).workspaceIndex, start);
         VERIFY_INVARIANTS(rig.fixture);
     }
 

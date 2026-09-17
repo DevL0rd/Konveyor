@@ -101,7 +101,7 @@ def gesture_entry(gesture):
         "swipe-vertical": ("Switch workspace", "swipe ↑↓"),
         "pinch": ("Open or close the overview", "pinch"),
         "window-swipe-horizontal": ("Merge the window into the next column, or pop it out", "swipe ←→"),
-        "window-swipe-vertical": ("Carry the window to the workspace above or below", "swipe ↑↓"),
+        "window-swipe-vertical": ("Move the window up or down, then to the next workspace", "swipe ↑↓"),
     }
     action, glyph = actions[motion]
     return {"action": f"{action} on the {device}", "keys": [f"{fingers} fingers {glyph}"], "gesture": gesture}

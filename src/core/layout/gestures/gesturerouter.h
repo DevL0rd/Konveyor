@@ -93,6 +93,7 @@ private:
     static Allowed allowedFor(const Config::MultiTouch &settings, int fingers);
     void beginGesture(Swipe &gesture, GestureDevice device, const QString &output, Allowed allowed);
     bool decideAxis(Swipe &gesture, QPointF delta);
+    void focusWindowUnderFingers(const Swipe &gesture);
     void feedWindowSwipe(Swipe &gesture, double delta);
     void feedTranslation(Swipe &gesture, QPointF delta, qint64 timestampMs);
     void feedPinch(Swipe &gesture, double scale);

@@ -76,8 +76,7 @@ QVariantMap multiTouchValue(const Config::MultiTouch &touch)
             touch.windowHorizontalSwipe == Config::WindowHorizontalSwipe::ConsumeOrExpel ? QStringLiteral("consume-or-expel")
                                                                                          : QStringLiteral("off")},
         {QStringLiteral("window-vertical-swipe"),
-            touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveToWorkspace ? QStringLiteral("move-to-workspace")
-                                                                                      : QStringLiteral("off")},
+            touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveWindow ? QStringLiteral("move-window") : QStringLiteral("off")},
         {QStringLiteral("long-press-to-move"), touch.longPressToMove},
         {QStringLiteral("long-press-ms"), touch.longPressMs},
         {QStringLiteral("three-finger-tap"), tapValue(touch.threeFingerTap)},

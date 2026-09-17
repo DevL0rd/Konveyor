@@ -97,8 +97,9 @@ void decodeMultiTouch(const Kdl::Node &node, MultiTouch &touch, bool isTouchscre
             : WindowHorizontalSwipe::Off;
     });
     table.insert(QStringLiteral("window-vertical-swipe"), [&touch](const Kdl::Node &child) {
-        touch.windowVerticalSwipe = keywordArgument(child, {QStringLiteral("move-to-workspace"), QStringLiteral("off")}) == 0
-            ? WindowVerticalSwipe::MoveToWorkspace
+        touch.windowVerticalSwipe
+            = keywordArgument(child, {QStringLiteral("move-window"), QStringLiteral("move-to-workspace"), QStringLiteral("off")}) < 2
+            ? WindowVerticalSwipe::MoveWindow
             : WindowVerticalSwipe::Off;
     });
     table.insert(QStringLiteral("three-finger-tap"), [&touch](const Kdl::Node &child) { touch.threeFingerTap = decodeTapAction(child); });

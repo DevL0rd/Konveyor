@@ -138,9 +138,9 @@ void appendDeviceGestures(QJsonArray &array, const QString &device, const Config
         array.append(gestureToJson(device, touch.windowSwipeFingers, QStringLiteral("window-swipe-horizontal"),
             QStringLiteral("consume-or-expel"), touch.naturalSwipe));
     }
-    if (touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveToWorkspace) {
-        array.append(gestureToJson(device, touch.windowSwipeFingers, QStringLiteral("window-swipe-vertical"),
-            QStringLiteral("move-to-workspace"), touch.naturalSwipe));
+    if (touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveWindow) {
+        array.append(gestureToJson(
+            device, touch.windowSwipeFingers, QStringLiteral("window-swipe-vertical"), QStringLiteral("move-window"), touch.naturalSwipe));
     }
     if (touch.pinch == Config::PinchAction::ToggleOverview) {
         array.append(

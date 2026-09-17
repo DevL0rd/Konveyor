@@ -31,7 +31,7 @@ Item {
         case "window-horizontal":
             return count + "swipe sideways merges the window into the next column";
         case "window-vertical":
-            return count + "swipe up or down carries the window to another workspace";
+            return count + "swipe up or down moves the window up or down, then to the next workspace";
         case "long-press":
             return "Hold a title bar, then drag to move the window";
         case "tap-cycle-width":
@@ -83,10 +83,15 @@ Item {
             break;
         case "window-vertical":
             if (index === 1) {
-                geometry.y += progress * h;
+                geometry.height = h * 0.41 + world.carryProgress * h * 0.43;
+                geometry.y += world.rowProgress * h * 0.43 + world.carryProgress * h * 0.57;
                 geometry.highlight = true;
-            } else if (index > 1) {
-                geometry.x -= progress * world.step;
+            } else if (index === 2) {
+                geometry.x -= world.step;
+                geometry.height = h * 0.41 + world.carryProgress * h * 0.43;
+                geometry.y += (1 - world.rowProgress) * h * 0.43;
+            } else if (index > 2) {
+                geometry.x -= world.step;
             }
             break;
         }
@@ -127,11 +132,13 @@ Item {
             readonly property real gap: parent.width * 0.04
             readonly property real step: columnWidth + gap
             readonly property real liftProgress: Math.max(0, (demo.progress - 0.35) / 0.65)
+            readonly property real rowProgress: Math.min(1, demo.progress * 2)
+            readonly property real carryProgress: Math.max(0, demo.progress * 2 - 1)
             width: parent.width
             height: parent.height
             transformOrigin: Item.Center
             x: demo.gesture === "horizontal" ? -demo.progress * step : 0
-            y: demo.gesture === "vertical" || demo.gesture === "window-vertical" ? -demo.progress * parent.height : 0
+            y: demo.gesture === "vertical" ? -demo.progress * parent.height : (demo.gesture === "window-vertical" ? -carryProgress * parent.height : 0)
             scale: demo.gesture === "pinch" ? 1 - demo.progress * 0.5 : (demo.gesture === "tap-toggle-overview" ? 1 - demo.tapEffect * 0.5 : 1)
 
             Repeater {

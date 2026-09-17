@@ -64,6 +64,7 @@ void TestConfigInput::parsesMultiTouch()
                 pinch "off"
                 window-swipe-fingers 5
                 window-horizontal-swipe "off"
+                window-vertical-swipe "move-to-workspace"
             }
             touchscreen {
                 window-vertical-swipe "off"
@@ -83,7 +84,7 @@ void TestConfigInput::parsesMultiTouch()
     QCOMPARE(defaults.gestures.touchpad.windowSwipeFingers, 4);
     QCOMPARE(config.gestures.touchpad.windowSwipeFingers, 5);
     QCOMPARE(config.gestures.touchpad.windowHorizontalSwipe, WindowHorizontalSwipe::Off);
-    QCOMPARE(config.gestures.touchpad.windowVerticalSwipe, WindowVerticalSwipe::MoveToWorkspace);
+    QCOMPARE(config.gestures.touchpad.windowVerticalSwipe, WindowVerticalSwipe::MoveWindow);
     QCOMPARE(config.gestures.touchscreen.windowVerticalSwipe, WindowVerticalSwipe::Off);
     QCOMPARE(config.gestures.touchscreen.enabled, false);
     QCOMPARE(config.gestures.touchscreen.verticalSwipe, VerticalSwipe::Off);

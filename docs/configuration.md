@@ -53,7 +53,7 @@ Konveyor drives the scrolling row from touchpads and touchscreens:
 | 3-finger horizontal swipe | Scroll the row | `horizontal-swipe "scroll-view"` or `"off"` |
 | 3-finger vertical swipe | Switch workspace | `vertical-swipe "switch-workspace"` or `"off"` |
 | 4-finger swipe left or right | Merge the focused window into the neighbouring column, or pop it back out | `window-horizontal-swipe "consume-or-expel"` or `"off"` |
-| 4-finger swipe up or down | Carry the focused window to the workspace above or below | `window-vertical-swipe "move-to-workspace"` or `"off"` |
+| 4-finger swipe up or down | Move the window up or down through its column like Mod+Ctrl+Up/Down, then to the workspace above or below once it reaches the end (the focused window on a touchpad, the window under your fingers on a touchscreen) | `window-vertical-swipe "move-window"` or `"off"` (`"move-to-workspace"` is still accepted) |
 | 4-finger pinch | Open or close KDE's Overview | `pinch "toggle-overview"` or `"off"` |
 | 3-finger tap | Cycle the column's width through `preset-column-widths`, like `switch-preset-column-width` | `three-finger-tap "cycle-width"` |
 | 4-finger tap | Open the Kontrol Panel, or close it if it is open | `four-finger-tap "kontrol-panel"` |

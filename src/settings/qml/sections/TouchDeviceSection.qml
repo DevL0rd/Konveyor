@@ -147,7 +147,7 @@ ColumnLayout {
                 cardHeight: Kirigami.Units.gridUnit * 8
                 currentValue: section.touch["window-vertical-swipe"]
                 options: [
-                    { value: "move-to-workspace", title: "Carry it to another workspace", description: "The window goes to the workspace above or below", preview: gesturePreview, gesture: "window-vertical" },
+                    { value: "move-window", title: "Move the window up or down", description: "Move the window up/down, then to the next workspace", preview: gesturePreview, gesture: "window-vertical" },
                     { value: "off", title: "Leave it to KDE", description: "KDE handles this swipe", preview: gesturePreview, gesture: "window-vertical" }
                 ]
                 onChosen: value => section.write("window-vertical-swipe", value)
