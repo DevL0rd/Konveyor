@@ -58,6 +58,39 @@ void decodeWarpMouse(const Kdl::Node &node, Input &input)
     decodeProperties(node, table);
 }
 
+void decodeMultiTouch(const Kdl::Node &node, MultiTouch &touch, bool isTouchscreen)
+{
+    expectOnlyChildren(node);
+    NodeTable table;
+    table.insert(QStringLiteral("off"), [&touch](const Kdl::Node &child) { touch.enabled = !flagArgument(child); });
+    table.insert(QStringLiteral("swipe-fingers"),
+        [&touch](const Kdl::Node &child) { touch.swipeFingers = static_cast<int>(integerArgument(child, Range {2, 5})); });
+    table.insert(QStringLiteral("pinch-fingers"),
+        [&touch](const Kdl::Node &child) { touch.pinchFingers = static_cast<int>(integerArgument(child, Range {2, 5})); });
+    table.insert(QStringLiteral("natural-swipe"), [&touch](const Kdl::Node &child) { touch.naturalSwipe = flagArgument(child); });
+    table.insert(QStringLiteral("horizontal-swipe"), [&touch](const Kdl::Node &child) {
+        touch.horizontalSwipe = keywordArgument(child, {QStringLiteral("scroll-view"), QStringLiteral("off")}) == 0
+            ? HorizontalSwipe::ScrollView
+            : HorizontalSwipe::Off;
+    });
+    table.insert(QStringLiteral("vertical-swipe"), [&touch](const Kdl::Node &child) {
+        touch.verticalSwipe = keywordArgument(child, {QStringLiteral("switch-workspace"), QStringLiteral("off")}) == 0
+            ? VerticalSwipe::SwitchWorkspace
+            : VerticalSwipe::Off;
+    });
+    table.insert(QStringLiteral("pinch"), [&touch](const Kdl::Node &child) {
+        touch.pinch = keywordArgument(child, {QStringLiteral("toggle-overview"), QStringLiteral("off")}) == 0 ? PinchAction::ToggleOverview
+                                                                                                              : PinchAction::Off;
+    });
+    if (isTouchscreen) {
+        table.insert(
+            QStringLiteral("long-press-to-move"), [&touch](const Kdl::Node &child) { touch.longPressToMove = flagArgument(child); });
+        table.insert(QStringLiteral("long-press-ms"),
+            [&touch](const Kdl::Node &child) { touch.longPressMs = static_cast<int>(integerArgument(child, Range {100, 5000})); });
+    }
+    decodeChildren(node, table);
+}
+
 }
 
 void decodeGestures(const Kdl::Node &node, Gestures &gestures)
@@ -69,6 +102,9 @@ void decodeGestures(const Kdl::Node &node, Gestures &gestures)
     table.insert(QStringLiteral("dnd-edge-workspace-switch"), [&gestures](const Kdl::Node &child) {
         decodeEdgeScroll(child, QStringLiteral("trigger-height"), gestures.dndEdgeWorkspaceSwitch);
     });
+    table.insert(QStringLiteral("touchpad"), [&gestures](const Kdl::Node &child) { decodeMultiTouch(child, gestures.touchpad, false); });
+    table.insert(
+        QStringLiteral("touchscreen"), [&gestures](const Kdl::Node &child) { decodeMultiTouch(child, gestures.touchscreen, true); });
     table.insert(QStringLiteral("hot-corners"), [&gestures](const Kdl::Node &child) { gestures.hotCorners = decodeHotCorners(child); });
     table.insert(QStringLiteral("titlebar-drag"), [&gestures](const Kdl::Node &child) {
         const int index = keywordArgument(child, {QStringLiteral("scroll-view"), QStringLiteral("move-window")});

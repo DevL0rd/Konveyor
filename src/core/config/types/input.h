@@ -35,8 +35,42 @@ enum class TitlebarDrag
     MoveWindow
 };
 
+enum class HorizontalSwipe
+{
+    ScrollView,
+    Off
+};
+
+enum class VerticalSwipe
+{
+    SwitchWorkspace,
+    Off
+};
+
+enum class PinchAction
+{
+    ToggleOverview,
+    Off
+};
+
+struct MultiTouch
+{
+    bool enabled = true;
+    int swipeFingers = 3;
+    int pinchFingers = 4;
+    bool naturalSwipe = true;
+    HorizontalSwipe horizontalSwipe = HorizontalSwipe::ScrollView;
+    VerticalSwipe verticalSwipe = VerticalSwipe::SwitchWorkspace;
+    PinchAction pinch = PinchAction::ToggleOverview;
+    bool longPressToMove = true;
+    int longPressMs = 500;
+    bool operator==(const MultiTouch &) const = default;
+};
+
 struct Gestures
 {
+    MultiTouch touchpad;
+    MultiTouch touchscreen;
     DndEdgeScroll dndEdgeViewScroll;
     DndEdgeScroll dndEdgeWorkspaceSwitch {50, 100, 1500};
     HotCorners hotCorners;

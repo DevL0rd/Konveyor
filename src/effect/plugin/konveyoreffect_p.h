@@ -6,6 +6,7 @@
 #include "decorations/accentcolor.h"
 #include "decorations/decorationlayer.h"
 #include "decorations/fullscreenshade.h"
+#include "input/gesturefilter.h"
 #include "input/inputfilter.h"
 #include "input/shortcutmanager.h"
 #include "input/spillinputfilter.h"
@@ -21,6 +22,7 @@
 #include "anim/clock.h"
 #include "config/loader.h"
 #include "ipc/model.h"
+#include "layout/gestures/gesturerouter.h"
 
 #include <core/output.h>
 #include <effect/effecthandler.h>
@@ -53,6 +55,12 @@ inline QString outputNameOf(KWin::Window *window)
     return window->output() ? window->output()->name() : QString();
 }
 
+inline QString outputNameAt(const QPointF &position)
+{
+    const KWin::LogicalOutput *output = KWin::workspace()->outputAt(position);
+    return output ? output->name() : QString();
+}
+
 inline QList<std::pair<KWin::ElectricBorder, bool Config::HotCorners::*>> hotCornerFlags()
 {
     return {
@@ -71,6 +79,7 @@ struct KonveyorEffect::Private
     WindowRegistry windows;
     OutputRegistry outputs;
     Layout::Engine engine;
+    Layout::GestureRouter gestures;
     WindowApplier applier;
     DecorationLayer decorations;
     FullscreenShade fullscreenShade;
@@ -79,6 +88,7 @@ struct KonveyorEffect::Private
     PlasmaShellSync plasmaShell;
     std::unique_ptr<SpillInputFilter> spillInput;
     std::unique_ptr<InputFilter> input;
+    std::unique_ptr<GestureFilter> gestureInput;
     std::unique_ptr<DBusService> dbus;
     QTimer flushTimer;
     QTimer animationTimer;
@@ -93,11 +103,13 @@ struct KonveyorEffect::Private
     QString lastBindAction;
     std::optional<Layout::WindowId> focusRequest;
     std::optional<Layout::WindowId> titlebarDrag;
+    std::optional<Layout::WindowId> touchLift;
     QHash<Layout::WindowId, QString> homeOutputs;
     QHash<KWin::Window *, Layout::RestorePlacement> minimizedPlacements;
 
     Private(Layout::Hooks hooks, ShortcutManager::Handler shortcutHandler)
         : engine(clock, std::move(hooks))
+        , gestures(engine)
         , applier(windows)
         , decorations(accent)
         , fullscreenShade(windows)

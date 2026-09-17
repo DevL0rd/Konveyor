@@ -73,12 +73,19 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
         return;
     }
     const bool scrollOnDrag = d->config.config().gestures.titlebarDrag == Config::TitlebarDrag::ScrollView;
+    if (isMove && phase == interactivePhaseStart && scrollOnDrag && isTouchLongPress()) {
+        d->touchLift = id;
+    }
+    const bool lifted = d->touchLift == id;
     if (!isMove) {
         handleWindowResize(id, window, phase);
-    } else if (scrollOnDrag) {
+    } else if (scrollOnDrag && !lifted) {
         handleTitlebarDrag(id, window, phase);
     } else {
         handleWindowMove(id, window, phase);
+    }
+    if (lifted && phase == interactivePhaseEnd) {
+        d->touchLift.reset();
     }
 }
 
@@ -92,7 +99,7 @@ void KonveyorEffect::handleTitlebarDrag(Layout::WindowId id, KWin::Window *windo
         return;
     }
     d->titlebarDrag = id;
-    d->dragOrigin = KWin::effects->cursorPos().x();
+    d->dragOrigin = interactionPoint().x();
     changeEngine().beginSwipe(*output, false);
     window->endInteractiveMoveResize();
 }
@@ -106,7 +113,7 @@ void KonveyorEffect::endTitlebarDrag()
 
 void KonveyorEffect::handleWindowMove(Layout::WindowId id, KWin::Window *window, int phase)
 {
-    const QPointF pointer = KWin::effects->cursorPos();
+    const QPointF pointer = interactionPoint();
     if (phase == interactivePhaseStart) {
         changeEngine().beginWindowDrag(id, pointer);
     } else if (phase == interactivePhaseStep) {

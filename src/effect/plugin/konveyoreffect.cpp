@@ -215,6 +215,7 @@ void KonveyorEffect::applyConfig(const Config::Config &config)
 {
     d->clock.applyConfig(config.animations);
     changeEngine().setConfig(config);
+    d->gestures.setConfig(config.gestures);
     d->windows.reevaluate();
     d->shortcuts.setBinds(config.binds);
     applyHotCorners(config.gestures.hotCorners);

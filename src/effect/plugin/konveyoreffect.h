@@ -63,6 +63,12 @@ private:
     QJsonDocument lastBindJson() const;
     void applyHotCorners(const Config::HotCorners &corners);
     void handlePointerMotion(const QPointF &position, qint64 timestampMs);
+    QPointF interactionPoint() const;
+    bool routeGesture(bool consumed);
+    bool handleTouchDown(qint32 id, const QPointF &position, qint64 timestampMs);
+    bool handleTouchMotion(qint32 id, const QPointF &position, qint64 timestampMs);
+    bool handleTouchUp(qint32 id);
+    bool isTouchLongPress() const;
     void followActiveWindow();
     void applyFocusRequest();
     void focusWindowUnderPointer(const QPointF &position);

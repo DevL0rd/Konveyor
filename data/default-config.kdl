@@ -70,6 +70,30 @@ gestures {
     // Uncomment to resize tiled windows by dragging their edges. Floating
     // windows can always be resized.
     // resize-tiled-windows
+
+    // Multi-finger touchpad gestures. The finger counts used here replace the
+    // matching KDE gestures; other finger counts keep their KDE behavior.
+    touchpad {
+        swipe-fingers 3
+        pinch-fingers 4
+        natural-swipe
+        horizontal-swipe "scroll-view"
+        vertical-swipe "switch-workspace"
+        pinch "toggle-overview"
+    }
+
+    // Touchscreen gestures. One finger still taps, scrolls and drags title bars;
+    // holding a title bar before dragging lifts the window to move it.
+    touchscreen {
+        swipe-fingers 3
+        pinch-fingers 4
+        natural-swipe
+        horizontal-swipe "scroll-view"
+        vertical-swipe "switch-workspace"
+        pinch "toggle-overview"
+        long-press-to-move
+        long-press-ms 500
+    }
 }
 
 animations {

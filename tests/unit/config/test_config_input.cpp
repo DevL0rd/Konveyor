@@ -12,6 +12,7 @@ class TestConfigInput : public QObject
 private Q_SLOTS:
     void parsesGestures();
     void parsesHotCorners();
+    void parsesMultiTouch();
     void parsesInput();
     void rejectsUnknownInputOptions();
     void parsesConfigNotification();
@@ -42,6 +43,46 @@ void TestConfigInput::parsesGestures()
     QCOMPARE(config.gestures.titlebarDrag, TitlebarDrag::MoveWindow);
     QCOMPARE(config.gestures.resizeTiledWindows, true);
     QVERIFY(mustFail(QStringLiteral("gestures {\n titlebar-drag \"wobble\"\n}\n")).message.contains(QStringLiteral("expected one of")));
+}
+
+void TestConfigInput::parsesMultiTouch()
+{
+    const Config defaults = parsed(QStringLiteral(""));
+    QCOMPARE(defaults.gestures.touchpad.enabled, true);
+    QCOMPARE(defaults.gestures.touchpad.swipeFingers, 3);
+    QCOMPARE(defaults.gestures.touchpad.pinchFingers, 4);
+    QCOMPARE(defaults.gestures.touchscreen.longPressToMove, true);
+    QCOMPARE(defaults.gestures.touchscreen.longPressMs, 500);
+
+    const Config config = parsed(QStringLiteral(R"(
+        gestures {
+            touchpad {
+                swipe-fingers 4
+                pinch-fingers 3
+                natural-swipe false
+                horizontal-swipe "off"
+                pinch "off"
+            }
+            touchscreen {
+                off
+                vertical-swipe "off"
+                long-press-to-move false
+                long-press-ms 800
+            }
+        }
+    )"));
+    QCOMPARE(config.gestures.touchpad.swipeFingers, 4);
+    QCOMPARE(config.gestures.touchpad.pinchFingers, 3);
+    QCOMPARE(config.gestures.touchpad.naturalSwipe, false);
+    QCOMPARE(config.gestures.touchpad.horizontalSwipe, HorizontalSwipe::Off);
+    QCOMPARE(config.gestures.touchpad.verticalSwipe, VerticalSwipe::SwitchWorkspace);
+    QCOMPARE(config.gestures.touchpad.pinch, PinchAction::Off);
+    QCOMPARE(config.gestures.touchscreen.enabled, false);
+    QCOMPARE(config.gestures.touchscreen.verticalSwipe, VerticalSwipe::Off);
+    QCOMPARE(config.gestures.touchscreen.longPressToMove, false);
+    QCOMPARE(config.gestures.touchscreen.longPressMs, 800);
+    QVERIFY(mustFail(QStringLiteral("gestures {\n touchpad {\n swipe-fingers 9\n }\n}\n")).message.length() > 0);
+    QVERIFY(mustFail(QStringLiteral("gestures {\n touchpad {\n long-press-ms 800\n }\n}\n")).message.length() > 0);
 }
 
 void TestConfigInput::parsesHotCorners()

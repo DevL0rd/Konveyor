@@ -20,6 +20,22 @@ void KonveyorEffect::installInputFilter()
         [this](const QPointF &position, qint64 timestamp) { handlePointerMotion(position, timestamp); },
         [this] { endTitlebarDrag(); },
     });
+    d->gestureInput = std::make_unique<GestureFilter>(GestureHandlers {
+        [this](int fingers) { return routeGesture(d->gestures.touchpadSwipeBegin(fingers, outputNameAt(KWin::effects->cursorPos()))); },
+        [this](const QPointF &delta, qint64 timestamp) { return routeGesture(d->gestures.touchpadSwipeUpdate(delta, timestamp)); },
+        [this] { return routeGesture(d->gestures.touchpadSwipeEnd()); },
+        [this](int fingers) { return routeGesture(d->gestures.touchpadPinchBegin(fingers)); },
+        [this](double scale) { return routeGesture(d->gestures.touchpadPinchUpdate(scale)); },
+        [this] { return routeGesture(d->gestures.touchpadPinchEnd()); },
+        [this](qint32 id, const QPointF &position, qint64 timestamp) { return handleTouchDown(id, position, timestamp); },
+        [this](qint32 id, const QPointF &position, qint64 timestamp) { return handleTouchMotion(id, position, timestamp); },
+        [this](qint32 id) { return handleTouchUp(id); },
+        [this] {
+            d->gestures.touchCancel();
+            endTitlebarDrag();
+            scheduleFlush();
+        },
+    });
 }
 
 void KonveyorEffect::startDBusService()
