@@ -62,11 +62,10 @@ PopScroll {
     }
 
     readonly property var gameMatches: (mode === "all" || mode === "games") && term !== "" && launcherData.gamesEnabled
-        ? launcherData.games.filter(game => Highlight.matches(game.name, term)).sort((a, b) => {
-            const at = String(a.name).toLowerCase().indexOf(term.toLowerCase())
-            const bt = String(b.name).toLowerCase().indexOf(term.toLowerCase())
-            return (at - bt) || (b.last - a.last)
-        }).slice(0, mode === "games" ? 40 : 8) : []
+        ? launcherData.games.filter(game => Highlight.matches(game.name, term)).map(game => {
+            const at = String(game.name).toLowerCase().indexOf(term.toLowerCase())
+            return { game: game, score: at < 0 ? 1000 : at }
+        }).sort((a, b) => (a.score - b.score) || (b.game.last - a.game.last)).map(entry => entry.game).slice(0, mode === "games" ? 40 : 8) : []
     readonly property var friendMatches: (mode === "all" || mode === "friends") && term !== "" && launcherData.friendsEnabled
         ? launcherData.friends.filter(friend => Highlight.matches(friend.name, term) || Highlight.matches(friend.game, term)).slice(0, mode === "friends" ? 40 : 6) : []
     readonly property bool showPackages: (mode === "all" || mode === "packages") && launcherData.packagesEnabled
@@ -104,7 +103,7 @@ PopScroll {
             } else {
                 const row = appIds.indexOf(key)
                 if (row >= 0 && !launcherData.isHidden(key)) {
-                    const game = launcherData.gameForApp(key)
+                    const game = launcherData.steamGameForApp(key)
                     return game ? { kind: "game", game: game, appRow: row } : { kind: "app", row: row }
                 }
             }
@@ -112,7 +111,7 @@ PopScroll {
         for (let row = 0; row < appIds.length; ++row) {
             if (launcherData.isHidden(appIds[row]))
                 continue
-            const game = launcherData.gameForApp(appIds[row])
+            const game = launcherData.steamGameForApp(appIds[row])
             return game ? { kind: "game", game: game, appRow: row } : { kind: "app", row: row }
         }
         if (gameMatches.length > 0)
@@ -121,9 +120,9 @@ PopScroll {
     }
     readonly property var gameRows: {
         const heroId = hero.kind === "game" ? hero.game.id : ""
-        const list = gameMatches.filter(game => game.id !== heroId)
+        const list = gameMatches.filter(game => game.id !== heroId && (game.appid !== "" || appIds.every(id => launcherData.desktopKey(id) !== game.id)))
         for (const id of appIds) {
-            const game = launcherData.gameForApp(id)
+            const game = launcherData.steamGameForApp(id)
             if (game && game.id !== heroId && !list.some(entry => entry.id === game.id))
                 list.push(game)
         }
@@ -445,7 +444,7 @@ PopScroll {
                 for (let i = 0; i < items.count; ++i) {
                     const entry = items.get(i)
                     const id = entry.model.favoriteId || ""
-                    const keep = i !== heroRow && !launcherData.isHidden(id) && launcherData.gameForApp(id) === null
+                    const keep = i !== heroRow && !launcherData.isHidden(id) && launcherData.steamGameForApp(id) === null
                     if (keep && !entry.inShown)
                         items.addGroups(i, 1, "shown")
                     else if (!keep && entry.inShown)

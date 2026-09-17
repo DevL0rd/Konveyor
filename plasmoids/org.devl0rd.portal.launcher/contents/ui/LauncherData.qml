@@ -312,6 +312,11 @@ Item {
         return gameByDesktop[desktopKey(favoriteId)] || null
     }
 
+    function steamGameForApp(favoriteId) {
+        const game = gameForApp(favoriteId)
+        return game && game.appid ? game : null
+    }
+
     readonly property var hiddenSet: {
         const set = {}
         for (const id of Plasmoid.configuration.hiddenApps)
