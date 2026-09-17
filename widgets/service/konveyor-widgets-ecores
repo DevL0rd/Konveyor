@@ -1,7 +1,6 @@
 #!/usr/bin/python3 -S
 """Print the efficiency/compact-core CPU list for this machine, or nothing if the
-CPU isn't hybrid. Used by install.sh to pin the resident collector to the E-cores
-(same logic as the Linux-Router-Monitor / Linux-Log-Monitor / portal collectors).
+CPU isn't hybrid. Used by the installer to pin konveyor-widgets.service to the E-cores
 
 Detection (vendor-neutral):
   1. Intel hybrid exposes the E-core list explicitly at /sys/devices/cpu_atom/cpus.

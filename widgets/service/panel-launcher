@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+import re
+import sys
+
+LAUNCHER = "org.devl0rd.portal.launcher"
+MENUS = ("org.kde.plasma.kickoff", "org.kde.plasma.kicker", "org.kde.plasma.kickerdash")
+MARK = "konveyorReplaced"
+APPLET = re.compile(r"^\[Containments\]\[(\d+)\]\[Applets\]\[(\d+)\]$")
+CONTAINMENT = re.compile(r"^\[Containments\]\[(\d+)\]$")
+
+
+def read_groups(path):
+    groups, header, lines = [], None, []
+    with open(path) as handle:
+        for line in handle.read().splitlines():
+            if line.startswith("[") and line.endswith("]"):
+                groups.append((header, lines))
+                header, lines = line, []
+            else:
+                lines.append(line)
+    groups.append((header, lines))
+    return groups
+
+
+def write_groups(path, groups):
+    out = []
+    for header, lines in groups:
+        if header is not None:
+            out.append(header)
+        out.extend(lines)
+    with open(path, "w") as handle:
+        handle.write("\n".join(out) + "\n")
+
+
+def value(lines, key):
+    for line in lines:
+        if line.startswith(key + "="):
+            return line.split("=", 1)[1]
+    return None
+
+
+def set_value(lines, key, new):
+    kept = [line for line in lines if not line.startswith(key + "=")]
+    if new is not None:
+        position = next((i for i, line in enumerate(kept) if line == ""), len(kept))
+        kept.insert(position, f"{key}={new}")
+    return kept
+
+
+def panel_ids(groups):
+    return {CONTAINMENT.match(h).group(1) for h, lines in groups
+            if h and CONTAINMENT.match(h) and value(lines, "plugin") == "org.kde.panel"}
+
+
+def panel_applets(groups):
+    panels = panel_ids(groups)
+    for index, (header, lines) in enumerate(groups):
+        match = APPLET.match(header or "")
+        if match and match.group(1) in panels:
+            yield index, header, lines
+
+
+def install(groups):
+    applets = list(panel_applets(groups))
+    if any(value(lines, "plugin") == LAUNCHER for _, _, lines in applets):
+        return groups, False
+    menus = [(i, h) for i, h, lines in applets if value(lines, "plugin") in MENUS]
+    if not menus:
+        return groups, False
+    stale = {h for _, h in menus}
+    result = []
+    for header, lines in groups:
+        if header in stale:
+            original = value(lines, "plugin")
+            lines = set_value(set_value(lines, "plugin", LAUNCHER), MARK, original)
+        elif header and any(header.startswith(h + "[") for h in stale):
+            continue
+        result.append((header, lines))
+    return result, True
+
+
+def uninstall(groups):
+    changed = False
+    result = []
+    restored = set()
+    for header, lines in groups:
+        original = value(lines, MARK)
+        if APPLET.match(header or "") and value(lines, "plugin") == LAUNCHER and original:
+            lines = set_value(set_value(lines, "plugin", original), MARK, None)
+            restored.add(header)
+            changed = True
+        elif header and any(header.startswith(h + "[") for h in restored):
+            continue
+        result.append((header, lines))
+    return result, changed
+
+
+def main():
+    if len(sys.argv) != 3 or sys.argv[1] not in ("install", "uninstall"):
+        sys.stderr.write("usage: portal-panel-launcher install|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n")
+        return 2
+    path = sys.argv[2]
+    try:
+        groups = read_groups(path)
+    except FileNotFoundError:
+        return 0
+    groups, changed = (install if sys.argv[1] == "install" else uninstall)(groups)
+    if changed:
+        write_groups(path, groups)
+        print("Portal Launcher placed where the application launcher was" if sys.argv[1] == "install"
+              else "Restored the original application launcher")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

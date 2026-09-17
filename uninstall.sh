@@ -5,14 +5,16 @@ SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SOURCE_DIR/extras/packaging/common.sh"
 
 PURGE=false
+WIDGETS=true
 
 usage() {
     cat <<EOF
-Usage: ./uninstall.sh [--purge]
+Usage: ./uninstall.sh [--purge] [--keep-widgets]
 
-Disables Konveyor in KWin and removes every installed file.
+Disables Konveyor in KWin, removes every installed file and uninstalls the Konveyor widgets.
 
-  --purge  Also delete your config at ~/.config/konveyor
+  --purge         Also delete your config at ~/.config/konveyor
+  --keep-widgets  Leave the Konveyor widgets and their collector service installed
 EOF
 }
 
@@ -20,6 +22,7 @@ parse_arguments() {
     for argument in "$@"; do
         case "$argument" in
         --purge) PURGE=true ;;
+        --keep-widgets) WIDGETS=false ;;
         -h | --help) usage; exit 0 ;;
         *) die "unknown option: $argument" ;;
         esac
@@ -79,6 +82,9 @@ main() {
     parse_arguments "$@"
     [[ $EUID -ne 0 ]] || die "run uninstall.sh as your normal user; it asks for sudo when needed"
     disable_in_kwin
+    if $WIDGETS; then
+        "$SOURCE_DIR/widgets/uninstall.sh"
+    fi
     remove_files
     purge_config
     say "Konveyor is uninstalled. Log out and back in to fully unload it from KWin."

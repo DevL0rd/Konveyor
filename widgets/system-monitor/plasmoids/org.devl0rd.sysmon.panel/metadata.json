@@ -10,7 +10,7 @@
         "Category": "System Information",
         "License": "MIT",
         "Version": "1.0.0",
-        "Website": "https://github.com/DevL0rd/Linux-System-Monitor"
+        "Website": "https://github.com/DevL0rd/Linux-Konveyor"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0"

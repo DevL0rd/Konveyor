@@ -7,16 +7,18 @@ source "$SOURCE_DIR/extras/packaging/common.sh"
 BUILD_DIR="${KONVEYOR_BUILD_DIR:-$SOURCE_DIR/build-release}"
 SKIP_DEPS=false
 SKIP_PULL=false
+WIDGETS=true
 
 usage() {
     cat <<EOF
-Usage: ./install.sh [--skip-deps] [--no-pull]
+Usage: ./install.sh [--skip-deps] [--no-pull] [--no-widgets]
 
-Builds and installs Konveyor, enables it in KWin, and sets up automatic rebuilds after KWin updates.
-Run it again at any time to update an existing install.
+Builds and installs Konveyor, enables it in KWin, sets up automatic rebuilds after KWin updates,
+and installs the Konveyor widgets. Run it again at any time to update an existing install.
 
-  --skip-deps  Do not install build dependencies with the system package manager
-  --no-pull    Do not update the source checkout with git pull
+  --skip-deps   Do not install build and widget dependencies with the system package manager
+  --no-pull     Do not update the source checkout with git pull
+  --no-widgets  Install only the window manager, without the Konveyor widgets
 EOF
 }
 
@@ -25,6 +27,7 @@ parse_arguments() {
         case "$argument" in
         --skip-deps) SKIP_DEPS=true ;;
         --no-pull) SKIP_PULL=true ;;
+        --no-widgets) WIDGETS=false ;;
         -h | --help) usage; exit 0 ;;
         *) die "unknown option: $argument" ;;
         esac
@@ -32,11 +35,11 @@ parse_arguments() {
 }
 
 update_checkout() {
-    if $SKIP_PULL || ! git -C "$SOURCE_DIR" rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1; then
-        return
+    if ! $SKIP_PULL && git -C "$SOURCE_DIR" rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1; then
+        say "Updating source checkout"
+        git -C "$SOURCE_DIR" pull --ff-only
     fi
-    say "Updating source checkout"
-    git -C "$SOURCE_DIR" pull --ff-only
+    git -C "$SOURCE_DIR" submodule update --init --recursive
 }
 
 install_dependencies() {
@@ -112,6 +115,9 @@ main() {
     install_rebuild_hook
     configure_kwin
     activate
+    if $WIDGETS; then
+        "$SOURCE_DIR/widgets/install.sh"
+    fi
     say "Config file: ~/.config/konveyor/config.kdl (created on first start)"
 }
 

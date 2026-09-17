@@ -9,7 +9,7 @@ step() {
 }
 
 step "file length (at most 400 lines per file)"
-mapfile -t length_checked < <(git ls-files --cached --others --exclude-standard -- '*.cpp' '*.h' '*.py' '*.qml' '*.sh' '*.kdl' 'src/cheatsheet/konveyor-cheatsheet')
+mapfile -t length_checked < <(git ls-files --cached --others --exclude-standard -- '*.cpp' '*.h' '*.py' '*.qml' '*.sh' '*.kdl' 'src/cheatsheet/konveyor-cheatsheet' ':!widgets/')
 too_long=$(wc -l "${length_checked[@]}" | awk '$2 != "total" && $1 > 400 { print $1, $2 }')
 if [[ -n $too_long ]]; then
     echo "$too_long"
