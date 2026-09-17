@@ -1,5 +1,9 @@
 #include "helpers.h"
 
+#include "layout/common/geometry.h"
+
+#include <cmath>
+
 using namespace LayoutTest;
 
 namespace
@@ -33,6 +37,36 @@ bool startMove(Fixture &fixture, Layout::WindowId id, QPointF to)
     }
     fixture.engine().updateWindowDrag(to, QStringLiteral("DP-1"));
     return true;
+}
+
+struct AppliedWindow
+{
+    QRectF current;
+    std::optional<QSizeF> requested;
+};
+
+QRectF appliedFrame(const Layout::WindowState &state)
+{
+    return QRectF(state.renderFrame.isEmpty() ? state.targetFrame.topLeft() : state.renderFrame.topLeft(), state.targetFrame.size());
+}
+
+int applyLikeKWin(Fixture &fixture, QHash<Layout::WindowId, AppliedWindow> &windows, double scale)
+{
+    int resizes = 0;
+    for (const Layout::WindowState &state : fixture.engine().windowStates()) {
+        const QRectF frame = appliedFrame(state);
+        AppliedWindow &window = windows[state.id];
+        const Layout::GeometryUpdate update = Layout::geometryUpdateFor(window.current, window.requested, frame);
+        window.requested = frame.size();
+        if (update == Layout::GeometryUpdate::Move) {
+            window.current.moveTopLeft(frame.topLeft());
+        } else if (update == Layout::GeometryUpdate::MoveResize) {
+            const auto shortByOnePixel = [scale](double logical) { return std::floor(std::round(logical) * scale) / scale; };
+            window.current = QRectF(frame.topLeft(), QSizeF(shortByOnePixel(frame.width()), shortByOnePixel(frame.height())));
+            ++resizes;
+        }
+    }
+    return resizes;
 }
 
 Config::Config wideColumns()
@@ -69,6 +103,65 @@ private Q_SLOTS:
         QCOMPARE(second - first, -100.0);
         fixture.engine().endSwipe(false);
         fixture.settle();
+    }
+
+    void scrollingTheRowNeverResizesStackedWindows_data()
+    {
+        QTest::addColumn<int>("rows");
+        QTest::newRow("one row") << 1;
+        QTest::newRow("two rows") << 2;
+        QTest::newRow("three rows") << 3;
+    }
+
+    void scrollingTheRowNeverResizesStackedWindows()
+    {
+        QFETCH(int, rows);
+        const double scale = 1.25;
+        const QRectF geometry(0, 0, 1478.4, 2368);
+        Config::Config config = instantConfig();
+        config.layout.defaultColumnWidth = Config::Proportion {1.0};
+        Fixture fixture(config, geometry);
+        Layout::OutputInfo output = makeOutput(QStringLiteral("DP-1"), geometry, scale);
+        output.workArea = QRectF(0, 42.4, 1478.4, 2325.6);
+        fixture.engine().updateOutput(output);
+        fixture.settle();
+
+        fixture.add(QStringLiteral("left"));
+        QList<Layout::WindowId> column;
+        for (int row = 0; row < rows; ++row) {
+            column.append(fixture.add(QStringLiteral("stacked")));
+            if (row > 0) {
+                QVERIFY(fixture.perform(QStringLiteral("consume-or-expel-window-left")).ok);
+            }
+        }
+        fixture.add(QStringLiteral("right"));
+        fixture.engine().activateWindow(column.first());
+        fixture.settle();
+        for (const Layout::WindowId id : column) {
+            QCOMPARE(fixture.state(id).columnIndex, fixture.state(column.first()).columnIndex);
+        }
+
+        QHash<Layout::WindowId, QSizeF> sizes;
+        for (const Layout::WindowId id : column) {
+            sizes.insert(id, fixture.frame(id).size());
+        }
+        QHash<Layout::WindowId, AppliedWindow> windows;
+        applyLikeKWin(fixture, windows, scale);
+
+        fixture.engine().beginSwipe(QStringLiteral("DP-1"), false);
+        int resizes = 0;
+        for (int frame = 1; frame <= 120; ++frame) {
+            fixture.engine().updateSwipe(frame <= 60 ? 7.3 : -7.3, frame * 16, false);
+            fixture.settle();
+            for (const Layout::WindowId id : column) {
+                QCOMPARE(fixture.frame(id).size(), sizes.value(id));
+            }
+            resizes += applyLikeKWin(fixture, windows, scale);
+        }
+        QCOMPARE(resizes, 0);
+        fixture.engine().endSwipe(false);
+        fixture.settle();
+        VERIFY_INVARIANTS(fixture);
     }
 
     void viewOffsetGestureSnapsToColumn()

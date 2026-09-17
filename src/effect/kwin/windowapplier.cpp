@@ -48,11 +48,13 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             continue;
         }
         const QRectF frame = placedFrame(state);
+        const auto previous = m_appliedFrames.constFind(state.id);
+        const std::optional<QSizeF> requestedSize = previous != m_appliedFrames.constEnd() ? std::optional(previous->size()) : std::nullopt;
         if (!frame.isEmpty()) {
             m_appliedFrames.insert(state.id, frame);
         }
         applySizingMode(window, state);
-        applyGeometry(window, frame, !state.isFloating);
+        applyGeometry(window, frame, requestedSize, !state.isFloating);
         applyBorderRadius(window, state);
         if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
             window->setOpacity(state.ruleOpacity);
@@ -116,7 +118,7 @@ QRectF WindowApplier::placedFrame(const Layout::WindowState &state)
     return Layout::parkedFrame(frame, homeRect, outputs);
 }
 
-void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, bool tiled) const
+void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled) const
 {
     if (frame.isEmpty()) {
         return;
@@ -127,14 +129,19 @@ void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, boo
         }
         return;
     }
-    if (nearlyEqual(window->moveResizeGeometry(), frame)) {
+    const Layout::GeometryUpdate update = Layout::geometryUpdateFor(window->moveResizeGeometry(), requestedSize, frame);
+    if (update == Layout::GeometryUpdate::None) {
         return;
     }
     const KWin::InputMethod *inputMethod = KWin::kwinApp()->inputMethod();
     if (tiled && inputMethod && inputMethod->activeWindow() == window) {
         window->setVirtualKeyboardGeometry(KWin::RectF());
     }
-    window->moveResize(frame);
+    if (update == Layout::GeometryUpdate::Move) {
+        window->move(frame.topLeft());
+    } else {
+        window->moveResize(frame);
+    }
 }
 
 void WindowApplier::applyBorderRadius(KWin::Window *window, const Layout::WindowState &state)

@@ -112,6 +112,22 @@ QSize roundedSize(QSizeF size)
     return {roundToInt(size.width()), roundToInt(size.height())};
 }
 
+GeometryUpdate geometryUpdateFor(const QRectF &current, const std::optional<QSizeF> &requestedSize, const QRectF &frame)
+{
+    const auto within = [](double a, double b, double tolerance) { return std::abs(a - b) < tolerance; };
+    const bool samePosition = within(current.x(), frame.x(), 0.5) && within(current.y(), frame.y(), 0.5);
+    const bool sameRequest
+        = requestedSize && within(requestedSize->width(), frame.width(), 0.5) && within(requestedSize->height(), frame.height(), 0.5);
+    const bool sizeAnswered = within(current.width(), frame.width(), 1.0) && within(current.height(), frame.height(), 1.0);
+    if (sameRequest && sizeAnswered) {
+        return samePosition ? GeometryUpdate::None : GeometryUpdate::Move;
+    }
+    if (samePosition && within(current.width(), frame.width(), 0.5) && within(current.height(), frame.height(), 0.5)) {
+        return GeometryUpdate::None;
+    }
+    return GeometryUpdate::MoveResize;
+}
+
 QRectF workAreaWithStruts(QRectF parentArea, double scale, const Config::Struts &struts)
 {
     double x = parentArea.x() + struts.left;

@@ -81,6 +81,21 @@ private Q_SLOTS:
         QCOMPARE(clampToSizeLimitsAllowZero(50, 100, 200), 100);
     }
 
+    void geometryUpdatesOnlyResizeForNewSizes()
+    {
+        const QRectF frame(16, 58.4, 1446.4, 1139.2);
+        const QSizeF requested = frame.size();
+        QCOMPARE(geometryUpdateFor(QRectF(), std::nullopt, frame), GeometryUpdate::MoveResize);
+        QCOMPARE(geometryUpdateFor(frame, requested, frame), GeometryUpdate::None);
+        QCOMPARE(geometryUpdateFor(QRectF(16, 58.4, 1446.4, 1138.4), requested, frame), GeometryUpdate::None);
+        QCOMPARE(geometryUpdateFor(QRectF(40, 58.4, 1446.4, 1138.4), requested, frame), GeometryUpdate::Move);
+        QCOMPARE(geometryUpdateFor(QRectF(40, 58.4, 1446.4, 1139.2), requested, frame), GeometryUpdate::Move);
+        QCOMPARE(geometryUpdateFor(QRectF(40, 58.4, 1446.4, 1138.4), std::nullopt, frame), GeometryUpdate::MoveResize);
+        QCOMPARE(geometryUpdateFor(QRectF(40, 58.4, 1446.4, 1138.4), QSizeF(1446.4, 2294.4), frame), GeometryUpdate::MoveResize);
+        QCOMPARE(geometryUpdateFor(QRectF(40, 58.4, 1446.4, 700), requested, frame), GeometryUpdate::MoveResize);
+        QCOMPARE(geometryUpdateFor(QRectF(16, 58.4, 1446.4, 1138.4), QSizeF(1446.4, 1138.4), frame), GeometryUpdate::MoveResize);
+    }
+
     void clampsAndCentersInArea()
     {
         const QRectF area(0, 0, 100, 100);

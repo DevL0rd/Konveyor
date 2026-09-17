@@ -19,5 +19,5 @@ file(GLOB KONVEYOR_NESTED_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ne
 foreach(test_script ${KONVEYOR_NESTED_TESTS})
     get_filename_component(name ${test_script} NAME_WE)
     add_test(NAME nested_${name} COMMAND python3 ${test_script})
-    set_tests_properties(nested_${name} PROPERTIES LABELS nested ENVIRONMENT "KONVEYOR_BUILD_DIR=${PROJECT_BINARY_DIR}" TIMEOUT 600)
+    set_tests_properties(nested_${name} PROPERTIES LABELS nested ENVIRONMENT "KONVEYOR_BUILD_DIR=${PROJECT_BINARY_DIR}" TIMEOUT 600 SKIP_RETURN_CODE 77)
 endforeach()

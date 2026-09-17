@@ -10,8 +10,17 @@
 #include <QSize>
 #include <QSizeF>
 
+#include <optional>
+
 namespace Konveyor::Layout
 {
+
+enum class GeometryUpdate
+{
+    None,
+    Move,
+    MoveResize,
+};
 
 double snapToPixels(double scale, double logical);
 double snapToPixelsAtLeastOne(double scale, double logical);
@@ -27,6 +36,8 @@ QSize floorSize(QSizeF size);
 QSize nonNegativeSize(QSizeF size);
 QSizeF clampedNonNegative(QSizeF size);
 QSize roundedSize(QSizeF size);
+
+GeometryUpdate geometryUpdateFor(const QRectF &current, const std::optional<QSizeF> &requestedSize, const QRectF &frame);
 
 QRectF workAreaWithStruts(QRectF parentArea, double scale, const Config::Struts &struts);
 double scrollToReveal(double curX, double viewWidth, double newColX, double newColWidth, double gaps);
