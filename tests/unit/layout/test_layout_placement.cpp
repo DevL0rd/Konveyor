@@ -178,6 +178,20 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void addingThePortraitProfileRestacksARotatedMonitor()
+    {
+        Fixture fixture(instantConfig(), QRectF(0, 0, 1080, 1920));
+        const auto first = fixture.add(QStringLiteral("browser"));
+        const auto second = fixture.add(QStringLiteral("editor"));
+        QVERIFY(fixture.state(first).columnIndex != fixture.state(second).columnIndex);
+        fixture.setConfig(portraitConfig());
+        fixture.settle();
+        QCOMPARE(fixture.state(second).columnIndex, fixture.state(first).columnIndex);
+        QVERIFY(fixture.frame(first).width() > 1080 * 0.9);
+        QCOMPARE(fixture.focused(), std::optional(second));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void manualStacksSurviveRotation()
     {
         Fixture fixture(portraitConfig());

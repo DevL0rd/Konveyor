@@ -36,8 +36,15 @@ Engine::~Engine() = default;
 
 void Engine::setConfig(const Config::Config &config)
 {
+    std::vector<Config::Layout> previous;
+    for (const Monitor &monitor : d->monitors) {
+        previous.push_back(monitor.layoutOverride() ? *monitor.layoutOverride() : d->config.layout);
+    }
     d->config = config;
     d->applyOptions();
+    for (std::size_t idx = 0; idx < previous.size(); ++idx) {
+        d->reflowMonitorLayout(d->monitors[idx], previous[idx]);
+    }
     d->ensureNamedWorkspaces();
     for (Workspace *workspace : d->allWorkspaces()) {
         for (const TileRef &ref : workspace->renderedTilesMut(false)) {
