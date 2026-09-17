@@ -4,7 +4,7 @@ import org.kde.kirigami as Kirigami
 import "../components/monitors/MonitorSummary.js" as MonitorSummary
 import org.kde.konveyor.components
 
-Item {
+SceneAnimation {
     id: glance
 
     property var node: ({})
@@ -16,18 +16,15 @@ Item {
 
     Layout.preferredWidth: Kirigami.Units.gridUnit * (portrait ? 3 : 5.5)
     Layout.preferredHeight: Kirigami.Units.gridUnit * (portrait ? 5 : 3.2)
-
-    MiniColumns {
-        anchors.fill: parent
-        active: false
-        columns: {
-            const width = Math.min(1, glance.columnWidth) - (glance.columnWidth >= 1 ? 0.02 : 0);
-            const count = Math.max(1, Math.ceil(1 / Math.max(width, 0.1)));
-            const result = [];
-            for (let i = 0; i < count; ++i) {
-                result.push({ width: width, focused: i === 0, stack: glance.stack });
-            }
-            return result;
+    aspect: portrait ? 10 / 16 : 16 / 10
+    animated: false
+    scene: {
+        const width = Math.min(0.93, glance.columnWidth - 0.035);
+        const count = Math.max(1, Math.ceil(1 / Math.max(width + 0.035, 0.1)));
+        const list = [];
+        for (let i = 0; i < count; ++i) {
+            list.push({ keys: Array.from({ length: glance.stack }, (_, row) => i + "-" + row), w: width, focus: i === 0 ? "0-0" : "" });
         }
+        return build([columns(list)]);
     }
 }

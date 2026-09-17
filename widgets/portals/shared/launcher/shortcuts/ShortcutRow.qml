@@ -35,8 +35,9 @@ MouseArea {
             active: !!row.entry.id
             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.9
             Layout.preferredHeight: Kirigami.Units.gridUnit * 1.1
-            sourceComponent: ActionPreview {
+            sourceComponent: SceneAnimation {
                 actionId: row.entry.id
+                animated: row.selected
             }
         }
         Kirigami.Icon {

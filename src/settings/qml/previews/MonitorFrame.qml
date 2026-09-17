@@ -1,7 +1,7 @@
 import QtQuick
-import org.kde.kirigami as Kirigami
+import org.kde.konveyor.components
 
-Rectangle {
+MiniScreen {
     id: frame
 
     property real aspect: 16 / 9
@@ -9,10 +9,7 @@ Rectangle {
     readonly property alias screen: screen
 
     width: height * aspect
-    radius: Kirigami.Units.cornerRadius * 2
-    color: Qt.darker(Kirigami.Theme.backgroundColor, 1.6)
-    border.color: Qt.alpha(Kirigami.Theme.textColor, 0.35)
-    border.width: 2
+    clip: false
 
     Item {
         id: screen

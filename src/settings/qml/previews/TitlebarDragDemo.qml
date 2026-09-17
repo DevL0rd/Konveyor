@@ -1,5 +1,6 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
+import org.kde.konveyor.components
 
 Item {
     id: demo
@@ -7,8 +8,6 @@ Item {
     property string mode: "scroll-view"
     property bool selected: false
     property real progress: 0
-
-    clip: true
 
     SequentialAnimation on progress {
         loops: Animation.Infinite
@@ -19,43 +18,56 @@ Item {
         NumberAnimation { from: 1; to: 0; duration: 900; easing.type: Easing.InOutCubic }
     }
 
-    readonly property real columnWidth: width * 0.3
-    readonly property real gap: width * 0.04
-    readonly property real rowShift: mode === "scroll-view" ? -progress * (columnWidth + gap) : 0
-    readonly property real dragShift: mode === "move-window" ? progress * (columnWidth + gap) : 0
+    MiniScreen {
+        id: frame
+        readonly property real columnWidth: width * 0.3
+        readonly property real gap: width * 0.04
+        readonly property real step: columnWidth + gap
+        readonly property real rowShift: demo.mode === "scroll-view" ? -demo.progress * step : 0
+        readonly property real dragShift: demo.mode === "move-window" ? demo.progress * step : 0
+        anchors.centerIn: parent
+        height: Math.min(demo.height, demo.width / 1.6)
+        width: height * 1.6
+        compact: height < Kirigami.Units.gridUnit * 3
 
-    Repeater {
-        model: 4
+        Repeater {
+            model: 4
+
+            MiniWindow {
+                required property int index
+                readonly property bool grabbed: index === 1
+                x: frame.gap + index * frame.step + frame.rowShift + (grabbed ? frame.dragShift : (index === 2 ? -frame.dragShift : 0))
+                z: grabbed ? 1 : 0
+                y: frame.height * 0.08
+                width: frame.columnWidth
+                height: frame.height * 0.84
+                lift: grabbed && demo.progress > 0.02 ? 1 : 0
+                titleHeight: frame.height * 0.12
+                compact: frame.compact
+            }
+        }
 
         Rectangle {
-            id: column
-            required property int index
-            readonly property bool grabbed: index === 1
-            readonly property real baseX: demo.gap + index * (demo.columnWidth + demo.gap)
-            x: baseX + demo.rowShift + (grabbed ? demo.dragShift : (index === 2 ? -demo.dragShift : 0))
-            z: grabbed ? 1 : 0
-            y: demo.height * 0.08
-            width: demo.columnWidth
-            height: demo.height * 0.84
-            radius: 3
-            color: Kirigami.Theme.backgroundColor
-            border.color: grabbed ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.25)
-            border.width: grabbed ? 2 : 1
+            readonly property real hold: Math.min(1, demo.progress * 6)
+            z: 2
+            width: Math.max(6, frame.height * 0.1)
+            height: width
+            radius: width / 2
+            x: frame.gap + frame.step + frame.columnWidth / 2 + frame.rowShift + frame.dragShift - width / 2
+            y: frame.height * 0.14 - height / 2
+            color: Qt.alpha(Kirigami.Theme.highlightColor, 0.7)
+            border.color: Kirigami.Theme.highlightedTextColor
+            border.width: 1
 
             Rectangle {
-                width: parent.width
-                height: parent.height * 0.18
-                radius: 3
-                color: column.grabbed ? Qt.alpha(Kirigami.Theme.highlightColor, 0.35) : Qt.alpha(Kirigami.Theme.textColor, 0.1)
-            }
-
-            Kirigami.Icon {
-                visible: column.grabbed
-                width: Math.min(parent.width * 0.4, Kirigami.Units.iconSizes.small)
+                anchors.centerIn: parent
+                width: parent.width * (1.4 + parent.hold)
                 height: width
-                x: parent.width * 0.45
-                y: parent.height * 0.02
-                source: "transform-browse"
+                radius: width / 2
+                color: "transparent"
+                border.color: Kirigami.Theme.highlightColor
+                border.width: 2
+                opacity: 1 - parent.hold * 0.4
             }
         }
     }

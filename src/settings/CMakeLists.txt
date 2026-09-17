@@ -132,6 +132,7 @@ ecm_target_qml_sources(konveyor_settings PATH pages SOURCES
 )
 ecm_target_qml_sources(konveyor_settings PATH previews SOURCES
     qml/previews/AnimationDemo.qml
+    qml/previews/ChoiceDiagram.qml
     qml/previews/CurveGraph.qml
     qml/previews/DecorationPreview.qml
     qml/previews/EdgeZonesMap.qml

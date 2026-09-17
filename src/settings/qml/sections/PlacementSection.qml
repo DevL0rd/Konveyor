@@ -256,61 +256,65 @@ ColumnLayout {
 
     Component {
         id: groupOffDiagram
-        MiniColumns {
-            columns: [{ width: 0.24 }, { width: 0.24 }, { width: 0.24, focused: true }, { width: 0.24, ghost: true }]
+        ChoiceDiagram {
+            kind: "group-off"
+            running: parent && parent.selected === true
         }
     }
 
     Component {
         id: groupBesideDiagram
-        MiniColumns {
-            columns: [{ width: 0.24, focused: true }, { width: 0.24, focused: true, ghost: true }, { width: 0.24 }, { width: 0.24 }]
+        ChoiceDiagram {
+            kind: "group-beside"
+            running: parent && parent.selected === true
         }
     }
 
     Component {
         id: groupStackDiagram
-        MiniColumns {
-            columns: [{ width: 0.3, focused: true, stack: 3 }, { width: 0.3 }, { width: 0.3 }]
+        ChoiceDiagram {
+            kind: "group-stack"
+            running: parent && parent.selected === true
         }
     }
 
     Component {
         id: stackedDiagram
-        MiniColumns {
-            columns: [{ width: 0.28 }, { width: 0.36, focused: true, stack: 2 }, { width: 0.28 }]
+        ChoiceDiagram {
+            kind: "stacked"
+            running: parent && parent.selected === true
         }
     }
 
     Component {
         id: tabbedDiagram
-        MiniColumns {
-            gap: 5
-            columns: [{ width: 0.27 }, { width: 0.36, focused: true, tabs: 3 }, { width: 0.27 }]
+        ChoiceDiagram {
+            kind: "tabbed"
+            running: parent && parent.selected === true
         }
     }
 
     Component {
         id: neverDiagram
-        MiniColumns {
-            offset: -0.14
-            columns: [{ width: 0.36 }, { width: 0.36 }, { width: 0.36, focused: true }]
+        ChoiceDiagram {
+            kind: "never"
+            running: parent && parent.selected === true
         }
     }
 
     Component {
         id: alwaysDiagram
-        MiniColumns {
-            offset: -0.33
-            columns: [{ width: 0.36 }, { width: 0.36 }, { width: 0.3, focused: true }, { width: 0.36 }]
+        ChoiceDiagram {
+            kind: "always"
+            running: parent && parent.selected === true
         }
     }
 
     Component {
         id: overflowDiagram
-        MiniColumns {
-            offset: -0.46
-            columns: [{ width: 0.4 }, { width: 0.6, focused: true }, { width: 0.4 }]
+        ChoiceDiagram {
+            kind: "on-overflow"
+            running: parent && parent.selected === true
         }
     }
 }

@@ -1,48 +1,31 @@
 import QtQuick
 import org.kde.konveyor.components
 
-Item {
+SceneAnimation {
     id: diagram
 
     property bool stack: false
     property int rows: 2
     property bool running: true
-    property int opened: 0
 
-    readonly property int total: diagram.stack ? diagram.rows : 3
-
-    Timer {
-        interval: 1100
-        repeat: true
-        running: diagram.running
-        onTriggered: diagram.opened = (diagram.opened + 1) % (diagram.total + 1)
-        onRunningChanged: diagram.opened = running ? 0 : diagram.total
-    }
-
-    Component.onCompleted: opened = running ? 0 : total
-
-    MiniColumns {
-        anchors.fill: parent
-        offset: diagram.stack ? 0 : -Math.max(0, diagram.opened - 2) * 0.28
-        columns: {
-            const width = diagram.stack ? 0.36 : 0.26;
-            const result = [{ width: width, focused: !diagram.stack && diagram.opened === 0 }];
-            if (!diagram.stack) {
-                for (let i = 0; i < diagram.opened; ++i) {
-                    result.push({ width: width, focused: i === diagram.opened - 1 });
+    animated: running
+    scene: {
+        const width = 0.28;
+        const total = stack ? rows * 2 : 4;
+        const frames = [];
+        for (let count = 1; count <= total; ++count) {
+            const keys = Array.from({ length: count }, (_, i) => "w" + i);
+            const focus = keys[count - 1];
+            const list = [];
+            if (stack) {
+                for (let c = 0; c * rows < count; ++c) {
+                    list.push({ keys: keys.slice(c * rows, (c + 1) * rows), w: width, focus: focus });
                 }
-                return result;
+            } else {
+                keys.forEach(key => list.push({ key: key, w: width, focus: focus }));
             }
-            const count = diagram.opened + 1;
-            if (count <= diagram.rows) {
-                return result.concat([{ width: width, focused: true, stack: count }]);
-            }
-            const columns = Math.ceil(count / diagram.rows);
-            const spread = [];
-            for (let c = 0; c < columns; ++c) {
-                spread.push({ width: width, stack: Math.floor(count / columns) + (c < count % columns ? 1 : 0), focused: c === columns - 1 });
-            }
-            return [{ width: width * 0.5 }].concat(spread);
+            frames.push(columns(list, { offset: -Math.max(0, list.length - 3) * (width + 0.035) }));
         }
+        return build(frames, { still: frames.length - 1 });
     }
 }

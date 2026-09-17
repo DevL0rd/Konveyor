@@ -1,1 +1,1 @@
-install(FILES qmldir MiniColumns.qml KeyCaps.qml FingerCaps.qml GestureAnimation.qml DESTINATION ${KDE_INSTALL_QMLDIR}/org/kde/konveyor/components)
+install(FILES qmldir KeyCaps.qml FingerCaps.qml GestureAnimation.qml SceneAnimation.qml MiniScreen.qml MiniWindow.qml MiniPanel.qml Scenes.js ShortcutScenes.js DESTINATION ${KDE_INSTALL_QMLDIR}/org/kde/konveyor/components)

@@ -34,12 +34,14 @@ ColumnLayout {
             animated: detail.animated
             showCaption: false
         }
-        ActionPreview {
+        SceneAnimation {
             id: preview
             anchors.fill: parent
             anchors.margins: Kirigami.Units.largeSpacing
+            visible: hasScene && detail.gesture === null
             actionId: detail.entry && detail.entry.id ? detail.entry.id : ""
             animated: detail.animated
+            showKeys: true
         }
         Kirigami.Icon {
             visible: !preview.visible && !gesturePreview.visible

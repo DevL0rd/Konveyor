@@ -112,18 +112,13 @@ Item {
         ScriptAction { script: demo.looped() }
     }
 
-    Rectangle {
+    MiniScreen {
         id: frame
         readonly property real aspect: 16 / 10
         anchors.horizontalCenter: parent.horizontalCenter
         y: 0
         height: Math.min((demo.height - caption.height) * (demo.touchscreen ? 1 : 0.68), demo.width / aspect)
         width: height * aspect
-        radius: Kirigami.Units.cornerRadius * 2
-        color: Qt.darker(Kirigami.Theme.backgroundColor, 1.6)
-        border.color: Qt.alpha(Kirigami.Theme.textColor, 0.35)
-        border.width: 2
-        clip: true
         opacity: demo.active ? 1 : 0.45
 
         Item {
@@ -154,27 +149,17 @@ Item {
                     Repeater {
                         model: 4
 
-                        Rectangle {
-                            id: column
+                        MiniWindow {
                             required property int index
                             readonly property var geometry: demo.columnGeometry(workspace.index, index)
-                            readonly property bool lifted: geometry.highlight
                             x: geometry.x
-                            z: lifted ? 1 : 0
+                            z: geometry.highlight ? 1 : 0
                             y: geometry.y
                             width: geometry.width
                             height: geometry.height
-                            radius: 3
-                            color: Kirigami.Theme.backgroundColor
-                            border.color: lifted ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.25)
-                            border.width: lifted ? 2 : 1
-
-                            Rectangle {
-                                width: parent.width
-                                height: world.height * 0.12
-                                radius: 3
-                                color: workspace.index === 1 ? Qt.alpha(Kirigami.Theme.positiveTextColor, 0.3) : Qt.alpha(Kirigami.Theme.textColor, 0.1)
-                            }
+                            lift: geometry.highlight ? 1 : 0
+                            alternate: workspace.index === 1
+                            titleHeight: world.height * 0.12
                         }
                     }
                 }
@@ -191,34 +176,9 @@ Item {
             opacity: Math.max(0, (demo.tap ? demo.tapEffect : demo.progress) * 2 - 1)
         }
 
-        Rectangle {
-            visible: demo.gesture === "tap-kontrol-panel"
+        MiniPanel {
             anchors.centerIn: parent
-            width: parent.width * 0.62
-            height: parent.height * 0.72
-            radius: Kirigami.Units.cornerRadius
-            color: Kirigami.Theme.backgroundColor
-            border.color: Kirigami.Theme.highlightColor
-            border.width: 2
-            opacity: demo.tapEffect
-            scale: 0.9 + demo.tapEffect * 0.1
-
-            Grid {
-                anchors.centerIn: parent
-                columns: 4
-                spacing: parent.width * 0.05
-
-                Repeater {
-                    model: 8
-
-                    Rectangle {
-                        width: parent.parent.width * 0.14
-                        height: width
-                        radius: 3
-                        color: Qt.alpha(Kirigami.Theme.highlightColor, 0.35)
-                    }
-                }
-            }
+            shown: demo.gesture === "tap-kontrol-panel" ? demo.tapEffect : 0
         }
     }
 
