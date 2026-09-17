@@ -1,57 +1,42 @@
 #!/usr/bin/env python3
-import importlib.machinery
-import importlib.util
 import os
+import subprocess
 import sys
-import threading
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 RESTART_DELAY = 3
 
 COLLECTORS = [
-    ("system-monitor", "bin/sysmon-collect", "cmd_serve"),
-    ("process-monitor", "bin/procmon-collect", "cmd_serve"),
-    ("router-monitor", "bin/routermon-collect", "serve"),
-    ("system-log", "bin/logmon-collect", "serve"),
-    ("portals", "bin/portal-friends", "cmd_serve"),
+    ("system-monitor", ["bin/sysmon-collect", "--serve"], []),
+    ("process-monitor", ["bin/procmon-collect", "--serve"], []),
+    ("router-monitor", ["bin/routermon-collect", "--serve"], ["-S"]),
+    ("system-log", ["bin/logmon-collect", "--serve"], []),
+    ("portals", ["bin/portal-friends", "--serve"], []),
 ]
 
 
-def load(widget, path):
-    name = "konveyor_" + widget.replace("-", "_")
-    loader = importlib.machinery.SourceFileLoader(name, path)
-    spec = importlib.util.spec_from_loader(name, loader)
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
-
-
-def supervise(widget, path, entry):
-    while True:
-        started = time.monotonic()
-        try:
-            getattr(load(widget, path), entry)()
-            sys.stderr.write(f"{widget}: collector stopped, restarting\n")
-        except (Exception, SystemExit) as error:
-            sys.stderr.write(f"{widget}: {error!r}, restarting\n")
-        time.sleep(max(0, RESTART_DELAY - (time.monotonic() - started)))
+def start(widget, arguments, flags):
+    script = os.path.join(ROOT, widget, arguments[0])
+    return subprocess.Popen([sys.executable, *flags, script, *arguments[1:]])
 
 
 def main():
-    threads = []
-    for widget, script, entry in COLLECTORS:
-        path = os.path.join(ROOT, widget, script)
-        if not os.path.isfile(path):
-            continue
-        thread = threading.Thread(target=supervise, args=(widget, path, entry), name=widget, daemon=True)
-        thread.start()
-        threads.append(thread)
-    if not threads:
+    running = {}
+    for widget, arguments, flags in COLLECTORS:
+        if os.path.isfile(os.path.join(ROOT, widget, arguments[0])):
+            running[start(widget, arguments, flags).pid] = (widget, arguments, flags, time.monotonic())
+    if not running:
         sys.stderr.write("konveyor-widgets: no collectors found\n")
         return 1
-    for thread in threads:
-        thread.join()
+    while running:
+        pid, status = os.wait()
+        if pid not in running:
+            continue
+        widget, arguments, flags, started = running.pop(pid)
+        sys.stderr.write(f"{widget}: collector exited with status {os.waitstatus_to_exitcode(status)}, restarting\n")
+        time.sleep(max(0, RESTART_DELAY - (time.monotonic() - started)))
+        running[start(widget, arguments, flags).pid] = (widget, arguments, flags, time.monotonic())
     return 0
 
 

@@ -122,9 +122,8 @@ def serve():
         except Exception:
             pass
         sys.exit(0)
-    if threading.current_thread() is threading.main_thread():
-        signal.signal(signal.SIGTERM, shutdown)
-        signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+    signal.signal(signal.SIGINT, shutdown)
 
     last = 0.0
     write_cache(list(ring))            # create the file straight away

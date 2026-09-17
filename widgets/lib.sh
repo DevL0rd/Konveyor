@@ -103,17 +103,20 @@ stage_lib() {
 }
 
 install_plasmoid() {
+    local id
+    id=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['KPlugin']['Id'])" "$1/metadata.json")
     if kpackagetool6 -t Plasma/Applet -u "$1" >/dev/null 2>&1; then
-        say "  upgraded $(basename "$1")"
+        say "  upgraded $id"
     else
         kpackagetool6 -t Plasma/Applet -i "$1" >/dev/null
-        say "  installed $(basename "$1")"
+        say "  installed $id"
     fi
 }
 
 copy_panel_ui() {
     local source="$1" target="$2"
     shift 2
+    mkdir -p "$target/contents/ui" "$target/contents/config"
     cp "$source/contents/ui/"*.qml "$target/contents/ui/"
     local pattern
     for pattern in "$@"; do
