@@ -35,6 +35,7 @@ void KonveyorEffect::installInputFilter()
             endTitlebarDrag();
             scheduleFlush();
         },
+        [this] { routeGesture(d->gestures.resetTouches()); },
     });
 }
 

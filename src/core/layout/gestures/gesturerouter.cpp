@@ -272,7 +272,9 @@ bool GestureRouter::touchDown(qint32 id, QPointF position, qint64 timestampMs, c
         return false;
     }
     beginGesture(m_touch, GestureDevice::Touchscreen, output, allowed);
-    m_gestureIds.insert(id);
+    for (auto it = m_points.cbegin(); it != m_points.cend(); ++it) {
+        m_gestureIds.insert(it.key());
+    }
     m_lastCentroid = centroid();
     m_touch.startSpread = spread();
     return true;
@@ -313,6 +315,13 @@ bool GestureRouter::touchUp(qint32 id)
         finishGesture(m_touch);
     }
     return m_gestureIds.remove(id);
+}
+
+bool GestureRouter::resetTouches()
+{
+    const bool hadGesture = m_touch.active;
+    touchCancel();
+    return hadGesture;
 }
 
 void GestureRouter::touchCancel()

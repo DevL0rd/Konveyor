@@ -39,6 +39,7 @@ public:
     bool touchMotion(qint32 id, QPointF position, qint64 timestampMs);
     bool touchUp(qint32 id);
     void touchCancel();
+    bool resetTouches();
 
     int touchPointCount() const { return static_cast<int>(m_points.size()); }
     bool isTouchGestureActive() const { return m_touch.active; }

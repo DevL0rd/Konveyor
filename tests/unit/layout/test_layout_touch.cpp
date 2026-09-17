@@ -108,6 +108,21 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(rig.fixture);
     }
 
+    void swipeBackFromAnEmptyWorkspace()
+    {
+        Rig rig;
+        rig.fixture.add();
+        rig.fixture.perform(QStringLiteral("focus-workspace-down"));
+        rig.fixture.advance(1);
+        QCOMPARE(activeWorkspaceIndex(rig.fixture.engine()), 2);
+        QVERIFY(rig.router.touchpadSwipeBegin(3, Output));
+        rig.router.touchpadSwipeUpdate(QPointF(0.0, 30.0), 10);
+        rig.router.touchpadSwipeUpdate(QPointF(0.0, 300.0), 20);
+        rig.router.touchpadSwipeEnd();
+        rig.fixture.advance(1);
+        QCOMPARE(activeWorkspaceIndex(rig.fixture.engine()), 1);
+    }
+
     void unnaturalSwipeGoesTheOtherWay()
     {
         Config::Config config = wideColumns();
@@ -240,11 +255,24 @@ private Q_SLOTS:
         }
         QVERIFY(rig.router.touchUp(2));
         QVERIFY(!rig.router.isTouchGestureActive());
-        rig.router.touchUp(1);
-        rig.router.touchUp(0);
+        QVERIFY(rig.router.touchUp(1));
+        QVERIFY(rig.router.touchUp(0));
         rig.fixture.settle();
         QVERIFY(rig.fixture.focused() != first);
         VERIFY_INVARIANTS(rig.fixture);
+    }
+
+    void staleTouchesAreClearedForANewSequence()
+    {
+        Rig rig;
+        rig.fixture.add();
+        rig.router.touchDown(7, QPointF(100, 100), 0, Output);
+        rig.router.touchDown(8, QPointF(140, 100), 0, Output);
+        QCOMPARE(rig.router.touchPointCount(), 2);
+        QVERIFY(!rig.router.resetTouches());
+        QCOMPARE(rig.router.touchPointCount(), 0);
+        rig.threeFingerTouch(QPointF(100, 500));
+        QVERIFY(rig.router.isTouchGestureActive());
     }
 
     void touchscreenSingleFingerIsForApps()

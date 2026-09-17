@@ -4,8 +4,6 @@
 
 #include <QPointF>
 
-#include <QSet>
-
 #include <functional>
 
 namespace Konveyor
@@ -23,6 +21,7 @@ struct GestureHandlers
     std::function<bool(qint32, const QPointF &, qint64)> touchMotion;
     std::function<bool(qint32)> touchUp;
     std::function<void()> touchCancel;
+    std::function<void()> touchSequenceStarted;
 };
 
 class GestureFilter : public KWin::InputEventFilter
@@ -47,7 +46,6 @@ public:
 private:
     GestureHandlers m_handlers;
     bool m_touchGestureTaken = false;
-    QSet<qint32> m_downIds;
     bool m_syntheticCancel = false;
 };
 

@@ -1,6 +1,7 @@
 #include "input/gesturefilter.h"
 
 #include <input_event.h>
+#include <touch_input.h>
 
 namespace Konveyor
 {
@@ -70,7 +71,10 @@ bool GestureFilter::pinchGestureCancelled(KWin::PointerPinchGestureCancelEvent *
 
 bool GestureFilter::touchDown(KWin::TouchDownEvent *event)
 {
-    m_downIds.insert(event->id);
+    if (KWin::input()->touch()->touchPointCount() == 1) {
+        m_touchGestureTaken = false;
+        m_handlers.touchSequenceStarted();
+    }
     const bool consumed = m_handlers.touchDown(event->id, event->pos, millisecondsOf(event->time));
     if (consumed && !m_touchGestureTaken) {
         m_touchGestureTaken = true;
@@ -89,8 +93,7 @@ bool GestureFilter::touchMotion(KWin::TouchMotionEvent *event)
 bool GestureFilter::touchUp(KWin::TouchUpEvent *event)
 {
     const bool consumed = m_handlers.touchUp(event->id);
-    m_downIds.remove(event->id);
-    if (m_downIds.isEmpty()) {
+    if (KWin::input()->touch()->touchPointCount() == 0) {
         m_touchGestureTaken = false;
     }
     return consumed;
@@ -102,7 +105,6 @@ bool GestureFilter::touchCancel()
         return false;
     }
     m_touchGestureTaken = false;
-    m_downIds.clear();
     m_handlers.touchCancel();
     return false;
 }
