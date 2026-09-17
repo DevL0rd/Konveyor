@@ -1,3 +1,5 @@
 module org.kde.konveyor.components
 MiniColumns 1.0 MiniColumns.qml
 KeyCaps 1.0 KeyCaps.qml
+FingerCaps 1.0 FingerCaps.qml
+GestureAnimation 1.0 GestureAnimation.qml

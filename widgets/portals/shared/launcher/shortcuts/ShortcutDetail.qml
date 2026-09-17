@@ -10,6 +10,7 @@ ColumnLayout {
     property var entry: null
     property string section
     property bool animated: false
+    readonly property var gesture: entry && entry.gesture ? entry.gesture : null
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -21,6 +22,18 @@ ColumnLayout {
         border.width: 1
         border.color: launcher.hairline
 
+        GestureAnimation {
+            id: gesturePreview
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.largeSpacing
+            visible: detail.gesture !== null
+            device: detail.gesture ? detail.gesture.device : "touchpad"
+            gesture: detail.gesture ? detail.gesture.motion.replace("swipe-", "") : "horizontal"
+            fingers: detail.gesture ? detail.gesture.fingers : 3
+            natural: detail.gesture ? detail.gesture.natural : true
+            animated: detail.animated
+            showCaption: false
+        }
         ActionPreview {
             id: preview
             anchors.fill: parent
@@ -29,7 +42,7 @@ ColumnLayout {
             animated: detail.animated
         }
         Kirigami.Icon {
-            visible: !preview.visible
+            visible: !preview.visible && !gesturePreview.visible
             anchors.centerIn: parent
             width: Kirigami.Units.iconSizes.huge
             height: width
@@ -55,8 +68,14 @@ ColumnLayout {
         text: detail.entry ? detail.entry.action : i18n("Pick a shortcut")
         wrapMode: Text.Wrap
     }
+    FingerCaps {
+        visible: detail.gesture !== null
+        fingers: detail.gesture ? detail.gesture.fingers : 1
+        motion: detail.gesture ? detail.gesture.motion : ""
+        device: detail.gesture ? detail.gesture.device : ""
+    }
     Repeater {
-        model: detail.entry ? detail.entry.keys : []
+        model: detail.entry && !detail.gesture ? detail.entry.keys : []
         KeyCaps {
             required property string modelData
             keyName: modelData
@@ -65,7 +84,7 @@ ColumnLayout {
     PlasmaComponents.Label {
         Layout.fillWidth: true
         visible: detail.entry !== null && !preview.visible
-        text: i18n("A KDE shortcut. Change it in System Settings → Shortcuts.")
+        text: detail.gesture ? i18n("A Konveyor gesture. Change it in Settings → Touch & Gestures.") : i18n("A KDE shortcut. Change it in System Settings → Shortcuts.")
         wrapMode: Text.Wrap
         opacity: 0.55
     }

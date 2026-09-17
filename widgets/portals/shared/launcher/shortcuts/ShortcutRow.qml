@@ -43,7 +43,7 @@ MouseArea {
             visible: !row.entry.id
             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.9
             Layout.preferredHeight: Kirigami.Units.iconSizes.small
-            source: "input-keyboard-symbolic"
+            source: row.entry.gesture ? (row.entry.gesture.device === "touchscreen" ? "input-touchscreen-symbolic" : "input-touchpad-symbolic") : "input-keyboard-symbolic"
             color: launcher.ink
             isMask: true
             opacity: 0.4
@@ -62,13 +62,20 @@ MouseArea {
             id: keys
             spacing: Kirigami.Units.smallSpacing
             PlasmaComponents.Label {
-                visible: row.entry.keys.length > 1
+                visible: row.entry.keys.length > 1 && !row.entry.gesture
                 text: "+" + (row.entry.keys.length - 1)
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                 opacity: 0.45
             }
             KeyCaps {
+                visible: !row.entry.gesture
                 keyName: row.entry.keys[0]
+            }
+            FingerCaps {
+                visible: !!row.entry.gesture
+                fingers: row.entry.gesture ? row.entry.gesture.fingers : 1
+                motion: row.entry.gesture ? row.entry.gesture.motion : ""
+                device: row.entry.gesture ? row.entry.gesture.device : ""
             }
         }
     }

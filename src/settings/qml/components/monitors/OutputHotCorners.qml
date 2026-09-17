@@ -31,7 +31,7 @@ ColumnLayout {
 
     SwitchRow {
         label: "Own hot corners"
-        description: editor.overridden ? "This monitor ignores the hot corners from Mouse & Gestures" : "Uses the hot corners from Mouse & Gestures"
+        description: editor.overridden ? "This monitor ignores the hot corners from Mouse" : "Uses the hot corners from Mouse"
         iconName: "transform-move"
         isOn: editor.overridden
         onSwitched: on => on ? SettingsStore.setNode(editor.blockPath, { name: "hot-corners", args: [], props: {}, children: [{ name: "top-left", args: [], props: {} }] }) : SettingsStore.remove(editor.blockPath)

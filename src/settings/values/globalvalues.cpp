@@ -51,6 +51,31 @@ void insertAnimations(QVariantMap &values, const Config::Animations &animations)
     }
 }
 
+QVariantMap multiTouchValue(const Config::MultiTouch &touch)
+{
+    return {
+        {QStringLiteral("enabled"), touch.enabled},
+        {QStringLiteral("swipe-fingers"), touch.swipeFingers},
+        {QStringLiteral("pinch-fingers"), touch.pinchFingers},
+        {QStringLiteral("natural-swipe"), touch.naturalSwipe},
+        {QStringLiteral("horizontal-swipe"),
+            touch.horizontalSwipe == Config::HorizontalSwipe::ScrollView ? QStringLiteral("scroll-view") : QStringLiteral("off")},
+        {QStringLiteral("vertical-swipe"),
+            touch.verticalSwipe == Config::VerticalSwipe::SwitchWorkspace ? QStringLiteral("switch-workspace") : QStringLiteral("off")},
+        {QStringLiteral("pinch"),
+            touch.pinch == Config::PinchAction::ToggleOverview ? QStringLiteral("toggle-overview") : QStringLiteral("off")},
+        {QStringLiteral("window-swipe-fingers"), touch.windowSwipeFingers},
+        {QStringLiteral("window-horizontal-swipe"),
+            touch.windowHorizontalSwipe == Config::WindowHorizontalSwipe::ConsumeOrExpel ? QStringLiteral("consume-or-expel")
+                                                                                         : QStringLiteral("off")},
+        {QStringLiteral("window-vertical-swipe"),
+            touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveToWorkspace ? QStringLiteral("move-to-workspace")
+                                                                                      : QStringLiteral("off")},
+        {QStringLiteral("long-press-to-move"), touch.longPressToMove},
+        {QStringLiteral("long-press-ms"), touch.longPressMs},
+    };
+}
+
 }
 
 QVariantMap globalValues(const Config::Config &config)
@@ -78,6 +103,8 @@ QVariantMap globalValues(const Config::Config &config)
                 {QStringLiteral("bottom-left"), gestures.hotCorners.bottomLeft},
                 {QStringLiteral("bottom-right"), gestures.hotCorners.bottomRight},
             }},
+        {QStringLiteral("gestures/touchpad"), multiTouchValue(gestures.touchpad)},
+        {QStringLiteral("gestures/touchscreen"), multiTouchValue(gestures.touchscreen)},
         {QStringLiteral("gestures/resize-tiled-windows"), gestures.resizeTiledWindows},
         {QStringLiteral("gestures/titlebar-drag"),
             gestures.titlebarDrag == Config::TitlebarDrag::MoveWindow ? QStringLiteral("move-window") : QStringLiteral("scroll-view")},

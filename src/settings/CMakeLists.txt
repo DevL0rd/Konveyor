@@ -47,6 +47,7 @@ ecm_target_qml_sources(konveyor_settings PATH catalog/index SOURCES
     qml/catalog/index/MonitorsIndex.js
     qml/catalog/index/MotionIndex.js
     qml/catalog/index/MouseIndex.js
+    qml/catalog/index/TouchIndex.js
     qml/catalog/index/PlasmaIndex.js
     qml/catalog/index/RulesIndex.js
     qml/catalog/index/ShortcutsIndex.js
@@ -129,6 +130,7 @@ ecm_target_qml_sources(konveyor_settings PATH pages SOURCES
     qml/pages/RuleEditorPage.qml
     qml/pages/RulesPage.qml
     qml/pages/ShortcutsPage.qml
+    qml/pages/TouchPage.qml
     qml/pages/WorkspacesPage.qml
 )
 ecm_target_qml_sources(konveyor_settings PATH previews SOURCES
@@ -165,6 +167,7 @@ ecm_target_qml_sources(konveyor_settings PATH sections SOURCES
     qml/sections/ScopedSwitch.qml
     qml/sections/SizesSection.qml
     qml/sections/TabIndicatorSection.qml
+    qml/sections/TouchDeviceSection.qml
     qml/sections/ValueSlider.qml
 )
 

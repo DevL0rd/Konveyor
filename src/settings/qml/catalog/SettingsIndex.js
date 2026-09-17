@@ -3,6 +3,7 @@
 .import "index/LookIndex.js" as LookIndex
 .import "index/MotionIndex.js" as MotionIndex
 .import "index/MouseIndex.js" as MouseIndex
+.import "index/TouchIndex.js" as TouchIndex
 .import "index/ShortcutsIndex.js" as ShortcutsIndex
 .import "index/RulesIndex.js" as RulesIndex
 .import "index/MonitorsIndex.js" as MonitorsIndex
@@ -10,7 +11,7 @@
 .import "index/PlasmaIndex.js" as PlasmaIndex
 
 const entries = [].concat(
-    LayoutIndex.entries, LookIndex.entries, MotionIndex.entries, MouseIndex.entries, ShortcutsIndex.entries,
+    LayoutIndex.entries, LookIndex.entries, MotionIndex.entries, MouseIndex.entries, TouchIndex.entries, ShortcutsIndex.entries,
     RulesIndex.entries, MonitorsIndex.entries, WorkspacesIndex.entries, PlasmaIndex.entries);
 
 function search(query) {

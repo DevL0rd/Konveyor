@@ -40,7 +40,7 @@ SettingsPage {
         }
     }
 
-    title: "Mouse & Gestures"
+    title: "Mouse"
     preview: EdgeZonesMap {
         screenWidth: page.output.width
         screenHeight: page.output.height

@@ -39,6 +39,11 @@ KCM.SimpleKCM {
             return values["animations/enabled"] ? "Animations on · " + values["animations/slowdown"] + "× speed" : "Animations off";
         case "mouse":
             return (values["input/focus-follows-mouse"] ? "Focus follows mouse" : "Click to focus") + " · title bar drag " + (values["gestures/titlebar-drag"] === "move-window" ? "moves windows" : "scrolls");
+        case "touch": {
+            const touchpad = values["gestures/touchpad"] || {};
+            const touchscreen = values["gestures/touchscreen"] || {};
+            return (touchpad.enabled ? "Touchpad " + touchpad["swipe-fingers"] + "-finger swipes" : "Touchpad off") + " · " + (touchscreen.enabled ? "touchscreen on" : "touchscreen off");
+        }
         case "shortcuts":
             return plural(SettingsStore.revision >= 0 ? (SettingsStore.node("binds").children || []).length : 0, "shortcut");
         case "rules":
