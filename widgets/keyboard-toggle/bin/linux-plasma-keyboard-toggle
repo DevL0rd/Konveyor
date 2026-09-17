@@ -4,5 +4,57 @@
 
 set -euo pipefail
 
-busctl --user call org.kde.KWin /VirtualKeyboard org.kde.kwin.VirtualKeyboard forceActivate
-printf 'done\n'
+readonly SERVICE=org.kde.KWin
+readonly OBJECT=/VirtualKeyboard
+readonly INTERFACE=org.kde.kwin.VirtualKeyboard
+readonly STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/linux-plasma-keyboard-toggle"
+readonly SAVED_MODE="$STATE_DIR/mode"
+
+property() {
+    busctl --user get-property "$SERVICE" "$OBJECT" "$INTERFACE" "$1" | cut -d' ' -f2
+}
+
+set_property() {
+    busctl --user set-property "$SERVICE" "$OBJECT" "$INTERFACE" "$1" "$2" "$3"
+}
+
+open_keyboard() {
+    mkdir -p "$STATE_DIR"
+    local mode
+    mode=$(property mode)
+    [[ -f $SAVED_MODE ]] || printf '%s\n' "$mode" >"$SAVED_MODE"
+    [[ $mode == 0 ]] && set_property mode i 1
+    set_property active b true
+    busctl --user call "$SERVICE" "$OBJECT" "$INTERFACE" forceActivate
+    printf 'open\n'
+}
+
+close_keyboard() {
+    set_property active b false
+    if [[ -f $SAVED_MODE ]]; then
+        set_property mode i "$(<"$SAVED_MODE")"
+        rm -f "$SAVED_MODE"
+    fi
+    sleep 0.3
+    if [[ $(property visible) == true ]]; then
+        pkill -x plasma-keyboard || true
+    fi
+    printf 'closed\n'
+}
+
+case "${1:-toggle}" in
+open) open_keyboard ;;
+close) close_keyboard ;;
+state) [[ $(property visible) == true ]] && printf 'open\n' || printf 'closed\n' ;;
+toggle)
+    if [[ $(property visible) == true ]]; then
+        close_keyboard
+    else
+        open_keyboard
+    fi
+    ;;
+*)
+    printf 'usage: linux-plasma-keyboard-toggle [toggle|open|close|state]\n' >&2
+    exit 2
+    ;;
+esac

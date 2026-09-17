@@ -19,7 +19,7 @@ PlasmoidItem {
     Plasmoid.title: i18n("Keyboard Toggle")
     preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     toolTipMainText: i18n("Virtual Keyboard")
-    toolTipSubText: i18n("Click to show the on-screen keyboard")
+    toolTipSubText: i18n("Click to open or close the on-screen keyboard")
 
     function showKeyboard() {
         runner.connectSource(showCommand)
@@ -149,7 +149,7 @@ PlasmoidItem {
                 }
                 PlasmaComponents.Button {
                     icon.name: "input-keyboard"
-                    text: i18n("Show keyboard")
+                    text: i18n("Open or close")
                     onClicked: root.showKeyboard()
                 }
             }

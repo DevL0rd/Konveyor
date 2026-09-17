@@ -1,6 +1,6 @@
 # Linux Plasma Keyboard Toggle
 
-A small KDE Plasma 6 panel widget that shows the on-screen keyboard.
+A small KDE Plasma 6 panel widget that opens and closes the on-screen keyboard.
 
 Useful when streaming a desktop to a tablet or phone, where the keyboard normally only appears on a touched text field and there is no other way to summon it.
 
@@ -29,7 +29,7 @@ Remove the widget from your panel if it is still shown.
 
 ## Behaviour
 
-Clicking the panel button calls `forceActivate` on KWin's virtual keyboard, which shows it, with a short ripple to confirm the click. On the desktop the widget shows a card with a Show keyboard button.
+Clicking the panel button toggles KWin's virtual keyboard, with a short ripple to confirm the click. If the keyboard is showing it closes; otherwise it opens, even on a laptop that isn't in tablet mode, and your virtual keyboard mode is put back once it closes. If a rotation or screen change leaves it stuck open, closing restarts `plasma-keyboard`. On the desktop the widget shows a card with an Open or close button.
 
 There is no hide action. KWin's virtual keyboard D-Bus interface exposes no way to dismiss the keyboard; setting `active` to false or changing `mode` leaves it visible. The keyboard hides itself when the focused text field loses focus, or through its own close button. For the same reason the widget does not indicate whether the keyboard is currently open.
 
