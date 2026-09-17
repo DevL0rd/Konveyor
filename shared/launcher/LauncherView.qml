@@ -79,6 +79,54 @@ FocusScope {
     }
     readonly property int pageIndex: Math.max(0, pageDefs.findIndex(def => def.key === page))
     property bool altHeld: false
+    property string openFolder: ""
+    function toggleFolder(id) {
+        openFolder = openFolder === id ? "" : id
+        Qt.callLater(resetSelection)
+    }
+    function pinDrop(entries, from, to, into) {
+        const source = entries[from]
+        const target = entries[to]
+        if (!source || !target || from === to)
+            return
+        if (into && source.kind === "app") {
+            if (target.kind === "folder") {
+                launcherData.addToFolder(target.id, source.favoriteId)
+            } else {
+                openFolder = launcherData.createFolder([target.favoriteId, source.favoriteId])
+            }
+            return
+        }
+        const favorites = launcherData.favorites
+        if (source.kind === "app") {
+            favorites.moveRow(source.favIndex, target.favIndex)
+            return
+        }
+        const members = source.apps.map(index => launcherData.favoriteIds[index])
+        for (let k = 0; k < members.length; ++k) {
+            launcherData.rebuildPinned()
+            const ids = launcherData.favoriteIds
+            const current = ids.indexOf(members[k])
+            if (current < 0)
+                continue
+            let destination = target.favIndex
+            if (k > 0) {
+                const previous = ids.indexOf(members[k - 1])
+                destination = current < previous ? previous : previous + 1
+            }
+            if (destination !== current)
+                favorites.moveRow(current, destination)
+        }
+        launcherData.rebuildPinned()
+    }
+    function folderEntries(folder) {
+        const entries = [{ text: launcher.openFolder === folder.id ? i18n("Close folder") : i18n("Open folder"), icon: "folder-open-symbolic", run: () => launcher.toggleFolder(folder.id) }]
+        entries.push({ text: i18n("Rename…"), icon: "edit-rename", run: () => { launcher.openFolder = folder.id; launcher.renameRequested(folder.id) } })
+        entries.push({ separator: true })
+        entries.push({ text: i18n("Ungroup"), icon: "edit-delete-remove", run: () => { if (launcher.openFolder === folder.id) launcher.openFolder = ""; launcherData.deleteFolder(folder.id) } })
+        return entries
+    }
+    signal renameRequested(string id)
 
     LauncherData {
         id: launcherData
@@ -116,6 +164,7 @@ FocusScope {
         closeAnimation.stop()
         page = pageDefs.some(def => def.key === Plasmoid.configuration.defaultPage) ? Plasmoid.configuration.defaultPage : "home"
         markVisited(page)
+        openFolder = ""
         field.text = ""
         hadFocus = false
         shown = true
@@ -170,6 +219,7 @@ FocusScope {
         field.forceActiveFocus()
     }
     function goToPage(key) {
+        openFolder = ""
         page = key
         markVisited(key)
         field.text = ""
@@ -345,6 +395,13 @@ FocusScope {
         if (favoriteId) {
             const pinned = isPinned(favoriteId)
             entries.push({ text: pinned ? i18n("Unpin from Home") : i18n("Pin to Home"), icon: pinned ? "window-unpin" : "window-pin", run: () => launcher.togglePin(favoriteId) })
+            if (pinned) {
+                const inside = launcherData.folderFor(favoriteId)
+                if (inside)
+                    entries.push({ text: i18n("Remove from “%1”", inside.name), icon: "folder-remove", run: () => launcherData.removeFromFolder(favoriteId) })
+                for (const folder of launcherData.folders.filter(folder => !inside || folder.id !== inside.id).slice(0, 6))
+                    entries.push({ text: i18n("Move to “%1”", folder.name), icon: "folder-symbolic", run: () => launcherData.addToFolder(folder.id, favoriteId) })
+            }
             if (favoriteId.indexOf(".desktop") >= 0)
                 entries.push({ text: i18n("Hide from launcher"), icon: "view-hidden", run: () => launcherData.setHidden(favoriteId, true) })
         }

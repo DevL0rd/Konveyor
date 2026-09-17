@@ -8,6 +8,8 @@ GridView {
     property bool reorderable: false
     property int dragIndex: -1
     property int dropIndex: -1
+    property bool dropInto: false
+    property string folderId: ""
     property int limit: -1
     property bool scrolling: false
     property int iconSize: 48

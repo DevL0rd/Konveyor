@@ -22,6 +22,12 @@ Usage:
   portal-games --hidden            print the list of hidden desktop ids
   portal-games --hide ID           hide a desktop id from App Portal and the launcher
   portal-games --unhide ID         show it again
+  portal-games --folders           print the pinned-app folders
+  portal-games --folder-create FOLDER NAME ID ID...   make a folder from pinned apps (takes them out of other folders)
+  portal-games --folder-add FOLDER ID          put a pinned app into a folder
+  portal-games --folder-remove ID              take an app out of its folder (empty folders are deleted)
+  portal-games --folder-rename FOLDER NAME     rename a folder
+  portal-games --folder-delete FOLDER          dissolve a folder, keeping its apps pinned
 """
 import json
 import os
@@ -49,7 +55,8 @@ STATE_DIR = os.path.join(XDG_DATA_HOME, "Plasma-App-Portal")
 ART_DIR = os.path.join(STATE_DIR, "art")
 OVERRIDES = os.path.join(STATE_DIR, "overrides.json")
 USAGE = os.path.join(STATE_DIR, "usage.json")
-HIDDEN = os.path.join(STATE_DIR, "hidden.json")    # key -> last-launched epoch (apps + games)
+HIDDEN = os.path.join(STATE_DIR, "hidden.json")
+FOLDERS = os.path.join(STATE_DIR, "folders.json")    # key -> last-launched epoch (apps + games)
 
 FIELD_CODES = re.compile(r"%[uUfFickdDnNvm]")
 APPID_RE = re.compile(r"rungameid/(\d+)|steam_app_(\d+)|steam_icon_(\d+)|/(\d+)/")
@@ -293,6 +300,67 @@ def set_hidden(desktop_id, hidden):
     return 0
 
 
+def load_folders():
+    data = _load_json(FOLDERS)
+    folders = []
+    for entry in data if isinstance(data, list) else []:
+        if isinstance(entry, dict) and entry.get("id") and isinstance(entry.get("apps"), list):
+            folders.append({"id": str(entry["id"]), "name": str(entry.get("name") or ""),
+                            "apps": [str(app) for app in entry["apps"] if app]})
+    return folders
+
+
+def save_folders(folders):
+    folders = [folder for folder in folders if folder["apps"]]
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = FOLDERS + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(folders, f)
+    os.replace(tmp, FOLDERS)
+    return 0
+
+
+def take_out(folders, app_ids):
+    for folder in folders:
+        folder["apps"] = [app for app in folder["apps"] if app not in app_ids]
+
+
+def folder_create(folder_id, name, app_ids):
+    folders = [folder for folder in load_folders() if folder["id"] != folder_id]
+    take_out(folders, app_ids)
+    folders.append({"id": folder_id, "name": name, "apps": list(dict.fromkeys(app_ids))})
+    return save_folders(folders)
+
+
+def folder_add(folder_id, app_id):
+    folders = load_folders()
+    target = next((folder for folder in folders if folder["id"] == folder_id), None)
+    if target is None:
+        sys.stderr.write("no such folder: %s\n" % folder_id)
+        return 1
+    take_out(folders, [app_id])
+    target["apps"].append(app_id)
+    return save_folders(folders)
+
+
+def folder_remove(app_id):
+    folders = load_folders()
+    take_out(folders, [app_id])
+    return save_folders(folders)
+
+
+def folder_rename(folder_id, name):
+    folders = load_folders()
+    for folder in folders:
+        if folder["id"] == folder_id:
+            folder["name"] = name
+    return save_folders(folders)
+
+
+def folder_delete(folder_id):
+    return save_folders([folder for folder in load_folders() if folder["id"] != folder_id])
+
+
 def set_art(desktop_id, src):
     if not os.path.isfile(src):
         sys.stderr.write("no such file: %s\n" % src)
@@ -350,6 +418,19 @@ def main():
         return set_hidden(a[1], True)
     if a[0] == "--unhide" and len(a) == 2:
         return set_hidden(a[1], False)
+    if a[0] == "--folders":
+        json.dump(load_folders(), sys.stdout)
+        return 0
+    if a[0] == "--folder-create" and len(a) >= 5:
+        return folder_create(a[1], a[2], a[3:])
+    if a[0] == "--folder-add" and len(a) == 3:
+        return folder_add(a[1], a[2])
+    if a[0] == "--folder-remove" and len(a) == 2:
+        return folder_remove(a[1])
+    if a[0] == "--folder-rename" and len(a) == 3:
+        return folder_rename(a[1], a[2])
+    if a[0] == "--folder-delete" and len(a) == 2:
+        return folder_delete(a[1])
     if a[0] == "--favorites":
         json.dump(favorites(), sys.stdout, separators=(",", ":"))
         return 0

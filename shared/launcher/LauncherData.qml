@@ -388,7 +388,137 @@ Item {
         path: data.statePath + "/hidden.json"
         onChanged: data.readHidden()
     }
-    Component.onCompleted: readHidden()
+    Component.onCompleted: {
+        readHidden()
+        readFolders()
+    }
+
+    property var folders: []
+    property var favoriteIds: []
+    property var pinnedEntries: []
+    property string pinnedSignature: ""
+    Instantiator {
+        id: favoriteRows
+        model: data.favorites
+        delegate: QtObject {
+            required property var model
+            required property int index
+            readonly property string favoriteId: model.favoriteId || ""
+            readonly property var decoration: model.decoration
+            readonly property string display: model.display || ""
+            readonly property bool isNewlyInstalled: model.isNewlyInstalled === true
+            readonly property bool hasActionList: model.hasActionList === true
+            readonly property var actionList: model.actionList
+        }
+        onObjectAdded: Qt.callLater(data.rebuildPinned)
+        onObjectRemoved: Qt.callLater(data.rebuildPinned)
+    }
+    Connections {
+        target: data.favorites
+        function onRowsMoved() { Qt.callLater(data.rebuildPinned) }
+        function onModelReset() { Qt.callLater(data.rebuildPinned) }
+        function onDataChanged() { Qt.callLater(data.rebuildPinned) }
+    }
+    onFoldersChanged: Qt.callLater(rebuildPinned)
+    function favoriteRow(index) {
+        return favoriteRows.objectAt(index)
+    }
+    function rebuildPinned() {
+        const ids = []
+        for (let row = 0; row < favoriteRows.count; ++row) {
+            const item = favoriteRows.objectAt(row)
+            ids.push(item ? item.favoriteId : "")
+        }
+        const folderOf = {}
+        for (const folder of folders) {
+            for (const app of folder.apps)
+                folderOf[app] = folder
+        }
+        const entries = []
+        const emitted = {}
+        for (let row = 0; row < ids.length; ++row) {
+            const folder = folderOf[ids[row]]
+            if (!folder) {
+                entries.push({ kind: "app", favIndex: row, favoriteId: ids[row] })
+                continue
+            }
+            if (emitted[folder.id] !== undefined) {
+                entries[emitted[folder.id]].apps.push(row)
+                continue
+            }
+            emitted[folder.id] = entries.length
+            entries.push({ kind: "folder", id: folder.id, name: folder.name, apps: [row], favIndex: row, favoriteId: "" })
+        }
+        const signature = JSON.stringify(entries)
+        favoriteIds = ids
+        if (signature !== pinnedSignature) {
+            pinnedSignature = signature
+            pinnedEntries = entries
+        }
+    }
+    function folderById(id) {
+        return folders.find(folder => folder.id === id) || null
+    }
+    function folderFor(favoriteId) {
+        return folders.find(folder => folder.apps.indexOf(favoriteId) >= 0) || null
+    }
+    function readFolders() {
+        const xhr = new XMLHttpRequest()
+        xhr.open("GET", "file://" + statePath + "/folders.json")
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+            let parsed = []
+            try {
+                parsed = JSON.parse(xhr.responseText || "[]")
+            } catch (error) {
+                return
+            }
+            const list = Array.isArray(parsed) ? parsed.filter(entry => entry && entry.id && Array.isArray(entry.apps)) : []
+            if (JSON.stringify(list) !== JSON.stringify(data.folders))
+                data.folders = list
+        }
+        xhr.send()
+    }
+    FileWatcher {
+        path: data.statePath + "/folders.json"
+        onChanged: data.readFolders()
+    }
+    function withoutApps(list, apps) {
+        return list.map(folder => ({ id: folder.id, name: folder.name, apps: folder.apps.filter(app => apps.indexOf(app) < 0) })).filter(folder => folder.apps.length > 0)
+    }
+    function createFolder(apps, name) {
+        const id = "folder-" + Date.now()
+        const label = name || i18n("Folder")
+        folders = withoutApps(folders, apps).concat([{ id: id, name: label, apps: apps.slice() }])
+        run(portalBin + " --folder-create " + shq(id) + " " + shq(label) + " " + apps.map(app => shq(app)).join(" "))
+        return id
+    }
+    function addToFolder(id, app) {
+        const next = withoutApps(folders, [app])
+        const target = next.find(folder => folder.id === id)
+        if (target)
+            target.apps.push(app)
+        else
+            next.push({ id: id, name: (folderById(id) || { name: i18n("Folder") }).name, apps: [app] })
+        folders = next
+        run(portalBin + " --folder-add " + shq(id) + " " + shq(app))
+    }
+    function removeFromFolder(app) {
+        folders = withoutApps(folders, [app])
+        run(portalBin + " --folder-remove " + shq(app))
+    }
+    function renameFolder(id, name) {
+        const label = String(name || "").trim()
+        if (label === "")
+            return
+        folders = folders.map(folder => folder.id === id ? { id: folder.id, name: label, apps: folder.apps } : folder)
+        run(portalBin + " --folder-rename " + shq(id) + " " + shq(label))
+    }
+    function deleteFolder(id) {
+        folders = folders.filter(folder => folder.id !== id)
+        run(portalBin + " --folder-delete " + shq(id))
+    }
     function trackApp(favoriteId) {
         const key = desktopKey(favoriteId)
         if (key !== "")

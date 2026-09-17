@@ -21,6 +21,7 @@ plasmoids/org.devl0rd.portal*/contents/ui/KickerTile.qml
 plasmoids/org.devl0rd.portal*/contents/ui/LauncherData.qml
 plasmoids/org.devl0rd.portal*/contents/ui/LauncherView.qml
 plasmoids/org.devl0rd.portal*/contents/ui/PlayingNowCard.qml
+plasmoids/org.devl0rd.portal*/contents/ui/PinnedTile.qml
 plasmoids/org.devl0rd.portal*/contents/ui/RowTile.qml
 plasmoids/org.devl0rd.portal*/contents/ui/SectionHeader.qml
 plasmoids/org.devl0rd.portal*/contents/ui/Segment.qml

@@ -17,6 +17,9 @@ Item {
     property var game: null
     property bool reorderable: false
     property bool dropTarget: false
+    property bool dropInto: false
+    property var folderIcons: []
+    readonly property bool isFolder: folderIcons.length > 0
     readonly property bool dragging: mouse.dragging
     signal reorderMove(point position)
     signal reorderDrop(point position)
@@ -30,9 +33,20 @@ Item {
         anchors.fill: parent
         anchors.margins: 3
         radius: Kirigami.Units.cornerRadius * 2.5
-        color: tile.selected || tile.dropTarget ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
-        border.width: tile.selected || tile.dropTarget ? 1 : 0
+        color: tile.selected || (tile.dropTarget && tile.dropInto) ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
+        border.width: tile.selected || (tile.dropTarget && tile.dropInto) ? 1 : 0
         border.color: tile.dropTarget ? Qt.alpha(Kirigami.Theme.textColor, 0.8) : launcher.selectedLine
+    }
+    Rectangle {
+        visible: tile.dropTarget && !tile.dropInto
+        width: 3
+        radius: 1.5
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: Kirigami.Units.largeSpacing
+        anchors.bottomMargin: Kirigami.Units.largeSpacing
+        color: Kirigami.Theme.textColor
     }
 
     ColumnLayout {
@@ -42,7 +56,7 @@ Item {
 
         Item {
             Layout.alignment: Qt.AlignHCenter
-            readonly property bool art: tile.game !== null && tile.game.appid !== ""
+            readonly property bool art: !tile.isFolder && tile.game !== null && tile.game.appid !== ""
             Layout.preferredWidth: art ? Math.round(tile.iconSize * 0.84) : tile.iconSize
             Layout.preferredHeight: art ? Math.round(tile.iconSize * 1.26) : tile.iconSize
             Layout.topMargin: art ? -Math.round(tile.iconSize * 0.13) : 0
@@ -58,8 +72,32 @@ Item {
                     scale: mouse.pressed ? 0.92 : 1
                 }
             }
+            Rectangle {
+                visible: tile.isFolder
+                anchors.fill: parent
+                radius: Kirigami.Units.cornerRadius * 2
+                color: Qt.alpha(Kirigami.Theme.textColor, tile.dropTarget && tile.dropInto ? 0.2 : 0.1)
+                border.width: 1
+                border.color: Qt.alpha(Kirigami.Theme.textColor, 0.14)
+                scale: mouse.pressed ? 0.92 : 1
+                Grid {
+                    anchors.centerIn: parent
+                    columns: 2
+                    spacing: Math.round(tile.iconSize * 0.06)
+                    Repeater {
+                        model: tile.folderIcons.slice(0, 4)
+                        Kirigami.Icon {
+                            required property var modelData
+                            width: Math.round(tile.iconSize * 0.36)
+                            height: width
+                            source: modelData
+                            fallback: "application-x-executable"
+                        }
+                    }
+                }
+            }
             Kirigami.Icon {
-                visible: tile.game === null || !tile.game.appid
+                visible: !tile.isFolder && (tile.game === null || !tile.game.appid)
                 anchors.fill: parent
                 source: tile.iconSource
                 fallback: "application-x-executable"
@@ -108,6 +146,7 @@ Item {
         property bool suppressClick: false
         anchors.fill: parent
         hoverEnabled: true
+        preventStealing: tile.reorderable
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onEntered: tile.hovered()
         onPressed: function(event) {
