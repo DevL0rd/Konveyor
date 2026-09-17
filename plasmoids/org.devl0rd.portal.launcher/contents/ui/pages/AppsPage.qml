@@ -93,18 +93,20 @@ ColumnLayout {
                 }
             }
         }
-        const found = []
+        const rows = {}
         if (page.sort === "name") {
             const direct = page.hiddenShown === 0 && page.categoryModel
             for (let i = 0; i < group.count; ++i) {
                 const label = String(direct ? page.categoryModel.labelForRow(i) : group.get(i).model.display || "")
                 const first = label.charAt(0).toUpperCase()
                 const key = /[A-Z]/.test(first) ? first : "#"
-                if (found.length === 0 || found[found.length - 1].key !== key)
-                    found.push({ key: key, row: i })
+                if (rows[key] === undefined)
+                    rows[key] = i
             }
         }
-        page.letters = found
+        page.letters = group.count > 0 && page.sort === "name"
+            ? ["#"].concat("ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")).map(key => ({ key: key, row: rows[key] === undefined ? -1 : rows[key] }))
+            : []
     }
     Timer {
         id: arrangeTimer
@@ -328,7 +330,8 @@ ColumnLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.maximumHeight: Kirigami.Units.gridUnit * 1.3
-                    hoverEnabled: true
+                    hoverEnabled: modelData.row >= 0
+                    enabled: modelData.row >= 0
                     onClicked: page.jump(modelData.row)
                     Rectangle {
                         anchors.centerIn: parent
@@ -342,7 +345,7 @@ ColumnLayout {
                         text: letter.modelData.key
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                         font.weight: Font.DemiBold
-                        opacity: letter.containsMouse ? 1 : 0.5
+                        opacity: letter.modelData.row < 0 ? 0.18 : letter.containsMouse ? 1 : 0.55
                     }
                 }
             }

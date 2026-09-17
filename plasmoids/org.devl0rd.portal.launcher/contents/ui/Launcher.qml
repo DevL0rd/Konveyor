@@ -399,7 +399,7 @@ Item {
                 entries.push({ separator: true })
                 entries.push({ text: i18n("Playing now"), friendHeader: true, disabled: true })
             }
-            entries.push({ text: friend.name, icon: "im-user", run: () => { Qt.openUrlExternally(friend.chat); root.hide() } })
+            entries.push({ text: friend.name, icon: "im-user", iconSource: friend.avatar || "", run: () => { Qt.openUrlExternally(friend.chat); root.hide() } })
         }
         return entries
     }
@@ -929,7 +929,7 @@ Item {
                         if (entry.separator)
                             addItem(separatorComponent.createObject(null))
                         else
-                            addItem(itemComponent.createObject(null, { text: entry.text, "icon.name": entry.icon || "", enabled: entry.disabled !== true, entry: entry }))
+                            addItem(itemComponent.createObject(null, { text: entry.text, "icon.name": entry.icon || "", "icon.source": entry.iconSource || "", enabled: entry.disabled !== true, entry: entry }))
                     }
                 }
                 onClosed: field.forceActiveFocus()
