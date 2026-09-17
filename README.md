@@ -26,6 +26,7 @@
 <p align="center">
   <a href="#get-started"><b>Get started</b></a> ·
   <a href="#see-it-move"><b>See it move</b></a> ·
+  <a href="#widgets"><b>Konveyor widgets</b></a> ·
   <a href="#settings"><b>Settings</b></a> ·
   <a href="#shortcuts"><b>Shortcuts</b></a> ·
   <a href="#faq"><b>FAQ</b></a>
@@ -47,7 +48,7 @@ cd Linux-Konveyor
 ./install.sh
 ```
 
-That's it. The installer grabs what it needs, builds Konveyor for your exact KWin and switches it on, usually without even logging out.
+That's it. The installer grabs what it needs, builds Konveyor for your exact KWin and switches it on, usually without even logging out. It also installs the [Konveyor widgets](#widgets) and swaps your application launcher for the Portal Launcher.
 
 > [!TIP]
 > Press <kbd>Meta</kbd> + <kbd>K</kbd> any time for a searchable cheat sheet of every shortcut.
@@ -60,6 +61,10 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
   <tr>
     <td>🧹 <b>Remove</b></td>
     <td>Run <code>./uninstall.sh</code>. Your shortcuts and window rules go back to how KDE had them.</td>
+  </tr>
+  <tr>
+    <td>🧩 <b>Just the tiling</b></td>
+    <td>Run <code>./install.sh --no-widgets</code> to skip the widgets, or <code>./uninstall.sh --keep-widgets</code> to remove only the window manager.</td>
   </tr>
   <tr>
     <td>🖥️ <b>Needs</b></td>
@@ -140,6 +145,102 @@ Some windows don't belong in a row. Lift one out with a single key, move it and 
 
 ---
 
+<a id="widgets"></a>
+
+## 🧩 Konveyor widgets
+
+Konveyor comes with a set of Plasma widgets built to match: a full-screen launcher, system and process monitors, a router dashboard, a live system log and your Steam friends. Each one sits in your panel as a small, steady button and opens into a searchable dashboard. They also work as desktop widgets.
+
+<p align="center"><img alt="The Portal Launcher opening, searching and browsing games" src="docs/media/widgets/launcher.gif" width="92%"></p>
+
+### 🚀 Portal Launcher
+
+Press <kbd>Meta</kbd> and the desktop dims behind one launcher for everything. Start typing and apps, games, friends, settings, files, maths, commands and even installable packages show up together, best match first. <kbd>Meta</kbd> + <kbd>G</kbd> opens straight on your games.
+
+<table>
+  <tr>
+    <td width="50%"><img alt="Launcher home page" src="docs/media/widgets/launcher-home.jpg"><p align="center"><b>Home</b> — pins, friends playing now and games to jump back into</p></td>
+    <td width="50%"><img alt="Launcher search results" src="docs/media/widgets/launcher-search.jpg"><p align="center"><b>Search</b> — grouped results, with Shelly packages at the end</p></td>
+  </tr>
+  <tr>
+    <td><img alt="Launcher games in cover flow" src="docs/media/widgets/launcher-games.jpg"><p align="center"><b>Games</b> — grid, banners, list, carousel and cover flow</p></td>
+    <td><img alt="Launcher apps page" src="docs/media/widgets/launcher-apps.jpg"><p align="center"><b>Apps</b> — categories, an A–Z bar, sorting and zoom</p></td>
+  </tr>
+  <tr>
+    <td><img alt="Launcher friends page" src="docs/media/widgets/launcher-friends.jpg"><p align="center"><b>Friends</b> — who's online and what they're playing</p></td>
+    <td><img alt="Launcher system page" src="docs/media/widgets/launcher-system.jpg"><p align="center"><b>System</b> — lock, sleep, restart and your settings</p></td>
+  </tr>
+</table>
+
+### 📊 System Monitor and Process Monitor
+
+<table>
+  <tr>
+    <td width="42%" valign="top"><img alt="System Monitor panel button and dashboard" src="docs/media/widgets/system-monitor.gif"><p align="center"><b>System Monitor</b> — CPU, every core, GPU, memory and temperatures with history</p></td>
+    <td width="58%" valign="top"><img alt="Process Monitor panel button and dashboard" src="docs/media/widgets/process-monitor.gif"><p align="center"><b>Process Monitor</b> — the focused app with its FPS, plus every process as a tree</p></td>
+  </tr>
+</table>
+
+### 📡 Router Monitor
+
+Speeds, WiFi radios, every device, AdGuard Home and a speed test for ASUS routers running Asuswrt-Merlin, with rename and block right from the device list. Each tab is also its own desktop widget.
+
+<table>
+  <tr>
+    <td width="40%" valign="top" rowspan="3"><img alt="Router Monitor going through its tabs" src="docs/media/widgets/router-monitor.gif"></td>
+    <td width="30%"><img alt="Router overview" src="docs/media/widgets/router-overview.jpg"><p align="center"><b>Overview</b></p></td>
+    <td width="30%"><img alt="Router network" src="docs/media/widgets/router-network.jpg"><p align="center"><b>Network</b></p></td>
+  </tr>
+  <tr>
+    <td><img alt="Router WiFi" src="docs/media/widgets/router-wifi.jpg"><p align="center"><b>WiFi</b></p></td>
+    <td><img alt="Router clients" src="docs/media/widgets/router-clients.jpg"><p align="center"><b>Clients</b></p></td>
+  </tr>
+  <tr>
+    <td><img alt="Router DNS" src="docs/media/widgets/router-dns.jpg"><p align="center"><b>DNS</b></p></td>
+    <td><img alt="Router system" src="docs/media/widgets/router-system.jpg"><p align="center"><b>System</b></p></td>
+  </tr>
+</table>
+
+### 📜 System Log, 🎮 App Portal and 👥 Steam Friends
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><img alt="System Log with severity tabs and search" src="docs/media/widgets/system-log.gif"><p align="center"><b>System Log</b> — the live journal, by severity, searchable across everything</p></td>
+    <td width="50%" valign="top"><img alt="App Portal popup" src="docs/media/widgets/app-portal.gif"><p align="center"><b>App Portal</b> — the launcher in a panel popup</p></td>
+  </tr>
+  <tr>
+    <td valign="top"><img alt="Steam Friends popup" src="docs/media/widgets/steam-friends.gif"><p align="center"><b>Steam Friends</b> — online, in game, join and chat</p></td>
+    <td valign="top" align="center"><br><img alt="Keyboard Toggle and Screen Rotate buttons" src="docs/media/widgets/toggles.png"><p align="center"><b>Keyboard Toggle</b> and <b>Screen Rotate</b> — one tap for the on-screen keyboard or a quarter turn</p></td>
+  </tr>
+</table>
+
+### ⚙️ Setting them up
+
+Everything the widgets need is installed for you, and one background service feeds all of them. A few need a detail only you have:
+
+<table>
+  <tr>
+    <td>📡 <b>Router Monitor</b></td>
+    <td>Add your router's address, user and AdGuard Home login to <code>~/.config/Linux-Router-Monitor/config.json</code>, then run <code>./install.sh</code> again.</td>
+  </tr>
+  <tr>
+    <td>👥 <b>Steam friends</b></td>
+    <td>Paste a free <a href="https://steamcommunity.com/dev/apikey">Steam Web API key</a> into the Steam Friends widget, or into <code>~/.config/Plasma-App-Portal/config.json</code>.</td>
+  </tr>
+  <tr>
+    <td>🎮 <b>FPS</b></td>
+    <td>Process Monitor reads frame rates from <a href="https://github.com/flightlessmango/MangoHud">MangoHud</a> when it's installed; the installer sets it up.</td>
+  </tr>
+  <tr>
+    <td>🖼️ <b>Desktop widgets</b></td>
+    <td>Konveyor hides desktop widgets while windows cover them and shows them again when you look at the desktop.</td>
+  </tr>
+</table>
+
+<p align="right"><a href="#top">back to top ⬆</a></p>
+
+---
+
 <a id="settings"></a>
 
 ## 🎛️ Settings that show you
@@ -200,6 +301,8 @@ Open **System Settings → Window Management → Konveyor**. Every option has a 
 | <kbd>Meta</kbd> + <kbd>Return</kbd> | Open a terminal |
 | <kbd>Meta</kbd> + <kbd>Q</kbd> | Close the window |
 | <kbd>Meta</kbd> + <kbd>K</kbd> | Show every shortcut |
+| <kbd>Meta</kbd> | Open the Portal Launcher |
+| <kbd>Meta</kbd> + <kbd>G</kbd> | Open the Portal Launcher on your games |
 
 > [!NOTE]
 > Konveyor leaves KDE's own shortcuts alone — <kbd>Alt</kbd> + <kbd>F4</kbd>, <kbd>Meta</kbd> + <kbd>L</kbd>, screenshots and the rest work as always. Change anything from the **Shortcuts** settings page.
@@ -232,6 +335,18 @@ Konveyor runs in the Plasma Wayland session. X11 apps running through XWayland a
 <summary><b>Can I tweak things beyond the settings page?</b></summary>
 <br>
 Everything the settings page changes lives in one readable file, and there's a command line tool for scripting. See <a href="docs/configuration.md">docs/configuration.md</a>.
+</details>
+
+<details>
+<summary><b>Do the widgets slow my system down?</b></summary>
+<br>
+No. A single background service collects everything they show, and the dashboards only update while you can see them. Close a popup or cover a desktop widget and it goes quiet.
+</details>
+
+<details>
+<summary><b>Can I keep my old application launcher?</b></summary>
+<br>
+Yes. Install with <code>./install.sh --no-widgets</code>, or put the launcher back from your panel's Add Widgets menu. Uninstalling the widgets restores the launcher you had.
 </details>
 
 <details>
