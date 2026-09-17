@@ -1,25 +1,4 @@
 #!/usr/bin/env python3
-"""
-Linux-Process-Mon :: resident process collector.
-
-A single `--serve` daemon (systemd --user service, pinned to the E-cores) reads
-/proc once per interval and writes a compact process snapshot to
-$XDG_RUNTIME_DIR/Linux-Process-Mon/data.json. The widget reads that file
-in-process via XHR (no per-poll process spawn), builds the parent/child tree and
-renders the table.
-
-Per row: name, ppid (for the tree), CPU% (per-core, htop-style), RSS bytes,
-thread count, PID, disk I/O (bytes/s, own processes only -- /proc/<pid>/io is
-not readable for other users without root), and the NVIDIA per-process figures
-from `nvidia-smi pmon`: GPU (SM) %, encoder %, decoder %, VRAM bytes.
-
-Summable metrics also get an a* field = self + every descendant (subtree total).
-
-Modes:
-  procmon-collect --serve      resident: refresh the snapshot every interval
-  procmon-collect --snapshot   print the cached snapshot (debug / fallback)
-  procmon-collect --once       one sample to stdout (debug)
-"""
 import os, sys, json, time, glob, socket, resource
 from ctypes import byref, c_uint, c_ulonglong
 
@@ -47,26 +26,21 @@ MEM_TOTAL = 0
 try:
     for _ln in open("/proc/meminfo"):
         if _ln.startswith("MemTotal:"):
-            MEM_TOTAL = int(_ln.split()[1]) * 1024          # kB -> bytes
+            MEM_TOTAL = int(_ln.split()[1]) * 1024
             break
 except OSError:
     pass
 
-# metrics aggregated up the tree (self + descendants); pid/ppid are not summed
 SUM_KEYS = ["cpu", "ram", "gpu", "dec", "enc", "vram", "disk", "threads"]
-# metric fields dropped from the JSON when zero (the widget defaults them back to
-# 0) -- shrinks the snapshot a lot since most processes are idle on most metrics
 _OMIT0 = SUM_KEYS + ["a" + k for k in SUM_KEYS]
 
 
-# ---- process -> icon resolution (from the .desktop database, cached) ----
 DESKTOP_DIRS = [
     "/usr/share/applications", "/usr/local/share/applications",
     os.path.expanduser("~/.local/share/applications"),
     "/var/lib/flatpak/exports/share/applications",
     os.path.expanduser("~/.local/share/flatpak/exports/share/applications"),
 ]
-# branded apps whose process name doesn't match any .desktop key
 ICON_ALIASES = {
     "chrome": "google-chrome", "chromium": "chromium", "msedge": "microsoft-edge",
     "brave": "brave-browser", "code-oss": "code-oss", "codium": "vscodium",
@@ -74,8 +48,6 @@ ICON_ALIASES = {
     "steamwebhelper": "steam", "wineserver": "wine", "telegram-desktop": "telegram",
 }
 _EXEC_SKIP = {"env", "flatpak", "sh", "bash", "run", "--", "gtk-launch"}
-# generic runtimes/interpreters: the comm doesn't identify the app, so a .desktop
-# match would be a coincidence (python3 -> some random app's icon). Skip them.
 GENERIC_COMMS = {
     "python", "python2", "python3", "node", "nodejs", "java", "electron",
     "sh", "bash", "dash", "zsh", "fish", "perl", "ruby", "mono", "dotnet",
@@ -84,7 +56,7 @@ GENERIC_COMMS = {
 
 _icon_map = None
 _icon_map_when = 0.0
-_icon_resolved = {}                                        # comm -> icon name (cache)
+_icon_resolved = {}
 
 
 def _parse_desktop(path):
@@ -127,7 +99,7 @@ def build_icon_map():
             if not r or not r[0]:
                 continue
             icon, exe, tryexe, wm = r
-            keys = {os.path.basename(path)[:-8].lower()}   # file stem
+            keys = {os.path.basename(path)[:-8].lower()}
             if exe:
                 b = _exec_basename(exe)
                 if b: keys.add(b.lower())
@@ -142,7 +114,7 @@ def build_icon_map():
 
 def refresh_icon_map(now):
     global _icon_map, _icon_map_when
-    if _icon_map is None or now - _icon_map_when > 300:     # rescan occasionally
+    if _icon_map is None or now - _icon_map_when > 300:
         _icon_map = build_icon_map(); _icon_map_when = now; _icon_resolved.clear(); _row_cache.clear()
 
 
@@ -175,9 +147,6 @@ _io_fds = {}
 
 
 def read_procs():
-    """pid -> (comm, ppid, cpu ticks, rss bytes, threads, starttime); every stat
-    file stays open between cycles and is re-read with pread, which skips the
-    /proc path lookup that dominates open+read+close."""
     out = {}
     parsed = {}
     previous = _stat_cache
@@ -230,8 +199,6 @@ def read_procs():
 
 
 def read_io(procs):
-    """pid -> cumulative read+write bytes (own processes only; others are skipped
-    once denied, until the pid is reused)."""
     out = {}
     denied = _io_denied
     denied_get = denied.get
@@ -300,16 +267,12 @@ def _close_gone(fds, alive):
         os.close(fds.pop(pid))
 
 
-# current GPU poll interval (seconds); cmd_serve keeps this fresh. Used only to
-# size the per-process utilization look-back so each poll reflects the activity
-# since the previous one (NVIDIA gives samples, not an instantaneous figure).
 _poll_interval = 2.0
 
 _nvml = {"init": False, "h": None, "vram_total": 0}
 
 
 def vram_total():
-    """Total VRAM bytes via NVML (cached); 0 when no NVIDIA/NVML."""
     if _nvml["vram_total"]:
         return _nvml["vram_total"]
     try:
@@ -330,10 +293,6 @@ _nvml_buffers = {}
 
 
 def gpu_usage():
-    """pid -> {gpu, enc, dec (%), vram (bytes)} straight from the NVML C API with
-    reused buffers. NVIDIA's per-process utilization is sample-based, so each poll
-    reports the newest sample per pid in the look-back window ending now. Empty
-    when no NVIDIA GPU / NVML present."""
     try:
         import pynvml as N
     except Exception:
@@ -703,8 +662,6 @@ def panel_snapshot(snap):
 
 
 def aggregate(procs, kids, totals):
-    """Turn each pid's own metrics into self + every descendant. RSS/VRAM sums
-    overcount shared pages a little, but it's the useful 'whole subtree' number."""
     order = []
     seen = set()
     stack = [pid for pid, p in procs.items() if p[1] not in procs]
@@ -736,8 +693,8 @@ def write_snapshot(snap):
 
 def cmd_serve():
     os.makedirs(MANGO_DIR, exist_ok=True)
-    build()                                                # prime CPU/disk deltas
-    time.sleep(0.5)                                        # real delta before first write
+    build()
+    time.sleep(0.5)
     snap = build()
     write_snapshot(snap)
     panel_snapshot(snap)
@@ -753,7 +710,7 @@ def cmd_serve():
         if stamp != config_stamp:
             config_stamp = stamp
             interval = max(0.25, float(load_config().get("poll_interval", 2)))
-        _poll_interval = interval                          # size the GPU look-back to it
+        _poll_interval = interval
         elapsed = time.time() - last
         if elapsed >= interval:
             last = time.time()
