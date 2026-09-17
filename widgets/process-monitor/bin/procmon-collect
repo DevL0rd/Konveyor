@@ -150,46 +150,93 @@ def load_config():
         return {}
 
 
+_O_RDONLY = os.O_RDONLY
+_io_denied = {}
+_stat_cache = {}
+_io_cache = {}
+
+
 def read_procs():
-    """pid -> {comm, ppid, t (cpu ticks), rss bytes, threads}."""
+    """pid -> (comm, ppid, cpu ticks, rss bytes, threads, starttime)."""
     out = {}
-    for pid in os.listdir("/proc"):
-        if not pid.isdigit():
+    parsed = {}
+    previous = _stat_cache
+    open_file, read_file, close_file = os.open, os.read, os.close
+    for name in os.listdir("/proc"):
+        if not name.isdigit():
             continue
         try:
-            with open(f"/proc/{pid}/stat") as f:
-                line = f.read()
-            l = line.index("(")
-            r = line.rindex(")")
-            comm = line[l + 1:r]
-            rest = line[r + 2:].split()                    # field 3 (state) onward
-            out[int(pid)] = {
-                "comm": comm,
-                "ppid": int(rest[1]),                      # field 4
-                "t": int(rest[11]) + int(rest[12]),        # utime + stime (14,15)
-                "rss": int(rest[21]) * PAGE,               # field 24 (pages)
-                "threads": int(rest[17]),                  # field 20
-            }
-        except Exception:
-            continue                                       # process vanished / unreadable
+            fd = open_file("/proc/" + name + "/stat", _O_RDONLY)
+        except OSError:
+            continue
+        try:
+            line = read_file(fd, 1024)
+        except OSError:
+            continue
+        finally:
+            close_file(fd)
+        pid = int(name)
+        cached = previous.get(pid)
+        if cached is not None and cached[0] == line:
+            parsed[pid] = cached
+            out[pid] = cached[1]
+            continue
+        r = line.rfind(b")")
+        rest = line[r + 2:].split(None, 22)
+        if len(rest) < 22:
+            continue
+        values = (line[line.find(b"(") + 1:r].decode(errors="replace"), int(rest[1]),
+                  int(rest[11]) + int(rest[12]), int(rest[21]) * PAGE, int(rest[17]), rest[19])
+        parsed[pid] = (line, values)
+        out[pid] = values
+    _stat_cache.clear()
+    _stat_cache.update(parsed)
     return out
 
 
-def read_io():
-    """pid -> cumulative read+write bytes (own processes only; others raise)."""
+def read_io(procs):
+    """pid -> cumulative read+write bytes (own processes only; others are skipped
+    once denied, until the pid is reused)."""
     out = {}
-    for pid in os.listdir("/proc"):
-        if not pid.isdigit():
+    denied = _io_denied
+    still = {}
+    previous = _io_cache
+    parsed = {}
+    open_file, read_file, close_file = os.open, os.read, os.close
+    for pid, p in procs.items():
+        start = p[5]
+        if denied.get(pid) == start:
+            still[pid] = start
             continue
         try:
-            tot = 0
-            with open(f"/proc/{pid}/io") as f:
-                for ln in f:
-                    if ln.startswith(("read_bytes:", "write_bytes:")):
-                        tot += int(ln.split()[1])
-            out[int(pid)] = tot
-        except Exception:
+            fd = open_file("/proc/" + str(pid) + "/io", _O_RDONLY)
+        except PermissionError:
+            still[pid] = start
             continue
+        except OSError:
+            continue
+        try:
+            data = read_file(fd, 512)
+        except OSError:
+            continue
+        finally:
+            close_file(fd)
+        cached = previous.get(pid)
+        if cached is not None and cached[0] == data:
+            parsed[pid] = cached
+            out[pid] = cached[1]
+            continue
+        rb = data.find(b"read_bytes:")
+        wb = data.find(b"write_bytes:", rb)
+        if rb < 0 or wb < 0:
+            continue
+        total = int(data[rb + 11:data.find(b"\n", rb)]) + int(data[wb + 12:data.find(b"\n", wb)])
+        parsed[pid] = (data, total)
+        out[pid] = total
+    denied.clear()
+    denied.update(still)
+    _io_cache.clear()
+    _io_cache.update(parsed)
     return out
 
 
@@ -322,18 +369,30 @@ def _remove_orphan_logs(names, owners, now):
 def _mangohud_pids():
     pids = set()
     try:
-        with open("/proc/net/unix") as f:
-            next(f, None)
-            for line in f:
-                name = line.rstrip("\n").rsplit(" ", 1)[-1]
-                if name.startswith(MANGOHUD_SOCKET_PREFIX) and name[len(MANGOHUD_SOCKET_PREFIX):].isdigit():
-                    pids.add(int(name[len(MANGOHUD_SOCKET_PREFIX):]))
+        with open("/proc/net/unix", "rb") as f:
+            data = f.read()
     except OSError:
-        pass
+        return pids
+    marker = MANGOHUD_SOCKET_PREFIX.encode()
+    at = data.find(marker)
+    while at >= 0:
+        end = data.find(b"\n", at)
+        digits = data[at + len(marker):end if end >= 0 else len(data)].strip()
+        if digits.isdigit():
+            pids.add(int(digits))
+        at = data.find(marker, at + len(marker))
     return pids
 
 
+MANGOHUD_SCAN_SECONDS = 2.0
+_mangohud_scan = {"when": 0.0}
+
+
 def start_mangohud_logging():
+    now = time.monotonic()
+    if now - _mangohud_scan["when"] < MANGOHUD_SCAN_SECONDS:
+        return
+    _mangohud_scan["when"] = now
     running = _mangohud_pids()
     started = _fps["logging"]
     started &= running
@@ -385,97 +444,99 @@ def mangohud_frames(now):
 
 
 _prev = {"t": {}, "io": {}, "when": None}
+_KEYS = ("cpu", "ram", "threads", "gpu", "enc", "dec", "vram", "disk")
+_AKEYS = tuple("a" + key for key in _KEYS)
 
 
 def build():
     now = time.time()
     procs = read_procs()
-    io = read_io()
+    io = read_io(procs)
     gpu = gpu_usage()
     start_mangohud_logging()
     frames = mangohud_frames(now)
-    dt = (now - _prev["when"]) if _prev["when"] else 0
+    when = _prev["when"]
+    dt = (now - when) if when else 0
     pt, pio = _prev["t"], _prev["io"]
-    rows = []
-    for pid, p in procs.items():
-        cpu = 0.0
-        if dt > 0 and pid in pt:
-            # % of total system (divided by core count), matching btop/system monitor
-            cpu = max(0.0, (p["t"] - pt[pid]) / CLK / dt * 100.0 / NCPU)
-        disk = 0.0
-        if dt > 0 and pid in io and pid in pio:
-            disk = max(0.0, (io[pid] - pio[pid]) / dt)
-        g = gpu.get(pid, {})
-        rows.append({
-            "pid": pid, "ppid": p["ppid"], "name": p["comm"], "icon": resolve_icon(p["comm"]),
-            "cpu": round(cpu, 1), "ram": p["rss"], "threads": p["threads"],
-            "gpu": g.get("gpu", 0), "enc": g.get("enc", 0), "dec": g.get("dec", 0),
-            "vram": g.get("vram", 0), "disk": round(disk),
-            "kernel": pid == 2 or p["ppid"] == 2,
-            **frames.get(pid, {}),
-        })
-    aggregate(rows)
-    compact(rows)
-    _prev["t"] = {pid: p["t"] for pid, p in procs.items()}
+    cpu_scale = 100.0 / CLK / dt / NCPU if dt > 0 else 0.0
+    disk_scale = 1.0 / dt if dt > 0 else 0.0
+    ticks = {}
+    totals = {}
+    rows = {}
+    kids = {}
+    icon_for = resolve_icon
+    for pid, (comm, ppid, t, rss, threads, _start) in procs.items():
+        ticks[pid] = t
+        prev_t = pt.get(pid)
+        cpu = round(max(0.0, (t - prev_t) * cpu_scale), 1) if prev_t is not None else 0.0
+        cur_io = io.get(pid)
+        prev_io = pio.get(pid)
+        disk = round(max(0.0, (cur_io - prev_io) * disk_scale)) if cur_io is not None and prev_io is not None else 0
+        g = gpu.get(pid)
+        own = [cpu, rss, threads, g["gpu"], g["enc"], g["dec"], g["vram"], disk] if g else [cpu, rss, threads, 0, 0, 0, 0, disk]
+        row = {"pid": pid, "ppid": ppid, "name": comm}
+        icon = icon_for(comm)
+        if icon:
+            row["icon"] = icon
+        for key, value in zip(_KEYS, own):
+            if value:
+                row[key] = value
+        if pid == 2 or ppid == 2:
+            row["kernel"] = True
+        frame = frames.get(pid)
+        if frame:
+            row.update(frame)
+        rows[pid] = row
+        totals[pid] = own
+        children = kids.get(ppid)
+        if children is None:
+            kids[ppid] = [pid]
+        else:
+            children.append(pid)
+    aggregate(procs, kids, totals)
+    for pid, row in rows.items():
+        total = totals[pid]
+        if total[0]:
+            total[0] = round(total[0], 1)
+        for key, value in zip(_AKEYS, total):
+            if value:
+                row[key] = value
+    _prev["t"] = ticks
     _prev["io"] = io
     _prev["when"] = now
     return {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL,
-            "vram_total": vram_total(), "procs": rows}
+            "vram_total": vram_total(), "procs": list(rows.values())}
 
 
-def aggregate(rows):
-    """Add a<metric> = self + every descendant for each SUM_KEYS metric. RSS/VRAM
-    sums overcount shared pages a little, but it's the useful 'whole subtree'
-    number."""
-    by = {r["pid"]: r for r in rows}
-    kids = {}
-    for r in rows:
-        kids.setdefault(r["ppid"], []).append(r["pid"])
-        for k in SUM_KEYS:
-            r["a" + k] = r[k]
-    roots = [r["pid"] for r in rows if r["ppid"] not in by]
-    seen, order, stack = set(), [], [(pid, False) for pid in roots]
+def aggregate(procs, kids, totals):
+    """Turn each pid's own metrics into self + every descendant. RSS/VRAM sums
+    overcount shared pages a little, but it's the useful 'whole subtree' number."""
+    order = []
+    seen = set()
+    stack = [pid for pid, p in procs.items() if p[1] not in procs]
     while stack:
-        pid, done = stack.pop()
-        if done:
-            order.append(pid); continue
+        pid = stack.pop()
         if pid in seen:
             continue
         seen.add(pid)
-        stack.append((pid, True))
-        for c in kids.get(pid, []):
-            if c not in seen:
-                stack.append((c, False))
-    for pid in order:
-        r = by[pid]
-        for c in kids.get(pid, []):
-            cr = by.get(c)
-            if cr:
-                for k in SUM_KEYS:
-                    r["a" + k] += cr["a" + k]
-    for r in rows:
-        r["acpu"] = round(r["acpu"], 1)
-
-
-def compact(rows):
-    """Strip zero/empty fields so the snapshot JSON stays small. The widget reads
-    every metric as `value || 0`, a missing icon falls back to the name, and a
-    missing `kernel` reads as non-kernel -- so this is invisible to the UI."""
-    for r in rows:
-        for k in _OMIT0:
-            if r.get(k) == 0:
-                del r[k]
-        if not r.get("icon"):
-            r.pop("icon", None)
-        if not r.get("kernel"):
-            r.pop("kernel", None)
+        order.append(pid)
+        children = kids.get(pid)
+        if children:
+            stack.extend(children)
+    for pid in reversed(order):
+        ppid = procs[pid][1]
+        if ppid in seen:
+            parent = totals[ppid]
+            own = totals[pid]
+            parent[0] += own[0]; parent[1] += own[1]; parent[2] += own[2]; parent[3] += own[3]
+            parent[4] += own[4]; parent[5] += own[5]; parent[6] += own[6]; parent[7] += own[7]
 
 
 def write_snapshot(snap):
     os.makedirs(RUNDIR, exist_ok=True)
     tmp = DATA + ".tmp"
     with open(tmp, "w") as f:
-        json.dump(snap, f)
+        f.write(json.dumps(snap, separators=(",", ":")))
     os.replace(tmp, DATA)
 
 
@@ -486,9 +547,16 @@ def cmd_serve():
     write_snapshot(build())
     last = time.time()
     global _poll_interval
+    config_stamp = None
+    interval = 2.0
     while True:
-        # re-read config every loop so a new poll_interval applies within ~0.2s
-        interval = max(0.25, float(load_config().get("poll_interval", 2)))
+        try:
+            stamp = os.stat(CONFIG).st_mtime_ns
+        except OSError:
+            stamp = 0
+        if stamp != config_stamp:
+            config_stamp = stamp
+            interval = max(0.25, float(load_config().get("poll_interval", 2)))
         _poll_interval = interval                          # size the GPU look-back to it
         elapsed = time.time() - last
         if elapsed >= interval:
@@ -519,7 +587,7 @@ def cmd_set_interval():
 def cmd_once():
     build()
     time.sleep(0.4)
-    json.dump(build(), sys.stdout)
+    sys.stdout.write(json.dumps(build(), separators=(",", ":")))
     sys.stdout.write("\n")
 
 
