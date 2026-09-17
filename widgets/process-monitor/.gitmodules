@@ -1,0 +1,3 @@
+[submodule "shared/common"]
+	path = shared/common
+	url = ../Linux-Plasma-Shared.git

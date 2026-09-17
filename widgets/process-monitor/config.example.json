@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy to ~/.config/Linux-Process-Mon/config.json. poll_interval is how often (seconds) the resident collector samples /proc + the GPU.",
+  "poll_interval": 2
+}

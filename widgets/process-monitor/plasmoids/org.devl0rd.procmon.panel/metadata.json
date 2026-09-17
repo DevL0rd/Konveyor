@@ -1,0 +1,17 @@
+{
+    "KPlugin": {
+        "Id": "org.devl0rd.procmon.panel",
+        "Name": "Process Monitor (Panel)",
+        "Description": "The focused app's CPU, GPU and FPS in the panel, with a searchable process table in a popup",
+        "Icon": "utilities-system-monitor",
+        "Authors": [
+            { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
+        ],
+        "Category": "System Information",
+        "License": "MIT",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Linux-Process-Mon"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

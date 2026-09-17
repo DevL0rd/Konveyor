@@ -1,0 +1,540 @@
+#!/usr/bin/env python3
+"""
+Linux-Process-Mon :: resident process collector.
+
+A single `--serve` daemon (systemd --user service, pinned to the E-cores) reads
+/proc once per interval and writes a compact process snapshot to
+$XDG_RUNTIME_DIR/Linux-Process-Mon/data.json. The widget reads that file
+in-process via XHR (no per-poll process spawn), builds the parent/child tree and
+renders the table.
+
+Per row: name, ppid (for the tree), CPU% (per-core, htop-style), RSS bytes,
+thread count, PID, disk I/O (bytes/s, own processes only -- /proc/<pid>/io is
+not readable for other users without root), and the NVIDIA per-process figures
+from `nvidia-smi pmon`: GPU (SM) %, encoder %, decoder %, VRAM bytes.
+
+Summable metrics also get an a* field = self + every descendant (subtree total).
+
+Modes:
+  procmon-collect --serve      resident: refresh the snapshot every interval
+  procmon-collect --snapshot   print the cached snapshot (debug / fallback)
+  procmon-collect --once       one sample to stdout (debug)
+"""
+import os, sys, json, time, glob, socket
+
+APP = "Linux-Process-Mon"
+RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
+DATA = os.path.join(RUNDIR, "data.json")
+CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+MANGO_DIR = os.path.join(RUNDIR, "mangohud")
+
+CLK = os.sysconf("SC_CLK_TCK")
+PAGE = os.sysconf("SC_PAGE_SIZE")
+NCPU = os.cpu_count() or 1
+
+MEM_TOTAL = 0
+try:
+    for _ln in open("/proc/meminfo"):
+        if _ln.startswith("MemTotal:"):
+            MEM_TOTAL = int(_ln.split()[1]) * 1024          # kB -> bytes
+            break
+except OSError:
+    pass
+
+# metrics aggregated up the tree (self + descendants); pid/ppid are not summed
+SUM_KEYS = ["cpu", "ram", "gpu", "dec", "enc", "vram", "disk", "threads"]
+# metric fields dropped from the JSON when zero (the widget defaults them back to
+# 0) -- shrinks the snapshot a lot since most processes are idle on most metrics
+_OMIT0 = SUM_KEYS + ["a" + k for k in SUM_KEYS]
+
+
+# ---- process -> icon resolution (from the .desktop database, cached) ----
+DESKTOP_DIRS = [
+    "/usr/share/applications", "/usr/local/share/applications",
+    os.path.expanduser("~/.local/share/applications"),
+    "/var/lib/flatpak/exports/share/applications",
+    os.path.expanduser("~/.local/share/flatpak/exports/share/applications"),
+]
+# branded apps whose process name doesn't match any .desktop key
+ICON_ALIASES = {
+    "chrome": "google-chrome", "chromium": "chromium", "msedge": "microsoft-edge",
+    "brave": "brave-browser", "code-oss": "code-oss", "codium": "vscodium",
+    "firefox-bin": "firefox", "thunderbird-bin": "thunderbird",
+    "steamwebhelper": "steam", "wineserver": "wine", "telegram-desktop": "telegram",
+}
+_EXEC_SKIP = {"env", "flatpak", "sh", "bash", "run", "--", "gtk-launch"}
+# generic runtimes/interpreters: the comm doesn't identify the app, so a .desktop
+# match would be a coincidence (python3 -> some random app's icon). Skip them.
+GENERIC_COMMS = {
+    "python", "python2", "python3", "node", "nodejs", "java", "electron",
+    "sh", "bash", "dash", "zsh", "fish", "perl", "ruby", "mono", "dotnet",
+    "wrapper", "lua", "php", "deno", "bun",
+}
+
+_icon_map = None
+_icon_map_when = 0.0
+_icon_resolved = {}                                        # comm -> icon name (cache)
+
+
+def _parse_desktop(path):
+    icon = exe = tryexe = wm = ""
+    in_entry = False
+    try:
+        for ln in open(path, encoding="utf-8", errors="ignore"):
+            ln = ln.strip()
+            if ln.startswith("["):
+                in_entry = (ln == "[Desktop Entry]")
+                continue
+            if not in_entry or "=" not in ln:
+                continue
+            k, _, v = ln.partition("=")
+            v = v.strip()
+            if k == "Icon" and not icon: icon = v
+            elif k == "Exec" and not exe: exe = v
+            elif k == "TryExec" and not tryexe: tryexe = v
+            elif k == "StartupWMClass" and not wm: wm = v
+    except OSError:
+        return None
+    return icon, exe, tryexe, wm
+
+
+def _exec_basename(exe):
+    for t in exe.split():
+        if not t or t.startswith("%") or t.startswith("-") or "=" in t.split("/")[0]:
+            continue
+        b = os.path.basename(t)
+        if b and b not in _EXEC_SKIP:
+            return b
+    return ""
+
+
+def build_icon_map():
+    m = {}
+    for d in DESKTOP_DIRS:
+        for path in glob.glob(os.path.join(d, "*.desktop")):
+            r = _parse_desktop(path)
+            if not r or not r[0]:
+                continue
+            icon, exe, tryexe, wm = r
+            keys = {os.path.basename(path)[:-8].lower()}   # file stem
+            if exe:
+                b = _exec_basename(exe)
+                if b: keys.add(b.lower())
+            if tryexe:
+                keys.add(os.path.basename(tryexe).lower())
+            if wm:
+                keys.add(wm.lower())
+            for k in keys:
+                m.setdefault(k, icon)
+    return m
+
+
+def resolve_icon(comm):
+    global _icon_map, _icon_map_when
+    now = time.time()
+    if _icon_map is None or now - _icon_map_when > 300:     # rescan occasionally
+        _icon_map = build_icon_map(); _icon_map_when = now; _icon_resolved.clear()
+    if comm in _icon_resolved:
+        return _icon_resolved[comm]
+    c = comm.lower()
+    icon = ICON_ALIASES.get(c) or ("" if c in GENERIC_COMMS else _icon_map.get(c, "")) or ""
+    _icon_resolved[comm] = icon
+    return icon
+
+
+def load_config():
+    try:
+        with open(CONFIG) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def read_procs():
+    """pid -> {comm, ppid, t (cpu ticks), rss bytes, threads}."""
+    out = {}
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                line = f.read()
+            l = line.index("(")
+            r = line.rindex(")")
+            comm = line[l + 1:r]
+            rest = line[r + 2:].split()                    # field 3 (state) onward
+            out[int(pid)] = {
+                "comm": comm,
+                "ppid": int(rest[1]),                      # field 4
+                "t": int(rest[11]) + int(rest[12]),        # utime + stime (14,15)
+                "rss": int(rest[21]) * PAGE,               # field 24 (pages)
+                "threads": int(rest[17]),                  # field 20
+            }
+        except Exception:
+            continue                                       # process vanished / unreadable
+    return out
+
+
+def read_io():
+    """pid -> cumulative read+write bytes (own processes only; others raise)."""
+    out = {}
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            tot = 0
+            with open(f"/proc/{pid}/io") as f:
+                for ln in f:
+                    if ln.startswith(("read_bytes:", "write_bytes:")):
+                        tot += int(ln.split()[1])
+            out[int(pid)] = tot
+        except Exception:
+            continue
+    return out
+
+
+# current GPU poll interval (seconds); cmd_serve keeps this fresh. Used only to
+# size the per-process utilization look-back so each poll reflects the activity
+# since the previous one (NVIDIA gives samples, not an instantaneous figure).
+_poll_interval = 2.0
+
+_nvml = {"init": False, "h": None, "vram_total": 0}
+
+
+def vram_total():
+    """Total VRAM bytes via NVML (cached); 0 when no NVIDIA/NVML."""
+    if _nvml["vram_total"]:
+        return _nvml["vram_total"]
+    try:
+        import pynvml as N
+        if not _nvml["init"]:
+            N.nvmlInit()
+            _nvml["h"] = N.nvmlDeviceGetHandleByIndex(0)
+            _nvml["init"] = True
+        _nvml["vram_total"] = N.nvmlDeviceGetMemoryInfo(_nvml["h"]).total
+    except Exception:
+        pass
+    return _nvml["vram_total"]
+
+
+def gpu_usage():
+    """pid -> {gpu, enc, dec (%), vram (bytes)} via NVML -- no fork, ~4ms. NVIDIA's
+    per-process utilization is sample-based (there is no instantaneous figure), so
+    each poll reports the samples in the look-back window ending now -- newest per
+    pid. No cross-poll state: a process that didn't touch the GPU in that window
+    reads 0, like the /proc metrics. Empty when no NVIDIA GPU / NVML present."""
+    try:
+        import pynvml as N
+    except Exception:
+        return {}
+    try:
+        if not _nvml["init"]:
+            N.nvmlInit()
+            _nvml["h"] = N.nvmlDeviceGetHandleByIndex(0)
+            _nvml["init"] = True
+        h = _nvml["h"]
+        # cover the gap since the previous poll (+ margin for NVML's sampling jitter)
+        # so nothing active is missed; timeStamp is unix microseconds.
+        since = int((time.time() - max(1.0, _poll_interval + 0.5)) * 1e6)
+        latest = {}                                      # pid -> (ts, sm, enc, dec)
+        try:
+            for su in N.nvmlDeviceGetProcessUtilization(h, since):
+                cur = latest.get(su.pid)
+                if cur is None or su.timeStamp > cur[0]:
+                    latest[su.pid] = (su.timeStamp, su.smUtil, su.encUtil, su.decUtil)
+        except N.NVMLError:
+            pass                                          # no samples in window -> all idle
+        res = {}
+        for p in (N.nvmlDeviceGetComputeRunningProcesses(h)
+                  + N.nvmlDeviceGetGraphicsRunningProcesses(h)):
+            s = latest.get(p.pid)
+            res[p.pid] = {"gpu": s[1] if s else 0, "enc": s[2] if s else 0,
+                          "dec": s[3] if s else 0, "vram": (p.usedGpuMemory or 0)}
+        for pid, s in latest.items():                    # active but no VRAM-residency entry
+            if pid not in res:
+                res[pid] = {"gpu": s[1], "enc": s[2], "dec": s[3], "vram": 0}
+        return res
+    except Exception:
+        return {}
+
+
+_fps = {"files": frozenset(), "owners": {}, "samples": {}, "logging": set()}
+MANGOHUD_SOCKET_PREFIX = "@mangohud-"
+FPS_STALE_SECONDS = 3
+FPS_LOW_WINDOW_SECONDS = 30
+ORPHAN_LOG_SECONDS = 10
+
+
+def _log_owners(paths):
+    owners = {}
+    if not paths:
+        return owners
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        fd_dir = f"/proc/{pid}/fd"
+        try:
+            fds = os.listdir(fd_dir)
+        except OSError:
+            continue
+        for fd in fds:
+            try:
+                target = os.readlink(f"{fd_dir}/{fd}")
+            except OSError:
+                continue
+            if target in paths:
+                owners[target] = int(pid)
+    return owners
+
+
+def _last_frame(path):
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 2048))
+            chunk = f.read().decode(errors="replace")
+    except OSError:
+        return None
+    for line in reversed(chunk.splitlines()):
+        parts = line.split(",")
+        if len(parts) < 16:
+            continue
+        try:
+            return float(parts[0]), float(parts[1])
+        except ValueError:
+            continue
+    return None
+
+
+def _remove_orphan_logs(names, owners, now):
+    for name in names:
+        path = os.path.join(MANGO_DIR, name)
+        log = path[:-len("_summary.csv")] + ".csv" if name.endswith("_summary.csv") else path
+        if log in owners:
+            continue
+        try:
+            if now - os.path.getmtime(path) > ORPHAN_LOG_SECONDS:
+                os.remove(path)
+        except OSError:
+            continue
+
+
+def _mangohud_pids():
+    pids = set()
+    try:
+        with open("/proc/net/unix") as f:
+            next(f, None)
+            for line in f:
+                name = line.rstrip("\n").rsplit(" ", 1)[-1]
+                if name.startswith(MANGOHUD_SOCKET_PREFIX) and name[len(MANGOHUD_SOCKET_PREFIX):].isdigit():
+                    pids.add(int(name[len(MANGOHUD_SOCKET_PREFIX):]))
+    except OSError:
+        pass
+    return pids
+
+
+def start_mangohud_logging():
+    running = _mangohud_pids()
+    started = _fps["logging"]
+    started &= running
+    for pid in running - started:
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as conn:
+                conn.settimeout(0.2)
+                conn.connect("\0" + MANGOHUD_SOCKET_PREFIX[1:] + str(pid))
+                conn.sendall(b":logging=1;")
+            started.add(pid)
+        except OSError:
+            continue
+
+
+def mangohud_frames(now):
+    try:
+        names = [n for n in os.listdir(MANGO_DIR) if n.endswith(".csv")]
+    except OSError:
+        return {}
+    logs = frozenset(os.path.join(MANGO_DIR, n) for n in names if not n.endswith("_summary.csv"))
+    owners = _fps["owners"]
+    if logs != _fps["files"] or any(not os.path.exists(f"/proc/{pid}") for pid in owners.values()):
+        owners = _log_owners(logs)
+        _fps["files"] = logs
+        _fps["owners"] = owners
+    _remove_orphan_logs(names, owners, now)
+    frames = {}
+    samples = _fps["samples"]
+    for path in list(samples):
+        if path not in owners:
+            del samples[path]
+    for path, pid in owners.items():
+        try:
+            if now - os.path.getmtime(path) > FPS_STALE_SECONDS:
+                continue
+        except OSError:
+            continue
+        frame = _last_frame(path)
+        if frame is None:
+            continue
+        fps, frametime = frame
+        window = [(t, v) for t, v in samples.get(path, []) if now - t <= FPS_LOW_WINDOW_SECONDS]
+        window.append((now, fps))
+        samples[path] = window
+        ordered = sorted(v for _, v in window)
+        low = ordered[int(len(ordered) * 0.01)]
+        frames[pid] = {"fps": round(fps), "frametime": round(frametime, 2), "fps_low": round(low)}
+    return frames
+
+
+_prev = {"t": {}, "io": {}, "when": None}
+
+
+def build():
+    now = time.time()
+    procs = read_procs()
+    io = read_io()
+    gpu = gpu_usage()
+    start_mangohud_logging()
+    frames = mangohud_frames(now)
+    dt = (now - _prev["when"]) if _prev["when"] else 0
+    pt, pio = _prev["t"], _prev["io"]
+    rows = []
+    for pid, p in procs.items():
+        cpu = 0.0
+        if dt > 0 and pid in pt:
+            # % of total system (divided by core count), matching btop/system monitor
+            cpu = max(0.0, (p["t"] - pt[pid]) / CLK / dt * 100.0 / NCPU)
+        disk = 0.0
+        if dt > 0 and pid in io and pid in pio:
+            disk = max(0.0, (io[pid] - pio[pid]) / dt)
+        g = gpu.get(pid, {})
+        rows.append({
+            "pid": pid, "ppid": p["ppid"], "name": p["comm"], "icon": resolve_icon(p["comm"]),
+            "cpu": round(cpu, 1), "ram": p["rss"], "threads": p["threads"],
+            "gpu": g.get("gpu", 0), "enc": g.get("enc", 0), "dec": g.get("dec", 0),
+            "vram": g.get("vram", 0), "disk": round(disk),
+            "kernel": pid == 2 or p["ppid"] == 2,
+            **frames.get(pid, {}),
+        })
+    aggregate(rows)
+    compact(rows)
+    _prev["t"] = {pid: p["t"] for pid, p in procs.items()}
+    _prev["io"] = io
+    _prev["when"] = now
+    return {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL,
+            "vram_total": vram_total(), "procs": rows}
+
+
+def aggregate(rows):
+    """Add a<metric> = self + every descendant for each SUM_KEYS metric. RSS/VRAM
+    sums overcount shared pages a little, but it's the useful 'whole subtree'
+    number."""
+    by = {r["pid"]: r for r in rows}
+    kids = {}
+    for r in rows:
+        kids.setdefault(r["ppid"], []).append(r["pid"])
+        for k in SUM_KEYS:
+            r["a" + k] = r[k]
+    roots = [r["pid"] for r in rows if r["ppid"] not in by]
+    seen, order, stack = set(), [], [(pid, False) for pid in roots]
+    while stack:
+        pid, done = stack.pop()
+        if done:
+            order.append(pid); continue
+        if pid in seen:
+            continue
+        seen.add(pid)
+        stack.append((pid, True))
+        for c in kids.get(pid, []):
+            if c not in seen:
+                stack.append((c, False))
+    for pid in order:
+        r = by[pid]
+        for c in kids.get(pid, []):
+            cr = by.get(c)
+            if cr:
+                for k in SUM_KEYS:
+                    r["a" + k] += cr["a" + k]
+    for r in rows:
+        r["acpu"] = round(r["acpu"], 1)
+
+
+def compact(rows):
+    """Strip zero/empty fields so the snapshot JSON stays small. The widget reads
+    every metric as `value || 0`, a missing icon falls back to the name, and a
+    missing `kernel` reads as non-kernel -- so this is invisible to the UI."""
+    for r in rows:
+        for k in _OMIT0:
+            if r.get(k) == 0:
+                del r[k]
+        if not r.get("icon"):
+            r.pop("icon", None)
+        if not r.get("kernel"):
+            r.pop("kernel", None)
+
+
+def write_snapshot(snap):
+    os.makedirs(RUNDIR, exist_ok=True)
+    tmp = DATA + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(snap, f)
+    os.replace(tmp, DATA)
+
+
+def cmd_serve():
+    os.makedirs(MANGO_DIR, exist_ok=True)
+    build()                                                # prime CPU/disk deltas
+    time.sleep(0.5)                                        # real delta before first write
+    write_snapshot(build())
+    last = time.time()
+    global _poll_interval
+    while True:
+        # re-read config every loop so a new poll_interval applies within ~0.2s
+        interval = max(0.25, float(load_config().get("poll_interval", 2)))
+        _poll_interval = interval                          # size the GPU look-back to it
+        elapsed = time.time() - last
+        if elapsed >= interval:
+            last = time.time()
+            try:
+                write_snapshot(build())
+            except Exception as e:
+                sys.stderr.write(f"procmon-collect: {e}\n")
+        else:
+            time.sleep(min(0.2, interval - elapsed))
+
+
+def cmd_set_interval():
+    if len(sys.argv) < 3:
+        return 1
+    try:
+        v = max(0.25, float(sys.argv[2]))
+    except ValueError:
+        return 1
+    cfg = load_config()
+    cfg["poll_interval"] = v
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    with open(CONFIG, "w") as f:
+        json.dump(cfg, f, indent=2)
+    return 0
+
+
+def cmd_once():
+    build()
+    time.sleep(0.4)
+    json.dump(build(), sys.stdout)
+    sys.stdout.write("\n")
+
+
+def cmd_snapshot():
+    try:
+        sys.stdout.write(open(DATA).read())
+    except Exception:
+        sys.stdout.write('{"ts":0,"ncpu":1,"procs":[]}')
+
+
+def main():
+    arg = sys.argv[1] if len(sys.argv) > 1 else "--once"
+    return {"--serve": cmd_serve, "--snapshot": cmd_snapshot,
+            "--set-interval": cmd_set_interval, "--once": cmd_once}.get(arg, cmd_once)()
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)
