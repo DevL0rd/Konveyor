@@ -127,6 +127,7 @@ ColumnLayout {
         ColumnLayout {
             visible: page.letters.length > 4
             Layout.fillHeight: true
+            Layout.fillWidth: false
             Layout.preferredWidth: Kirigami.Units.gridUnit * 1.4
             spacing: 0
             Repeater {

@@ -17,6 +17,7 @@ Item {
     property color trailingColor: Kirigami.Theme.textColor
     property bool selected: false
     property int iconSize: Kirigami.Units.iconSizes.medium
+    property bool monochrome: false
     property bool roundIcon: false
     property color ringColor: "transparent"
     signal clicked()
@@ -44,6 +45,8 @@ Item {
             Layout.preferredHeight: tile.iconSize
             source: tile.roundIcon ? "" : tile.iconSource
             fallback: "application-x-executable"
+            color: Kirigami.Theme.textColor
+            isMask: tile.monochrome
         }
         Item {
             visible: tile.roundIcon

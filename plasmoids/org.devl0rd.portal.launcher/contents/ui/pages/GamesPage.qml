@@ -391,7 +391,7 @@ ColumnLayout {
                 friendsByAppid: launcherData.friendsByAppid
                 tilt: page.view === "coverflow"
                 shrink: page.view === "coverflow"
-                cardWidth: Kirigami.Units.gridUnit * Plasmoid.configuration.gameCardSize * 1.6
+                cardWidth: Kirigami.Units.gridUnit * Plasmoid.configuration.gameCardSize * 1.2
                 showTitles: false
                 highlightCenter: flow.sectionActive
                 launchOnCenterClick: true

@@ -7,16 +7,16 @@ RowTile {
     required property var model
     readonly property var grid: GridView.view
     readonly property string favoriteId: model.favoriteId || ""
-    property var sourceModel: grid.model
+    property var sourceModel: grid ? grid.model : null
     property int sourceIndex: index
 
-    width: grid.cellWidth
-    height: grid.cellHeight
+    width: grid ? grid.cellWidth : 0
+    height: grid ? grid.cellHeight : 0
     iconSource: model.decoration
     label: model.display || ""
     query: launcher.searching ? launcher.term : ""
     subtitle: model.description || ""
-    selected: GridView.isCurrentItem && grid.sectionActive
+    selected: GridView.isCurrentItem && !!grid && grid.sectionActive
 
     function activate() {
         launcher.trigger(sourceModel, sourceIndex)

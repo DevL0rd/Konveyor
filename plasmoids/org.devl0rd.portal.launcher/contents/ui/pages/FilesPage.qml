@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQml.Models
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.private.kicker as Kicker
@@ -16,6 +17,27 @@ PopScroll {
         shownItems: Kicker.RecentUsageModel.OnlyFolders
     }
 
+    DelegateModel {
+        id: placeItems
+        model: launcherData.places
+        groups: DelegateModelGroup {
+            name: "locations"
+            includeByDefault: true
+        }
+        filterOnGroup: "locations"
+        items.onChanged: {
+            for (let i = items.count - 1; i >= 0; --i) {
+                const entry = items.get(i)
+                if (entry.inLocations && !entry.model.url)
+                    items.removeGroups(i, 1, "locations")
+            }
+        }
+        delegate: KickerTile {
+            sourceModel: launcherData.places
+            sourceIndex: DelegateModel.itemsIndex
+        }
+    }
+
     SectionHeader {
         title: i18n("Places")
     }
@@ -26,8 +48,7 @@ PopScroll {
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 7))))
         cellHeight: Kirigami.Units.gridUnit * 6
         iconSize: Kirigami.Units.iconSizes.large
-        model: launcherData.places
-        delegate: KickerTile {}
+        model: placeItems
     }
 
     SectionHeader {

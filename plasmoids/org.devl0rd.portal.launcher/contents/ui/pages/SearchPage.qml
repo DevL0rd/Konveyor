@@ -349,11 +349,11 @@ PopScroll {
             readonly property var grid: GridView.view
             width: grid.cellWidth
             height: grid.cellHeight
-            iconSource: modelData.source === "aur" ? "package-x-generic-symbolic" : "package-symbolic"
+            iconSource: "package-x-generic-symbolic"
             label: modelData.name
             query: page.term
             subtitle: modelData.description
-            trailing: modelData.source === "aur" ? i18n("AUR · %1 votes", modelData.votes) : modelData.repo
+            trailing: modelData.source === "aur" ? i18np("AUR · %1 vote", "AUR · %1 votes", modelData.votes) : modelData.repo
             selected: GridView.isCurrentItem && grid.sectionActive
             function activate() {
                 launcherData.installPackage(modelData)

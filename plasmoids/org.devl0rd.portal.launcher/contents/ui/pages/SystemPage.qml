@@ -11,6 +11,15 @@ PopScroll {
 
     readonly property var sections: [session, links]
     readonly property var confirmIds: ["logout", "reboot", "shutdown", "switch-user"]
+    readonly property var symbolic: ({
+        "lock-screen": "system-lock-screen-symbolic",
+        "logout": "system-log-out-symbolic",
+        "switch-user": "system-switch-user-symbolic",
+        "suspend": "system-suspend-symbolic",
+        "hibernate": "system-suspend-hibernate-symbolic",
+        "reboot": "system-reboot-symbolic",
+        "shutdown": "system-shutdown-symbolic"
+    })
     property string armed: ""
 
     Timer {
@@ -28,7 +37,7 @@ PopScroll {
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.min(6, Math.floor(width / (Kirigami.Units.gridUnit * 7)))))
         cellHeight: Kirigami.Units.gridUnit * 7
-        iconSize: Kirigami.Units.iconSizes.huge
+        iconSize: Kirigami.Units.iconSizes.large
         model: launcherData.system
         delegate: Tile {
             id: sessionTile
@@ -40,7 +49,8 @@ PopScroll {
             width: grid.cellWidth
             height: grid.cellHeight
             iconSize: grid.iconSize
-            iconSource: isArmed ? "dialog-warning" : model.decoration
+            monochrome: true
+            iconSource: isArmed ? "dialog-warning-symbolic" : (page.symbolic[actionId] || model.decoration)
             label: isArmed ? i18n("Press again to %1", String(model.display).toLowerCase()) : model.display
             selected: GridView.isCurrentItem && grid.sectionActive
             function activate() {
@@ -70,12 +80,12 @@ PopScroll {
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 16))))
         cellHeight: Kirigami.Units.gridUnit * 3
         model: [
-            { name: i18n("System Settings"), description: i18n("Configure the whole desktop"), icon: "preferences-system", command: "systemsettings" },
-            { name: i18n("Konveyor"), description: i18n("Tiling layout, rules and shortcuts"), icon: "preferences-system-windows", command: "kcmshell6 kcm_konveyor" },
-            { name: i18n("Launcher settings"), description: i18n("Icon, size, pages and search"), icon: "configure", command: "" },
-            { name: i18n("Displays"), description: i18n("Resolution, scale and arrangement"), icon: "preferences-desktop-display", command: "kcmshell6 kcm_kscreen" },
-            { name: i18n("Audio"), description: i18n("Devices and volume"), icon: "audio-volume-high", command: "kcmshell6 kcm_pulseaudio" },
-            { name: i18n("Power"), description: i18n("Energy saving and sleep"), icon: "preferences-system-power-management", command: "kcmshell6 kcm_powerdevilprofilesconfig" }
+            { name: i18n("System Settings"), description: i18n("Configure the whole desktop"), icon: "configure-symbolic", command: "systemsettings" },
+            { name: i18n("Konveyor"), description: i18n("Tiling layout, rules and shortcuts"), icon: "view-split-left-right-symbolic", command: "kcmshell6 kcm_konveyor" },
+            { name: i18n("Launcher settings"), description: i18n("Icon, size, pages and search"), icon: "start-here-kde-plasma-symbolic", command: "" },
+            { name: i18n("Displays"), description: i18n("Resolution, scale and arrangement"), icon: "video-display-symbolic", command: "kcmshell6 kcm_kscreen" },
+            { name: i18n("Audio"), description: i18n("Devices and volume"), icon: "audio-volume-high-symbolic", command: "kcmshell6 kcm_pulseaudio" },
+            { name: i18n("Power"), description: i18n("Energy saving and sleep"), icon: "battery-symbolic", command: "kcmshell6 kcm_powerdevilprofilesconfig" }
         ]
         delegate: RowTile {
             id: linkTile
@@ -85,6 +95,7 @@ PopScroll {
             width: grid.cellWidth
             height: grid.cellHeight
             iconSource: modelData.icon
+            monochrome: true
             label: modelData.name
             subtitle: modelData.description
             selected: GridView.isCurrentItem && grid.sectionActive

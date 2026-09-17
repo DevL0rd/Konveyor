@@ -12,6 +12,7 @@ Item {
     property bool selected: false
     property bool badge: false
     property int iconSize: 48
+    property bool monochrome: false
     signal clicked()
     signal rightClicked()
     signal hovered()
@@ -38,6 +39,8 @@ Item {
                 anchors.fill: parent
                 source: tile.iconSource
                 fallback: "application-x-executable"
+                color: Kirigami.Theme.textColor
+                isMask: tile.monochrome
                 scale: mouse.pressed ? 0.92 : 1
                 Behavior on scale { NumberAnimation { duration: 90 } }
             }
