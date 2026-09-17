@@ -485,6 +485,18 @@ Other Plasma projects made to sit on the same desktop. Click a banner to open it
 </p>
 
 <p align="center">
+  <a href="https://github.com/DevL0rd/KBoard">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/media/more/kboard-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/media/more/kboard-light.svg">
+      <img alt="KBoard — The on-screen keyboard for Plasma" src="docs/media/more/kboard-dark.svg" width="600">
+    </picture>
+  </a>
+  <br>
+  <a href="https://github.com/DevL0rd/KBoard"><b>KBoard</b></a> · Type, glide and talk, right on your desktop.
+</p>
+
+<p align="center">
   <a href="https://github.com/DevL0rd/Android-Daemon">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/media/more/android-daemon-dark.svg">
