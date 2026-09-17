@@ -1,7 +1,10 @@
 var procs = []
-var byPid = {}
-var childrenOf = {}
-var hist = {}
+var framed = []
+var byPid = null
+var childrenOf = null
+var hist = new Map()
+var histGen = 0
+var HIST_KEYS = 8
 var focusHist = {}
 var focusHistPid = 0
 var memTotal = 0
@@ -15,6 +18,20 @@ function ringValues(r) {
     var n = r.len, out = new Array(n), start = (r.head - n + r.cap) % r.cap
     for (var i = 0; i < n; i++) out[i] = r.buf[(start + i) % r.cap]
     return out
+}
+function histMake(cap) { return { buf: new Float64Array(cap * HIST_KEYS), head: 0, len: 0, cap: cap, gen: 0 } }
+function histValues(h, keyIndex) {
+    var n = h.len, cap = h.cap, out = new Array(n), start = (h.head - n + cap) % cap, base = keyIndex
+    for (var i = 0; i < n; i++) out[i] = h.buf[((start + i) % cap) * HIST_KEYS + base]
+    return out
+}
+function bytesText(b) {
+    b = b || 0
+    if (b >= 1099511627776) return (b / 1099511627776).toFixed(1) + "T"
+    if (b >= 1073741824) return (b / 1073741824).toFixed(1) + "G"
+    if (b >= 1048576) return Math.round(b / 1048576) + "M"
+    if (b >= 1024) return Math.round(b / 1024) + "K"
+    return Math.round(b) + "B"
 }
 function colVal(p, key, noagg, aggregate) {
     if (noagg) return p[key] || 0
@@ -31,28 +48,53 @@ function matchesFilter(p, filter) {
     return true
 }
 
+function indexProcs() {
+    if (byPid) return
+    var bp = {}, ch = {}
+    for (var k = 0; k < procs.length; k++) {
+        var pp = procs[k]
+        bp[pp.pid] = pp
+        var siblings = ch[pp.ppid]
+        if (siblings) siblings.push(pp.pid)
+        else ch[pp.ppid] = [pp.pid]
+    }
+    byPid = bp
+    childrenOf = ch
+}
+
+function findProc(pid) {
+    if (byPid) return byPid[pid]
+    for (var i = 0; i < procs.length; i++) {
+        if (procs[i].pid === pid) return procs[i]
+    }
+    return undefined
+}
+
 function frameInfo(pid) {
     var best = null
-    var stack = [pid], seen = {}
-    while (stack.length > 0) {
-        var current = stack.pop()
-        if (seen[current]) continue
-        seen[current] = true
-        var p = byPid[current]
-        if (p && p.fps !== undefined && (best === null || p.fps > best.fps)) best = p
-        var kids = childrenOf[current]
-        if (kids) for (var i = 0; i < kids.length; i++) stack.push(kids[i])
+    for (var i = 0; i < framed.length; i++) {
+        var p = framed[i]
+        var current = p, steps = 0
+        while (current && steps < 64) {
+            if (current.pid === pid) {
+                if (best === null || p.fps > best.fps) best = p
+                break
+            }
+            current = current.ppid > 0 ? findProc(current.ppid) : undefined
+            steps++
+        }
     }
     return best ? { fps: best.fps, frametime: best.frametime, fpsLow: best.fps_low } : null
 }
 
 function focusInfo(pid) {
-    var p = byPid[pid]
+    var p = findProc(pid)
     if (!p) return null
     var frames = frameInfo(pid)
+    var parent = p.ppid > 0 ? findProc(p.ppid) : undefined
     return {
         pid: p.pid, ppid: p.ppid, name: p.name, icon: p.icon || "",
-        parentName: byPid[p.ppid] ? byPid[p.ppid].name : "",
+        parentName: parent ? parent.name : "",
         cpu: p.acpu !== undefined ? p.acpu : (p.cpu || 0),
         gpu: p.agpu !== undefined ? p.agpu : (p.gpu || 0),
         ram: p.aram !== undefined ? p.aram : (p.ram || 0),
@@ -99,6 +141,7 @@ function summary() {
 }
 
 function build(s) {
+    indexProcs()
     var sc = s.sortColumn, agg = s.aggregate, sk = s.showKernel, hs = s.hideSystemd, noagg = s.sortNoagg
     function sortVal(p) { return sc === "name" ? (p.name || "").toLowerCase() : colVal(p, sc, noagg, agg) }
     function cmp(a, b) {
@@ -106,10 +149,11 @@ function build(s) {
         var r = av < bv ? -1 : (av > bv ? 1 : 0)
         return s.sortDescending ? -r : r
     }
+    var sortKeyIndex = s.histKeys.indexOf(sc)
     function histArr(pid) {
-        if (sc === "name" || sc === "pid") return []
-        var h = hist[pid]
-        return (h && h[sc]) ? ringValues(h[sc]) : []
+        if (sortKeyIndex < 0) return []
+        var h = hist.get(pid)
+        return h ? histValues(h, sortKeyIndex) : []
     }
     var desired = [], pbp = {}, shb = {}, sig = []
     var first = s.windowStart, last = s.windowEnd, shown = {}
@@ -156,35 +200,82 @@ function build(s) {
     return { desired: desired, procByPid: pbp, sortHistByPid: shb, sig: sig.join(",") }
 }
 
+function readSnapshot(path) {
+    var xhr = new XMLHttpRequest()
+    xhr.open("GET", "file://" + path, false)
+    xhr.send()
+    return xhr.responseText
+}
+
+function ingest(text, s) {
+    var d
+    try { d = JSON.parse(text) } catch (e) { return false }
+    var ps = d.procs || []
+    memTotal = d.mem_total || 0
+    vramTotal = d.vram_total || 0
+    ncpu = d.ncpu || 1
+    var keys = s.histKeys
+    var fields = s.aggregate ? keys.map(function(k) { return "a" + k }) : keys
+    var f0 = fields[0], f1 = fields[1], f2 = fields[2], f3 = fields[3], f4 = fields[4], f5 = fields[5], f6 = fields[6], f7 = fields[7]
+    var cap = s.histLen
+    var gen = ++histGen
+    var fr = []
+    for (var k = 0; k < ps.length; k++) {
+        var pp = ps[k]
+        if (pp.fps !== undefined) fr.push(pp)
+        var h = hist.get(pp.pid)
+        if (!h || h.cap !== cap) {
+            h = histMake(cap)
+            hist.set(pp.pid, h)
+        }
+        h.gen = gen
+        var buf = h.buf, o = h.head * HIST_KEYS
+        buf[o] = pp[f0] || 0
+        buf[o + 1] = pp[f1] || 0
+        buf[o + 2] = pp[f2] || 0
+        buf[o + 3] = pp[f3] || 0
+        buf[o + 4] = pp[f4] || 0
+        buf[o + 5] = pp[f5] || 0
+        buf[o + 6] = pp[f6] || 0
+        buf[o + 7] = pp[f7] || 0
+        h.head = (h.head + 1) % cap
+        if (h.len < cap) h.len++
+    }
+    if (hist.size > ps.length) {
+        hist.forEach(function(entry, pid) { if (entry.gen !== gen) hist.delete(pid) })
+    }
+    procs = ps
+    framed = fr
+    byPid = null
+    childrenOf = null
+    return true
+}
+
+function compactSignature(focus, sum) {
+    if (!focus)
+        return "-|" + sum.count + "|" + Math.round(sum.cpu) + "|" + Math.round(sum.gpu)
+    return focus.pid + "|" + focus.name + "|" + focus.icon + "|" + focus.parentName + "|" + Math.round(focus.cpu) + "|" + Math.round(focus.gpu)
+        + "|" + bytesText(focus.vram) + "|" + bytesText(focus.ram) + "|" + focus.fps + "|" + focus.frametime.toFixed(1) + "|" + focus.fpsLow
+}
+
 WorkerScript.onMessage = function(msg) {
     var s = msg.state
-    if (msg.text) {
-        var d
-        try { d = JSON.parse(msg.text) } catch (e) { return }
-        var ps = d.procs || []
-        memTotal = d.mem_total || 0
-        vramTotal = d.vram_total || 0
-        ncpu = d.ncpu || 1
-        var keys = s.histKeys
-        var fields = s.aggregate ? keys.map(function(k) { return "a" + k }) : keys
-        var bp = {}, ch = {}, nh = {}
-        for (var k = 0; k < ps.length; k++) {
-            var pp = ps[k]
-            bp[pp.pid] = pp
-            ;(ch[pp.ppid] = ch[pp.ppid] || []).push(pp.pid)
-            var hh = hist[pp.pid] || {}
-            for (var m = 0; m < keys.length; m++) {
-                var key = keys[m]
-                var r = hh[key] || (hh[key] = ringMake(s.histLen))
-                ringPush(r, pp[fields[m]] || 0)
-            }
-            nh[pp.pid] = hh
-        }
-        procs = ps; byPid = bp; childrenOf = ch
-        hist = nh
-        recordFocus(focusInfo(s.focusPid), s.histLen)
+    var focus
+    if (msg.path) {
+        var text = readSnapshot(msg.path)
+        if (!text || !ingest(text, s)) return
+        focus = focusInfo(s.focusPid)
+        recordFocus(focus, s.histLen)
+    } else if (msg.text) {
+        if (!ingest(msg.text, s)) return
+        focus = focusInfo(s.focusPid)
+        recordFocus(focus, s.histLen)
+    } else {
+        focus = focusInfo(s.focusPid)
     }
-    var out = { focus: focusInfo(s.focusPid), focusHistory: focusHistory(), summary: summary(), full: s.full }
+    var sum = summary()
+    var out = { focus: focus, summary: sum, full: s.full, compactSig: compactSignature(focus, sum) }
+    if (s.full) out.focusHistory = focusHistory()
     if (s.full) {
         var built = build(s)
         if (built.sig !== lastRowSig) {

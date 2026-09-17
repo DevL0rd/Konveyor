@@ -159,14 +159,8 @@ PlasmoidItem {
         }
     }
     function read() {
-        if (!cachePath) return
-        const xhr = new XMLHttpRequest()
-        xhr.open("GET", "file://" + cachePath)
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || !xhr.responseText || !worker.ready) return
-            worker.sendMessage({ text: xhr.responseText, state: root.workerState() })
-        }
-        xhr.send()
+        if (cachePath && worker.ready)
+            worker.sendMessage({ path: cachePath, state: workerState() })
     }
     FileWatcher {
         path: root.dataWanted ? root.cachePath : ""
@@ -192,13 +186,22 @@ PlasmoidItem {
         id: worker
         source: Qt.resolvedUrl("proc.worker.mjs")
         onReadyChanged: if (ready) root.read()
+        property string compactSig
         onMessage: function(message) {
-            root.hasData = true
+            if (!root.hasData)
+                root.hasData = true
+            if (!message.full) {
+                if (message.compactSig === compactSig)
+                    return
+                compactSig = message.compactSig
+                root.focusProc = message.focus
+                root.summary = message.summary
+                return
+            }
+            compactSig = ""
             root.focusProc = message.focus
             root.focusHistory = message.focusHistory
             root.summary = message.summary
-            if (!message.full)
-                return
             root.procByPid = message.procByPid
             root.sortHistByPid = message.sortHistByPid
             if (!message.desired)
@@ -375,7 +378,8 @@ PlasmoidItem {
     readonly property string focusName: focusProc ? (activePid > 0 && activeAppName ? activeAppName : focusProc.name) : ""
 
     toolTipMainText: focusProc ? focusName + " · PID " + focusProc.pid : i18n("Process Monitor")
-    toolTipSubText: {
+    property bool tooltipWanted: false
+    function tooltipText() {
         if (!focusProc)
             return hasData ? i18n("%1 processes", summary.count) : i18n("Waiting for the collector")
         const lines = [i18n("CPU %1% · GPU %2% · VRAM %3 · RAM %4", Math.round(focusProc.cpu), Math.round(focusProc.gpu), Style.bytes(focusProc.vram), Style.bytes(focusProc.ram))]
@@ -383,6 +387,7 @@ PlasmoidItem {
             lines.push(i18n("%1 FPS · %2 ms · 1% low %3", focusProc.fps, focusProc.frametime.toFixed(1), focusProc.fpsLow))
         return lines.join("\n")
     }
+    toolTipSubText: tooltipWanted ? tooltipText() : ""
 
     compactRepresentation: CompactView {}
     fullRepresentation: FullView {}

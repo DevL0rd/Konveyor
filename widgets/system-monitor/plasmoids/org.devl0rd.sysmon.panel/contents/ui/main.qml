@@ -101,7 +101,8 @@ PlasmoidItem {
     }
 
     toolTipMainText: snap.host || i18n("System Monitor")
-    toolTipSubText: {
+    property bool tooltipWanted: false
+    function tooltipText() {
         if (!snap.cpu)
             return i18n("Waiting for the collector")
         const lines = [
@@ -115,6 +116,7 @@ PlasmoidItem {
                    + ((mem.swap_total || 0) > 0 ? i18n(" · Swap %1 / %2", Style.bytes(mem.swap_used), Style.bytes(mem.swap_total)) : ""))
         return lines.filter(line => line !== "").join("\n")
     }
+    toolTipSubText: tooltipWanted ? tooltipText() : ""
 
     property string cachePath: ""
     P5Support.DataSource {

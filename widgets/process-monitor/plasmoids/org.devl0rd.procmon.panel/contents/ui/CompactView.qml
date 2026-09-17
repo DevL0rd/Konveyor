@@ -22,6 +22,7 @@ MouseArea {
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
+    onContainsMouseChanged: root.tooltipWanted = containsMouse
     onPressed: function(mouse) { wasExpanded = root.expanded }
     onClicked: function(mouse) {
         if (mouse.button === Qt.MiddleButton)

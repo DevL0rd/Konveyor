@@ -373,7 +373,8 @@ PlasmoidItem {
     }
 
     toolTipMainText: info.model ? i18n("%1 · %2", info.model, network.wan_ip || i18n("no WAN")) : i18n("Router")
-    toolTipSubText: {
+    property bool tooltipWanted: false
+    function tooltipText() {
         if (routerState === "paused" || routerState === "offline")
             return stateText
         const lines = [i18n("↓ %1  ↑ %2 · %3 ms · %4% loss", speedText(network.down_mbps), speedText(network.up_mbps),
@@ -385,6 +386,7 @@ PlasmoidItem {
             lines.unshift(stateText)
         return lines.join("\n")
     }
+    toolTipSubText: tooltipWanted ? tooltipText() : ""
 
     function middleClick() {
         if (Plasmoid.configuration.middleClickPause)
