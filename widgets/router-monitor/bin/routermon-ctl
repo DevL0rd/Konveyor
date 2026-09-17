@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+"""Linux-Router-Monitor :: control helper.
+
+Performs actions the widgets trigger (reboot, restart WiFi, toggle AdGuard
+protection, view the log). Uses the same shared SSH ControlMaster socket as the
+collector, so actions are fast and don't open new connections.
+
+Usage:
+  routermon-ctl reboot
+  routermon-ctl restart-wifi
+  routermon-ctl protection [on|off|toggle]
+  routermon-ctl status
+  routermon-ctl log [N]
+"""
+import base64
+import json
+import os
+import shlex
+import subprocess
+import sys
+import urllib.request
+import urllib.error
+
+WLIFACES = ["eth7", "eth8", "eth9", "eth10"]
+
+APP = "Linux-Router-Monitor"
+CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
+SOCK = os.path.join(RUNDIR, "cm.sock")
+LOG = os.path.expanduser(f"~/.local/state/{APP}/monitor.log")
+
+
+def cfg():
+    with open(CONFIG) as f:
+        return json.load(f)
+
+
+def ssh(c, remote_cmd, timeout=25):
+    key = os.path.expanduser(c.get("ssh_key", "~/.ssh/id_ed25519"))
+    cmd = [
+        "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6",
+        "-o", "ControlMaster=auto", "-o", f"ControlPath={SOCK}",
+        "-o", f"ControlPersist={c.get('control_persist', '60')}",
+        "-o", "StrictHostKeyChecking=accept-new", "-i", key,
+        f"{c.get('user', 'admin')}@{c['host']}", remote_cmd,
+    ]
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+
+
+def agh(c, ep, method="GET", body=None):
+    a = c.get("adguard", {})
+    base = a["url"].rstrip("/")
+    hdr = {"Content-Type": "application/json"}
+    if a.get("username"):
+        tok = base64.b64encode(f"{a['username']}:{a.get('password','')}".encode()).decode()
+        hdr["Authorization"] = f"Basic {tok}"
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(base + ep, data=data, headers=hdr, method=method)
+    with urllib.request.urlopen(req, timeout=6) as r:
+        txt = r.read().decode()
+        return json.loads(txt) if txt.strip() else {}
+
+
+def out(ok, msg):
+    print(json.dumps({"ok": ok, "msg": msg}))
+    sys.exit(0 if ok else 1)
+
+
+def main():
+    if len(sys.argv) < 2:
+        out(False, "no action")
+    action = sys.argv[1]
+    c = cfg()
+
+    try:
+        if action == "pause":
+            mode = sys.argv[2] if len(sys.argv) > 2 else "toggle"
+            pf = os.path.join(RUNDIR, "paused")
+            want = {"on": True, "off": False}.get(mode, not os.path.exists(pf))
+            if want:
+                os.makedirs(RUNDIR, exist_ok=True)
+                open(pf, "w").close()
+            elif os.path.exists(pf):
+                os.remove(pf)
+            out(True, "Paused" if want else "Resumed")
+
+        elif action == "reboot":
+            r = ssh(c, "reboot")
+            out(r.returncode == 0, "Reboot command sent" if r.returncode == 0 else r.stderr.strip())
+
+        elif action == "restart-wifi":
+            r = ssh(c, "service restart_wireless")
+            out(r.returncode == 0, "WiFi restarting" if r.returncode == 0 else r.stderr.strip())
+
+        elif action == "protection":
+            mode = sys.argv[2] if len(sys.argv) > 2 else "toggle"
+            cur = agh(c, "/control/status").get("protection_enabled", False)
+            want = {"on": True, "off": False}.get(mode, not cur)
+            agh(c, "/control/protection", "POST", {"enabled": bool(want)})
+            out(True, f"Protection {'enabled' if want else 'disabled'}")
+
+        elif action == "status":
+            st = agh(c, "/control/status")
+            out(True, json.dumps({"protection": st.get("protection_enabled")}))
+
+        elif action == "disconnect":
+            mac = sys.argv[2]
+            # deauth on every radio; wrong-iface calls are harmless no-ops
+            cmd = "; ".join(f"wl -i {i} deauthenticate {mac}" for i in WLIFACES)
+            ssh(c, cmd)
+            out(True, "Disconnect sent")
+
+        elif action in ("block", "unblock", "block-status"):
+            mac = sys.argv[2]
+            chk = f"iptables -C FORWARD -m mac --mac-source {mac} -j DROP 2>/dev/null"
+            if action == "block-status":
+                r = ssh(c, chk)
+                out(True, "blocked" if r.returncode == 0 else "allowed")
+            elif action == "block":
+                ssh(c, f"{chk} || iptables -I FORWARD -m mac --mac-source {mac} -j DROP")
+                out(True, "Internet blocked")
+            else:
+                ssh(c, f"while {chk}; do iptables -D FORWARD -m mac --mac-source {mac} -j DROP; done")
+                out(True, "Internet unblocked")
+
+        elif action == "rename":
+            mac, name = sys.argv[2], sys.argv[3]
+            cur = ssh(c, "nvram get custom_clientlist").stdout.strip()
+            entries = [e for e in cur.split("<") if e]
+            found = False
+            for i, e in enumerate(entries):
+                f = e.split(">")
+                if len(f) >= 2 and f[1].upper() == mac.upper():
+                    f[0] = name
+                    entries[i] = ">".join(f)
+                    found = True
+            if not found:
+                entries.append(f"{name}>{mac.upper()}>0>0>>>>>")
+            newval = "<".join(entries)
+            ssh(c, f"nvram set custom_clientlist={shlex.quote(newval)} && nvram commit")
+            out(True, f"Renamed to {name}")
+
+        elif action == "reserve":
+            mac, ip = sys.argv[2], sys.argv[3]
+            cur = ssh(c, "nvram get dhcp_staticlist").stdout.strip()
+            entries = [e for e in cur.split("<") if e]
+            found = False
+            for i, e in enumerate(entries):
+                f = e.split(">")
+                if f and f[0].upper() == mac.upper():
+                    f[1] = ip
+                    entries[i] = ">".join(f)
+                    found = True
+            if not found:
+                entries.append(f"{mac.upper()}>{ip}>>")
+            newval = "".join("<" + e for e in entries)
+            ssh(c, f"nvram set dhcp_staticlist={shlex.quote(newval)} && nvram set dhcp_static_x=1 && nvram commit && service restart_dnsmasq")
+            out(True, f"Reserved {ip}")
+
+        elif action == "log":
+            n = int(sys.argv[2]) if len(sys.argv) > 2 else 50
+            try:
+                with open(LOG) as f:
+                    print("".join(f.readlines()[-n:]), end="")
+            except OSError:
+                print("(no log yet)")
+            sys.exit(0)
+
+        else:
+            out(False, f"unknown action: {action}")
+    except (urllib.error.URLError, OSError, subprocess.TimeoutExpired, ValueError) as e:
+        out(False, str(e))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Linux-Router-Monitor :: manual speed test.
+
+Runs an on-demand internet speed test from the desktop using Cloudflare's
+endpoints (no extra dependencies, just curl + ping). Samples download and
+upload over a fixed *duration* (looping fixed-size transfers) so the result is
+stable rather than a single short burst.
+
+While running it streams progress to a live file
+($XDG_RUNTIME_DIR/Linux-Router-Monitor/speedtest_live.json) so the widget can
+show the speed as it is being measured. On completion it prints the final
+result JSON to stdout:
+  {ok, down_mbps, up_mbps, ping_ms, jitter_ms, loss, server, ts, time}
+"""
+import json
+import os
+import re
+import subprocess
+import time
+
+CHUNK_DOWN = 50_000_000    # Cloudflare caps a single __down request below ~100 MB
+CHUNK_UP = 25_000_000
+TEST_SECONDS = 8           # sustained sampling window per direction
+PING_HOST = "1.1.1.1"
+DOWN_URL = f"https://speed.cloudflare.com/__down?bytes={CHUNK_DOWN}"
+UP_URL = "https://speed.cloudflare.com/__up"
+
+APP = "Linux-Router-Monitor"
+LIVE = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP, "speedtest_live.json")
+
+
+def write_live(d):
+    try:
+        os.makedirs(os.path.dirname(LIVE), exist_ok=True)
+        tmp = LIVE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(d, f)
+        os.replace(tmp, LIVE)
+    except OSError:
+        pass
+
+
+def sh(cmd, timeout=30):
+    return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+
+
+def sustained(make_cmd, seconds, phase, extra):
+    """Loop transfers for `seconds`; stream live Mb/s; return final Mb/s."""
+    total_bytes = 0.0
+    start = time.monotonic()
+    mbps = 0.0
+    write_live(dict(extra, phase=phase, mbps=0.0))
+    while time.monotonic() - start < seconds:
+        r = sh(make_cmd, timeout=25)
+        try:
+            total_bytes += float(r.stdout.strip() or 0)
+        except ValueError:
+            pass
+        elapsed = time.monotonic() - start
+        if elapsed > 0:
+            mbps = round(total_bytes * 8 / elapsed / 1e6, 1)
+            write_live(dict(extra, phase=phase, mbps=mbps))
+        if r.returncode != 0:
+            break
+    return mbps
+
+
+def main():
+    res = {"ok": False, "server": "Cloudflare", "ts": int(time.time()),
+           "time": time.strftime("%H:%M")}
+    try:
+        write_live({"phase": "ping", "mbps": 0.0})
+        p = sh(f"ping -c 12 -i 0.2 -w 12 {PING_HOST}")
+        m = re.search(r"=\s*[\d.]+/([\d.]+)/[\d.]+/([\d.]+)", p.stdout)
+        loss = re.search(r"(\d+)% packet loss", p.stdout)
+        res["ping_ms"] = round(float(m.group(1)), 1) if m else 0
+        res["jitter_ms"] = round(float(m.group(2)), 1) if m else 0
+        res["loss"] = int(loss.group(1)) if loss else 0
+
+        res["down_mbps"] = sustained(
+            f'curl -s -o /dev/null -w "%{{size_download}}" --max-time 20 "{DOWN_URL}"',
+            TEST_SECONDS, "download", {"ping_ms": res["ping_ms"]})
+        res["up_mbps"] = sustained(
+            f'head -c {CHUNK_UP} /dev/zero | curl -s -o /dev/null -w "%{{size_upload}}" '
+            f'--max-time 20 --data-binary @- "{UP_URL}"',
+            TEST_SECONDS, "upload", {"down_mbps": res["down_mbps"], "ping_ms": res["ping_ms"]})
+
+        res["ok"] = res["down_mbps"] > 0
+    except Exception as e:
+        res["error"] = str(e)
+
+    write_live(dict(res, phase="done", mbps=res.get("down_mbps", 0)))
+    print(json.dumps(res))
+
+
+if __name__ == "__main__":
+    main()

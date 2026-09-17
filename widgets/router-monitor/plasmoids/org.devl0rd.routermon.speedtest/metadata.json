@@ -1,0 +1,17 @@
+{
+    "KPlugin": {
+        "Id": "org.devl0rd.routermon.speedtest",
+        "Name": "Router · Speed Test",
+        "Description": "On-demand internet speed test: download, upload, ping, jitter",
+        "Icon": "network-card",
+        "Authors": [
+            { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
+        ],
+        "Category": "System Information",
+        "License": "MIT",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Linux-Router-Monitor"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

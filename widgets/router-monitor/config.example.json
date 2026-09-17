@@ -1,0 +1,18 @@
+{
+  "host": "192.168.50.1",
+  "user": "admin",
+  "ssh_key": "~/.ssh/id_ed25519",
+  "remote_script": "/jffs/lrm-collect.sh",
+  "poll_interval": 0.5,
+  "cache_ttl": 0.45,
+  "ping_target": "8.8.8.8",
+  "control_persist": "60",
+  "adguard": {
+    "enabled": true,
+    "url": "http://192.168.50.1:3000",
+    "username": "",
+    "password": ""
+  },
+  "slow_every": 10,
+  "medium_every": 2
+}
