@@ -244,9 +244,7 @@ Item {
         }
         return found
     }
-    function openKonveyorSettings() {
-        run("kcmshell6 kcm_konveyor")
-    }
+    property var settingsTarget: ({ page: "layout", section: "", label: "" })
 
     P5Support.DataSource {
         id: gamesSource

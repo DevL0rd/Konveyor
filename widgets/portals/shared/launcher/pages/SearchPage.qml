@@ -7,6 +7,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import "../lib"
 import "../lib/Highlight.js" as Highlight
+import org.kde.konveyor.settings
 import ".."
 
 PopScroll {
@@ -69,6 +70,8 @@ PopScroll {
     readonly property var friendMatches: (mode === "all" || mode === "friends") && term !== "" && launcherData.friendsEnabled
         ? launcherData.friends.filter(friend => Highlight.matches(friend.name, term) || Highlight.matches(friend.game, term)).slice(0, mode === "friends" ? 40 : 6) : []
     readonly property bool showPackages: (mode === "all" || mode === "packages") && launcherData.packagesEnabled
+    readonly property var settingMatches: mode === "all" && term.length >= 2 ? SettingsIndex.search(term).slice(0, 6) : []
+    onSettingMatchesChanged: Qt.callLater(rebuildSections)
     readonly property var shortcutMatches: mode === "all" && term.length >= 2 ? launcherData.shortcutMatches(term, 6) : []
     onShortcutMatchesChanged: Qt.callLater(rebuildSections)
 
@@ -141,6 +144,7 @@ PopScroll {
             if (slot && slot.item && slot.item.hasContent)
                 list.push.apply(list, slot.item.grids ? slot.item.grids() : [])
         }
+        list.push(settingResults.grid)
         list.push(shortcutResults.grid)
         list.push(packagesResults.grid)
         let total = 0
@@ -604,6 +608,34 @@ PopScroll {
                     item.kind = Qt.binding(() => modelData)
                 Qt.callLater(page.rebuildSections)
             }
+        }
+    }
+
+    ResultGroup {
+        id: settingResults
+        title: i18n("Konveyor settings")
+        model: page.settingMatches
+        delegate: RowTile {
+            required property int index
+            required property var modelData
+            readonly property var grid: GridView.view
+            readonly property var settingsPage: Pages.byId(modelData.page)
+            width: grid.cellWidth
+            height: grid.cellHeight
+            iconSource: settingsPage ? settingsPage.icon : "configure-symbolic"
+            label: modelData.label
+            query: page.term
+            subtitle: settingsPage ? settingsPage.title + (modelData.section ? " · " + modelData.section : "") : ""
+            selected: GridView.isCurrentItem && grid.sectionActive
+            function activate() {
+                launcherData.settingsTarget = { page: modelData.page, section: modelData.section || "", label: modelData.label }
+                launcher.goToPage("settings")
+            }
+            function openMenu() {
+                activate()
+            }
+            onHovered: launcher.select(grid, index)
+            onClicked: activate()
         }
     }
 

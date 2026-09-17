@@ -4,11 +4,16 @@ function typeName(page) {
     return page.split("/").pop().replace(/\.qml$/, "");
 }
 
-function create(page, properties, parent) {
-    const component = Qt.createComponent("org.kde.konveyor.settings", typeName(page));
-    if (component.status !== 1) {
-        console.warn("Konveyor settings page", page, component.errorString());
+function component(page) {
+    const loaded = Qt.createComponent("org.kde.konveyor.settings", typeName(page));
+    if (loaded.status !== 1) {
+        console.warn("Konveyor settings page", page, loaded.errorString());
         return null;
     }
-    return component.createObject(parent, properties || {});
+    return loaded;
+}
+
+function create(page, properties, parent) {
+    const loaded = component(page);
+    return loaded ? loaded.createObject(parent, properties || {}) : null;
 }

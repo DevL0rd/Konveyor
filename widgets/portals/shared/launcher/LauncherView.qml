@@ -223,11 +223,6 @@ FocusScope {
         field.forceActiveFocus()
     }
     function goToPage(key) {
-        if (key === "settings") {
-            launcherData.openKonveyorSettings()
-            root.hide()
-            return
-        }
         openFolder = ""
         page = key
         markVisited(key)
@@ -659,6 +654,10 @@ FocusScope {
                                     launcher.stepSection(true)
                                 } else if (event.key === Qt.Key_Backtab) {
                                     launcher.stepSection(false)
+                                } else if (ctrl && event.key === Qt.Key_Z && launcher.page === "settings" && !launcher.searching) {
+                                    const view = launcher.currentView()
+                                    if (view && view.undo)
+                                        view.undo()
                                 } else if (ctrl && event.key === Qt.Key_Comma) {
                                     launcher.goToPage("settings")
                                 } else if (ctrl && event.key === Qt.Key_P) {
