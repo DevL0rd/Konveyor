@@ -67,18 +67,19 @@ Item {
 
     readonly property var pageDefs: {
         const defs = [
-            { key: "home", label: i18n("Home"), icon: "go-home-symbolic" },
-            { key: "apps", label: i18n("Apps"), icon: "view-app-grid-symbolic" }
+            { key: "home", label: i18n("Home"), hint: i18n("Pins, friends and recent"), icon: "go-home-symbolic" },
+            { key: "apps", label: i18n("Apps"), hint: i18n("Every application"), icon: "view-app-grid-symbolic" }
         ]
         if (Plasmoid.configuration.showGames)
-            defs.push({ key: "games", label: i18n("Games"), icon: "input-gamepad-symbolic" })
-        defs.push({ key: "files", label: i18n("Files"), icon: "folder-documents-symbolic" })
+            defs.push({ key: "games", label: i18n("Games"), hint: i18n("Your library"), icon: "input-gamepad-symbolic" })
+        defs.push({ key: "files", label: i18n("Files"), hint: i18n("Places and recent documents"), icon: "folder-documents-symbolic" })
         if (Plasmoid.configuration.showFriends)
-            defs.push({ key: "friends", label: i18n("Friends"), icon: "system-users-symbolic" })
-        defs.push({ key: "system", label: i18n("System"), icon: "system-shutdown-symbolic" })
+            defs.push({ key: "friends", label: i18n("Friends"), hint: i18n("Who is online and playing"), icon: "system-users-symbolic" })
+        defs.push({ key: "system", label: i18n("System"), hint: i18n("Session and settings"), icon: "system-shutdown-symbolic" })
         return defs
     }
     readonly property int pageIndex: Math.max(0, pageDefs.findIndex(def => def.key === page))
+    property bool altHeld: false
 
     LauncherData {
         id: launcherData
@@ -654,6 +655,13 @@ Item {
                                         launcher.stepSection(false)
                                     } else if (ctrl && event.key === Qt.Key_P) {
                                         launcher.pinCurrent()
+                                    } else if (alt && event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
+                                        const target = event.key - Qt.Key_1
+                                        if (target < launcher.pageDefs.length)
+                                            launcher.goToPage(launcher.pageDefs[target].key)
+                                    } else if (event.key === Qt.Key_Alt) {
+                                        launcher.altHeld = true
+                                        return
                                     } else if (ctrl && event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
                                         const at = event.key - Qt.Key_1
                                         if (at < launcherData.favorites.count)
@@ -663,6 +671,11 @@ Item {
                                     }
                                     event.accepted = true
                                 }
+                                Keys.onReleased: function(event) {
+                                    if (event.key === Qt.Key_Alt)
+                                        launcher.altHeld = false
+                                }
+                                onActiveFocusChanged: if (!activeFocus) launcher.altHeld = false
                             }
                             PlasmaComponents.Label {
                                 visible: launcher.searching && searchLoader.item !== null && searchLoader.item.totalResults > 0
@@ -754,6 +767,7 @@ Item {
                     transform: Translate { y: (1 - launcher.contentProgress) * Kirigami.Units.gridUnit * 0.8 }
 
                     ColumnLayout {
+                        z: 2
                         Layout.fillHeight: true
                         Layout.preferredWidth: Kirigami.Units.gridUnit * 4.4
                         Layout.maximumWidth: Kirigami.Units.gridUnit * 4.4
@@ -796,6 +810,70 @@ Item {
                                         text: railItem.badge
                                         font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.85
                                         font.weight: Font.DemiBold
+                                    }
+                                }
+                                Rectangle {
+                                    visible: launcher.altHeld && railItem.index < 9
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.margins: Kirigami.Units.smallSpacing
+                                    width: Math.max(height, altKey.implicitWidth + Kirigami.Units.smallSpacing * 1.5)
+                                    height: altKey.implicitHeight + 2
+                                    radius: Kirigami.Units.cornerRadius
+                                    color: Qt.alpha(launcher.ink, 0.9)
+                                    PlasmaComponents.Label {
+                                        id: altKey
+                                        anchors.centerIn: parent
+                                        text: railItem.index + 1
+                                        color: Kirigami.Theme.backgroundColor
+                                        font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.85
+                                        font.weight: Font.Bold
+                                    }
+                                }
+                                Timer {
+                                    id: hintDelay
+                                    interval: 450
+                                    running: railItem.containsMouse
+                                }
+                                Rectangle {
+                                    id: railHint
+                                    readonly property bool wanted: railItem.containsMouse && !hintDelay.running
+                                    visible: opacity > 0
+                                    opacity: wanted ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                                    x: parent.width + Kirigami.Units.largeSpacing
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: hintRow.implicitWidth + Kirigami.Units.largeSpacing * 1.5
+                                    height: hintRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+                                    radius: height / 2
+                                    color: Qt.rgba(0.08, 0.08, 0.09, 0.96)
+                                    border.width: 1
+                                    border.color: launcher.hairline
+                                    RowLayout {
+                                        id: hintRow
+                                        anchors.centerIn: parent
+                                        spacing: Kirigami.Units.smallSpacing * 1.5
+                                        PlasmaComponents.Label {
+                                            text: railItem.badge > 0 ? i18np("%1 friend in game", "%1 friends in game", railItem.badge) : railItem.modelData.hint
+                                            color: "white"
+                                        }
+                                        Rectangle {
+                                            visible: railItem.index < 9
+                                            implicitWidth: hintKey.implicitWidth + Kirigami.Units.smallSpacing * 1.5
+                                            implicitHeight: hintKey.implicitHeight + 2
+                                            radius: Kirigami.Units.cornerRadius
+                                            color: Qt.alpha("white", 0.12)
+                                            border.width: 1
+                                            border.color: Qt.alpha("white", 0.18)
+                                            PlasmaComponents.Label {
+                                                id: hintKey
+                                                anchors.centerIn: parent
+                                                text: i18n("Alt %1", railItem.index + 1)
+                                                color: "white"
+                                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                                opacity: 0.8
+                                            }
+                                        }
                                     }
                                 }
                                 ColumnLayout {
@@ -882,6 +960,7 @@ Item {
                             { key: "Ctrl P", text: i18n("Pin") },
                             { key: "Tab", text: i18n("Next group") },
                             { key: "Ctrl Tab", text: i18n("Next page") },
+                            { key: "Alt 1–" + launcher.pageDefs.length, text: i18n("Go to page") },
                             { key: "Esc", text: i18n("Close") }
                         ]
                         delegate: RowLayout {
