@@ -6,6 +6,7 @@ import Qt5Compat.GraphicalEffects
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
+import "lib"
 
 Item {
     id: gv
@@ -232,6 +233,7 @@ Item {
                 width: gv.cardWidth; height: gv.cardWidth * 1.5
                 game: modelData; showTitle: gv.showTitles
                 friendCount: gv.friendsFor(modelData).length
+                friends: gv.friendsFor(modelData)
                 onCardClicked: gridCard.armed = true
                 onLaunchRequested: gv.launch(modelData)
                 onMenuRequested: gv.popMenu(modelData)

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Dialogs
 import org.kde.plasma.plasmoid
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.private.kicker as Kicker
@@ -33,6 +34,20 @@ Item {
     property int friendsOnline: 0
     property int friendsInGame: 0
     property real gamesLoadedAt: 0
+    property var now: new Date()
+    property var packages: []
+    property string packagesQuery: ""
+    property bool packagesBusy: false
+    property int packagesRequest: 0
+    readonly property bool packagesEnabled: Plasmoid.configuration.searchPackages
+
+    Timer {
+        running: data.live
+        repeat: true
+        triggeredOnStart: true
+        interval: 10000
+        onTriggered: data.now = new Date()
+    }
 
     function shq(text) {
         return "'" + String(text).replace(/'/g, "'\\''") + "'"
@@ -140,9 +155,108 @@ Item {
             data.gamesLoadedAt = Date.now()
         }
     }
-    function refreshGames() {
-        if (gamesEnabled && Date.now() - gamesLoadedAt > 30000)
-            gamesSource.connectSource(portalBin)
+    function refreshGames(force) {
+        if (gamesEnabled && (force === true || Date.now() - gamesLoadedAt > 30000))
+            gamesSource.connectSource(portalBin + " # " + Date.now())
+    }
+
+    P5Support.DataSource {
+        id: artSource
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            data.refreshGames(true)
+        }
+    }
+    property var artGame: null
+    Loader {
+        id: artDialogLoader
+        active: false
+        sourceComponent: FileDialog {
+            title: i18n("Choose game art")
+            nameFilters: [i18n("Images (*.png *.jpg *.jpeg *.webp)")]
+            onAccepted: {
+                const path = decodeURIComponent(String(selectedFile).replace(/^file:\/\//, ""))
+                if (data.artGame)
+                    artSource.connectSource(data.portalBin + " --set-art " + data.shq(data.artGame.id) + " " + data.shq(path))
+                artDialogLoader.active = false
+            }
+            onRejected: artDialogLoader.active = false
+        }
+        onLoaded: item.open()
+    }
+    function pickArt(game) {
+        artGame = game
+        applet.hide()
+        artDialogLoader.active = true
+    }
+    function resetArt(game) {
+        artSource.connectSource(portalBin + " --reset-art " + shq(game.id))
+    }
+
+    TextEdit {
+        id: clipboard
+        visible: false
+    }
+    function copyText(text) {
+        clipboard.text = text
+        clipboard.selectAll()
+        clipboard.copy()
+        clipboard.text = ""
+    }
+
+    readonly property string packageTerm: {
+        if (!live || !packagesEnabled)
+            return ""
+        const text = query.trim()
+        if (searchMode === "packages")
+            return text.length >= 2 ? text : ""
+        if (searchMode !== "all")
+            return ""
+        return text.length >= 3 ? text : ""
+    }
+    onPackageTermChanged: {
+        packagesRequest++
+        if (packageTerm === "") {
+            packagesDebounce.stop()
+            packages = []
+            packagesQuery = ""
+            packagesBusy = false
+            return
+        }
+        packagesBusy = true
+        packagesDebounce.restart()
+    }
+    Timer {
+        id: packagesDebounce
+        interval: 450
+        onTriggered: {
+            const request = data.packagesRequest
+            packagesSource.connectSource("$HOME/.local/bin/portal-packages " + data.shq(data.packageTerm) + " " + (data.searchMode === "packages" ? 30 : 6) + " # " + request)
+        }
+    }
+    P5Support.DataSource {
+        id: packagesSource
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            const request = parseInt(source.substring(source.lastIndexOf("# ") + 2))
+            if (request !== data.packagesRequest)
+                return
+            let parsed = null
+            try {
+                parsed = JSON.parse(result.stdout || "{}")
+            } catch (error) {
+                data.packagesBusy = false
+                return
+            }
+            data.packages = parsed.packages || []
+            data.packagesQuery = parsed.query || ""
+            data.packagesBusy = false
+        }
+    }
+    function installPackage(pkg) {
+        run("konsole --hold -e shelly install " + (pkg.source === "aur" ? "aur" : "standard") + " " + shq(pkg.name))
     }
     function launchGame(game) {
         if (!game || !game.launch)

@@ -19,12 +19,10 @@ Item {
     Rectangle {
         anchors.fill: parent
         anchors.margins: 3
-        radius: Kirigami.Units.cornerRadius * 2
-        color: tile.selected ? Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
-             : mouse.containsMouse ? Qt.alpha(Kirigami.Theme.textColor, 0.07) : "transparent"
+        radius: Kirigami.Units.cornerRadius * 2.5
+        color: tile.selected ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
         border.width: tile.selected ? 1 : 0
-        border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.6)
-        Behavior on color { ColorAnimation { duration: 120 } }
+        border.color: launcher.selectedLine
     }
 
     ColumnLayout {
@@ -50,7 +48,7 @@ Item {
                 radius: width / 2
                 anchors.right: parent.right
                 anchors.top: parent.top
-                color: Kirigami.Theme.highlightColor
+                color: Kirigami.Theme.textColor
                 border.width: 2
                 border.color: Kirigami.Theme.backgroundColor
             }

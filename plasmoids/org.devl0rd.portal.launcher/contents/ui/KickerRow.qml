@@ -7,6 +7,8 @@ RowTile {
     required property var model
     readonly property var grid: GridView.view
     readonly property string favoriteId: model.favoriteId || ""
+    property var sourceModel: grid.model
+    property int sourceIndex: index
 
     width: grid.cellWidth
     height: grid.cellHeight
@@ -17,10 +19,10 @@ RowTile {
     selected: GridView.isCurrentItem && grid.sectionActive
 
     function activate() {
-        launcher.trigger(grid.model, index)
+        launcher.trigger(sourceModel, sourceIndex)
     }
     function openMenu() {
-        launcher.openMenu(launcher.kickerEntries(grid.model, index, model.hasActionList ? model.actionList : [], favoriteId), tile)
+        launcher.openMenu(launcher.kickerEntries(sourceModel, sourceIndex, model.hasActionList ? model.actionList : [], favoriteId), tile)
     }
 
     onHovered: launcher.select(grid, index)

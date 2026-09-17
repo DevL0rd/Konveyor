@@ -172,6 +172,7 @@ def collect():
                 "logo": art.get("logo", ""),
                 "header": art.get("header", ""),
                 "has_art": "portrait" in art,
+                "custom_art": bool(ov and os.path.isfile(ov)),
                 "last": usage.get(desktop_id, 0),
             })
     games.sort(key=lambda g: g["name"].lower())

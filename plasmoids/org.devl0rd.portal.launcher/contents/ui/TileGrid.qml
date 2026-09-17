@@ -9,6 +9,8 @@ GridView {
     property bool scrolling: false
     property int iconSize: 48
     property bool wideCards: false
+    property bool showTitles: true
+    property real cardSpacing: Kirigami.Units.largeSpacing * 0.75
     readonly property int shownCount: limit >= 0 ? Math.min(limit, count) : count
     readonly property int columns: Math.max(1, Math.floor(width / cellWidth))
     readonly property bool keyboardSelection: sectionActive && currentIndex >= 0

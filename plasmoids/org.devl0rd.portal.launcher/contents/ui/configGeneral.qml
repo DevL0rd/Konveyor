@@ -10,8 +10,8 @@ Kirigami.FormLayout {
     property string cfg_icon
     property alias cfg_label: labelField.text
     property alias cfg_showLabel: showLabel.checked
-    property alias cfg_widthFraction: widthSlider.value
-    property alias cfg_heightFraction: heightSlider.value
+    property alias cfg_cardWidth: widthBox.value
+    property alias cfg_cardHeight: heightBox.value
     property alias cfg_dimStrength: dimSlider.value
     property string cfg_defaultPage
     property alias cfg_tileSize: tileSize.value
@@ -24,24 +24,29 @@ Kirigami.FormLayout {
     property alias cfg_searchCalculator: searchCalculator.checked
     property alias cfg_searchCommands: searchCommands.checked
     property alias cfg_searchWeb: searchWeb.checked
+    property alias cfg_searchPackages: searchPackages.checked
+    property string cfg_gamesView
+    property string cfg_gamesSort
+    property int cfg_gameCardSize
+    property string cfg_appsSort
 
     QQC2.Button {
         Kirigami.FormData.label: i18n("Icon:")
         implicitWidth: Kirigami.Units.iconSizes.large + Kirigami.Units.largeSpacing * 2
         implicitHeight: implicitWidth
-        icon.name: form.cfg_icon || "start-here-kde-plasma"
+        icon.name: form.cfg_icon || "start-here-kde-plasma-symbolic"
         icon.width: Kirigami.Units.iconSizes.large
         icon.height: Kirigami.Units.iconSizes.large
         onClicked: iconDialog.open()
         KIconThemes.IconDialog {
             id: iconDialog
-            onIconNameChanged: form.cfg_icon = iconName || "start-here-kde-plasma"
+            onIconNameChanged: form.cfg_icon = iconName || "start-here-kde-plasma-symbolic"
         }
     }
     QQC2.Button {
         text: i18n("Use the default Plasma icon")
-        enabled: form.cfg_icon !== "start-here-kde-plasma"
-        onClicked: form.cfg_icon = "start-here-kde-plasma"
+        enabled: form.cfg_icon !== "start-here-kde-plasma-symbolic"
+        onClicked: form.cfg_icon = "start-here-kde-plasma-symbolic"
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Label:")
@@ -53,13 +58,13 @@ Kirigami.FormLayout {
 
     RowLayout {
         Kirigami.FormData.label: i18n("Width:")
-        QQC2.Slider { id: widthSlider; from: 0.4; to: 0.95; stepSize: 0.01 }
-        QQC2.Label { text: Math.round(widthSlider.value * 100) + "%" }
+        QQC2.SpinBox { id: widthBox; from: 50; to: 160 }
+        QQC2.Label { text: i18n("grid units, never wider than the screen"); opacity: 0.6 }
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Height:")
-        QQC2.Slider { id: heightSlider; from: 0.4; to: 0.95; stepSize: 0.01 }
-        QQC2.Label { text: Math.round(heightSlider.value * 100) + "%" }
+        QQC2.SpinBox { id: heightBox; from: 30; to: 100 }
+        QQC2.Label { text: i18n("grid units, never taller than the screen"); opacity: 0.6 }
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Dim the desktop:")
@@ -102,4 +107,5 @@ Kirigami.FormLayout {
     QQC2.CheckBox { id: searchCalculator; text: i18n("Calculations and unit conversions") }
     QQC2.CheckBox { id: searchCommands; text: i18n("Shell commands") }
     QQC2.CheckBox { id: searchWeb; text: i18n("Web search shortcuts") }
+    QQC2.CheckBox { id: searchPackages; text: i18n("Packages to install with Shelly") }
 }

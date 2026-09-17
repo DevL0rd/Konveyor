@@ -35,6 +35,8 @@ done
 mkdir -p "$BIN_DIR"
 chmod +x "$REPO_DIR/bin/portal-games"
 ln -sf "$REPO_DIR/bin/portal-games" "$BIN_DIR/portal-games"
+chmod +x "$REPO_DIR/bin/portal-packages"
+ln -sf "$REPO_DIR/bin/portal-packages" "$BIN_DIR/portal-packages"
 echo "Linked portal-games into $BIN_DIR"
 
 # --- 1b. friends-presence backend + config + resident service ---
@@ -92,6 +94,7 @@ for d in "$PLASMOID_SRC"/org.devl0rd.portal*; do
     rm -rf "$d/contents/ui/lib"
     mkdir -p "$d/contents/ui/lib"
     cp "$REPO_DIR/shared/common/"*.qml "$REPO_DIR/shared/common/"*.js "$d/contents/ui/lib/"
+    cp "$REPO_DIR/shared/lib/"*.qml "$d/contents/ui/lib/"
     if kpackagetool6 -t Plasma/Applet -u "$d" >/dev/null 2>&1; then
         echo "  upgraded $(basename "$d")"
     else

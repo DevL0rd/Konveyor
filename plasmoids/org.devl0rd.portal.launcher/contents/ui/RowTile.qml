@@ -26,12 +26,10 @@ Item {
     Rectangle {
         anchors.fill: parent
         anchors.margins: 2
-        radius: Kirigami.Units.cornerRadius * 2
-        color: tile.selected ? Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
-             : mouse.containsMouse ? Qt.alpha(Kirigami.Theme.textColor, 0.07) : "transparent"
+        radius: Kirigami.Units.cornerRadius * 2.5
+        color: tile.selected ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
         border.width: tile.selected ? 1 : 0
-        border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.6)
-        Behavior on color { ColorAnimation { duration: 120 } }
+        border.color: launcher.selectedLine
     }
 
     RowLayout {
@@ -70,8 +68,8 @@ Item {
             spacing: 0
             PlasmaComponents.Label {
                 Layout.fillWidth: true
-                text: Highlight.mark(tile.label, tile.query, Kirigami.Theme.highlightColor)
-                textFormat: Text.StyledText
+                text: tile.query !== "" ? Highlight.mark(tile.label, tile.query, Kirigami.Theme.textColor) : tile.label
+                textFormat: tile.query !== "" ? Text.StyledText : Text.PlainText
                 elide: Text.ElideRight
             }
             PlasmaComponents.Label {

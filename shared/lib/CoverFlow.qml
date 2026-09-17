@@ -14,6 +14,13 @@ Item {
     property bool shrink: true
     property int cardWidth: 150
     property bool showTitles: true
+    property bool highlightCenter: false
+    property bool launchOnCenterClick: false
+    readonly property int currentIndex: items && items.length > 0 ? ((targetIndex % items.length) + items.length) % items.length : -1
+    function friendsFor(g) {
+        return (g && g.appid && friendsByAppid[g.appid]) ? friendsByAppid[g.appid] : []
+    }
+    function jumpTo(i) { centerArmed = false; glideTo(targetIndex + wrapD(i - currentIndex)) }
     signal launchRequested(var game)
     signal menuRequested(var game)
 
@@ -112,10 +119,20 @@ Item {
                 anchors.fill: parent
                 game: modelData
                 friendCount: cf.friendCountFor(modelData)
+                friends: cf.friendsFor(modelData)
                 showTitle: cf.showTitles
+                lift: false
+                selected: cf.highlightCenter && tile.ad < 0.5
                 disarmOnExit: false
-                armed: tile.ad < 0.5 && cf.centerArmed
-                onCardClicked: { cf.glideTo(cf.pos + tile.d); cf.centerArmed = true }
+                armed: !cf.launchOnCenterClick && tile.ad < 0.5 && cf.centerArmed
+                onCardClicked: {
+                    if (cf.launchOnCenterClick && tile.ad < 0.5) {
+                        cf.launchRequested(modelData)
+                        return
+                    }
+                    cf.glideTo(cf.pos + tile.d)
+                    cf.centerArmed = true
+                }
                 onLaunchRequested: cf.launchRequested(modelData)
                 onMenuRequested: cf.menuRequested(modelData)
             }

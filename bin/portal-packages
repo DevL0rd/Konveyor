@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""
+Plasma-App-Portal :: package suggestions through Shelly.
+
+Usage:
+  portal-packages QUERY [LIMIT]    print installable repository and AUR packages as JSON
+
+Repository results come from `shelly search standard QUERY -v -j`, AUR results from
+`shelly search aur QUERY -j`; both run in parallel. Installed packages are left out.
+"""
+import json
+import shutil
+import subprocess
+import sys
+
+
+def run_json(args, timeout):
+    try:
+        done = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    text = done.stdout.strip()
+    if not text.startswith("[") and not text.startswith("{"):
+        return None
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
+
+
+def installed(names):
+    if not names:
+        return set()
+    done = subprocess.run(["pacman", "-Qq", *names], capture_output=True, text=True)
+    return set(done.stdout.split())
+
+
+def rank(name, query):
+    lower = name.lower()
+    if lower == query:
+        return 0
+    if lower.startswith(query):
+        return 1
+    if query in lower:
+        return 2
+    return 3
+
+
+def main():
+    if len(sys.argv) < 2 or not sys.argv[1].strip():
+        print(json.dumps({"query": "", "packages": []}))
+        return
+    query = sys.argv[1].strip()
+    limit = int(sys.argv[2]) if len(sys.argv) > 2 else 8
+    if not shutil.which("shelly"):
+        print(json.dumps({"query": query, "packages": [], "error": "shelly is not installed"}))
+        return
+
+    standard = subprocess.Popen(["shelly", "search", "standard", query, "-v", "-t", "40", "-j"],
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    aur = run_json(["shelly", "search", "aur", query, "-j"], 20) or []
+    try:
+        out, _ = standard.communicate(timeout=20)
+    except subprocess.TimeoutExpired:
+        standard.kill()
+        out = ""
+    text = out.strip()
+    repo = []
+    if text.startswith("["):
+        try:
+            repo = json.loads(text)
+        except ValueError:
+            repo = []
+
+    q = query.lower()
+    packages = []
+    seen = set()
+    repo = [entry for entry in repo if isinstance(entry, dict) and entry.get("Name")]
+    aur = [entry for entry in aur if isinstance(entry, dict) and entry.get("Name")]
+    present = installed(sorted({entry["Name"] for entry in repo + aur}))
+    for entry in repo:
+        name = entry["Name"]
+        if name in present or entry.get("InstallReason") not in (None, "Not Installed") or name in seen or "-i18n-" in name:
+            continue
+        seen.add(name)
+        packages.append({
+            "name": name,
+            "version": entry.get("Version") or "",
+            "description": entry.get("Description") or "",
+            "source": "standard",
+            "repo": entry.get("Repository") or "",
+            "url": entry.get("Url") or "",
+            "page": "https://archlinux.org/packages/?q=" + name,
+            "votes": 0,
+            "popularity": 0,
+            "outOfDate": False,
+            "rank": rank(name, q),
+        })
+
+    for entry in aur:
+        if entry["Name"] in seen:
+            continue
+        name = entry["Name"]
+        if name in present or "-i18n-" in name:
+            continue
+        seen.add(name)
+        packages.append({
+            "name": name,
+            "version": entry.get("Version") or "",
+            "description": entry.get("Description") or "",
+            "source": "aur",
+            "repo": "AUR",
+            "url": entry.get("Url") or "",
+            "page": "https://aur.archlinux.org/packages/" + name,
+            "votes": entry.get("NumVotes") or 0,
+            "popularity": entry.get("Popularity") or 0,
+            "outOfDate": bool(entry.get("OutOfDate")),
+            "rank": rank(name, q),
+        })
+
+    packages.sort(key=lambda p: (p["rank"], p["outOfDate"], len(p["name"]), 0 if p["source"] == "standard" else 1, -p["popularity"], p["name"]))
+    print(json.dumps({"query": query, "packages": packages[:limit]}))
+
+
+if __name__ == "__main__":
+    main()

@@ -5,19 +5,33 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.kirigamiaddons.components as Components
 import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.layershell as LayerShell
 
-Window {
+Item {
     id: launcher
 
     readonly property bool wanted: root.open
+    property bool shown: false
     property real progress: 0
     property real contentProgress: 0
     property bool hadFocus: false
     property string page: "home"
     property var visited: ({ home: true })
     property int sectionIndex: 0
+    property var targetScreen: null
+
+    readonly property color ink: Kirigami.Theme.textColor
+    readonly property color hoverFill: Qt.alpha(ink, 0.06)
+    readonly property color selectedFill: Qt.alpha(ink, 0.13)
+    readonly property color selectedLine: Qt.alpha(ink, 0.35)
+    readonly property color hairline: Qt.alpha(ink, 0.09)
+    readonly property color well: Qt.alpha(ink, 0.05)
+
+    readonly property rect screenRect: targetScreen ? Qt.rect(targetScreen.virtualX, targetScreen.virtualY, targetScreen.width, targetScreen.height) : Qt.rect(0, 0, 1920, 1080)
+    readonly property int cardWidth: Math.round(Math.min(screenRect.width - Kirigami.Units.gridUnit * 6, Kirigami.Units.gridUnit * Plasmoid.configuration.cardWidth))
+    readonly property int cardHeight: Math.round(Math.min(screenRect.height - Kirigami.Units.gridUnit * 5, Kirigami.Units.gridUnit * Plasmoid.configuration.cardHeight))
 
     readonly property string rawQuery: field.text
     readonly property string mode: {
@@ -25,6 +39,7 @@ Window {
         if (text.startsWith("g ")) return "games"
         if (text.startsWith("f ")) return "files"
         if (text.startsWith("a ")) return "apps"
+        if (text.startsWith("s ")) return "packages"
         if (text.startsWith("@")) return "friends"
         if (text.startsWith("=")) return "calc"
         if (text.startsWith(">")) return "command"
@@ -32,7 +47,7 @@ Window {
     }
     readonly property string term: {
         const text = rawQuery
-        if (mode === "games" || mode === "files" || mode === "apps") return text.substring(2).trim()
+        if (mode === "games" || mode === "files" || mode === "apps" || mode === "packages") return text.substring(2).trim()
         if (mode === "friends" || mode === "calc" || mode === "command") return text.substring(1).trim()
         return text.trim()
     }
@@ -62,37 +77,35 @@ Window {
     LauncherData {
         id: launcherData
         applet: root
-        live: launcher.visible
+        live: launcher.shown
         query: launcher.term
         searchMode: launcher.mode
     }
 
-    visible: false
-    color: "transparent"
-    flags: Qt.FramelessWindowHint
-    title: i18n("Portal Launcher")
-
-    LayerShell.Window.scope: "portal-launcher"
-    LayerShell.Window.layer: LayerShell.Window.LayerOverlay
-    LayerShell.Window.anchors: LayerShell.Window.AnchorTop | LayerShell.Window.AnchorBottom | LayerShell.Window.AnchorLeft | LayerShell.Window.AnchorRight
-    LayerShell.Window.exclusionZone: -1
-    LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityExclusive
-    LayerShell.Window.wantsToBeOnActiveScreen: root.openScreen === ""
-
     onWantedChanged: wanted ? openNow() : closeNow()
     Component.onCompleted: if (wanted) openNow()
 
+    function pickScreen() {
+        const screens = Qt.application.screens
+        return screens.find(entry => entry.name === root.openScreen) || screens[0]
+    }
+    function placeCard() {
+        card.x = Math.round(screenRect.x + (screenRect.width - card.width) / 2)
+        card.y = Math.round(screenRect.y + (screenRect.height - card.height) / 2)
+    }
     function openNow() {
         closeAnimation.stop()
-        const target = Qt.application.screens.find(entry => entry.name === root.openScreen)
-        if (target)
-            screen = target
+        targetScreen = pickScreen()
         page = pageDefs.some(def => def.key === Plasmoid.configuration.defaultPage) ? Plasmoid.configuration.defaultPage : "home"
         markVisited(page)
         field.text = ""
         hadFocus = false
-        visible = true
-        requestActivate()
+        shown = true
+        dim.visible = true
+        placeCard()
+        card.visible = true
+        placeCard()
+        card.requestActivate()
         field.forceActiveFocus()
         openAnimation.restart()
         Qt.callLater(resetSelection)
@@ -102,30 +115,26 @@ Window {
         menu.close()
         closeAnimation.restart()
     }
-    onActiveChanged: {
-        if (active)
-            hadFocus = true
-        else if (hadFocus && visible && root.open && !menu.visible)
-            root.hide()
-    }
 
     ParallelAnimation {
         id: openAnimation
-        NumberAnimation { target: launcher; property: "progress"; to: 1; duration: Kirigami.Units.longDuration * 1.6; easing.type: Easing.OutCubic }
+        NumberAnimation { target: launcher; property: "progress"; to: 1; duration: Kirigami.Units.longDuration * 1.4; easing.type: Easing.OutCubic }
         SequentialAnimation {
-            PauseAnimation { duration: Kirigami.Units.shortDuration * 0.6 }
-            NumberAnimation { target: launcher; property: "contentProgress"; to: 1; duration: Kirigami.Units.longDuration * 1.4; easing.type: Easing.OutCubic }
+            PauseAnimation { duration: Kirigami.Units.shortDuration * 0.5 }
+            NumberAnimation { target: launcher; property: "contentProgress"; to: 1; duration: Kirigami.Units.longDuration * 1.3; easing.type: Easing.OutCubic }
         }
     }
     SequentialAnimation {
         id: closeAnimation
         ParallelAnimation {
-            NumberAnimation { target: launcher; property: "progress"; to: 0; duration: Kirigami.Units.longDuration; easing.type: Easing.InCubic }
+            NumberAnimation { target: launcher; property: "progress"; to: 0; duration: Kirigami.Units.longDuration * 0.8; easing.type: Easing.InCubic }
             NumberAnimation { target: launcher; property: "contentProgress"; to: 0; duration: Kirigami.Units.shortDuration; easing.type: Easing.InCubic }
         }
         ScriptAction {
             script: {
-                launcher.visible = false
+                card.visible = false
+                dim.visible = false
+                launcher.shown = false
                 field.text = ""
             }
         }
@@ -137,6 +146,9 @@ Window {
             next[key] = true
             visited = next
         }
+    }
+    function focusSearch() {
+        field.forceActiveFocus()
     }
     function goToPage(key) {
         page = key
@@ -342,8 +354,12 @@ Window {
             entries.push({ text: i18n("Properties"), icon: "configure", run: () => { Qt.openUrlExternally("steam://gameproperties/" + game.appid); root.hide() } })
             entries.push({ text: i18n("Browse local files"), icon: "folder-open", run: () => { Qt.openUrlExternally("steam://open/games/details/" + game.appid); root.hide() } })
         }
+        entries.push({ separator: true })
+        entries.push({ text: i18n("Set custom art…"), icon: "insert-image", run: () => launcherData.pickArt(game) })
+        if (game.custom_art)
+            entries.push({ text: i18n("Reset art"), icon: "edit-undo", run: () => launcherData.resetArt(game) })
         for (const friend of launcherData.friendsFor(game)) {
-            if (entries.length === 1 || !entries[entries.length - 1].friendHeader) {
+            if (!entries[entries.length - 1].friendHeader && !entries.some(entry => entry.friendHeader)) {
                 entries.push({ separator: true })
                 entries.push({ text: i18n("Playing now"), friendHeader: true, disabled: true })
             }
@@ -363,6 +379,15 @@ Window {
             entries.push({ text: i18n("Open profile in browser"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally(friend.profile_web); root.hide() } })
         return entries
     }
+    function packageEntries(pkg) {
+        return [
+            { text: i18n("Install with Shelly"), icon: "shelly", run: () => { launcherData.installPackage(pkg); root.hide() } },
+            { separator: true },
+            { text: pkg.source === "aur" ? i18n("Open AUR page") : i18n("Open package page"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally(pkg.page); root.hide() } },
+            { text: i18n("Open project website"), icon: "globe", disabled: !pkg.url, run: () => { Qt.openUrlExternally(pkg.url); root.hide() } },
+            { text: i18n("Copy name"), icon: "edit-copy", run: () => launcherData.copyText(pkg.name) }
+        ]
+    }
     function openMenu(entries, item) {
         menu.entries = entries
         if (item)
@@ -371,102 +396,135 @@ Window {
             menu.popup()
     }
 
-    Item {
-        id: scene
-        anchors.fill: parent
+    Window {
+        id: dim
+
+        visible: false
+        color: "transparent"
+        flags: Qt.FramelessWindowHint
+        title: i18n("Portal Launcher backdrop")
+
+        LayerShell.Window.scope: "portal-launcher-backdrop"
+        LayerShell.Window.layer: LayerShell.Window.LayerTop
+        LayerShell.Window.anchors: LayerShell.Window.AnchorTop | LayerShell.Window.AnchorBottom | LayerShell.Window.AnchorLeft | LayerShell.Window.AnchorRight
+        LayerShell.Window.exclusionZone: -1
+        LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityNone
+        LayerShell.Window.wantsToBeOnActiveScreen: true
 
         Rectangle {
             anchors.fill: parent
             color: "black"
             opacity: launcher.progress * Plasmoid.configuration.dimStrength
         }
-
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             onClicked: root.hide()
         }
+    }
 
-        Rectangle {
-            id: card
+    PlasmaCore.Dialog {
+        id: card
 
-            width: Math.min(parent.width - Kirigami.Units.gridUnit * 4, Math.max(Kirigami.Units.gridUnit * 40, parent.width * Plasmoid.configuration.widthFraction))
-            height: Math.min(parent.height - Kirigami.Units.gridUnit * 4, Math.max(Kirigami.Units.gridUnit * 30, parent.height * Plasmoid.configuration.heightFraction))
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: (1 - launcher.progress) * Kirigami.Units.gridUnit * 2
-            scale: 0.94 + 0.06 * launcher.progress
+        visible: false
+        type: PlasmaCore.Dialog.AppletPopup
+        location: PlasmaCore.Types.Floating
+        backgroundHints: PlasmaCore.Dialog.StandardBackground
+        flags: Qt.FramelessWindowHint
+        hideOnWindowDeactivate: false
+        title: i18n("Portal Launcher")
+
+        onWidthChanged: if (visible) launcher.placeCard()
+        onHeightChanged: if (visible) launcher.placeCard()
+        onActiveChanged: {
+            if (active)
+                launcher.hadFocus = true
+            else if (launcher.hadFocus && launcher.shown && root.open && !menu.visible)
+                root.hide()
+        }
+
+        mainItem: FocusScope {
+            id: content
+
+            width: launcher.cardWidth
+            height: launcher.cardHeight
             opacity: launcher.progress
-            radius: Kirigami.Units.cornerRadius * 4
-            color: Kirigami.Theme.backgroundColor
-            border.width: 1
-            border.color: Qt.alpha(Kirigami.Theme.textColor, 0.12)
+            focus: true
 
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
-            }
+            Keys.forwardTo: [field]
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Kirigami.Units.gridUnit
-                spacing: Kirigami.Units.largeSpacing
+                anchors.margins: Kirigami.Units.largeSpacing
+                spacing: Kirigami.Units.largeSpacing * 1.5
+                scale: 0.97 + 0.03 * launcher.progress
+                transformOrigin: Item.Top
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.largeSpacing * 1.5
 
-                    Components.Avatar {
-                        Layout.preferredWidth: Kirigami.Units.iconSizes.large
-                        Layout.preferredHeight: Kirigami.Units.iconSizes.large
-                        source: launcherData.user.faceIconUrl
-                        name: launcherData.user.fullName || launcherData.user.loginName
-                    }
-                    ColumnLayout {
-                        spacing: 0
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 9
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 9
-                        Kirigami.Heading {
-                            level: 3
-                            text: launcherData.user.fullName || launcherData.user.loginName
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
+                    RowLayout {
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 11
+                        Layout.maximumWidth: Kirigami.Units.gridUnit * 11
+                        spacing: Kirigami.Units.largeSpacing
+                        Components.Avatar {
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium + Kirigami.Units.smallSpacing
+                            Layout.preferredHeight: Layout.preferredWidth
+                            source: launcherData.user.faceIconUrl
+                            name: launcherData.user.fullName || launcherData.user.loginName
                         }
-                        PlasmaComponents.Label {
-                            text: launcherData.user.loginName + "@" + launcherData.user.host
-                            font: Kirigami.Theme.smallFont
-                            opacity: 0.6
-                            elide: Text.ElideRight
+                        ColumnLayout {
+                            spacing: 0
                             Layout.fillWidth: true
+                            PlasmaComponents.Label {
+                                text: launcherData.user.fullName || launcherData.user.loginName
+                                font.weight: Font.DemiBold
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                            PlasmaComponents.Label {
+                                text: launcherData.user.host
+                                font: Kirigami.Theme.smallFont
+                                opacity: 0.55
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
                         }
                     }
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.4
+                        Layout.maximumWidth: Kirigami.Units.gridUnit * 44
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
                         radius: height / 2
-                        color: Qt.alpha(Kirigami.Theme.textColor, 0.06)
-                        border.width: field.activeFocus ? 1 : 0
-                        border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.7)
+                        color: field.activeFocus ? Qt.alpha(launcher.ink, 0.09) : launcher.well
+                        border.width: 1
+                        border.color: field.activeFocus ? Qt.alpha(launcher.ink, 0.22) : launcher.hairline
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: Kirigami.Units.largeSpacing
-                            anchors.rightMargin: Kirigami.Units.largeSpacing
-                            spacing: Kirigami.Units.smallSpacing
+                            anchors.leftMargin: Kirigami.Units.largeSpacing * 1.5
+                            anchors.rightMargin: Kirigami.Units.smallSpacing
+                            spacing: Kirigami.Units.largeSpacing
 
                             Kirigami.Icon {
-                                Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
-                                Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
-                                source: "search"
-                                opacity: 0.7
+                                Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                                Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                                source: "search-symbolic"
+                                color: launcher.ink
+                                isMask: true
+                                opacity: 0.6
                             }
                             QQC2.TextField {
                                 id: field
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 0
                                 background: null
-                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.25
-                                placeholderText: i18n("Search apps, games, files, settings, friends…")
+                                leftPadding: 0
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.15
+                                placeholderText: i18n("Search apps, games, files, settings, friends and packages")
                                 onTextChanged: Qt.callLater(launcher.resetSelection)
                                 Keys.onPressed: function(event) {
                                     const ctrl = event.modifiers & Qt.ControlModifier
@@ -510,15 +568,23 @@ Window {
                                     event.accepted = true
                                 }
                             }
-                            PlasmaComponents.Label {
+                            Rectangle {
                                 visible: launcher.searching && launcher.mode !== "all"
-                                text: ({ games: i18n("Games"), files: i18n("Files"), apps: i18n("Apps"), friends: i18n("Friends"), calc: i18n("Calculator"), command: i18n("Command") })[launcher.mode] || ""
-                                font: Kirigami.Theme.smallFont
-                                color: Kirigami.Theme.highlightColor
+                                implicitWidth: modeLabel.implicitWidth + Kirigami.Units.largeSpacing * 1.5
+                                implicitHeight: modeLabel.implicitHeight + Kirigami.Units.smallSpacing
+                                radius: height / 2
+                                color: Qt.alpha(launcher.ink, 0.12)
+                                PlasmaComponents.Label {
+                                    id: modeLabel
+                                    anchors.centerIn: parent
+                                    text: ({ games: i18n("Games"), files: i18n("Files"), apps: i18n("Apps"), packages: i18n("Packages"), friends: i18n("Friends"), calc: i18n("Calculator"), command: i18n("Command") })[launcher.mode] || ""
+                                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                    font.weight: Font.DemiBold
+                                }
                             }
                             PlasmaComponents.ToolButton {
                                 visible: field.text !== ""
-                                icon.name: "edit-clear"
+                                icon.name: "edit-clear-symbolic"
                                 display: PlasmaComponents.AbstractButton.IconOnly
                                 text: i18n("Clear")
                                 onClicked: {
@@ -529,39 +595,50 @@ Window {
                         }
                     }
 
-                    PlasmaComponents.ToolButton {
-                        icon.name: "configure"
-                        display: PlasmaComponents.AbstractButton.IconOnly
-                        text: i18n("Configure…")
-                        onClicked: {
-                            root.hide()
-                            Plasmoid.internalAction("configure").trigger()
+                    RowLayout {
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 11
+                        Layout.maximumWidth: Kirigami.Units.gridUnit * 11
+                        spacing: Kirigami.Units.smallSpacing
+                        Item { Layout.fillWidth: true }
+                        PlasmaComponents.Label {
+                            text: Qt.formatTime(launcherData.now, Qt.locale().timeFormat(Locale.ShortFormat))
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
+                            font.weight: Font.DemiBold
+                            Layout.rightMargin: Kirigami.Units.largeSpacing
                         }
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: text
-                    }
-                    PlasmaComponents.ToolButton {
-                        id: powerButton
-                        icon.name: "system-shutdown"
-                        display: PlasmaComponents.AbstractButton.IconOnly
-                        text: i18n("Power and session")
-                        onClicked: launcher.goToPage("system")
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.text: text
+                        PlasmaComponents.ToolButton {
+                            icon.name: "configure-symbolic"
+                            display: PlasmaComponents.AbstractButton.IconOnly
+                            text: i18n("Launcher settings")
+                            onClicked: {
+                                root.hide()
+                                Plasmoid.internalAction("configure").trigger()
+                            }
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: text
+                        }
+                        PlasmaComponents.ToolButton {
+                            icon.name: "system-shutdown-symbolic"
+                            display: PlasmaComponents.AbstractButton.IconOnly
+                            text: i18n("Power and session")
+                            onClicked: launcher.goToPage("system")
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: text
+                        }
                     }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: Kirigami.Units.largeSpacing
+                    spacing: Kirigami.Units.largeSpacing * 1.5
                     opacity: launcher.contentProgress
-                    transform: Translate { y: (1 - launcher.contentProgress) * Kirigami.Units.gridUnit }
+                    transform: Translate { y: (1 - launcher.contentProgress) * Kirigami.Units.gridUnit * 0.8 }
 
                     ColumnLayout {
                         Layout.fillHeight: true
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 4.6
-                        Layout.maximumWidth: Kirigami.Units.gridUnit * 4.6
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 4.4
+                        Layout.maximumWidth: Kirigami.Units.gridUnit * 4.4
                         spacing: Kirigami.Units.smallSpacing
 
                         Repeater {
@@ -572,42 +649,35 @@ Window {
                                 required property int index
                                 readonly property bool current: !launcher.searching && launcher.page === modelData.key
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3.6
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 3.4
                                 hoverEnabled: true
                                 onClicked: launcher.goToPage(modelData.key)
 
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: Kirigami.Units.cornerRadius * 2
-                                    color: railItem.current ? Qt.alpha(Kirigami.Theme.highlightColor, 0.2)
-                                         : railItem.containsMouse ? Qt.alpha(Kirigami.Theme.textColor, 0.07) : "transparent"
-                                    Behavior on color { ColorAnimation { duration: 120 } }
-                                }
-                                Rectangle {
-                                    visible: railItem.current
-                                    width: 3
-                                    height: parent.height * 0.5
-                                    radius: 1.5
-                                    anchors.left: parent.left
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    color: Kirigami.Theme.highlightColor
+                                    color: railItem.current ? launcher.selectedFill : railItem.containsMouse ? launcher.hoverFill : "transparent"
+                                    border.width: railItem.current ? 1 : 0
+                                    border.color: launcher.hairline
                                 }
                                 ColumnLayout {
                                     anchors.centerIn: parent
-                                    spacing: 2
+                                    spacing: Kirigami.Units.smallSpacing * 0.75
                                     Kirigami.Icon {
                                         Layout.alignment: Qt.AlignHCenter
                                         Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                                         Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                                         source: railItem.modelData.icon
-                                        color: railItem.current ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
+                                        color: launcher.ink
                                         isMask: true
+                                        opacity: railItem.current ? 1 : 0.62
                                     }
                                     PlasmaComponents.Label {
                                         Layout.alignment: Qt.AlignHCenter
                                         text: railItem.modelData.label
-                                        font: Kirigami.Theme.smallFont
-                                        opacity: railItem.current ? 1 : 0.7
+                                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                        font.weight: railItem.current ? Font.DemiBold : Font.Normal
+                                        opacity: railItem.current ? 1 : 0.62
                                     }
                                 }
                             }
@@ -615,8 +685,10 @@ Window {
                         Item { Layout.fillHeight: true }
                     }
 
-                    Kirigami.Separator {
+                    Rectangle {
                         Layout.fillHeight: true
+                        Layout.preferredWidth: 1
+                        color: launcher.hairline
                     }
 
                     Item {
@@ -646,70 +718,87 @@ Window {
                     }
                 }
 
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: launcher.hairline
+                    opacity: launcher.contentProgress
+                }
+
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.largeSpacing * 2
-                    opacity: 0.55 * launcher.contentProgress
+                    opacity: launcher.contentProgress
 
                     Repeater {
                         model: launcher.searching ? [
                             { key: "↵", text: i18n("Open") },
-                            { key: "Alt+↵", text: i18n("Actions") },
-                            { key: "Ctrl+P", text: i18n("Pin") },
+                            { key: "Alt ↵", text: i18n("Actions") },
                             { key: "Tab", text: i18n("Next group") },
-                            { key: "g · f · a · @ · = · >", text: i18n("Search games, files, apps, friends, math, commands") }
+                            { key: "Esc", text: i18n("Clear") }
                         ] : [
                             { key: "↵", text: i18n("Open") },
-                            { key: "Alt+↵", text: i18n("Actions") },
-                            { key: "Ctrl+P", text: i18n("Pin") },
-                            { key: "Ctrl+1…9", text: i18n("Pinned apps") },
-                            { key: "Ctrl+Tab", text: i18n("Pages") },
+                            { key: "Alt ↵", text: i18n("Actions") },
+                            { key: "Ctrl P", text: i18n("Pin") },
+                            { key: "Tab", text: i18n("Next group") },
+                            { key: "Ctrl Tab", text: i18n("Next page") },
                             { key: "Esc", text: i18n("Close") }
                         ]
                         delegate: RowLayout {
                             required property var modelData
                             spacing: Kirigami.Units.smallSpacing
                             Rectangle {
-                                implicitWidth: keyLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
-                                implicitHeight: keyLabel.implicitHeight + 2
+                                implicitWidth: keyLabel.implicitWidth + Kirigami.Units.largeSpacing
+                                implicitHeight: keyLabel.implicitHeight + Kirigami.Units.smallSpacing * 0.5
                                 radius: Kirigami.Units.cornerRadius
-                                color: Qt.alpha(Kirigami.Theme.textColor, 0.1)
+                                color: launcher.well
+                                border.width: 1
+                                border.color: launcher.hairline
                                 PlasmaComponents.Label {
                                     id: keyLabel
                                     anchors.centerIn: parent
                                     text: modelData.key
-                                    font: Kirigami.Theme.smallFont
+                                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                    font.weight: Font.DemiBold
+                                    opacity: 0.8
                                 }
                             }
                             PlasmaComponents.Label {
                                 text: modelData.text
-                                font: Kirigami.Theme.smallFont
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                opacity: 0.55
                             }
                         }
                     }
                     Item { Layout.fillWidth: true }
+                    PlasmaComponents.Label {
+                        text: launcher.searching ? i18n("Prefixes: g games · a apps · f files · s packages · @ friends · = math · > command") : i18n("Type anywhere to search")
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        opacity: 0.45
+                    }
                 }
             }
-        }
-    }
 
-    QQC2.Menu {
-        id: menu
+            QQC2.Menu {
+                id: menu
 
-        property var entries: []
+                property var entries: []
 
-        onEntriesChanged: {
-            while (count > 0)
-                takeItem(0).destroy()
-            for (const entry of entries) {
-                if (entry.separator)
-                    addItem(separatorComponent.createObject(null))
-                else
-                    addItem(itemComponent.createObject(null, { text: entry.text, "icon.name": entry.icon || "", enabled: entry.disabled !== true, entry: entry }))
+                onEntriesChanged: {
+                    while (count > 0)
+                        takeItem(0).destroy()
+                    for (const entry of entries) {
+                        if (entry.separator)
+                            addItem(separatorComponent.createObject(null))
+                        else
+                            addItem(itemComponent.createObject(null, { text: entry.text, "icon.name": entry.icon || "", enabled: entry.disabled !== true, entry: entry }))
+                    }
+                }
+                onClosed: field.forceActiveFocus()
             }
         }
-        onClosed: field.forceActiveFocus()
     }
+
     Component {
         id: itemComponent
         PlasmaComponents.MenuItem {

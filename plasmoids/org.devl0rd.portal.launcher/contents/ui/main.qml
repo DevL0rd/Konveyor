@@ -13,9 +13,10 @@ PlasmoidItem {
     property bool openedByKey: false
     property bool created: false
     property string openScreen
+    property string panelScreen
 
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
-    readonly property string buttonIcon: Plasmoid.configuration.icon || "start-here-kde-plasma"
+    readonly property string buttonIcon: Plasmoid.configuration.icon || "start-here-kde-plasma-symbolic"
 
     Plasmoid.icon: buttonIcon
     Plasmoid.title: i18n("Portal Launcher")
@@ -26,7 +27,7 @@ PlasmoidItem {
 
     function show(byKey, screen) {
         openedByKey = byKey
-        openScreen = screen
+        openScreen = screen || panelScreen
         created = true
         open = true
     }
@@ -40,6 +41,12 @@ PlasmoidItem {
             show(byKey, screen)
     }
 
+    onExpandedChanged: function() {
+        if (root.expanded)
+            root.expanded = false
+    }
+    Component.onCompleted: root.expanded = false
+
     Connections {
         target: Plasmoid
         function onActivated() {
@@ -51,7 +58,10 @@ PlasmoidItem {
         id: button
 
         readonly property bool showLabel: Plasmoid.configuration.showLabel && Plasmoid.configuration.label !== "" && !root.vertical
+        readonly property string screenName: Window.window && Window.window.screen ? Window.window.screen.name : ""
         property bool wasOpen: false
+        onScreenNameChanged: root.panelScreen = screenName
+        Component.onCompleted: root.panelScreen = screenName
 
         hoverEnabled: true
         onPressed: wasOpen = root.open
@@ -59,7 +69,7 @@ PlasmoidItem {
             if (wasOpen)
                 root.hide()
             else
-                root.show(false, button.Window.window && button.Window.window.screen ? button.Window.window.screen.name : "")
+                root.show(false, button.screenName)
         }
 
         Layout.minimumWidth: root.vertical ? 0 : (showLabel ? buttonRow.implicitWidth + Kirigami.Units.smallSpacing * 2 : height)
@@ -72,7 +82,7 @@ PlasmoidItem {
             anchors.centerIn: parent
             spacing: Kirigami.Units.smallSpacing
             Kirigami.Icon {
-                Layout.preferredWidth: Math.round(Math.min(button.width, button.height) * 0.72)
+                Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                 Layout.preferredHeight: Layout.preferredWidth
                 source: root.buttonIcon
                 active: button.containsMouse || root.open

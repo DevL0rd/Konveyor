@@ -12,7 +12,7 @@ PopScroll {
     readonly property var sections: [pinned, recentApps, playing, recentFiles]
     readonly property int tileSize: Plasmoid.configuration.tileSize
     readonly property string greeting: {
-        launcher.visible
+        launcher.shown
         const hour = new Date().getHours()
         const name = launcherData.user.fullName || launcherData.user.loginName
         if (hour < 5)
@@ -24,7 +24,7 @@ PopScroll {
         return i18n("Good evening, %1", name)
     }
     readonly property string today: {
-        launcher.visible
+        launcher.shown
         return Qt.formatDate(new Date(), Qt.locale().dateFormat(Locale.LongFormat))
     }
 
@@ -94,12 +94,13 @@ PopScroll {
         visible: Plasmoid.configuration.showGames && launcherData.recentGames.length > 0
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
-        cellWidth: Kirigami.Units.gridUnit * 14
-        cellHeight: Kirigami.Units.gridUnit * 7
+        cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
+        cellHeight: Math.round(cellWidth * 0.4667)
         wideCards: true
+        showTitles: false
         limit: columns
         model: launcherData.recentGames
-        delegate: GameCard {}
+        delegate: GameTile {}
     }
 
     SectionHeader {

@@ -3,7 +3,7 @@
         "Id": "org.devl0rd.portal.launcher",
         "Name": "Portal Launcher",
         "Description": "A full-screen launcher for apps, games, files, friends and system actions, with one search for everything",
-        "Icon": "start-here-kde-plasma",
+        "Icon": "start-here-kde-plasma-symbolic",
         "Authors": [
             { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
         ],

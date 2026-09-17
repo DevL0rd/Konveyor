@@ -13,6 +13,21 @@ ColumnLayout {
     readonly property int tileSize: Plasmoid.configuration.tileSize
     property int categoryRow: 0
     readonly property var categoryModel: launcherData.rootModel.count > categoryRow ? launcherData.rootModel.modelForRow(categoryRow) : null
+    readonly property var letters: {
+        const model = categoryModel
+        if (!model)
+            return []
+        model.count
+        const found = []
+        for (let i = 0; i < model.count; ++i) {
+            const label = String(model.labelForRow(i) || "")
+            const first = label.charAt(0).toUpperCase()
+            const key = /[A-Z]/.test(first) ? first : "#"
+            if (found.length === 0 || found[found.length - 1].key !== key)
+                found.push({ key: key, row: i })
+        }
+        return found
+    }
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -29,6 +44,10 @@ ColumnLayout {
         grid.positionViewAtBeginning()
         Qt.callLater(launcher.resetSelection)
     }
+    function jump(row) {
+        grid.positionViewAtIndex(row, GridView.Beginning)
+        launcher.select(grid, row)
+    }
 
     Flickable {
         Layout.fillWidth: true
@@ -36,11 +55,20 @@ ColumnLayout {
         contentWidth: chips.implicitWidth
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        QQC2.ScrollBar.horizontal: QQC2.ScrollBar { policy: QQC2.ScrollBar.AsNeeded }
+
+        Rectangle {
+            width: chips.implicitWidth + Kirigami.Units.smallSpacing
+            height: chips.implicitHeight
+            radius: height / 2
+            color: launcher.well
+            border.width: 1
+            border.color: launcher.hairline
+        }
 
         RowLayout {
             id: chips
-            spacing: Kirigami.Units.smallSpacing
+            spacing: 0
+            x: Kirigami.Units.smallSpacing / 2
             Repeater {
                 model: launcherData.rootModel
                 delegate: MouseArea {
@@ -49,8 +77,8 @@ ColumnLayout {
                     required property var model
                     readonly property bool current: page.categoryRow === index
                     visible: (model.display || "") !== ""
-                    implicitWidth: chipLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
-                    implicitHeight: chipLabel.implicitHeight + Kirigami.Units.smallSpacing * 2.5
+                    implicitWidth: visible ? chipLabel.implicitWidth + Kirigami.Units.largeSpacing * 2 : 0
+                    implicitHeight: Kirigami.Units.gridUnit * 1.9
                     hoverEnabled: true
                     onClicked: {
                         page.categoryRow = index
@@ -59,17 +87,19 @@ ColumnLayout {
                     }
                     Rectangle {
                         anchors.fill: parent
+                        anchors.topMargin: Kirigami.Units.smallSpacing / 2
+                        anchors.bottomMargin: Kirigami.Units.smallSpacing / 2
                         radius: height / 2
-                        color: chip.current ? Qt.alpha(Kirigami.Theme.highlightColor, 0.25)
-                             : chip.containsMouse ? Qt.alpha(Kirigami.Theme.textColor, 0.1) : Qt.alpha(Kirigami.Theme.textColor, 0.05)
+                        color: chip.current ? launcher.selectedFill : chip.containsMouse ? launcher.hoverFill : "transparent"
                         border.width: chip.current ? 1 : 0
-                        border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.6)
-                        Behavior on color { ColorAnimation { duration: 120 } }
+                        border.color: launcher.hairline
                     }
                     PlasmaComponents.Label {
                         id: chipLabel
                         anchors.centerIn: parent
                         text: chip.model.display || ""
+                        font.weight: chip.current ? Font.DemiBold : Font.Normal
+                        opacity: chip.current ? 1 : 0.7
                     }
                 }
             }
@@ -78,28 +108,54 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        PlasmaComponents.Label {
-            text: page.categoryModel ? i18np("%1 app", "%1 apps", page.categoryModel.count) : ""
-            opacity: 0.6
-        }
-        Item { Layout.fillWidth: true }
-        PlasmaComponents.Label {
-            text: i18n("Tab switches category")
-            font: Kirigami.Theme.smallFont
-            opacity: 0.45
-        }
-    }
-
-    TileGrid {
-        id: grid
-        Layout.fillWidth: true
         Layout.fillHeight: true
-        scrolling: true
-        cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (page.tileSize + Kirigami.Units.gridUnit * 3.6))))
-        cellHeight: Math.round(page.tileSize + Kirigami.Units.gridUnit * 3.2)
-        iconSize: page.tileSize
-        model: page.categoryModel
-        delegate: KickerTile {}
-        QQC2.ScrollBar.vertical: PlasmaComponents.ScrollBar {}
+        spacing: Kirigami.Units.largeSpacing
+
+        TileGrid {
+            id: grid
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            scrolling: true
+            cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (page.tileSize + Kirigami.Units.gridUnit * 4))))
+            cellHeight: Math.round(page.tileSize + Kirigami.Units.gridUnit * 3.4)
+            iconSize: page.tileSize
+            model: page.categoryModel
+            delegate: KickerTile {}
+            QQC2.ScrollBar.vertical: PlasmaComponents.ScrollBar {}
+        }
+
+        ColumnLayout {
+            visible: page.letters.length > 4
+            Layout.fillHeight: true
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 1.4
+            spacing: 0
+            Repeater {
+                model: page.letters
+                MouseArea {
+                    id: letter
+                    required property var modelData
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.maximumHeight: Kirigami.Units.gridUnit * 1.3
+                    hoverEnabled: true
+                    onClicked: page.jump(modelData.row)
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width, parent.height)
+                        height: width
+                        radius: width / 2
+                        color: letter.containsMouse ? launcher.selectedFill : "transparent"
+                    }
+                    PlasmaComponents.Label {
+                        anchors.centerIn: parent
+                        text: letter.modelData.key
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        font.weight: Font.DemiBold
+                        opacity: letter.containsMouse ? 1 : 0.5
+                    }
+                }
+            }
+            Item { Layout.fillHeight: true }
+        }
     }
 }

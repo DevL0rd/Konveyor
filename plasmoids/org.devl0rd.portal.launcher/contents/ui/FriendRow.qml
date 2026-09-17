@@ -16,8 +16,8 @@ RowTile {
     label: friend.name || ""
     query: launcher.searching ? launcher.term : ""
     subtitle: friend.ingame ? i18n("Playing %1", friend.game) : friend.state > 0 ? i18n("Online") : lastSeen()
-    subtitleColor: friend.ingame ? Kirigami.Theme.positiveTextColor : friend.state > 0 ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
-    ringColor: friend.ingame ? Kirigami.Theme.positiveTextColor : friend.state > 0 ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.2)
+    subtitleColor: friend.ingame ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
+    ringColor: friend.ingame ? Kirigami.Theme.positiveTextColor : friend.state > 0 ? Qt.alpha(Kirigami.Theme.textColor, 0.85) : Qt.alpha(Kirigami.Theme.textColor, 0.18)
     selected: GridView.isCurrentItem && grid.sectionActive
 
     function lastSeen() {
