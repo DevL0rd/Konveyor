@@ -1,6 +1,6 @@
 import QtQuick
-import QtQuick.Effects
 import org.kde.kirigami as Kirigami
+import "ArtColors.js" as ArtColors
 
 Item {
     id: art
@@ -68,50 +68,66 @@ Item {
         sourceSize.width: Math.round(width * 1.5)
     }
 
-    Item {
-        id: wash
+    Loader {
         anchors.fill: parent
-        visible: art.mode === "icon" || !image.visible
-        clip: true
-        layer.enabled: visible
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: washMask
+        active: art.mode === "icon"
+        sourceComponent: Item {
+            id: wash
+            readonly property string key: art.game ? (art.game.icon || "applications-games") : "applications-games"
+            property color tint: ArtColors.get(key) || "transparent"
+
+            Rectangle {
+                anchors.fill: parent
+                visible: wash.tint.a > 0
+                radius: art.radius
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Qt.alpha(Qt.darker(wash.tint, 1.6), 0.95) }
+                    GradientStop { position: 0.55; color: Qt.alpha(Qt.darker(wash.tint, 3.2), 0.9) }
+                    GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 0.9) }
+                }
+            }
+            Timer {
+                interval: 60
+                running: wash.tint.a === 0
+                onTriggered: sampler.active = true
+            }
+            Loader {
+                id: sampler
+                active: false
+                width: 48
+                height: 48
+                opacity: 0
+                sourceComponent: Item {
+                    Kirigami.Icon {
+                        id: sampleIcon
+                        anchors.fill: parent
+                        source: wash.key
+                        fallback: "applications-games"
+                    }
+                    Kirigami.ImageColors {
+                        source: sampleIcon
+                        Component.onCompleted: Qt.callLater(update)
+                        onPaletteChanged: {
+                            if (dominant.a > 0) {
+                                ArtColors.put(wash.key, dominant.toString())
+                                wash.tint = dominant
+                                Qt.callLater(() => sampler.active = false)
+                            }
+                        }
+                    }
+                }
+            }
         }
-        Kirigami.Icon {
-            id: washIcon
-            anchors.centerIn: parent
-            width: Math.max(parent.width, parent.height) * 1.4
-            height: width
-            source: art.game ? (art.game.icon || "applications-games") : "applications-games"
-            fallback: "applications-games"
-            visible: false
-        }
-        MultiEffect {
-            anchors.fill: washIcon
-            source: washIcon
-            blurEnabled: true
-            blur: 1.0
-            blurMax: 64
-            saturation: -0.15
-            brightness: -0.35
-            opacity: 0.55
-        }
-    }
-    Rectangle {
-        id: washMask
-        anchors.fill: parent
-        radius: art.radius
-        visible: false
-        layer.enabled: true
     }
 
-    Kirigami.Icon {
+    Loader {
         anchors.centerIn: parent
-        width: Math.round(Math.min(parent.width, parent.height) * (art.wide ? 0.46 : 0.4))
+        width: Math.round(Math.min(parent.width, parent.height) * (art.wide ? 0.42 : 0.36))
         height: width
-        visible: art.mode === "icon" || !image.visible
-        source: art.game ? (art.game.icon || "applications-games") : "applications-games"
-        fallback: "applications-games"
+        active: art.mode === "icon" || image.status === Image.Error
+        sourceComponent: Kirigami.Icon {
+            source: art.game ? (art.game.icon || "applications-games") : "applications-games"
+            fallback: "applications-games"
+        }
     }
 }

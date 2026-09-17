@@ -58,14 +58,17 @@ Item {
         anchors.rightMargin: Kirigami.Units.largeSpacing
         spacing: Kirigami.Units.largeSpacing
 
-        GameArt {
-            visible: tile.game !== null
+        Loader {
+            active: tile.game !== null
+            visible: active
             Layout.preferredHeight: Math.round(tile.height * 0.72)
             Layout.preferredWidth: Math.round(Layout.preferredHeight / 0.4667)
-            game: tile.game || ({})
-            wide: true
-            showLogo: true
-            radius: Kirigami.Units.cornerRadius * 1.5
+            sourceComponent: GameArt {
+                game: tile.game || ({})
+                wide: true
+                showLogo: true
+                radius: Kirigami.Units.cornerRadius * 1.5
+            }
         }
         Kirigami.Icon {
             visible: !tile.roundIcon && tile.game === null

@@ -20,6 +20,12 @@ Item {
     property string page: "home"
     property var visited: ({ home: true })
     property int sectionIndex: 0
+    property bool warm: false
+    Timer {
+        id: warmTimer
+        interval: Kirigami.Units.longDuration * 2
+        onTriggered: launcher.warm = true
+    }
     property var targetScreen: null
 
     readonly property color ink: Kirigami.Theme.textColor
@@ -129,6 +135,7 @@ Item {
         card.requestActivate()
         field.forceActiveFocus()
         openAnimation.restart()
+        warmTimer.restart()
         Qt.callLater(resetSelection)
     }
     function closeNow() {
@@ -830,7 +837,8 @@ Item {
                             delegate: Loader {
                                 required property var modelData
                                 anchors.fill: parent
-                                active: launcher.visited[modelData.key] === true
+                                active: launcher.visited[modelData.key] === true || (launcher.warm && modelData.key === "apps")
+                                asynchronous: !(launcher.page === modelData.key && !launcher.searching)
                                 visible: !launcher.searching && launcher.page === modelData.key
                                 source: Qt.resolvedUrl("pages/" + modelData.key.charAt(0).toUpperCase() + modelData.key.substring(1) + "Page.qml")
                                 onLoaded: if (visible) Qt.callLater(launcher.resetSelection)
@@ -840,7 +848,8 @@ Item {
                         Loader {
                             id: searchLoader
                             anchors.fill: parent
-                            active: launcher.searching || item !== null
+                            active: launcher.searching || launcher.warm || item !== null
+                            asynchronous: !launcher.searching
                             visible: launcher.searching
                             source: Qt.resolvedUrl("pages/SearchPage.qml")
                         }

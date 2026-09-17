@@ -60,38 +60,44 @@ ColumnLayout {
             return entry.model.isNewlyInstalled === true ? 0 : 1
         return 0
     }
+    readonly property var activeItems: page.listView ? listItems : gridItems
+    readonly property var activeGroup: page.listView ? listShown : gridShown
+
+    property int hiddenShown: 0
     function arrange() {
-        const items = shownItems.items
-        for (let i = 0; i < items.count; ++i) {
+        const items = activeItems.items
+        const anyHidden = Object.keys(launcherData.hiddenSet).length > 0
+        for (let i = 0; (anyHidden || page.hiddenShown > 0) && i < items.count; ++i) {
             const entry = items.get(i)
-            const keep = !launcherData.isHidden(entry.model.favoriteId || "")
-            if (keep && !entry.inShown)
-                items.addGroups(i, 1, "shown")
-            else if (!keep && entry.inShown)
+            const hidden = launcherData.isHidden(entry.model.favoriteId || "")
+            if (hidden && entry.inShown)
                 items.removeGroups(i, 1, "shown")
+            else if (!hidden && !entry.inShown)
+                items.addGroups(i, 1, "shown")
         }
-        const group = shownGroup
+        const group = activeGroup
+        page.hiddenShown = items.count - group.count
         if (page.sort !== "name") {
             const order = []
             for (let i = 0; i < group.count; ++i)
                 order.push({ rank: page.rankOf(group.get(i)), label: String(group.get(i).model.display || "").toLowerCase(), row: group.get(i).model.index })
             const sorted = order.slice().sort((a, b) => (a.rank - b.rank) || a.label.localeCompare(b.label))
             for (let target = 0; target < sorted.length; ++target) {
-                let from = -1
-                for (let i = target; i < group.count; ++i) {
+                if (group.get(target).model.index === sorted[target].row)
+                    continue
+                for (let i = target + 1; i < group.count; ++i) {
                     if (group.get(i).model.index === sorted[target].row) {
-                        from = i
+                        group.move(i, target, 1)
                         break
                     }
                 }
-                if (from > target)
-                    group.move(from, target, 1)
             }
         }
         const found = []
         if (page.sort === "name") {
+            const direct = page.hiddenShown === 0 && page.categoryModel
             for (let i = 0; i < group.count; ++i) {
-                const label = String(group.get(i).model.display || "")
+                const label = String(direct ? page.categoryModel.labelForRow(i) : group.get(i).model.display || "")
                 const first = label.charAt(0).toUpperCase()
                 const key = /[A-Z]/.test(first) ? first : "#"
                 if (found.length === 0 || found[found.length - 1].key !== key)
@@ -106,6 +112,7 @@ ColumnLayout {
         onTriggered: page.arrange()
     }
     onSortChanged: arrangeTimer.restart()
+    onListViewChanged: arrangeTimer.restart()
     Connections {
         target: Plasmoid.configuration
         function onHiddenAppsChanged() { arrangeTimer.restart() }
@@ -116,82 +123,81 @@ ColumnLayout {
     }
 
     DelegateModel {
-        id: shownItems
-        model: page.categoryModel
+        id: gridItems
+        model: page.listView ? null : page.categoryModel
         groups: DelegateModelGroup {
-            id: shownGroup
+            id: gridShown
             name: "shown"
-            includeByDefault: false
+            includeByDefault: true
         }
         filterOnGroup: "shown"
         items.onChanged: arrangeTimer.restart()
-        delegate: Loader {
-            id: cell
+        delegate: Tile {
+            id: appTile
             required property var model
             required property int index
             readonly property var view: GridView.view
+            readonly property string favoriteId: model.favoriteId || ""
             width: view ? view.cellWidth : 0
             height: view ? view.cellHeight : 0
-            sourceComponent: page.listView ? rowComponent : tileComponent
-            readonly property bool isCurrent: GridView.isCurrentItem
+            iconSize: page.tileSize
+            iconSource: model.decoration
+            label: model.display || ""
+            badge: model.isNewlyInstalled === true
+            game: launcherData.gameForApp(favoriteId)
+            selected: GridView.isCurrentItem && !!view && view.sectionActive
+            function activate() {
+                launcher.trigger(page.categoryModel, model.index, favoriteId)
+            }
+            function openMenu() {
+                launcher.openMenu(launcher.kickerEntries(page.categoryModel, model.index, model.hasActionList ? model.actionList : [], favoriteId), appTile)
+            }
+            onHovered: launcher.select(view, index)
+            onClicked: activate()
+            onRightClicked: {
+                launcher.select(view, index)
+                openMenu()
+            }
+        }
+    }
+
+    DelegateModel {
+        id: listItems
+        model: page.listView ? page.categoryModel : null
+        groups: DelegateModelGroup {
+            id: listShown
+            name: "shown"
+            includeByDefault: true
+        }
+        filterOnGroup: "shown"
+        items.onChanged: arrangeTimer.restart()
+        delegate: RowTile {
+            id: appRow
+            required property var model
+            required property int index
+            readonly property var view: GridView.view
             readonly property string favoriteId: model.favoriteId || ""
-            onLoaded: {
-                item.width = Qt.binding(() => cell.width)
-                item.height = Qt.binding(() => cell.height)
+            readonly property var gameEntry: launcherData.gameForApp(favoriteId)
+            width: view ? view.cellWidth : 0
+            height: view ? view.cellHeight : 0
+            iconSource: model.decoration
+            iconSize: Math.max(Kirigami.Units.iconSizes.medium, Math.round(page.tileSize * 0.7))
+            game: gameEntry && gameEntry.appid ? gameEntry : null
+            label: model.display || ""
+            subtitle: model.description || ""
+            trailing: model.isNewlyInstalled === true ? i18n("New") : ""
+            selected: GridView.isCurrentItem && !!view && view.sectionActive
+            function activate() {
+                launcher.trigger(page.categoryModel, model.index, favoriteId)
             }
-            function activate() { if (item) item.activate() }
-            function openMenu() { if (item) item.openMenu() }
-            Component {
-                id: tileComponent
-                Tile {
-                    id: appTile
-                    readonly property string favoriteId: cell.model.favoriteId || ""
-                    iconSize: page.tileSize
-                    iconSource: cell.model.decoration
-                    label: cell.model.display || ""
-                    badge: cell.model.isNewlyInstalled === true
-                    game: launcherData.gameForApp(favoriteId)
-                    selected: cell.isCurrent && !!cell.view && cell.view.sectionActive
-                    function activate() {
-                        launcher.trigger(page.categoryModel, cell.model.index, favoriteId)
-                    }
-                    function openMenu() {
-                        launcher.openMenu(launcher.kickerEntries(page.categoryModel, cell.model.index, cell.model.hasActionList ? cell.model.actionList : [], favoriteId), appTile)
-                    }
-                    onHovered: launcher.select(cell.view, cell.index)
-                    onClicked: activate()
-                    onRightClicked: {
-                        launcher.select(cell.view, cell.index)
-                        openMenu()
-                    }
-                }
+            function openMenu() {
+                launcher.openMenu(launcher.kickerEntries(page.categoryModel, model.index, model.hasActionList ? model.actionList : [], favoriteId), appRow)
             }
-            Component {
-                id: rowComponent
-                RowTile {
-                    id: appRow
-                    readonly property string favoriteId: cell.model.favoriteId || ""
-                    readonly property var gameEntry: launcherData.gameForApp(favoriteId)
-                    iconSource: cell.model.decoration
-                    iconSize: Math.max(Kirigami.Units.iconSizes.medium, Math.round(page.tileSize * 0.7))
-                    game: gameEntry && gameEntry.appid ? gameEntry : null
-                    label: cell.model.display || ""
-                    subtitle: cell.model.description || ""
-                    trailing: cell.model.isNewlyInstalled === true ? i18n("New") : ""
-                    selected: cell.isCurrent && !!cell.view && cell.view.sectionActive
-                    function activate() {
-                        launcher.trigger(page.categoryModel, cell.model.index, favoriteId)
-                    }
-                    function openMenu() {
-                        launcher.openMenu(launcher.kickerEntries(page.categoryModel, cell.model.index, cell.model.hasActionList ? cell.model.actionList : [], favoriteId), appRow)
-                    }
-                    onHovered: launcher.select(cell.view, cell.index)
-                    onClicked: activate()
-                    onRightClicked: {
-                        launcher.select(cell.view, cell.index)
-                        openMenu()
-                    }
-                }
+            onHovered: launcher.select(view, index)
+            onClicked: activate()
+            onRightClicked: {
+                launcher.select(view, index)
+                openMenu()
             }
         }
     }
@@ -229,7 +235,7 @@ ColumnLayout {
         }
 
         PlasmaComponents.Label {
-            text: i18np("%1 app", "%1 apps", shownGroup.count)
+            text: i18np("%1 app", "%1 apps", page.activeGroup.count)
             opacity: 0.5
         }
 
@@ -303,7 +309,7 @@ ColumnLayout {
                                          : Math.floor(width / Math.max(1, Math.floor(width / (page.tileSize + Kirigami.Units.gridUnit * 4))))
                 cellHeight: page.listView ? Math.max(Kirigami.Units.gridUnit * 3, Math.round(page.tileSize * 0.7) + Kirigami.Units.largeSpacing * 2)
                                           : Math.round(page.tileSize + Kirigami.Units.gridUnit * 3.4)
-                model: shownItems
+                model: page.activeItems
                 QQC2.ScrollBar.vertical: PlasmaComponents.ScrollBar {}
             }
         }

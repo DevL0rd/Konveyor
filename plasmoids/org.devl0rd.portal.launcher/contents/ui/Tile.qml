@@ -47,14 +47,16 @@ Item {
             Layout.preferredHeight: art ? Math.round(tile.iconSize * 1.26) : tile.iconSize
             Layout.topMargin: art ? -Math.round(tile.iconSize * 0.13) : 0
             Layout.bottomMargin: art ? -Math.round(tile.iconSize * 0.13) : 0
-            GameArt {
+            Loader {
                 anchors.fill: parent
-                visible: tile.game !== null && tile.game.appid !== ""
-                game: tile.game || ({})
-                wide: false
-                showLogo: false
-                radius: Kirigami.Units.cornerRadius
-                scale: mouse.pressed ? 0.92 : 1
+                active: parent.art
+                sourceComponent: GameArt {
+                    game: tile.game || ({})
+                    wide: false
+                    showLogo: false
+                    radius: Kirigami.Units.cornerRadius
+                    scale: mouse.pressed ? 0.92 : 1
+                }
             }
             Kirigami.Icon {
                 visible: tile.game === null || !tile.game.appid
