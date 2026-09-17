@@ -33,7 +33,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
             new-column-position "left"
             always-center-single-column
             empty-workspace-above-first true
-            remember-window-sizes false
+            remember-window-sizes
             remember-window-positions
             group-app-windows "off"
             max-rows-per-column 5
@@ -49,7 +49,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
     QCOMPARE(layout.newColumnPosition, NewColumnPosition::Left);
     QCOMPARE(layout.alwaysCenterSingleColumn, true);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, true);
-    QCOMPARE(layout.rememberWindowSizes, false);
+    QCOMPARE(layout.rememberWindowSizes, true);
     QCOMPARE(layout.rememberWindowPositions, true);
     QCOMPARE(layout.groupAppWindows, GroupAppWindows::Off);
     QCOMPARE(layout.maxRowsPerColumn, 5);

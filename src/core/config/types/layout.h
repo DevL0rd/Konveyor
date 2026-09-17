@@ -20,7 +20,7 @@ struct Layout
     ColumnDisplay defaultColumnDisplay = ColumnDisplay::Normal;
     QList<PresetSize> presetColumnWidths;
     std::optional<PresetSize> defaultColumnWidth = Proportion {0.25};
-    bool rememberWindowSizes = true;
+    bool rememberWindowSizes = false;
     bool rememberWindowPositions = false;
     GroupAppWindows groupAppWindows = GroupAppWindows::Beside;
     int maxRowsPerColumn = 3;

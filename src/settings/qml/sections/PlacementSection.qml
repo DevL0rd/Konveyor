@@ -181,10 +181,8 @@ ColumnLayout {
             iconName: "transform-scale"
 
             ScopedSwitch {
-                isOn: root.values["remember-window-sizes"] !== false
-                onSwitched: on => on && !root.overrideMode
-                    ? SettingsStore.remove(root.scopePath + "/remember-window-sizes")
-                    : SettingsStore.setValue(root.scopePath + "/remember-window-sizes", on ? [] : [false])
+                isOn: root.values["remember-window-sizes"] === true
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "remember-window-sizes", on)
             }
         }
 

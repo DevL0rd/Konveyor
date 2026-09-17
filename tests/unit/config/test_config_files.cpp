@@ -44,7 +44,7 @@ void TestConfigFiles::loadsRepositoryDefaultConfig()
     QCOMPARE(ultrawide.matches.value(0).aspectRatioAbove, std::optional(2.0));
     QCOMPARE(std::get<Proportion>(*ultrawide.layout->defaultColumnWidth).value, 0.25);
     QCOMPARE(std::get<Proportion>(*result->config.layout.defaultColumnWidth).value, 0.25);
-    QCOMPARE(result->config.layout.rememberWindowSizes, true);
+    QCOMPARE(result->config.layout.rememberWindowSizes, false);
     QCOMPARE(result->config.layout.rememberWindowPositions, false);
     const auto wezterm = std::ranges::find_if(result->config.windowRules, [](const WindowRule &rule) {
         return !rule.matches.isEmpty() && rule.matches.first().appId

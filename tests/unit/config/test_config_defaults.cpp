@@ -44,7 +44,7 @@ void TestConfigDefaults::defaultLayoutValues()
     QCOMPARE(layout.presetWindowHeights, layout.presetColumnWidths);
     QVERIFY(layout.defaultColumnWidth.has_value());
     QCOMPARE(proportionOf(*layout.defaultColumnWidth), 0.25);
-    QCOMPARE(layout.rememberWindowSizes, true);
+    QCOMPARE(layout.rememberWindowSizes, false);
     QCOMPARE(layout.rememberWindowPositions, false);
     QCOMPARE(layout.groupAppWindows, GroupAppWindows::Beside);
     QCOMPARE(layout.maxRowsPerColumn, 3);

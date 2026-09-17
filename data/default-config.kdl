@@ -25,7 +25,7 @@ layout {
     }
 
     default-column-width { proportion 0.25; }
-    remember-window-sizes
+    remember-window-sizes false
     remember-window-positions false
 
     // When an app already has a window on the workspace, open the new one
