@@ -1,0 +1,11 @@
+[Unit]
+Description=Finish the Konveyor update from the last system update
+ConditionPathExists=%h/.local/state/konveyor/update-pending
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=@SOURCE_DIR@/install.sh --finish-update
+
+[Install]
+WantedBy=graphical-session.target

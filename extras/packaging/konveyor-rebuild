@@ -1,26 +1,65 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
-STATE_FILE=/usr/share/konveyor/source
+STATE_FILE=${KONVEYOR_SOURCE_STATE:-/usr/share/konveyor/source}
 
-if [[ ! -r $STATE_FILE ]]; then
-    echo "konveyor: no recorded source checkout, skipping rebuild" >&2
-    exit 0
-fi
+log() {
+    printf 'konveyor: %s\n' "$*"
+}
 
+[[ -r $STATE_FILE ]] || exit 0
 mapfile -t state <"$STATE_FILE"
-source_dir="${state[0]}"
-owner="${state[1]}"
-build_dir="$source_dir/build-release"
+source_dir="${state[0]:-}"
+owner="${state[1]:-}"
+[[ -n $source_dir && -n $owner ]] || exit 0
+uid=$(id -u "$owner" 2>/dev/null) || exit 0
+home=$(getent passwd "$owner" | cut -d: -f6)
 
-if [[ ! -d $source_dir ]]; then
-    echo "konveyor: source checkout $source_dir is gone, run install.sh from a fresh clone" >&2
+as_owner() {
+    runuser -u "$owner" -- env -i HOME="$home" USER="$owner" LOGNAME="$owner" PATH="$home/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+        LANG="${LANG:-C.UTF-8}" XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+        GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=15" "$@"
+}
+
+git_owner() {
+    as_owner git -C "$source_dir" "$@"
+}
+
+if [[ ! -d $source_dir ]] || ! git_owner rev-parse --git-dir >/dev/null 2>&1; then
+    log "source checkout $source_dir is gone or not a git repository, skipping"
     exit 0
 fi
 
-runuser -u "$owner" -- cmake --build "$build_dir"
+pull_updates() {
+    git_owner rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1 || return 1
+    if ! git_owner fetch --quiet; then
+        log "could not fetch updates for $source_dir, skipping"
+        return 1
+    fi
+    [[ $(git_owner rev-list --count 'HEAD..@{upstream}') -gt 0 ]] || return 1
+    if [[ -n $(git_owner status --porcelain --untracked-files=no) ]]; then
+        log "$source_dir has local changes, skipping the update"
+        return 1
+    fi
+    if [[ $(git_owner rev-list --count '@{upstream}..HEAD') -gt 0 ]]; then
+        log "$source_dir has local commits that aren't upstream, skipping the update"
+        return 1
+    fi
+    git_owner merge --ff-only --quiet '@{upstream}' || return 1
+    log "updated to $(git_owner rev-parse --short HEAD)"
+}
+
+if pull_updates; then
+    KONVEYOR_OWNER="$owner" "$source_dir/install.sh" --system-update
+    exit 0
+fi
+
+grep -qxE 'kwin|plasma-desktop' || exit 0
+build_dir="$source_dir/build-release"
+[[ -d $build_dir ]] || exit 0
+as_owner cmake --build "$build_dir" >/dev/null
 cmake --install "$build_dir" >/dev/null
 if [[ -x $source_dir/widgets/desktop-hider/desktop-containment ]]; then
-    runuser -u "$owner" -- env HOME="$(getent passwd "$owner" | cut -d: -f6)" "$source_dir/widgets/desktop-hider/desktop-containment" install || true
+    as_owner "$source_dir/widgets/desktop-hider/desktop-containment" install || true
 fi
-echo "konveyor: rebuilt for the new KWin and Plasma; log out and back in to load it"
+log "rebuilt for the new KWin and Plasma; log out and back in to load it"

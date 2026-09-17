@@ -8,17 +8,25 @@ BUILD_DIR="${KONVEYOR_BUILD_DIR:-$SOURCE_DIR/build-release}"
 SKIP_DEPS=false
 SKIP_PULL=false
 WIDGETS=true
+AUR=false
+[[ ${KONVEYOR_AUR:-} == @(1|true|yes) ]] && AUR=true
+MODE=install
+OPTIONS_FILE="$HOME/.local/state/konveyor/install-options"
+UPDATE_PENDING="$HOME/.local/state/konveyor/update-pending"
 
 usage() {
     cat <<EOF
-Usage: ./install.sh [--skip-deps] [--no-pull] [--no-widgets]
+Usage: ./install.sh [--skip-deps] [--no-pull] [--no-widgets] [--aur]
 
-Builds and installs Konveyor, enables it in KWin, sets up automatic rebuilds after KWin updates,
-and installs the Konveyor widgets. Run it again at any time to update an existing install.
+Builds and installs Konveyor, enables it in KWin, installs the Konveyor widgets and, on
+pacman-based systems, keeps a git checkout updated: every system update pulls new commits
+and reinstalls, and KWin or Plasma updates rebuild it. Run it again at any time to update.
 
   --skip-deps   Do not install build and widget dependencies with the system package manager
   --no-pull     Do not update the source checkout with git pull
   --no-widgets  Install only the window manager, without the Konveyor widgets
+  --aur         Installed by a package (also KONVEYOR_AUR=true); the package manager handles
+                updates, so no update hook is registered
 EOF
 }
 
@@ -28,6 +36,9 @@ parse_arguments() {
         --skip-deps) SKIP_DEPS=true ;;
         --no-pull) SKIP_PULL=true ;;
         --no-widgets) WIDGETS=false ;;
+        --aur) AUR=true ;;
+        --system-update) MODE=system-update ;;
+        --finish-update) MODE=finish-update ;;
         -h | --help) usage; exit 0 ;;
         *) die "unknown option: $argument" ;;
         esac
@@ -50,15 +61,14 @@ install_dependencies() {
 
 build() {
     say "Building (this takes a minute)"
-    cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$KONVEYOR_PREFIX" -DKONVEYOR_BUILD_TESTS=OFF >/dev/null
-    cmake --build "$BUILD_DIR"
+    as_owner cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$KONVEYOR_PREFIX" -DKONVEYOR_BUILD_TESTS=OFF >/dev/null
+    as_owner cmake --build "$BUILD_DIR"
 }
 
 install_files() {
     say "Installing to $KONVEYOR_PREFIX"
     run_root cmake --install "$BUILD_DIR" >/dev/null
     run_root install -Dm644 "$BUILD_DIR/install_manifest.txt" "$KONVEYOR_STATE_DIR/install_manifest.txt"
-    printf '%s\n%s\n' "$SOURCE_DIR" "$(id -un)" | run_root tee "$KONVEYOR_STATE_DIR/source" >/dev/null
 }
 
 install_versioned_plugin() {
@@ -68,23 +78,45 @@ install_versioned_plugin() {
     printf '%s\n' "$PLUGIN_ID" | run_root tee "$KONVEYOR_STATE_DIR/plugin-id" >/dev/null
 }
 
-install_rebuild_hook() {
-    command -v pacman >/dev/null || return 0
-    say "Installing pacman hook to rebuild Konveyor after KWin updates"
+register_updates() {
+    if $AUR || ! command -v pacman >/dev/null || ! git -C "$SOURCE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+        unregister_updates
+        return 0
+    fi
+    say "Registering Konveyor with system updates"
     run_root install -Dm644 "$SOURCE_DIR/extras/packaging/konveyor-rebuild.hook" "$KONVEYOR_HOOK"
+    printf '%s\n%s\n' "$SOURCE_DIR" "${KONVEYOR_OWNER:-$(id -un)}" | run_root tee "$KONVEYOR_STATE_DIR/source" >/dev/null
+    $SYSTEM_UPDATE_ROOT && return 0
+    local units="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+    mkdir -p "$units"
+    sed "s|@SOURCE_DIR@|$SOURCE_DIR|g" "$SOURCE_DIR/extras/packaging/konveyor-update.service.in" >"$units/$KONVEYOR_UPDATE_UNIT"
+    systemctl --user daemon-reload
+    systemctl --user enable "$KONVEYOR_UPDATE_UNIT" >/dev/null 2>&1
 }
 
-unload_previous_builds() {
-    local previous
-    for previous in $(konveyor_loaded_plugin_ids | sort -u); do
-        [[ $previous == "$PLUGIN_ID" ]] && continue
-        konveyor_disable_plugin_id "$previous"
-        run_root rm -f "$KONVEYOR_PLUGIN_DIR/${previous}.so"
+unregister_updates() {
+    [[ -e $KONVEYOR_HOOK || -e $KONVEYOR_STATE_DIR/source ]] && run_root rm -f "$KONVEYOR_HOOK" "$KONVEYOR_STATE_DIR/source"
+    local unit="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$KONVEYOR_UPDATE_UNIT"
+    if [[ -e $unit ]]; then
+        systemctl --user disable "$KONVEYOR_UPDATE_UNIT" >/dev/null 2>&1 || true
+        rm -f "$unit"
+    fi
+    return 0
+}
+
+remove_previous_plugin_files() {
+    local file
+    for file in "$KONVEYOR_PLUGIN_DIR"/konveyor_effect*.so; do
+        [[ -e $file && $(basename "$file" .so) != "$PLUGIN_ID" ]] && run_root rm -f "$file"
     done
+    return 0
 }
 
 configure_kwin() {
-    unload_previous_builds
+    local previous
+    for previous in $(konveyor_loaded_plugin_ids | sort -u); do
+        [[ $previous == "$PLUGIN_ID" ]] || konveyor_disable_plugin_id "$previous"
+    done
     say "Enabling Konveyor in KWin"
     for script in "${KONVEYOR_CONFLICTING_SCRIPTS[@]}"; do
         kwinrc_write Plugins "${script}Enabled" false
@@ -104,17 +136,56 @@ activate() {
     fi
 }
 
+finish_update() {
+    PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/plugin-id")
+    configure_kwin
+    activate
+    if ! grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null; then
+        "$SOURCE_DIR/widgets/install.sh" --no-restart
+    fi
+    rm -f "$UPDATE_PENDING"
+    notify_owner "Konveyor updated" "Konveyor $(git -C "$SOURCE_DIR" describe --always --tags 2>/dev/null) is installed. Restart Plasma or log out and back in to load the updated widgets."
+}
+
+system_update() {
+    [[ $EUID -eq 0 && -n ${KONVEYOR_OWNER:-} ]] || die "--system-update runs from the pacman hook"
+    SYSTEM_UPDATE_ROOT=true
+    as_owner git -C "$SOURCE_DIR" submodule update --init --recursive --quiet
+    build
+    install_files
+    install_versioned_plugin
+    register_updates
+    remove_previous_plugin_files
+    if owner_session_running; then
+        as_owner "$SOURCE_DIR/install.sh" --finish-update
+    else
+        local pending
+        pending="$(getent passwd "$KONVEYOR_OWNER" | cut -d: -f6)/.local/state/konveyor/update-pending"
+        as_owner mkdir -p "$(dirname "$pending")"
+        as_owner touch "$pending"
+        say "Konveyor was built; its session steps run at your next login"
+    fi
+}
+
 main() {
     parse_arguments "$@"
+    SYSTEM_UPDATE_ROOT=false
+    case "$MODE" in
+    system-update) system_update; return ;;
+    finish-update) finish_update; return ;;
+    esac
     [[ $EUID -ne 0 ]] || die "run install.sh as your normal user; it asks for sudo when needed"
     update_checkout
     install_dependencies
     build
     install_files
     install_versioned_plugin
-    install_rebuild_hook
+    register_updates
+    remove_previous_plugin_files
     configure_kwin
     activate
+    mkdir -p "$(dirname "$OPTIONS_FILE")"
+    printf 'widgets=%s\n' "$WIDGETS" >"$OPTIONS_FILE"
     if $WIDGETS; then
         "$SOURCE_DIR/widgets/install.sh"
     fi

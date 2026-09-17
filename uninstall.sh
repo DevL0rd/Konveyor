@@ -71,6 +71,16 @@ remove_files() {
     run_root rm -rf "$KONVEYOR_STATE_DIR"
 }
 
+remove_update_unit() {
+    local unit="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$KONVEYOR_UPDATE_UNIT"
+    if [[ -e $unit ]]; then
+        systemctl --user disable "$KONVEYOR_UPDATE_UNIT" >/dev/null 2>&1 || true
+        rm -f "$unit"
+        systemctl --user daemon-reload
+    fi
+    rm -f "$HOME/.local/state/konveyor/update-pending" "$HOME/.local/state/konveyor/install-options"
+}
+
 purge_config() {
     rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/konveyorstaterc"
     $PURGE || return 0
@@ -86,6 +96,7 @@ main() {
         "$SOURCE_DIR/widgets/uninstall.sh"
     fi
     remove_files
+    remove_update_unit
     purge_config
     say "Konveyor is uninstalled. Log out and back in to fully unload it from KWin."
 }
