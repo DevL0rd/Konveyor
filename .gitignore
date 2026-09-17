@@ -12,3 +12,20 @@ __pycache__/
 .DS_Store
 
 plasmoids/*/contents/ui/lib/
+
+plasmoids/org.devl0rd.portal*/contents/ui/FriendRow.qml
+plasmoids/org.devl0rd.portal*/contents/ui/FriendsPill.qml
+plasmoids/org.devl0rd.portal*/contents/ui/GameTile.qml
+plasmoids/org.devl0rd.portal*/contents/ui/KickerRow.qml
+plasmoids/org.devl0rd.portal*/contents/ui/KickerTile.qml
+plasmoids/org.devl0rd.portal*/contents/ui/LauncherData.qml
+plasmoids/org.devl0rd.portal*/contents/ui/LauncherView.qml
+plasmoids/org.devl0rd.portal*/contents/ui/PlayingNowCard.qml
+plasmoids/org.devl0rd.portal*/contents/ui/RowTile.qml
+plasmoids/org.devl0rd.portal*/contents/ui/SectionHeader.qml
+plasmoids/org.devl0rd.portal*/contents/ui/Segment.qml
+plasmoids/org.devl0rd.portal*/contents/ui/SegmentGroup.qml
+plasmoids/org.devl0rd.portal*/contents/ui/Tile.qml
+plasmoids/org.devl0rd.portal*/contents/ui/TileGrid.qml
+plasmoids/org.devl0rd.portal*/contents/ui/configGeneral.qml
+plasmoids/org.devl0rd.portal*/contents/ui/pages/

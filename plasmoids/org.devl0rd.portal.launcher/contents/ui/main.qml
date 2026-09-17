@@ -123,6 +123,6 @@ PlasmoidItem {
 
     Loader {
         active: root.created
-        sourceComponent: Launcher {}
+        sourceComponent: Overlay {}
     }
 }

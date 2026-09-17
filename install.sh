@@ -95,6 +95,12 @@ for d in "$PLASMOID_SRC"/org.devl0rd.portal*; do
     mkdir -p "$d/contents/ui/lib"
     cp "$REPO_DIR/shared/common/"*.qml "$REPO_DIR/shared/common/"*.js "$d/contents/ui/lib/"
     cp "$REPO_DIR/shared/lib/"*.qml "$REPO_DIR/shared/lib/"*.js "$d/contents/ui/lib/"
+    case "$(basename "$d")" in
+        org.devl0rd.portal|org.devl0rd.portal.launcher)
+            rm -rf "$d/contents/ui/pages"
+            cp -r "$REPO_DIR/shared/launcher/." "$d/contents/ui/"
+            ;;
+    esac
     if kpackagetool6 -t Plasma/Applet -u "$d" >/dev/null 2>&1; then
         echo "  upgraded $(basename "$d")"
     else
