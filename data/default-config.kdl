@@ -155,11 +155,6 @@ window-rule {
 
 // Pin a window's column to the start or end of the row.
 window-rule {
-    match app-id=r#"^discord$"#
-    column-position "start"
-}
-
-window-rule {
     match app-id=r#"^org\.wezfurlong\.wezterm$"#
     default-column-width {}
 }
