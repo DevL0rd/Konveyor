@@ -48,10 +48,10 @@ cd Konveyor
 ./install.sh
 ```
 
-That's it. The installer grabs what it needs, builds Konveyor for your exact KWin and switches it on, usually without even logging out. It also installs the [Konveyor widgets](#widgets) and swaps your application launcher for the Portal Launcher.
+That's it. The installer grabs what it needs, builds Konveyor for your exact KWin and switches it on, usually without even logging out. It also installs the [Konveyor widgets](#widgets) and swaps your application launcher for the Kontrol Panel.
 
 > [!TIP]
-> Press <kbd>Meta</kbd> + <kbd>K</kbd> any time for a searchable cheat sheet of every shortcut.
+> Press <kbd>Meta</kbd> + <kbd>K</kbd> any time to open the Kontrol Panel on **Shortcuts**: every shortcut, searchable, with a live diagram of what each Konveyor action does. Its gear, or <kbd>Ctrl</kbd> + <kbd>,</kbd>, jumps straight to Konveyor's settings.
 
 <table>
   <tr>
@@ -151,11 +151,11 @@ Some windows don't belong in a row. Lift one out with a single key, move it and 
 
 Konveyor comes with a set of Plasma widgets built to match: a full-screen launcher, system and process monitors, a router dashboard, a live system log and your Steam friends. Each one sits in your panel as a small, steady button and opens into a searchable dashboard. They also work as desktop widgets.
 
-<p align="center"><img alt="The Portal Launcher opening, searching and browsing games" src="docs/media/widgets/launcher.gif" width="92%"></p>
+<p align="center"><img alt="The Kontrol Panel opening, searching and browsing games" src="docs/media/widgets/launcher.gif" width="92%"></p>
 
-### 🚀 Portal Launcher
+### 🚀 Kontrol Panel
 
-Press <kbd>Meta</kbd> and the desktop dims behind one launcher for everything. Start typing and apps, games, friends, settings, files, maths, commands and even installable packages show up together, best match first. <kbd>Meta</kbd> + <kbd>G</kbd> opens straight on your games.
+Press <kbd>Meta</kbd> and the desktop dims behind the Kontrol Panel, one launcher for everything. Start typing and apps, games, friends, settings, files, maths, commands and even installable packages show up together, best match first. <kbd>Meta</kbd> + <kbd>G</kbd> opens straight on your games.
 
 <table>
   <tr>
@@ -300,9 +300,9 @@ Open **System Settings → Window Management → Konveyor**. Every option has a 
 | <kbd>Meta</kbd> + <kbd>1</kbd> … <kbd>9</kbd> | Jump to a workspace |
 | <kbd>Meta</kbd> + <kbd>Return</kbd> | Open a terminal |
 | <kbd>Meta</kbd> + <kbd>Q</kbd> | Close the window |
-| <kbd>Meta</kbd> + <kbd>K</kbd> | Show every shortcut |
-| <kbd>Meta</kbd> | Open the Portal Launcher |
-| <kbd>Meta</kbd> + <kbd>G</kbd> | Open the Portal Launcher on your games |
+| <kbd>Meta</kbd> + <kbd>K</kbd> | Open the Kontrol Panel on Shortcuts |
+| <kbd>Meta</kbd> | Open the Kontrol Panel |
+| <kbd>Meta</kbd> + <kbd>G</kbd> | Open the Kontrol Panel on your games |
 
 > [!NOTE]
 > Konveyor leaves KDE's own shortcuts alone — <kbd>Alt</kbd> + <kbd>F4</kbd>, <kbd>Meta</kbd> + <kbd>L</kbd>, screenshots and the rest work as always. Change anything from the **Shortcuts** settings page.

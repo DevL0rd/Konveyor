@@ -4,6 +4,7 @@ import org.kde.kirigami as Kirigami
 import "../components"
 import "../previews"
 import "LayoutKeys.js" as LayoutKeys
+import org.kde.konveyor.components
 
 ColumnLayout {
     id: root

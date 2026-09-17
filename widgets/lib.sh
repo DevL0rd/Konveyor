@@ -170,8 +170,8 @@ install_games_shortcut() {
     cat >"$apps/$GAMES_DESKTOP_ID" <<DESKTOP
 [Desktop Entry]
 Type=Application
-Name=Portal Launcher: Games
-Comment=Open the Portal Launcher on its Games page
+Name=Kontrol Panel: Games
+Comment=Open the Kontrol Panel on its Games page
 Exec=$BIN_DIR/portal-launcher games
 Icon=input-gamepad-symbolic
 NoDisplay=true
@@ -185,9 +185,9 @@ DESKTOP
         busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setForeignShortcut asai 4 kwin "Grid View" KWin "Toggle Grid View" 0 >/dev/null
         say "Freed Meta+G from KWin's Grid View"
     fi
-    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel doRegister as 4 "$GAMES_DESKTOP_ID" _launch "Portal Launcher: Games" "Portal Launcher: Games" >/dev/null
-    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setShortcut asaiu 4 "$GAMES_DESKTOP_ID" _launch "Portal Launcher: Games" "Portal Launcher: Games" 1 "$meta_g" 2 >/dev/null
-    say "Meta+G opens the Portal Launcher on Games"
+    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel doRegister as 4 "$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games" >/dev/null
+    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setShortcut asaiu 4 "$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games" 1 "$meta_g" 2 >/dev/null
+    say "Meta+G opens the Kontrol Panel on Games"
 }
 
 take_over_launcher_and_restart() {

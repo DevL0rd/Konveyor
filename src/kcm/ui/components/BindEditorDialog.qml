@@ -4,6 +4,7 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import "../catalog/Actions.js" as Actions
 import "../catalog/BindKeys.js" as BindKeys
+import org.kde.konveyor.components
 
 Kirigami.Dialog {
     id: dialog

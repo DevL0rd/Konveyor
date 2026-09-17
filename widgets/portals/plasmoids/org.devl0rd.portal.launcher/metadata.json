@@ -1,7 +1,7 @@
 {
     "KPlugin": {
         "Id": "org.devl0rd.portal.launcher",
-        "Name": "Portal Launcher",
+        "Name": "Kontrol Panel",
         "Description": "A full-screen launcher for apps, games, files, friends and system actions, with one search for everything",
         "Icon": "start-here-kde-plasma-symbolic",
         "Authors": [

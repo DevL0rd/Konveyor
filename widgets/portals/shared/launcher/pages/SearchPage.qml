@@ -69,6 +69,8 @@ PopScroll {
     readonly property var friendMatches: (mode === "all" || mode === "friends") && term !== "" && launcherData.friendsEnabled
         ? launcherData.friends.filter(friend => Highlight.matches(friend.name, term) || Highlight.matches(friend.game, term)).slice(0, mode === "friends" ? 40 : 6) : []
     readonly property bool showPackages: (mode === "all" || mode === "packages") && launcherData.packagesEnabled
+    readonly property var shortcutMatches: mode === "all" && term.length >= 2 ? launcherData.shortcutMatches(term, 6) : []
+    onShortcutMatchesChanged: Qt.callLater(rebuildSections)
 
     property var appIds: []
     function collectApps() {
@@ -139,6 +141,7 @@ PopScroll {
             if (slot && slot.item && slot.item.hasContent)
                 list.push.apply(list, slot.item.grids ? slot.item.grids() : [])
         }
+        list.push(shortcutResults.grid)
         list.push(packagesResults.grid)
         let total = 0
         for (const grid of list)
@@ -147,7 +150,11 @@ PopScroll {
         totalResults = total
         launcher.ensureSelection()
     }
-    onTermChanged: Qt.callLater(rebuildSections)
+    onTermChanged: {
+        if (term !== "")
+            launcherData.ensureShortcuts()
+        Qt.callLater(rebuildSections)
+    }
     onHeroChanged: {
         pickHeroRow()
         Qt.callLater(rebuildSections)
@@ -597,6 +604,36 @@ PopScroll {
                     item.kind = Qt.binding(() => modelData)
                 Qt.callLater(page.rebuildSections)
             }
+        }
+    }
+
+    ResultGroup {
+        id: shortcutResults
+        title: i18n("Shortcuts")
+        model: page.shortcutMatches
+        delegate: RowTile {
+            id: shortcutRow
+            required property int index
+            required property var modelData
+            readonly property var grid: GridView.view
+            width: grid.cellWidth
+            height: grid.cellHeight
+            iconSource: "input-keyboard-symbolic"
+            monochrome: true
+            label: modelData.action
+            query: page.term
+            subtitle: modelData.section
+            trailing: launcherData.keyText(modelData.keys[0])
+            selected: GridView.isCurrentItem && grid.sectionActive
+            function activate() {
+                launcherData.shortcutFocus = modelData.action
+                launcher.goToPage("shortcuts")
+            }
+            function openMenu() {
+                activate()
+            }
+            onHovered: launcher.select(grid, index)
+            onClicked: activate()
         }
     }
 

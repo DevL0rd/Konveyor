@@ -76,10 +76,10 @@ PlasmoidItem {
     readonly property string buttonIcon: Plasmoid.configuration.icon || "start-here-kde-plasma-symbolic"
 
     Plasmoid.icon: buttonIcon
-    Plasmoid.title: i18n("Portal Launcher")
+    Plasmoid.title: i18n("Kontrol Panel")
     preferredRepresentation: compactRepresentation
     activationTogglesExpanded: false
-    toolTipMainText: i18n("Portal Launcher")
+    toolTipMainText: i18n("Kontrol Panel")
     toolTipSubText: i18n("Apps, games, files and friends · Meta opens it · drop an app here to pin it")
 
     function show(byKey, screen) {

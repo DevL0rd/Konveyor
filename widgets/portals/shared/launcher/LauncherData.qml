@@ -203,6 +203,51 @@ Item {
         runner.connectSource(command)
     }
 
+    property var shortcuts: []
+    property string shortcutCategory: i18n("All")
+    property string shortcutFocus: ""
+    P5Support.DataSource {
+        id: shortcutsSource
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            try {
+                data.shortcuts = JSON.parse(result.stdout || "[]")
+            } catch (error) {
+                return
+            }
+        }
+    }
+    property bool shortcutsRequested: false
+    function refreshShortcuts() {
+        shortcutsRequested = true
+        shortcutsSource.connectSource("konveyor-cheatsheet --json # " + Date.now())
+    }
+    function ensureShortcuts() {
+        if (!shortcutsRequested)
+            refreshShortcuts()
+    }
+    function keyText(key) {
+        const names = { super: "Meta", mod: "Meta", page_down: "PgDn", page_up: "PgUp", bracketleft: "[", bracketright: "]", comma: ",", period: ".", minus: "−", equal: "=", return: "Enter" }
+        return key.split("+").map(part => names[part.toLowerCase()] || part).join(" + ")
+    }
+    function shortcutMatches(term, limit) {
+        const query = term.toLowerCase()
+        const found = []
+        for (const section of shortcuts) {
+            for (const entry of section.entries) {
+                if (entry.action.toLowerCase().includes(query) || entry.keys.join(" ").toLowerCase().includes(query))
+                    found.push({ action: entry.action, keys: entry.keys, id: entry.id || "", section: section.name })
+                if (found.length >= limit)
+                    return found
+            }
+        }
+        return found
+    }
+    function openKonveyorSettings() {
+        run("kcmshell6 kcm_konveyor")
+    }
+
     P5Support.DataSource {
         id: gamesSource
         engine: "executable"

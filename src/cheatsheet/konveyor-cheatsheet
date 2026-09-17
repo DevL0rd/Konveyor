@@ -10,7 +10,12 @@ from pathlib import Path
 import dbus
 
 KGLOBALSHORTCUTS = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "kglobalshortcutsrc"
+CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+DATA_HOME = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
 QML = Path(os.environ.get("KONVEYOR_CHEATSHEET_QML", Path(__file__).resolve().parent.parent / "share" / "konveyor" / "cheatsheet" / "Cheatsheet.qml"))
+PORTAL_LAUNCHER = Path.home() / ".local" / "bin" / "portal-launcher"
+WIDGETS_SECTION = "Konveyor widgets"
+LAUNCHER_GAMES_GROUP = "services][org.devl0rd.portal.launcher.games.desktop"
 PID_FILE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "konveyor-cheatsheet.pid"
 
 KONVEYOR_CATEGORIES = [
@@ -75,13 +80,36 @@ def konveyor_category(action_name):
     return next((name for name, pattern in KONVEYOR_CATEGORIES if pattern.search(action_name)), "Konveyor")
 
 
+def numbered_group(bind):
+    arguments = bind["action"].get("arguments", [])
+    key = bind["key"]
+    if len(arguments) == 1 and str(arguments[0]).isdigit() and key.endswith("+" + str(arguments[0])):
+        return bind["action"]["name"], key[: -len(str(arguments[0]))]
+    return None
+
+
 def konveyor_sections(binds):
     sections = {}
+    merged = {}
+    numbered = {}
     for bind in binds:
         if bind.get("hidden"):
             continue
-        category = konveyor_category(bind["action"]["name"])
-        sections.setdefault(category, []).append({"action": describe_konveyor_bind(bind), "keys": [bind["key"]]})
+        name = bind["action"]["name"]
+        group = numbered_group(bind)
+        if group:
+            numbered.setdefault(group, []).append(int(bind["action"]["arguments"][0]))
+            continue
+        action = describe_konveyor_bind(bind)
+        entry = merged.get(action)
+        if entry is None:
+            entry = merged[action] = {"action": action, "keys": [], "id": name}
+            sections.setdefault(konveyor_category(name), []).append(entry)
+        entry["keys"].append(bind["key"])
+    for (name, prefix), numbers in numbered.items():
+        low, high = min(numbers), max(numbers)
+        words = name.replace("-", " ").capitalize()
+        sections.setdefault(konveyor_category(name), []).append({"action": f"{words} {low}–{high}", "keys": [f"{prefix}{low}…{high}"], "id": name})
     return sections
 
 
@@ -96,6 +124,11 @@ def kde_entries(taken_keys):
         if header:
             group = header.group(1)
             continue
+        if group == LAUNCHER_GAMES_GROUP and line.startswith("_launch="):
+            keys = [k for k in line.split("=", 1)[1].split("\t") if k and k != "none"]
+            if keys:
+                yield WIDGETS_SECTION, {"action": "Kontrol Panel: open on Games", "keys": keys}
+            continue
         if group not in KDE_SECTIONS or "=" not in line or line.startswith("_k_"):
             continue
         fields = split_shortcut_value(line.split("=", 1)[1])
@@ -106,18 +139,61 @@ def kde_entries(taken_keys):
             yield KDE_SECTIONS[group], {"action": fields[2], "keys": keys}
 
 
+def widget_entries():
+    if not (DATA_HOME / "plasma" / "plasmoids" / "org.devl0rd.portal.launcher").is_dir():
+        return []
+    modifier_only = ""
+    kwinrc = CONFIG_HOME / "kwinrc"
+    if kwinrc.exists():
+        match = re.search(r"\[ModifierOnlyShortcuts\][^\[]*?^Meta=(.*)$", kwinrc.read_text(), re.MULTILINE)
+        modifier_only = match.group(1) if match else ""
+    entries = [{"action": "Kontrol Panel: jump to a page", "keys": ["Alt+1…8"]}]
+    if modifier_only == "" or "activateLauncherMenu" in modifier_only:
+        entries.append({"action": "Kontrol Panel: open", "keys": ["Meta"]})
+    return entries
+
+
+def collapse_numbered(entries):
+    groups = {}
+    result = []
+    for entry in entries:
+        match = re.fullmatch(r"(.*\D)(\d+)", entry["action"])
+        key = entry["keys"][0] if len(entry["keys"]) == 1 else ""
+        if match and key.endswith(match.group(2)):
+            stem = (match.group(1), key[: -len(match.group(2))], entry.get("id"))
+            if stem not in groups:
+                groups[stem] = {"entry": dict(entry), "numbers": []}
+                result.append(groups[stem]["entry"])
+            groups[stem]["numbers"].append(int(match.group(2)))
+            continue
+        result.append(entry)
+    for (text, prefix, _), group in groups.items():
+        low, high = min(group["numbers"]), max(group["numbers"])
+        if low != high:
+            group["entry"].update(action=f"{text}{low}–{high}", keys=[f"{prefix}{low}…{high}"])
+    return result
+
+
 def build_sections():
     binds = konveyor_binds()
     taken = {normalize_key(bind["key"]) for bind in binds}
     sections = konveyor_sections(binds)
+    for entry in widget_entries():
+        sections.setdefault(WIDGETS_SECTION, []).append(entry)
     for name, entry in kde_entries(taken):
         sections.setdefault(name, []).append(entry)
-    order = ["Focus", "Move Windows", "Sizing", "Workspaces", "Floating & Tabs", "Monitors", "Konveyor"] + list(KDE_SECTIONS.values())
+    sections = {name: collapse_numbered(entries) for name, entries in sections.items()}
+    order = ["Focus", "Move Windows", "Sizing", "Workspaces", "Floating & Tabs", "Monitors", "Konveyor", WIDGETS_SECTION] + list(KDE_SECTIONS.values())
     ordered = sorted(sections.items(), key=lambda item: order.index(item[0]) if item[0] in order else len(order))
     return [{"name": name, "entries": sorted(entries, key=lambda e: e["action"].lower())} for name, entries in ordered]
 
 
 def main():
+    if sys.argv[1:] == ["--json"]:
+        json.dump(build_sections(), sys.stdout)
+        return 0
+    if PORTAL_LAUNCHER.exists():
+        return subprocess.run([str(PORTAL_LAUNCHER), "shortcuts"], check=False).returncode
     if close_running():
         return 0
     env = dict(os.environ, QT_WAYLAND_SHELL_INTEGRATION="layer-shell")

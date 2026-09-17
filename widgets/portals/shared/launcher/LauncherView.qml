@@ -75,6 +75,8 @@ FocusScope {
         if (Plasmoid.configuration.showFriends)
             defs.push({ key: "friends", label: i18n("Friends"), hint: i18n("Who is online and playing"), icon: "system-users-symbolic" })
         defs.push({ key: "system", label: i18n("System"), hint: i18n("Session and settings"), icon: "system-shutdown-symbolic" })
+        defs.push({ key: "shortcuts", label: i18n("Shortcuts"), hint: i18n("Every keyboard shortcut, shown"), icon: "input-keyboard-symbolic" })
+        defs.push({ key: "settings", label: i18n("Settings"), hint: i18n("Konveyor settings"), icon: "configure-symbolic" })
         return defs
     }
     readonly property int pageIndex: Math.max(0, pageDefs.findIndex(def => def.key === page))
@@ -221,6 +223,11 @@ FocusScope {
         field.forceActiveFocus()
     }
     function goToPage(key) {
+        if (key === "settings") {
+            launcherData.openKonveyorSettings()
+            root.hide()
+            return
+        }
         openFolder = ""
         page = key
         markVisited(key)
@@ -652,6 +659,8 @@ FocusScope {
                                     launcher.stepSection(true)
                                 } else if (event.key === Qt.Key_Backtab) {
                                     launcher.stepSection(false)
+                                } else if (ctrl && event.key === Qt.Key_Comma) {
+                                    launcher.goToPage("settings")
                                 } else if (ctrl && event.key === Qt.Key_P) {
                                     launcher.pinCurrent()
                                 } else if (alt && event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
@@ -739,11 +748,8 @@ FocusScope {
                     PlasmaComponents.ToolButton {
                         icon.name: "configure-symbolic"
                         display: PlasmaComponents.AbstractButton.IconOnly
-                        text: i18n("Launcher settings")
-                        onClicked: {
-                            root.hide()
-                            Plasmoid.internalAction("configure").trigger()
-                        }
+                        text: i18n("Settings (Ctrl+,)")
+                        onClicked: launcher.goToPage("settings")
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
                     }
@@ -774,12 +780,12 @@ FocusScope {
                     Layout.maximumWidth: Layout.preferredWidth
                     spacing: Kirigami.Units.smallSpacing
 
-                    Repeater {
-                        model: launcher.pageDefs
-                        delegate: MouseArea {
+                    Component {
+                        id: railButton
+                        MouseArea {
                             id: railItem
                             required property var modelData
-                            required property int index
+                            readonly property int index: launcher.pageDefs.findIndex(def => def.key === modelData.key)
                             readonly property bool current: !launcher.searching && launcher.page === modelData.key
                             readonly property int badge: modelData.key === "friends" ? launcherData.friendsInGame : 0
                             Layout.fillWidth: true
@@ -904,7 +910,15 @@ FocusScope {
                             }
                         }
                     }
+                    Repeater {
+                        model: launcher.pageDefs.filter(def => def.key !== "settings")
+                        delegate: railButton
+                    }
                     Item { Layout.fillHeight: true }
+                    Repeater {
+                        model: launcher.pageDefs.filter(def => def.key === "settings")
+                        delegate: railButton
+                    }
                 }
 
                 Rectangle {

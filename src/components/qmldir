@@ -1,0 +1,3 @@
+module org.kde.konveyor.components
+MiniColumns 1.0 MiniColumns.qml
+KeyCaps 1.0 KeyCaps.qml

@@ -22,6 +22,7 @@ find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui DBus Test)
 add_subdirectory(src/core)
 add_subdirectory(src/shortcuts)
 add_subdirectory(src/cli)
+add_subdirectory(src/components)
 
 if(KONVEYOR_BUILD_EFFECT)
     add_subdirectory(src/effect)

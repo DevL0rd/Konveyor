@@ -35,7 +35,7 @@ Item {
         visible: false
         color: "transparent"
         flags: Qt.FramelessWindowHint
-        title: i18n("Portal Launcher backdrop")
+        title: i18n("Kontrol Panel backdrop")
 
         LayerShell.Window.scope: "portal-launcher-backdrop"
         LayerShell.Window.layer: LayerShell.Window.LayerTop
@@ -65,7 +65,7 @@ Item {
         backgroundHints: PlasmaCore.Dialog.StandardBackground
         flags: Qt.FramelessWindowHint
         hideOnWindowDeactivate: false
-        title: i18n("Portal Launcher")
+        title: i18n("Kontrol Panel")
 
         onWidthChanged: if (visible) overlay.placeCard()
         onHeightChanged: if (visible) overlay.placeCard()

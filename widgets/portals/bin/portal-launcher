@@ -2,25 +2,29 @@
 """
 Plasma-App-Portal :: launcher requests.
 
-Asks the running Portal Launcher to open a page. The launcher watches the request
+Asks the running Kontrol Panel to open a page. The launcher watches the request
 file, so this returns immediately and nothing polls.
 
 Usage:
-  portal-launcher PAGE     open the launcher on PAGE (home, apps, games, files, friends, system);
+  portal-launcher PAGE     open the Kontrol Panel on PAGE (home, apps, games, files, friends, system, shortcuts, settings);
                            if it is already open on PAGE it closes
 """
 import json
 import os
+import subprocess
 import sys
 import time
 
-PAGES = ("home", "apps", "games", "files", "friends", "system")
+PAGES = ("home", "apps", "games", "files", "friends", "system", "shortcuts", "settings")
 
 
 def main():
     if len(sys.argv) != 2 or sys.argv[1] not in PAGES:
         sys.stderr.write(__doc__)
         return 2
+    if sys.argv[1] == "settings":
+        subprocess.Popen(["kcmshell6", "kcm_konveyor"], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return 0
     runtime = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
     folder = os.path.join(runtime, "Plasma-App-Portal")
     os.makedirs(folder, exist_ok=True)
