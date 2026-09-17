@@ -90,6 +90,7 @@ Item {
         }
         for (const app of ranked(apps, a => a.name, a => a.url)) {
             if (app.favoriteId && favIds[root.favKey(app.favoriteId)]) continue
+            if (root.isHidden(app.favoriteId || app.url)) continue
             out.push({ kind: "app", section: i18n("Applications"), name: app.name, icon: app.icon, row: app.row, url: app.url })
         }
         for (const game of ranked(root.games, g => g.name || "", g => g.id)) {

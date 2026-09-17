@@ -116,8 +116,8 @@ ColumnLayout {
     onSortChanged: arrangeTimer.restart()
     onListViewChanged: arrangeTimer.restart()
     Connections {
-        target: Plasmoid.configuration
-        function onHiddenAppsChanged() { arrangeTimer.restart() }
+        target: launcherData
+        function onHiddenListChanged() { arrangeTimer.restart() }
     }
     Connections {
         target: launcherData

@@ -349,6 +349,8 @@ Item {
     }
     function trigger(model, index, key) {
         remember(key)
+        if (key && String(key).indexOf(".desktop") >= 0)
+            launcherData.trackApp(key)
         if (model && model.trigger(index, "", null) !== false)
             root.hide()
     }

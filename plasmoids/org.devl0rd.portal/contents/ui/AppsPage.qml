@@ -64,6 +64,8 @@ Item {
         visible: !page.allApps
         appModel: page.allApps ? null : root.appModelFor(page.category)
         favSet: page.favSet
+        hiddenSet: root.hiddenSet
+        onHideRequested: function(key) { root.hideApp(key) }
         viewMode: page.viewMode
         searchText: page.searchText
         sortMode: page.sortMode
@@ -120,6 +122,8 @@ Item {
                         Layout.preferredHeight: contentHeightHint
                         appModel: root.appModelFor(modelData)
                         favSet: page.favSet
+                        hiddenSet: root.hiddenSet
+                        onHideRequested: function(key) { root.hideApp(key) }
                         excludeFavorites: true
                         sectionMode: true
                         viewMode: page.viewMode

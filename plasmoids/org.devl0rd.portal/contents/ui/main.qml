@@ -5,6 +5,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.private.kicker as Kicker
+import QtCore
 import "lib"
 
 PlasmoidItem {
@@ -59,6 +60,35 @@ PlasmoidItem {
     property string sortMode: "recent"
     property string searchText: ""
     property var usage: ({})
+
+    readonly property string hiddenPath: String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "") + "/Plasma-App-Portal/hidden.json"
+    property var hiddenSet: ({})
+    function readHidden() {
+        const xhr = new XMLHttpRequest()
+        xhr.open("GET", "file://" + root.hiddenPath)
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+            let list = []
+            try { list = JSON.parse(xhr.responseText || "[]") } catch (e) { return }
+            const set = {}
+            for (const id of (Array.isArray(list) ? list : []))
+                set[id] = true
+            root.hiddenSet = set
+        }
+        xhr.send()
+    }
+    function hiddenKey(id) { return String(id || "").replace(/^applications:/, "").replace(/^file:\/\/.*\//, "").replace(/\.desktop$/, "") }
+    function isHidden(id) { return id !== "" && root.hiddenSet[root.hiddenKey(id)] === true }
+    function hideApp(id) {
+        const key = root.hiddenKey(id)
+        if (key === "") return
+        const set = Object.assign({}, root.hiddenSet)
+        set[key] = true
+        root.hiddenSet = set
+        runner.connectSource(portalBin + " --hide " + shq(key))
+    }
+    FileWatcher { path: root.hiddenPath; onChanged: root.readHidden() }
 
     readonly property string portalBin: "$HOME/.local/bin/portal-games"
     function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }
@@ -239,6 +269,7 @@ PlasmoidItem {
     FileWatcher { path: root.dataWanted ? root.friendsPath : ""; onChanged: root.readFriends() }
 
     Component.onCompleted: {
+        readHidden()
         selectedLabel = Plasmoid.configuration.defaultCategory || "Favorites"
         sortMode = Plasmoid.configuration.defaultSort || "recent"
         appViewMode = Plasmoid.configuration.appViewMode || "grid"

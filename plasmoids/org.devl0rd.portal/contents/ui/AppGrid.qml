@@ -10,6 +10,8 @@ Item {
     id: root
     property var appModel: null
     property var favSet: ({})
+    property var hiddenSet: ({})
+    signal hideRequested(string key)
     property bool excludeFavorites: false
     property string viewMode: "grid"
     property string searchText: ""
@@ -67,6 +69,7 @@ Item {
         var q = root.searchText.trim().toLowerCase()
         var a = root.rawItems.filter(function(it) {
             if (root.excludeFavorites && it.favoriteId && root.favSet[root.favKey(it.favoriteId)]) return false
+            if (root.hiddenSet[String(it.favoriteId || it.url).replace(/^applications:/, "").replace(/^file:\/\/.*\//, "").replace(/\.desktop$/, "")] === true) return false
             return q === "" || it.name.toLowerCase().indexOf(q) >= 0
         })
         a = a.slice()
@@ -223,6 +226,13 @@ Item {
                 var isFav = root.favSet[root.favKey(ctxMenu.it.favoriteId)] === true
                 root.favToggle(ctxMenu.it.favoriteId, !isFav)
             }
+        }
+        QQC2.MenuItem {
+            visible: ctxMenu.it && ctxMenu.it.favoriteId !== ""
+            height: visible ? implicitHeight : 0
+            icon.name: "view-hidden"
+            text: i18n("Hide from App Portal and the launcher")
+            onTriggered: if (ctxMenu.it) root.hideRequested(ctxMenu.it.favoriteId)
         }
         QQC2.MenuSeparator { visible: ctxMenu.it && ctxMenu.it.favoriteId !== "" }
         Instantiator {

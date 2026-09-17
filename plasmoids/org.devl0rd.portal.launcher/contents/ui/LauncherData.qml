@@ -317,9 +317,11 @@ Item {
         return game && game.appid ? game : null
     }
 
+    readonly property string statePath: String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, "") + "/Plasma-App-Portal"
+    property var hiddenList: []
     readonly property var hiddenSet: {
         const set = {}
-        for (const id of Plasmoid.configuration.hiddenApps)
+        for (const id of hiddenList)
             set[desktopKey(id)] = true
         return set
     }
@@ -328,10 +330,34 @@ Item {
     }
     function setHidden(favoriteId, hidden) {
         const key = desktopKey(favoriteId)
-        const list = Plasmoid.configuration.hiddenApps.filter(id => desktopKey(id) !== key)
-        if (hidden)
-            list.push(key)
-        Plasmoid.configuration.hiddenApps = list
+        hiddenList = hidden ? hiddenList.filter(id => id !== key).concat([key]) : hiddenList.filter(id => id !== key)
+        run(portalBin + (hidden ? " --hide " : " --unhide ") + shq(key))
+    }
+    function readHidden() {
+        const xhr = new XMLHttpRequest()
+        xhr.open("GET", "file://" + statePath + "/hidden.json")
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+            let parsed = []
+            try {
+                parsed = JSON.parse(xhr.responseText || "[]")
+            } catch (error) {
+                return
+            }
+            data.hiddenList = Array.isArray(parsed) ? parsed : []
+        }
+        xhr.send()
+    }
+    FileWatcher {
+        path: data.statePath + "/hidden.json"
+        onChanged: data.readHidden()
+    }
+    Component.onCompleted: readHidden()
+    function trackApp(favoriteId) {
+        const key = desktopKey(favoriteId)
+        if (key !== "")
+            run(portalBin + " --track-app " + shq(key))
     }
 
     property var learned: {

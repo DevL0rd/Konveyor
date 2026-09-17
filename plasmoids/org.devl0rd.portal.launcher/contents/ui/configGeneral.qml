@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.iconthemes as KIconThemes
+import org.kde.plasma.plasma5support as P5Support
 
 Kirigami.FormLayout {
     id: form
@@ -31,7 +32,31 @@ Kirigami.FormLayout {
     property string cfg_appsSort
     property string cfg_appsView
     property alias cfg_searchWindows: searchWindows.checked
-    property var cfg_hiddenApps: []
+    property var hiddenApps: []
+
+    P5Support.DataSource {
+        id: hiddenSource
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            if (source.indexOf("--hidden") < 0) {
+                form.loadHidden()
+                return
+            }
+            try {
+                form.hiddenApps = JSON.parse(result.stdout || "[]")
+            } catch (error) {
+                form.hiddenApps = []
+            }
+        }
+    }
+    function loadHidden() {
+        hiddenSource.connectSource("$HOME/.local/bin/portal-games --hidden # " + Date.now())
+    }
+    function unhide(id) {
+        hiddenSource.connectSource("$HOME/.local/bin/portal-games --unhide '" + String(id).replace(/'/g, "'\\''") + "'")
+    }
+    Component.onCompleted: loadHidden()
     property string cfg_learnedRanking
     property string cfg_searchOrder
 
@@ -212,12 +237,12 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: i18n("Hidden apps:")
         spacing: 0
         QQC2.Label {
-            visible: form.cfg_hiddenApps.length === 0
-            text: i18n("None. Right-click an app and choose Hide from launcher.")
+            visible: form.hiddenApps.length === 0
+            text: i18n("None. Right-click an app and choose Hide from launcher. Hidden apps are shared with App Portal.")
             opacity: 0.6
         }
         Repeater {
-            model: form.cfg_hiddenApps
+            model: form.hiddenApps
             RowLayout {
                 required property string modelData
                 QQC2.Label {
@@ -228,7 +253,7 @@ Kirigami.FormLayout {
                 QQC2.Button {
                     text: i18n("Unhide")
                     icon.name: "view-visible"
-                    onClicked: form.cfg_hiddenApps = form.cfg_hiddenApps.filter(id => id !== modelData)
+                    onClicked: form.unhide(modelData)
                 }
             }
         }
