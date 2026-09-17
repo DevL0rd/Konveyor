@@ -73,7 +73,7 @@ jobs:
 
             ```sh
             git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git
-            cd Linux-Konveyor
+            cd Konveyor
             ./install.sh
             ```
 

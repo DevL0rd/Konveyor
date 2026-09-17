@@ -13,7 +13,7 @@
         "License": "GPL-3.0-or-later",
         "Name": "Screen Rotate",
         "Version": "1.0.0",
-        "Website": "https://github.com/DevL0rd/Linux-Konveyor"
+        "Website": "https://github.com/DevL0rd/Konveyor"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0"

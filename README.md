@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/DevL0rd/Linux-Konveyor/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/DevL0rd/Linux-Konveyor/ci.yml?branch=main&style=for-the-badge&label=build&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/DevL0rd/Konveyor/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/DevL0rd/Konveyor/ci.yml?branch=main&style=for-the-badge&label=build&logo=githubactions&logoColor=white"></a>
   <img alt="KDE Plasma 6" src="https://img.shields.io/badge/KDE_Plasma-6-1d99f3?style=for-the-badge&logo=kde&logoColor=white">
   <img alt="Wayland" src="https://img.shields.io/badge/Wayland-native-ffbc00?style=for-the-badge&logo=wayland&logoColor=black">
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-8a5cd6?style=for-the-badge"></a>
-  <a href="https://github.com/DevL0rd/Linux-Konveyor/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/DevL0rd/Linux-Konveyor?style=for-the-badge&logo=github&color=3daee9"></a>
+  <a href="https://github.com/DevL0rd/Konveyor/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/DevL0rd/Konveyor?style=for-the-badge&logo=github&color=3daee9"></a>
 </p>
 
 <h3 align="center">Your windows, on a conveyor belt.</h3>
@@ -43,8 +43,8 @@
 ## 🚀 Get started
 
 ```sh
-git clone https://github.com/DevL0rd/Linux-Konveyor.git
-cd Linux-Konveyor
+git clone https://github.com/DevL0rd/Konveyor.git
+cd Konveyor
 ./install.sh
 ```
 

@@ -55,7 +55,7 @@ journalctl -f -o json   ->   logmon-collect (--serve)   ->   $XDG_RUNTIME_DIR/Li
 ## Install
 
 Clone **with submodules** — the shared QML/JS components live in the
-[Linux-Plasma-Shared](https://github.com/DevL0rd/Linux-Plasma-Shared) submodule:
+[Plasma-Shared](https://github.com/DevL0rd/Plasma-Shared) submodule:
 
 ```sh
 git clone --recurse-submodules https://github.com/DevL0rd/Linux-Log-Monitor.git

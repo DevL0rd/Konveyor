@@ -23,7 +23,7 @@ Checks: >
   misc-unused-using-decls,
   misc-redundant-expression
 WarningsAsErrors: '*'
-HeaderFilterRegex: '.*/Linux-Konveyor/src/.*'
+HeaderFilterRegex: '.*/Konveyor/src/.*'
 CheckOptions:
   - key: readability-function-cognitive-complexity.Threshold
     value: '15'

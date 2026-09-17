@@ -80,7 +80,7 @@ and merges the AdGuard Home API.
 ## Installation
 
 Clone **with submodules** — the shared QML/JS components live in the
-[Linux-Plasma-Shared](https://github.com/DevL0rd/Linux-Plasma-Shared) submodule:
+[Plasma-Shared](https://github.com/DevL0rd/Plasma-Shared) submodule:
 
 ```bash
 git clone --recurse-submodules https://github.com/DevL0rd/Linux-Router-Monitor.git

@@ -43,7 +43,7 @@ and the widgets read cached snapshots:
 ## Installation
 
 Clone **with submodules** — the shared QML components live in the
-[Linux-Plasma-Shared](https://github.com/DevL0rd/Linux-Plasma-Shared) submodule:
+[Plasma-Shared](https://github.com/DevL0rd/Plasma-Shared) submodule:
 
 ```bash
 git clone --recurse-submodules https://github.com/DevL0rd/Linux-Plasma-Portals.git
