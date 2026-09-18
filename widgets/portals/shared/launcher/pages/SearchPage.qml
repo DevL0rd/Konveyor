@@ -13,8 +13,8 @@ import ".."
 PopScroll {
     id: page
 
-    readonly property string term: launcher.term
-    readonly property string mode: launcher.mode
+    readonly property string term: launcher.presentedTerm
+    readonly property string mode: launcher.presentedMode
     readonly property int rowWidth: Kirigami.Units.gridUnit * 19
     readonly property int groupCount: launcherData.runner.count
     property int groupsRevision: 0
@@ -47,6 +47,8 @@ PopScroll {
     }
     readonly property var groupsByKind: {
         groupsRevision
+        if (!launcher.searchSettled)
+            return {}
         const kinds = {}
         for (let row = 0; row < groupCount; ++row) {
             const group = launcherData.runner.modelForRow(row)
@@ -200,7 +202,7 @@ PopScroll {
         TileGrid {
             id: resultGrid
             visible: count > 0
-            limit: page.mode === "all" ? 12 : -1
+            limit: page.mode === "all" ? 6 : -1
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
             cellWidth: Math.floor(width / Math.max(1, Math.floor(width / page.rowWidth)))

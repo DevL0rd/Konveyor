@@ -48,8 +48,26 @@ FocusScope {
 
 
     readonly property string rawQuery: field.text
-    readonly property string mode: {
-        const text = rawQuery
+    property string presentedQuery: ""
+    readonly property bool searchSettled: presentedQuery === rawQuery
+    onRawQueryChanged: {
+        if (rawQuery.trim() === "") {
+            searchSettle.stop()
+            presentedQuery = rawQuery
+        } else {
+            searchSettle.restart()
+        }
+    }
+    Timer {
+        id: searchSettle
+        interval: 60
+        onTriggered: launcher.presentedQuery = launcher.rawQuery
+    }
+    function settleSearch() {
+        searchSettle.stop()
+        presentedQuery = rawQuery
+    }
+    function modeFor(text) {
         if (text.startsWith("g ")) return "games"
         if (text.startsWith("f ")) return "files"
         if (text.startsWith("a ")) return "apps"
@@ -59,12 +77,16 @@ FocusScope {
         if (text.startsWith(">")) return "command"
         return "all"
     }
-    readonly property string term: {
-        const text = rawQuery
-        if (mode === "games" || mode === "files" || mode === "apps" || mode === "packages") return text.substring(2).trim()
-        if (mode === "friends" || mode === "calc" || mode === "command") return text.substring(1).trim()
+    function termFor(text) {
+        const queryMode = modeFor(text)
+        if (queryMode === "games" || queryMode === "files" || queryMode === "apps" || queryMode === "packages") return text.substring(2).trim()
+        if (queryMode === "friends" || queryMode === "calc" || queryMode === "command") return text.substring(1).trim()
         return text.trim()
     }
+    readonly property string mode: modeFor(rawQuery)
+    readonly property string term: termFor(rawQuery)
+    readonly property string presentedMode: modeFor(presentedQuery)
+    readonly property string presentedTerm: termFor(presentedQuery)
     readonly property bool searching: rawQuery.trim() !== ""
     function currentView() {
         if (searching)
@@ -862,9 +884,19 @@ FocusScope {
                                 } else if (event.key === Qt.Key_Right && (field.text === "" || ctrl || field.cursorPosition === field.length)) {
                                     launcher.navigate(1, 0)
                                 } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && alt) {
-                                    launcher.menuForCurrent()
+                                    if (launcher.searchSettled) {
+                                        launcher.menuForCurrent()
+                                    } else {
+                                        launcher.settleSearch()
+                                        Qt.callLater(launcher.menuForCurrent)
+                                    }
                                 } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                    launcher.activateCurrent()
+                                    if (launcher.searchSettled) {
+                                        launcher.activateCurrent()
+                                    } else {
+                                        launcher.settleSearch()
+                                        Qt.callLater(launcher.activateCurrent)
+                                    }
                                 } else if (event.key === Qt.Key_Menu) {
                                     launcher.menuForCurrent()
                                 } else if (event.key === Qt.Key_Tab && ctrl) {
