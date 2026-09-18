@@ -17,7 +17,7 @@ class TestLayoutFloating : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-    void dialogsAndFixedSizeWindowsFloatAutomatically()
+    void dialogsFloatAutomatically()
     {
         Fixture fixture;
         fixture.add();
@@ -31,7 +31,7 @@ private Q_SLOTS:
         fixedWidth.minSize = QSizeF(400, 0);
         fixedWidth.maxSize = QSizeF(400, 0);
         const auto asFixed = fixture.addWith(fixedWidth);
-        QVERIFY2(fixture.state(asFixed).isFloating, "a window that cannot be resized must float");
+        QVERIFY2(!fixture.state(asFixed).isFloating, "a fixed-size window can remain tiled");
 
         const auto normal = fixture.add(QStringLiteral("normal"));
         QVERIFY2(!fixture.state(normal).isFloating, "an ordinary window still tiles");
@@ -74,14 +74,17 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void fixedHeightWindowAutoFloats()
+    void fixedSizeWindowTiles()
     {
         Fixture fixture;
         Layout::WindowProperties properties = makeWindow(QStringLiteral("fixed"), QStringLiteral("fixed"), QSizeF(300, 200));
         properties.minSize = QSizeF(300, 200);
         properties.maxSize = QSizeF(300, 200);
         const auto id = fixture.addWith(properties);
-        QVERIFY(fixture.state(id).isFloating);
+        QVERIFY(!fixture.state(id).isFloating);
+        QCOMPARE(fixture.frame(id).size(), QSizeF(936, 1048));
+        QVERIFY(fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("600")}).ok);
+        QCOMPARE(fixture.frame(id).width(), 600.0);
         VERIFY_INVARIANTS(fixture);
     }
 

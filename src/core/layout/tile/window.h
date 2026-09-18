@@ -33,6 +33,8 @@ public:
     QSizeF size() const { return m_size; }
     QSize minSize() const;
     QSize maxSize() const;
+    QSize tiledMinSize() const;
+    QSize tiledMaxSize() const;
     std::optional<QSize> requestedSize() const { return m_requestedSize; }
     std::optional<QSize> pendingSize() const;
 

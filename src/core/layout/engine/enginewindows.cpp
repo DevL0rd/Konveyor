@@ -88,12 +88,8 @@ NewWindowPlan Engine::Private::planNewWindow(
     NewWindowPlan plan;
     plan.rules = resolveWindowRules(config.windowRules, contextFor(properties, false), atStartup());
 
-    const QSize minSize = plan.rules.limitMinSize(nonNegativeSize(properties.minSize));
-    const QSize maxSize = plan.rules.limitMaxSize(nonNegativeSize(properties.maxSize));
-    const bool fixedHeight = minSize.height() > 0 && minSize.height() == maxSize.height();
-    const bool fixedWidth = minSize.width() > 0 && minSize.width() == maxSize.width();
     const bool childWindow = plan.rules.floatChildWindows.value_or(config.layout.floatChildWindows) && appHasWindow(properties.appId);
-    const bool autoFloat = properties.parent.has_value() || properties.isDialog || fixedHeight || fixedWidth || childWindow;
+    const bool autoFloat = properties.parent.has_value() || properties.isDialog || childWindow;
     plan.isFloating = plan.rules.openFloating.value_or(autoFloat);
     plan.rules = resolveWindowRules(config.windowRules, contextFor(properties, plan.isFloating), atStartup());
 

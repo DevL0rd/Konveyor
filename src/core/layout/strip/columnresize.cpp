@@ -146,8 +146,8 @@ double Column::computeNewWindowHeight(SizeChange change, std::size_t tileIndex) 
     const double heightLeft = std::max(1.0, tile.innerHeightFor(working - extra - gaps - minHeightTaken - gaps));
     windowHeight = std::min(heightLeft, windowHeight);
 
-    const QSize minSize = tile.window().minSize();
-    const QSize maxSize = tile.window().maxSize();
+    const QSize minSize = tile.window().tiledMinSize();
+    const QSize maxSize = tile.window().tiledMaxSize();
     if (maxSize.height() > 0) {
         windowHeight = std::min(windowHeight, static_cast<double>(maxSize.height()));
     }

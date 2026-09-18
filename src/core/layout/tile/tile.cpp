@@ -314,7 +314,7 @@ double Tile::innerHeightFor(double size) const
 
 QSizeF Tile::minNormalSize() const
 {
-    QSizeF size = m_window.minSize();
+    QSizeF size = m_window.tiledMinSize();
     if (m_border.enabled) {
         const double extra = m_border.width * 2.0;
         size = QSizeF(std::max(1.0, size.width()) + extra, std::max(1.0, size.height()) + extra);
@@ -324,7 +324,7 @@ QSizeF Tile::minNormalSize() const
 
 QSizeF Tile::maxNormalSize() const
 {
-    QSizeF size = m_window.maxSize();
+    QSizeF size = m_window.tiledMaxSize();
     if (!m_border.enabled) {
         return size;
     }

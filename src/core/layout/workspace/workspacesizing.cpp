@@ -38,8 +38,8 @@ QSize Workspace::initialWindowSize(const std::optional<Config::PresetSize> &widt
     bool isFloating, const EffectiveWindowRules &rules, QSize minSize, QSize maxSize) const
 {
     QSize size = isFloating ? m_floating.initialWindowSize(width, height, rules) : m_strip.initialWindowSize(width, height, rules);
-    const QSize resolvedMin = rules.limitMinSize(minSize);
-    const QSize resolvedMax = rules.limitMaxSize(maxSize);
+    const QSize resolvedMin = isFloating ? rules.limitMinSize(minSize) : rules.limitMinSize(QSize(0, 0));
+    const QSize resolvedMax = isFloating ? rules.limitMaxSize(maxSize) : rules.limitMaxSize(QSize(0, 0));
     size.setWidth(clampToSizeLimitsAllowZero(size.width(), resolvedMin.width(), resolvedMax.width()));
     if (resolvedMin.height() == resolvedMax.height()) {
         size.setHeight(clampToSizeLimits(size.height(), resolvedMin.height(), resolvedMax.height()));

@@ -37,6 +37,16 @@ QSize LayoutWindow::maxSize() const
     return m_rules.limitMaxSize(nonNegativeSize(m_properties.maxSize));
 }
 
+QSize LayoutWindow::tiledMinSize() const
+{
+    return m_rules.limitMinSize(QSize(0, 0));
+}
+
+QSize LayoutWindow::tiledMaxSize() const
+{
+    return m_rules.limitMaxSize(QSize(0, 0));
+}
+
 std::optional<QSize> LayoutWindow::pendingSize() const
 {
     std::optional<QSize> current;

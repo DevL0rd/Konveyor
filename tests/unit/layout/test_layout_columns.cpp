@@ -66,6 +66,24 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void tiledSizeRulesOverrideApplicationHints()
+    {
+        Config::Config config = instantConfig();
+        Config::WindowRule rule = ruleFor(QStringLiteral("fixed"));
+        rule.minWidth = 600;
+        rule.maxWidth = 800;
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("fixed"));
+        properties.minSize = QSizeF(300, 200);
+        properties.maxSize = QSizeF(300, 200);
+        const auto id = fixture.addWith(properties);
+        QCOMPARE(fixture.frame(id).width(), 800.0);
+        QVERIFY(fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("500")}).ok);
+        QCOMPARE(fixture.frame(id).width(), 600.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void setColumnWidthProportion()
     {
         Fixture fixture;
