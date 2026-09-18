@@ -163,8 +163,16 @@ PopCard {
             visible: card.proc !== null && card.proc.fps >= 0
             label: i18n("Frame time")
             value: card.proc ? card.proc.frametime.toFixed(1) : ""
-            unit: i18n("ms · 1% low %1", card.proc ? card.proc.fpsLow : 0)
+            unit: i18n("ms")
             series: card.history.frametime || []
+            lineColor: Style.hue("down", Kirigami.Theme)
+        }
+        MetricTile {
+            visible: card.proc !== null && card.proc.fps >= 0
+            label: i18n("1% low")
+            value: card.proc ? card.proc.fpsLow + "" : ""
+            unit: i18n("FPS")
+            valueColor: root.fpsColor(card.proc ? card.proc.fpsLow : 0)
             lineColor: Style.hue("down", Kirigami.Theme)
         }
         MetricTile {

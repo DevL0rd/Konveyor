@@ -325,7 +325,7 @@ Everything the widgets need is installed for you, and one background service fee
   </tr>
   <tr>
     <td>🎮 <b>FPS</b></td>
-    <td>Process Monitor reads frame rates from <a href="https://github.com/flightlessmango/MangoHud">MangoHud</a> when it's installed; the installer sets it up.</td>
+    <td>Process Monitor reads window update rates through its own independent KWin telemetry plugin, with no overlay or log files.</td>
   </tr>
   <tr>
     <td>🖼️ <b>Desktop widgets</b></td>

@@ -51,6 +51,10 @@ disable_in_kwin() {
         run_root rm -f "$KONVEYOR_PLUGIN_DIR/${plugin}.so"
     done
     kwinrc_delete Plugins konveyor_effectEnabled
+    if $WIDGETS; then
+        kwinrc_delete Plugins process_monitor_telemetryEnabled
+        kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect process_monitor_telemetry
+    fi
     kwin_dbus /KWin reconfigure
 
     say "Restoring the KDE shortcuts Konveyor had taken over"

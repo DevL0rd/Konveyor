@@ -26,6 +26,7 @@ add_subdirectory(src/settings)
 
 if(KONVEYOR_BUILD_EFFECT)
     add_subdirectory(src/effect)
+    add_subdirectory(src/process-monitor-telemetry)
 endif()
 
 if(KONVEYOR_BUILD_TESTS)

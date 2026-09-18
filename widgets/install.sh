@@ -47,7 +47,6 @@ link_commands() {
     mkdir -p "$BIN_DIR"
     link_command system-monitor/bin/sysmon-collect
     link_command process-monitor/bin/procmon-collect
-    link_command process-monitor/bin/procmon-mangohud
     link_command router-monitor/bin/routermon-collect
     link_command router-monitor/bin/routermon-ctl
     link_command router-monitor/bin/routermon-speedtest
@@ -71,8 +70,6 @@ main() {
     remove_keyboard_toggle
     link_commands
     create_configs
-    say "Letting MangoHud report frame rates to Process Monitor"
-    python3 "$WIDGETS_DIR/process-monitor/bin/procmon-mangohud" --configure
     push_router_collector
     configure_file_access
     install_collector_service

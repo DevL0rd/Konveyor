@@ -1,0 +1,17 @@
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(KDecoration3 REQUIRED)
+find_package(KWin REQUIRED COMPONENTS kwineffects)
+find_package(KF6 REQUIRED COMPONENTS CoreAddons)
+
+add_library(process_monitor_framerate STATIC framerate.cpp)
+target_include_directories(process_monitor_framerate PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(process_monitor_framerate PUBLIC Qt6::Core)
+target_compile_options(process_monitor_framerate PRIVATE -Wall -Wextra -Werror)
+set_target_properties(process_monitor_framerate PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+kcoreaddons_add_plugin(process_monitor_telemetry INSTALL_NAMESPACE "kwin/effects/plugins")
+target_sources(process_monitor_telemetry PRIVATE effect.cpp main.cpp)
+target_include_directories(process_monitor_telemetry PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(process_monitor_telemetry PRIVATE process_monitor_framerate KWin::kwin KF6::CoreAddons Qt6::DBus)
+target_compile_options(process_monitor_telemetry PRIVATE -Wall -Wextra -Werror)
+target_link_options(process_monitor_telemetry PRIVATE LINKER:--no-undefined)

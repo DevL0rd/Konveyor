@@ -58,18 +58,17 @@ Click it for the full view:
 - **Search** by name or PID
 - **Click a process** to see what it and its children use, its frame rate and
   command line, and every action; right-click for the full menu
-- **Columns** menu to show GPU, video encode and decode, VRAM, disk, threads and
-  PID
+- **Columns** menu to show FPS, GPU, video encode and decode, VRAM, disk,
+  threads and PID
 
 ### Frame rates
 
-Frame rates come from [MangoHud](https://github.com/flightlessmango/MangoHud).
-When MangoHud is installed, `install.sh` adds a few lines to
-`~/.config/MangoHud/MangoHud.conf` so it logs frame times to a private cache
-folder that the collector reads and cleans continuously. Your MangoHud overlay
-looks and behaves the same, even when it's hidden. Any game or app you run with
-MangoHud (`mangohud %command%` in Steam, or `MANGOHUD=1`) then shows its frame
-rate. `uninstall.sh` puts your previous MangoHud settings back.
+Frame rates come from updates submitted by windows and reported by Process
+Monitor's independent KWin telemetry plugin. This works automatically for
+regular apps, native Wayland games, and XWayland or Proton games without an
+overlay or log files.
+The value measures the window's update rate, which can differ from an engine's
+internal rendered frame rate when the compositor coalesces or discards frames.
 
 ## Settings
 

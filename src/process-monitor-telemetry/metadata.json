@@ -1,0 +1,14 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "DevL0rd"
+            }
+        ],
+        "Category": "Tools",
+        "Description": "In-memory per-window frame telemetry for Process Monitor",
+        "EnabledByDefault": false,
+        "License": "GPL-3.0-or-later",
+        "Name": "Process Monitor Frame Telemetry"
+    }
+}

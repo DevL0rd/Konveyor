@@ -172,6 +172,9 @@ MouseArea {
             widestValue: "888"
             value: compact.proc ? compact.proc.fps + "" : ""
             valueColor: root.fpsColor(compact.proc ? compact.proc.fps : 0)
+            secondary: compact.proc ? i18n("1% %1", compact.proc.fpsLow) : ""
+            widestSecondary: i18n("1% 888")
+            secondaryColor: root.fpsColor(compact.proc ? compact.proc.fpsLow : 0)
             showLabel: compact.vertical
         }
     }

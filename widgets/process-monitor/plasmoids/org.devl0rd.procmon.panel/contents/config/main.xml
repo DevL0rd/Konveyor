@@ -12,6 +12,7 @@
         <entry name="hideSystemd" type="Bool"><default>true</default></entry>
         <entry name="colorizeUsage" type="Bool"><default>true</default></entry>
         <entry name="showGpuColumn" type="Bool"><default>true</default></entry>
+        <entry name="showFpsColumn" type="Bool"><default>true</default></entry>
         <entry name="showDecColumn" type="Bool"><default>false</default></entry>
         <entry name="showEncColumn" type="Bool"><default>false</default></entry>
         <entry name="showVramColumn" type="Bool"><default>false</default></entry>

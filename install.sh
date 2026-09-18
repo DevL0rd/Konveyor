@@ -133,24 +133,38 @@ configure_kwin() {
     done
     kwinrc_write Plugins konveyor_effectEnabled false
     kwinrc_write Plugins "${PLUGIN_ID}Enabled" true
+    if $WIDGETS; then
+        say "Enabling Process Monitor frame telemetry in KWin"
+        kwinrc_write Plugins process_monitor_telemetryEnabled true
+    else
+        kwinrc_delete Plugins process_monitor_telemetryEnabled
+        kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect process_monitor_telemetry
+    fi
     kwin_dbus /KWin reconfigure
 }
 
 activate() {
     kwin_dbus /Effects org.kde.kwin.Effects.loadEffect "$PLUGIN_ID"
+    $WIDGETS && kwin_dbus /Effects org.kde.kwin.Effects.loadEffect process_monitor_telemetry
     sleep 1
     if qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.isEffectLoaded "$PLUGIN_ID" 2>/dev/null | grep -q true; then
         say "Konveyor is live now — no logout needed. Press Super+K for the shortcut cheatsheet."
     else
         say "Installed. Log out and back in to start it."
     fi
+    if $WIDGETS && qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.isEffectLoaded process_monitor_telemetry 2>/dev/null | grep -q true; then
+        say "Process Monitor frame telemetry is live now"
+    fi
 }
 
 finish_update() {
     PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/plugin-id")
+    if grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null; then
+        WIDGETS=false
+    fi
     configure_kwin
     activate
-    if ! grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null; then
+    if $WIDGETS; then
         "$SOURCE_DIR/widgets/install.sh" --no-restart
     fi
     rm -f "$UPDATE_PENDING"

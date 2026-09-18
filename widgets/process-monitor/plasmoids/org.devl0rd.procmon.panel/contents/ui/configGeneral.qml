@@ -11,6 +11,7 @@ Kirigami.FormLayout {
     property alias cfg_hideSystemd: systemdCheck.checked
     property alias cfg_colorizeUsage: colorCheck.checked
     property alias cfg_showGpuColumn: gpuColumn.checked
+    property alias cfg_showFpsColumn: fpsColumn.checked
     property alias cfg_showDecColumn: decColumn.checked
     property alias cfg_showEncColumn: encColumn.checked
     property alias cfg_showVramColumn: vramColumn.checked
@@ -71,6 +72,7 @@ Kirigami.FormLayout {
     QQC2.CheckBox { id: colorCheck; text: i18n("Colour usage from green to red") }
 
     QQC2.CheckBox { id: gpuColumn; Kirigami.FormData.label: i18n("Columns:"); text: i18n("GPU") }
+    QQC2.CheckBox { id: fpsColumn; text: i18n("FPS") }
     QQC2.CheckBox { id: decColumn; text: i18n("Video decode") }
     QQC2.CheckBox { id: encColumn; text: i18n("Video encode") }
     QQC2.CheckBox { id: vramColumn; text: i18n("VRAM") }
@@ -91,7 +93,7 @@ Kirigami.FormLayout {
     }
     QQC2.Label {
         Kirigami.FormData.label: i18n("Frame rates:")
-        text: i18n("Games and apps report their frame rate when they run with MangoHud. install.sh sets MangoHud up for this.")
+        text: i18n("Frame rate comes from window updates reported by Process Monitor's KWin telemetry and works automatically with apps and games.")
         opacity: 0.6
         wrapMode: Text.Wrap
         Layout.maximumWidth: Kirigami.Units.gridUnit * 20

@@ -60,6 +60,7 @@ Rectangle {
         anchors.top: parent.top
         height: row.rowHeight - 2
         visible: Plasmoid.configuration.sortColumn !== "name" && Plasmoid.configuration.sortColumn !== "pid"
+                 && Plasmoid.configuration.sortColumn !== "fps"
         values: root.sortHistByPid[row.pid] || []
         rangeMax: root.graphMax(Plasmoid.configuration.sortColumn)
         lineColor: Kirigami.Theme.highlightColor
@@ -103,21 +104,6 @@ Rectangle {
             text: row.query === "" ? row.proc.name || "" : Highlight.mark(row.proc.name || "", row.query, Kirigami.Theme.highlightColor)
             textFormat: row.query === "" ? Text.PlainText : Text.StyledText
             elide: Text.ElideRight
-        }
-        Rectangle {
-            visible: row.proc.fps !== undefined
-            implicitWidth: fpsLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
-            implicitHeight: fpsLabel.implicitHeight
-            radius: height / 2
-            color: Qt.alpha(root.fpsColor(row.proc.fps || 0), 0.16)
-            PlasmaComponents.Label {
-                id: fpsLabel
-                anchors.centerIn: parent
-                text: (row.proc.fps || 0) + " FPS"
-                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                font.weight: Font.DemiBold
-                color: root.fpsColor(row.proc.fps || 0)
-            }
         }
         Repeater {
             model: root.columns

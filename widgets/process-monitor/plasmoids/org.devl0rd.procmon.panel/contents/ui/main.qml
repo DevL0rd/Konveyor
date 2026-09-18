@@ -20,6 +20,7 @@ PlasmoidItem {
         { key: "cpu", label: i18n("CPU"), kind: "pct", heat: true, show: true },
         { key: "ram", label: i18n("RAM"), kind: "bytes", heat: false, show: true },
         { key: "gpu", label: i18n("GPU"), kind: "pct", heat: true, show: Plasmoid.configuration.showGpuColumn },
+        { key: "fps", label: i18n("FPS"), kind: "fps", heat: true, show: Plasmoid.configuration.showFpsColumn, noagg: true },
         { key: "dec", label: i18n("DEC"), kind: "pct", heat: true, show: Plasmoid.configuration.showDecColumn },
         { key: "enc", label: i18n("ENC"), kind: "pct", heat: true, show: Plasmoid.configuration.showEncColumn },
         { key: "vram", label: i18n("VRAM"), kind: "bytes", heat: false, show: Plasmoid.configuration.showVramColumn },
@@ -28,7 +29,7 @@ PlasmoidItem {
         { key: "pid", label: i18n("PID"), kind: "int", heat: false, show: Plasmoid.configuration.showPidColumn, noagg: true }
     ]
     readonly property var columns: allColumns.filter(column => column.show)
-    readonly property var columnConfigKeys: ({ gpu: "showGpuColumn", dec: "showDecColumn", enc: "showEncColumn", vram: "showVramColumn",
+    readonly property var columnConfigKeys: ({ gpu: "showGpuColumn", fps: "showFpsColumn", dec: "showDecColumn", enc: "showEncColumn", vram: "showVramColumn",
                                                disk: "showDiskColumn", threads: "showThreadsColumn", pid: "showPidColumn" })
 
     readonly property int histLen: 40
@@ -129,6 +130,7 @@ PlasmoidItem {
         return value + ""
     }
     function fmtCol(p, column) {
+        if (column.kind === "fps") return p.fps === undefined ? "—" : Math.round(p.fps) + ""
         return fmtValue(colVal(p, column), column.kind)
     }
     function heatColor(value) {
@@ -138,11 +140,13 @@ PlasmoidItem {
         return Qt.hsla((1 - t) * 0.33, 0.62, Style.isDark(Kirigami.Theme) ? 0.62 : 0.42, 1)
     }
     function colColor(p, column) {
+        if (column.kind === "fps" && p.fps !== undefined) return fpsColor(p.fps)
         return column.heat && column.kind === "pct" ? heatColor(colVal(p, column)) : Kirigami.Theme.textColor
     }
     function graphMax(key) {
         if (key === "ram") return summary.memTotal
         if (key === "vram") return summary.vramTotal
+        if (key === "fps") return 0
         const column = colOf(key)
         return column && column.kind === "pct" ? 100 : 0
     }

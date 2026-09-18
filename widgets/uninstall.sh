@@ -14,7 +14,7 @@ PLASMOIDS=(
     org.devl0rd.portal org.devl0rd.portal.friends org.devl0rd.portal.launcher
     dev.devl0rd.screenrotate
 )
-COMMANDS=(sysmon-collect procmon-collect procmon-mangohud routermon-collect routermon-ctl routermon-speedtest logmon-collect
+COMMANDS=(sysmon-collect procmon-collect routermon-collect routermon-ctl routermon-speedtest logmon-collect
     portal-games portal-packages portal-launcher portal-friends linux-plasma-screen-rotate)
 RUNTIME_DIRS=(Linux-System-Monitor Linux-Process-Mon Linux-Router-Monitor Linux-Log-Monitor Plasma-App-Portal)
 
@@ -44,9 +44,6 @@ main() {
     systemctl --user disable --now "$SERVICE" >/dev/null 2>&1 || true
     rm -f "$USER_UNITS/$SERVICE"
     systemctl --user daemon-reload
-
-    say "Restoring MangoHud settings"
-    python3 "$WIDGETS_DIR/process-monitor/bin/procmon-mangohud" --restore || true
 
     remove_router_collector
     remove_games_shortcut
