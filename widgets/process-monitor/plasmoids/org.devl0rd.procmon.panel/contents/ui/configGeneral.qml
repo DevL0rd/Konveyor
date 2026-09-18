@@ -23,6 +23,8 @@ Kirigami.FormLayout {
     property alias cfg_compactShowCpu: compactCpu.checked
     property alias cfg_compactShowGpu: compactGpu.checked
     property alias cfg_compactShowFps: compactFps.checked
+    property alias cfg_panelShrink: panelShrink.checked
+    property string cfg_panelDetail
     property alias cfg_showFocusedCard: focusedCard.checked
     property alias cfg_fpsGood: fpsGood.value
     property alias cfg_fpsWarn: fpsWarn.value
@@ -36,6 +38,21 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: i18n("App name width:")
         QQC2.SpinBox { id: nameWidth; from: 0; to: 30 }
         QQC2.Label { text: nameWidth.value === 0 ? i18n("hidden") : i18n("grid units"); opacity: 0.6 }
+    }
+    QQC2.CheckBox { id: panelShrink; Kirigami.FormData.label: i18n("Panel space:"); text: i18n("Shrink to fit the panel") }
+    QQC2.ComboBox {
+        Kirigami.FormData.label: i18n("Detail level:")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: i18n("Automatic"), value: "auto" },
+            { text: i18n("Label and value"), value: "full" },
+            { text: i18n("Icon and value"), value: "medium" },
+            { text: i18n("Value only"), value: "small" },
+            { text: i18n("Indicator only"), value: "tiny" }
+        ]
+        Component.onCompleted: currentIndex = Math.max(0, indexOfValue(cfg_panelDetail))
+        onActivated: cfg_panelDetail = currentValue
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Frame rate colours:")

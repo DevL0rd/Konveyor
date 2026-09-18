@@ -5,6 +5,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import "lib"
 import "lib/PopStyle.js" as Style
+import "lib/PopStage.js" as Stage
 
 MouseArea {
     id: compact
@@ -16,6 +17,8 @@ MouseArea {
     readonly property var down: root.speed(root.network.down_mbps)
     readonly property var up: root.speed(root.network.up_mbps)
     readonly property bool showNumbers: root.ready && root.routerState !== "offline"
+    readonly property bool shrink: Plasmoid.configuration.panelShrink
+    readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     readonly property real downScale: Plasmoid.configuration.maxMbps > 0 ? Plasmoid.configuration.maxMbps
                                     : Plasmoid.configuration.planDownMbps > 0 ? Plasmoid.configuration.planDownMbps
                                     : Math.max(1, Plasmoid.configuration.peakDown)
@@ -33,10 +36,18 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    Layout.minimumWidth: vertical ? 0 : content.implicitWidth + Kirigami.Units.smallSpacing * 2
-    Layout.preferredWidth: Layout.minimumWidth
-    Layout.minimumHeight: vertical ? content.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0
-    Layout.preferredHeight: Layout.minimumHeight
+    readonly property real padding: Kirigami.Units.smallSpacing * 2
+    readonly property real spacing: vertical ? content.rowSpacing : content.columnSpacing
+    readonly property var chipItems: [downChip.stageSpan, upChip.stageSpan, pingChip.stageSpan, clientsChip.stageSpan, blockedChip.stageSpan]
+    readonly property real chipSpace: (vertical ? height : width) - padding
+    readonly property var chipShare: Stage.share(chipSpace, chipItems, spacing)
+    readonly property real minimumSpan: Math.ceil(Stage.span(chipItems, spacing, "min")) + padding
+    readonly property real preferredSpan: Math.ceil(Stage.span(chipItems, spacing, "max")) + padding
+
+    Layout.minimumWidth: vertical ? 0 : Math.max(thickness, shrink ? minimumSpan : preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : Math.max(thickness, preferredSpan)
+    Layout.minimumHeight: vertical ? Math.max(thickness, shrink ? minimumSpan : preferredSpan) : 0
+    Layout.preferredHeight: vertical ? Math.max(thickness, preferredSpan) : 0
 
     Rectangle {
         anchors.fill: parent
@@ -86,10 +97,13 @@ MouseArea {
         }
 
         PopChip {
+            id: downChip
             visible: compact.showNumbers
             vertical: compact.vertical
             panelThickness: compact.thickness
             showLabel: compact.showLabels
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[0] : -1
             label: i18n("DOWN")
             valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
             widestValue: "888.8"
@@ -100,10 +114,14 @@ MouseArea {
             barColor: root.downColor
         }
         PopChip {
+            id: upChip
+            cappedStage: downChip.stage
             visible: compact.showNumbers
             vertical: compact.vertical
             panelThickness: compact.thickness
             showLabel: compact.showLabels
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[1] : -1
             label: i18n("UP")
             valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
             widestValue: "888.8"
@@ -114,10 +132,14 @@ MouseArea {
             barColor: root.upColor
         }
         PopChip {
+            id: pingChip
+            cappedStage: upChip.stage
             visible: compact.showNumbers && compact.extra === "ping"
             vertical: compact.vertical
             panelThickness: compact.thickness
             showLabel: compact.showLabels
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[2] : -1
             label: i18n("PING")
             widestValue: "888"
             widestSecondary: compact.vertical ? "" : "ms"
@@ -128,10 +150,14 @@ MouseArea {
             barColor: Style.heat(root.network.ping_rtt || 0, 40, 100, Kirigami.Theme)
         }
         PopChip {
+            id: clientsChip
+            cappedStage: upChip.stage
             visible: compact.showNumbers && compact.extra === "clients"
             vertical: compact.vertical
             panelThickness: compact.thickness
             showLabel: compact.showLabels
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[3] : -1
             label: i18n("DEVICES")
             widestValue: "888"
             value: root.onlineCount + ""
@@ -139,10 +165,14 @@ MouseArea {
             barColor: root.accent
         }
         PopChip {
+            id: blockedChip
+            cappedStage: upChip.stage
             visible: compact.showNumbers && compact.extra === "blocked" && root.dns !== null
             vertical: compact.vertical
             panelThickness: compact.thickness
             showLabel: compact.showLabels
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[4] : -1
             label: i18n("BLOCKED")
             widestValue: "100%"
             value: root.dns ? Math.round(root.dns.blocked_pct || 0) + "%" : ""

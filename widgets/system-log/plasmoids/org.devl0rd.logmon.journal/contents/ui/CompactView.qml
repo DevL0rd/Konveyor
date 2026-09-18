@@ -4,6 +4,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import "lib"
+import "lib/PopStage.js" as Stage
 
 MouseArea {
     id: compact
@@ -11,6 +12,8 @@ MouseArea {
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property real thickness: vertical ? width : height
     readonly property real valueSize: Math.max(Kirigami.Theme.smallFont.pixelSize, Math.min(Kirigami.Theme.defaultFont.pixelSize * 1.05, thickness * 0.42))
+    readonly property bool shrink: Plasmoid.configuration.panelShrink
+    readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     property bool wasExpanded: false
 
     function countText(n) {
@@ -27,10 +30,19 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    Layout.minimumWidth: vertical ? 0 : content.implicitWidth + Kirigami.Units.smallSpacing * 3
-    Layout.preferredWidth: Layout.minimumWidth
-    Layout.minimumHeight: vertical ? content.implicitHeight + Kirigami.Units.smallSpacing * 3 : 0
-    Layout.preferredHeight: Layout.minimumHeight
+    readonly property real padding: Kirigami.Units.smallSpacing * 3
+    readonly property real iconLen: Math.round(valueSize * 1.35)
+    readonly property real spacing: vertical ? content.rowSpacing : content.columnSpacing
+    readonly property var chipItems: [errorChip.stageSpan, warningChip.stageSpan]
+    readonly property real fixedSpan: iconLen + spacing
+    readonly property real minimumSpan: Math.ceil(fixedSpan + Stage.span(chipItems, spacing, "min")) + padding
+    readonly property real preferredSpan: Math.ceil(fixedSpan + Stage.span(chipItems, spacing, "max")) + padding
+    readonly property var chipShare: Stage.share((vertical ? height : width) - padding - fixedSpan, chipItems, spacing)
+
+    Layout.minimumWidth: vertical ? 0 : Math.max(thickness, shrink ? minimumSpan : preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : Math.max(thickness, preferredSpan)
+    Layout.minimumHeight: vertical ? Math.max(thickness, shrink ? minimumSpan : preferredSpan) : 0
+    Layout.preferredHeight: vertical ? Math.max(thickness, preferredSpan) : 0
 
     Rectangle {
         anchors.fill: parent
@@ -49,7 +61,7 @@ MouseArea {
 
         Item {
             Layout.alignment: Qt.AlignCenter
-            Layout.preferredWidth: Math.round(compact.valueSize * 1.35)
+            Layout.preferredWidth: compact.iconLen
             Layout.preferredHeight: Layout.preferredWidth
             Kirigami.Icon {
                 anchors.fill: parent
@@ -70,9 +82,12 @@ MouseArea {
         }
 
         PopChip {
+            id: errorChip
             vertical: compact.vertical
             panelThickness: compact.thickness
             chipStyle: "text"
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[0] : -1
             iconSource: "dialog-error-symbolic"
             widestValue: "99+"
             value: compact.countText(root.newErrors)
@@ -80,10 +95,14 @@ MouseArea {
             opacity: root.newErrors > 0 ? 1 : 0.45
         }
         PopChip {
+            id: warningChip
+            cappedStage: errorChip.stage
             visible: Plasmoid.configuration.compactShowWarnings
             vertical: compact.vertical
             panelThickness: compact.thickness
             chipStyle: "text"
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[1] : -1
             iconSource: "dialog-warning-symbolic"
             widestValue: "99+"
             value: compact.countText(root.newWarnings)

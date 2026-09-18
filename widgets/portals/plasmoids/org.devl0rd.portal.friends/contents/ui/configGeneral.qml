@@ -7,6 +7,8 @@ Kirigami.FormLayout {
     property alias cfg_icon: iconField.text
     property alias cfg_avatarSize: sizeSpin.value
     property alias cfg_showCountBadge: badge.checked
+    property alias cfg_panelShrink: panelShrink.checked
+    property string cfg_panelDetail
     property alias cfg_showPlayingNow: playingNow.checked
     property alias cfg_hideOffline: hideOffline.checked
     property string cfg_sortMode
@@ -22,6 +24,20 @@ Kirigami.FormLayout {
         id: badge
         Kirigami.FormData.label: i18n("Panel:")
         text: i18n("Show how many friends are online")
+    }
+    QQC2.CheckBox { id: panelShrink; text: i18n("Shrink to fit the panel") }
+    QQC2.ComboBox {
+        Kirigami.FormData.label: i18n("Detail level:")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: i18n("Automatic"), value: "auto" },
+            { text: i18n("Icon and count"), value: "medium" },
+            { text: i18n("Count only"), value: "small" },
+            { text: i18n("Icon only"), value: "tiny" }
+        ]
+        Component.onCompleted: currentIndex = Math.max(0, indexOfValue(cfg_panelDetail))
+        onActivated: cfg_panelDetail = currentValue
     }
 
     Item { Kirigami.FormData.isSection: true }

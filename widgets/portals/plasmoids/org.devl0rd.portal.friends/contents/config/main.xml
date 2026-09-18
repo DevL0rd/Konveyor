@@ -8,6 +8,8 @@
         <entry name="icon" type="String"><default>im-user</default></entry>
         <entry name="avatarSize" type="Int"><default>40</default></entry>
         <entry name="showCountBadge" type="Bool"><default>true</default></entry>
+        <entry name="panelShrink" type="Bool"><default>true</default></entry>
+        <entry name="panelDetail" type="String"><default>auto</default></entry>
         <entry name="showPlayingNow" type="Bool"><default>true</default></entry>
         <entry name="sortMode" type="String"><default>name</default></entry>
         <entry name="hideOffline" type="Bool"><default>false</default></entry>

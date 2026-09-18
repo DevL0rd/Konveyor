@@ -5,6 +5,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import "lib"
 import "lib/PopStyle.js" as Style
+import "lib/PopStage.js" as Stage
 
 MouseArea {
     id: compact
@@ -14,6 +15,8 @@ MouseArea {
     readonly property string chipStyle: Plasmoid.configuration.compactStyle
     readonly property bool showLabels: vertical || thickness >= Kirigami.Units.gridUnit * 2.4
     readonly property bool temps: Plasmoid.configuration.compactShowTemps
+    readonly property bool shrink: Plasmoid.configuration.panelShrink
+    readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     property bool wasExpanded: false
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
@@ -27,10 +30,18 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    Layout.minimumWidth: vertical ? 0 : chips.implicitWidth + Kirigami.Units.smallSpacing * 2
-    Layout.preferredWidth: Layout.minimumWidth
-    Layout.minimumHeight: vertical ? chips.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0
-    Layout.preferredHeight: Layout.minimumHeight
+    readonly property real padding: Kirigami.Units.smallSpacing * 2
+    readonly property real spacing: vertical ? chips.rowSpacing : chips.columnSpacing
+    readonly property var chipItems: [cpuChip.stageSpan, ramChip.stageSpan, gpuChip.stageSpan]
+    readonly property real chipSpace: (vertical ? height : width) - padding
+    readonly property var chipShare: Stage.share(chipSpace, chipItems, spacing)
+    readonly property real minimumSpan: Math.ceil(Stage.span(chipItems, spacing, "min")) + padding
+    readonly property real preferredSpan: Math.ceil(Stage.span(chipItems, spacing, "max")) + padding
+
+    Layout.minimumWidth: vertical ? 0 : Math.max(thickness, shrink ? minimumSpan : preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : Math.max(thickness, preferredSpan)
+    Layout.minimumHeight: vertical ? Math.max(thickness, shrink ? minimumSpan : preferredSpan) : 0
+    Layout.preferredHeight: vertical ? Math.max(thickness, preferredSpan) : 0
 
     Rectangle {
         anchors.fill: parent
@@ -58,11 +69,15 @@ MouseArea {
         rowSpacing: Kirigami.Units.smallSpacing
 
         PopChip {
+            id: cpuChip
             visible: Plasmoid.configuration.compactShowCpu
             vertical: compact.vertical
             panelThickness: compact.thickness
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
+            minimumStage: "small"
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[0] : -1
             label: i18n("CPU")
             widestValue: "100%"
             widestSecondary: compact.temps ? "100°" : ""
@@ -74,11 +89,15 @@ MouseArea {
             barColor: root.accent
         }
         PopChip {
+            id: gpuChip
+            cappedStage: ramChip.stage
             visible: Plasmoid.configuration.compactShowGpu && root.gpu !== null
             vertical: compact.vertical
             panelThickness: compact.thickness
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[2] : -1
             label: i18n("GPU")
             widestValue: "100%"
             widestSecondary: compact.temps ? "100°" : ""
@@ -90,11 +109,15 @@ MouseArea {
             barColor: Style.hue("up", Kirigami.Theme)
         }
         PopChip {
+            id: ramChip
+            cappedStage: cpuChip.stage
             visible: Plasmoid.configuration.compactShowRam
             vertical: compact.vertical
             panelThickness: compact.thickness
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
+            lockedStage: compact.lockedStage
+            fitSpace: compact.shrink ? compact.chipShare[1] : -1
             label: i18n("RAM")
             widestValue: "100%"
             value: Math.round(root.mem.pct || 0) + "%"

@@ -11,16 +11,22 @@ MouseArea {
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property real thickness: vertical ? width : height
     readonly property bool showCount: Plasmoid.configuration.showCountBadge
+    readonly property bool shrink: Plasmoid.configuration.panelShrink
+    readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     property bool wasExpanded: false
 
     hoverEnabled: true
     onPressed: wasExpanded = root.expanded
     onClicked: root.expanded = !wasExpanded
 
-    Layout.minimumWidth: vertical ? 0 : chip.implicitWidth + Kirigami.Units.smallSpacing * 2
-    Layout.preferredWidth: Layout.minimumWidth
-    Layout.minimumHeight: vertical ? chip.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0
-    Layout.preferredHeight: Layout.minimumHeight
+    readonly property real padding: Kirigami.Units.smallSpacing * 2
+    readonly property real minimumSpan: Math.ceil(chip.minimumSize) + padding
+    readonly property real preferredSpan: Math.ceil(chip.preferredSize) + padding
+
+    Layout.minimumWidth: vertical ? 0 : Math.max(thickness, shrink ? minimumSpan : preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : Math.max(thickness, preferredSpan)
+    Layout.minimumHeight: vertical ? Math.max(thickness, shrink ? minimumSpan : preferredSpan) : 0
+    Layout.preferredHeight: vertical ? Math.max(thickness, preferredSpan) : 0
 
     Rectangle {
         anchors.fill: parent
@@ -36,6 +42,8 @@ MouseArea {
         vertical: compact.vertical
         panelThickness: compact.thickness
         chipStyle: "none"
+        lockedStage: compact.lockedStage
+        fitSpace: compact.shrink ? (compact.vertical ? compact.height : compact.width) - compact.padding : -1
         iconSource: root.panelIcon
         widestValue: compact.showCount ? "8".repeat(Math.max(2, String(root.friends.length).length)) : ""
         value: compact.showCount ? (root.ready && root.error === "" ? root.onlineCount + "" : "–") : ""

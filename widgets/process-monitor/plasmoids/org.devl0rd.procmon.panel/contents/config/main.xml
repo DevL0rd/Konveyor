@@ -24,6 +24,8 @@
         <entry name="compactShowCpu" type="Bool"><default>true</default></entry>
         <entry name="compactShowGpu" type="Bool"><default>true</default></entry>
         <entry name="compactShowFps" type="Bool"><default>true</default></entry>
+        <entry name="panelShrink" type="Bool"><default>true</default></entry>
+        <entry name="panelDetail" type="String"><default>auto</default></entry>
         <entry name="showFocusedCard" type="Bool"><default>true</default></entry>
         <entry name="fpsGood" type="Int"><default>60</default></entry>
         <entry name="fpsWarn" type="Int"><default>30</default></entry>

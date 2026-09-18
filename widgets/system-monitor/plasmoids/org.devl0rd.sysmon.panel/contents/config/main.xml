@@ -22,6 +22,8 @@
         <entry name="compactShowRam" type="Bool"><default>true</default></entry>
         <entry name="compactShowTemps" type="Bool"><default>true</default></entry>
         <entry name="compactStyle" type="String"><default>bar</default></entry>
+        <entry name="panelShrink" type="Bool"><default>true</default></entry>
+        <entry name="panelDetail" type="String"><default>auto</default></entry>
         <entry name="historyLength" type="Int"><default>120</default></entry>
         <entry name="middleClickAction" type="String"><default>systemmonitor</default></entry>
         <entry name="cpuTab" type="Int"><default>0</default></entry>

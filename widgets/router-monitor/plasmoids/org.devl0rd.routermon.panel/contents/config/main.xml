@@ -26,6 +26,8 @@
         <entry name="peakDown" type="Double"><default>0</default></entry>
         <entry name="peakUp" type="Double"><default>0</default></entry>
         <entry name="compactExtra" type="String"><default>ping</default></entry>
+        <entry name="panelShrink" type="Bool"><default>true</default></entry>
+        <entry name="panelDetail" type="String"><default>auto</default></entry>
         <entry name="middleClickPause" type="Bool"><default>true</default></entry>
         <entry name="defaultTab" type="String"><default>overview</default></entry>
         <entry name="currentTab" type="String"><default>overview</default></entry>
