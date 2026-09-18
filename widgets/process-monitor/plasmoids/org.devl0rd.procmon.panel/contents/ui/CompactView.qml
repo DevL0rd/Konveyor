@@ -21,6 +21,7 @@ MouseArea {
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     readonly property bool lit: containsMouse || root.expanded
     readonly property real screenSpan: vertical ? Screen.height : Screen.width
+    readonly property bool wideScreen: Screen.width >= Screen.height
     property bool probingWidth: true
     property real settledWidth: 0
     property bool wasExpanded: false
@@ -76,8 +77,8 @@ MouseArea {
         }
     }
 
-    Layout.minimumWidth: vertical ? 0 : (fit.shrink ? fit.minimumSpan : fit.preferredSpan)
-    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
+    Layout.minimumWidth: vertical ? 0 : (fit.shrink && !wideScreen ? fit.minimumSpan : fit.preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !wideScreen && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
     Layout.minimumHeight: vertical ? (fit.shrink ? fit.minimumSpan : fit.preferredSpan) : 0
     Layout.preferredHeight: vertical ? fit.preferredSpan : 0
 
