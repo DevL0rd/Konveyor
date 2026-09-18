@@ -64,12 +64,6 @@ Item {
             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             onClicked: root.hide()
         }
-        Item {
-            id: cardAnchor
-            anchors.centerIn: parent
-            width: 1
-            height: 1
-        }
     }
 
     PlasmaCore.Dialog {
@@ -82,10 +76,9 @@ Item {
         flags: Qt.FramelessWindowHint
         hideOnWindowDeactivate: false
         title: i18n("Kontrol Panel")
-        visualParent: cardAnchor
 
-        onWidthChanged: if (visible) Qt.callLater(overlay.placeCard)
-        onHeightChanged: if (visible) Qt.callLater(overlay.placeCard)
+        onWidthChanged: if (visible) overlay.placeCard()
+        onHeightChanged: if (visible) overlay.placeCard()
         onActiveChanged: {
             if (active)
                 view.hadFocus = true
@@ -102,10 +95,8 @@ Item {
                 Qt.callLater(function() {
                     overlay.syncScreen()
                     card.visible = true
-                    Qt.callLater(function() {
-                        overlay.placeCard()
-                        card.requestActivate()
-                    })
+                    overlay.placeCard()
+                    card.requestActivate()
                 })
             }
             onPageChanged: root.currentPage = page
