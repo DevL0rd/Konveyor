@@ -304,7 +304,7 @@ def _close_gone(fds, alive):
         os.close(fds.pop(pid))
 
 
-_poll_interval = 2.0
+_poll_interval = 0.5
 
 _nvml = {"init": False, "h": None, "vram_total": 0}
 
@@ -747,7 +747,7 @@ def cmd_serve():
     last = time.time()
     global _poll_interval
     config_stamp = None
-    interval = 2.0
+    interval = 0.5
     while True:
         try:
             stamp = os.stat(CONFIG).st_mtime_ns
@@ -755,7 +755,7 @@ def cmd_serve():
             stamp = 0
         if stamp != config_stamp:
             config_stamp = stamp
-            interval = max(0.25, float(load_config().get("poll_interval", 2)))
+            interval = max(0.25, float(load_config().get("poll_interval", 0.5)))
         _poll_interval = interval
         elapsed = time.time() - last
         if elapsed >= interval:
