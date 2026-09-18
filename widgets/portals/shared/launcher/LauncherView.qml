@@ -72,7 +72,7 @@ FocusScope {
     }
     function closeAndRun(action) {
         hide()
-        Qt.callLater(action)
+        action()
     }
     function launchGame(game) {
         if (!game || !game.launch)

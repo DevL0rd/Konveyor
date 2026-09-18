@@ -563,7 +563,7 @@ Item {
             launchGame(game)
             return true
         }
-        run("kstart --application " + shq(pin.id + ".desktop"))
+        run("kstart --application " + shq(pin.id))
         trackApp(pin.id)
         return true
     }
