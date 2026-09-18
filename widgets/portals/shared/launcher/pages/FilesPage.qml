@@ -54,10 +54,7 @@ PopScroll {
         Segment {
             text: i18n("Open file manager")
             iconName: "system-file-manager-symbolic"
-            onClicked: {
-                Qt.openUrlExternally(launcherData.homeUrl)
-                root.hide()
-            }
+            onClicked: launcher.openUrl(launcherData.homeUrl)
         }
     }
 

@@ -119,6 +119,7 @@ void addOpenHandlers(NodeTable &table, WindowRule &rule)
             = static_cast<NewWindowPlacement>(keywordArgument(node, {QStringLiteral("column"), QStringLiteral("stack")}));
     });
     boolOf(QStringLiteral("float-child-windows"), rule.floatChildWindows);
+    boolOf(QStringLiteral("force-resizable"), rule.forceResizable);
     boolOf(QStringLiteral("open-focused"), rule.openFocused);
     textOf(QStringLiteral("open-on-output"), rule.openOnOutput);
     textOf(QStringLiteral("open-on-workspace"), rule.openOnWorkspace);

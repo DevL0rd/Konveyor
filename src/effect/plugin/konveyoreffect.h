@@ -52,6 +52,7 @@ private:
     void connectRegistries();
     void connectWindowLifecycle();
     void connectWindowState();
+    void handleWindowSizeCommitted(Layout::WindowId id, const QSizeF &size);
     void connectOutputs();
     void connectDragAndDrop();
     QJsonDocument windowsJson() const;
@@ -97,6 +98,8 @@ private:
     bool hasSpill() const;
     void scheduleFlush();
     Layout::Hooks makeHooks();
+    Layout::ActionResult performAction(const Config::Action &action, std::optional<Layout::WindowId> target = std::nullopt);
+    Layout::ActionResult toggleForceResizable(std::optional<Layout::WindowId> target);
     QString performActionJson(const QString &json);
 
     struct Private;

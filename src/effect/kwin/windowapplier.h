@@ -32,7 +32,8 @@ public:
 private:
     static QRectF frameFor(const Layout::WindowState &state);
     static QRectF placedFrame(const Layout::WindowState &state);
-    void applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled) const;
+    void applyGeometry(
+        KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled, bool allowResize) const;
     static void applyBorderRadius(KWin::Window *window, const Layout::WindowState &state);
     void applySizingMode(KWin::Window *window, const Layout::WindowState &state) const;
     void applyStacking(const QList<Layout::WindowState> &states);

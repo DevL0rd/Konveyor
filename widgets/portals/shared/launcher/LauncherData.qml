@@ -382,7 +382,7 @@ Item {
     function launchGame(game) {
         if (!game || !game.launch)
             return
-        run(game.launch + " ; " + portalBin + " --track " + shq(game.id))
+        run(game.launch + " </dev/null >/dev/null 2>&1 & " + portalBin + " --track " + shq(game.id) + " # " + Date.now())
         const now = Date.now() / 1000
         const updated = games.map(entry => entry.id === game.id ? Object.assign({}, entry, { last: now }) : entry)
         games = updated

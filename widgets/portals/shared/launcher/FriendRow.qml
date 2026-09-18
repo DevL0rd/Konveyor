@@ -33,8 +33,7 @@ RowTile {
         return i18np("Last online %1 day ago", "Last online %1 days ago", Math.round(minutes / 1440))
     }
     function activate() {
-        Qt.openUrlExternally(friend.chat)
-        root.hide()
+        launcher.openUrl(friend.chat)
     }
     function openMenu() {
         launcher.openMenu(launcher.friendEntries(friend), row)
@@ -54,10 +53,7 @@ RowTile {
         icon.name: "media-playback-start"
         display: PlasmaComponents.AbstractButton.IconOnly
         text: i18n("Join game")
-        onClicked: {
-            Qt.openUrlExternally(row.friend.join)
-            root.hide()
-        }
+        onClicked: launcher.openUrl(row.friend.join)
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.text: text
     }

@@ -54,7 +54,7 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             m_appliedFrames.insert(state.id, frame);
         }
         applySizingMode(window, state);
-        applyGeometry(window, frame, requestedSize, !state.isFloating);
+        applyGeometry(window, frame, requestedSize, !state.isFloating, state.isForceResizable || window->isResizable());
         applyBorderRadius(window, state);
         if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
             window->setOpacity(state.ruleOpacity);
@@ -118,7 +118,8 @@ QRectF WindowApplier::placedFrame(const Layout::WindowState &state)
     return Layout::parkedFrame(frame, homeRect, outputs);
 }
 
-void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled) const
+void WindowApplier::applyGeometry(
+    KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled, bool allowResize) const
 {
     if (frame.isEmpty()) {
         return;
@@ -129,7 +130,7 @@ void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, con
         }
         return;
     }
-    const Layout::GeometryUpdate update = Layout::geometryUpdateFor(window->moveResizeGeometry(), requestedSize, frame);
+    const Layout::GeometryUpdate update = Layout::geometryUpdateFor(window->moveResizeGeometry(), requestedSize, frame, allowResize);
     if (update == Layout::GeometryUpdate::None) {
         return;
     }

@@ -1,5 +1,7 @@
 #include "plugin/konveyoreffect_p.h"
 
+#include <KNotification>
+
 namespace Konveyor
 {
 
@@ -75,8 +77,46 @@ QString KonveyorEffect::performActionJson(const QString &json)
     if (!request) {
         return request.error();
     }
-    const Layout::ActionResult result = changeEngine().perform(request->action, request->target);
+    const Layout::ActionResult result = performAction(request->action, request->target);
     return result.ok ? QString() : result.error;
+}
+
+Layout::ActionResult KonveyorEffect::performAction(const Config::Action &action, std::optional<Layout::WindowId> target)
+{
+    if (action.name == QLatin1String("toggle-force-resizable")) {
+        return toggleForceResizable(target);
+    }
+    return changeEngine().perform(action, target);
+}
+
+Layout::ActionResult KonveyorEffect::toggleForceResizable(std::optional<Layout::WindowId> target)
+{
+    const std::optional<Layout::WindowId> id = target ? target : readEngine().focusedWindow();
+    if (!id) {
+        return {false, QStringLiteral("no focused window")};
+    }
+    KWin::Window *window = d->windows.windowOf(*id);
+    const std::optional<Layout::WindowState> state = readEngine().windowState(*id);
+    if (!window || !state) {
+        return {false, QStringLiteral("window is no longer available")};
+    }
+    const Layout::WindowProperties properties = d->windows.propertiesOf(window);
+    if (properties.appId.isEmpty()) {
+        return {false, QStringLiteral("window has no application id")};
+    }
+    changeEngine().updateWindowProperties(*id, properties);
+    const bool enabled = !state->isForceResizable;
+    const auto saved = d->config.setForceResizable(properties.appId, enabled);
+    if (!saved) {
+        return {false, saved.error()};
+    }
+    auto *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout);
+    notification->setComponentName(QStringLiteral("plasma_workspace"));
+    notification->setTitle(enabled ? QStringLiteral("Force resizing enabled") : QStringLiteral("Force resizing disabled"));
+    notification->setText(window->caption().isEmpty() ? properties.appId : window->caption());
+    notification->setIconName(QStringLiteral("transform-scale"));
+    notification->sendEvent();
+    return {};
 }
 
 QJsonDocument KonveyorEffect::lastBindJson() const

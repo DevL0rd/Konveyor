@@ -175,6 +175,13 @@ ColumnLayout {
         iconName: "window-keep-above"
     }
 
+    RuleTriStateRow {
+        path: section.rulePath + "/force-resizable"
+        label: "Force resizing"
+        description: "Ignore the app's requested size limits so tiled windows can fill the grid"
+        iconName: "transform-scale"
+    }
+
     StackLimitRow {
         path: section.rulePath + "/max-rows-per-column"
         label: "Most stacked per column"

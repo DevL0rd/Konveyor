@@ -70,6 +70,7 @@ private Q_SLOTS:
     {
         Config::Config config = instantConfig();
         Config::WindowRule rule = ruleFor(QStringLiteral("fixed"));
+        rule.forceResizable = true;
         rule.minWidth = 600;
         rule.maxWidth = 800;
         config.windowRules.append(rule);

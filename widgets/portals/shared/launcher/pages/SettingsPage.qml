@@ -73,7 +73,7 @@ Item {
                 text: i18n("Open config.kdl")
                 onClicked: {
                     SettingsStore.openConfigFile()
-                    root.hide()
+                    launcher.hide()
                 }
             }
         }

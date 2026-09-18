@@ -186,6 +186,11 @@ window-rule {
 }
 
 window-rule {
+    match app-id=r#"^steam$"# title="^Steam$"
+    open-floating false
+}
+
+window-rule {
     match app-id=r#"^org\.kde\.plasma\.emojier$"#
     open-floating true
 }
@@ -302,6 +307,7 @@ binds {
     Mod+Shift+R { switch-preset-column-width-back; }
     Mod+Ctrl+Shift+R { switch-preset-window-height; }
     Mod+Ctrl+R { reset-window-height; }
+    Mod+Alt+R hotkey-overlay-title="Toggle Force Resizing for App" { toggle-force-resizable; }
     Mod+F { cycle-window-expansion; }
     Mod+Shift+F { fullscreen-window; }
     Mod+Ctrl+F { expand-column-to-available-width; }

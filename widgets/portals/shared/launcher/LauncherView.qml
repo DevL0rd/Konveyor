@@ -67,6 +67,25 @@ FocusScope {
         searchSettle.stop()
         presentedQuery = rawQuery
     }
+    function hide() {
+        launcherData.applet.hide()
+    }
+    function closeAndRun(action) {
+        hide()
+        Qt.callLater(action)
+    }
+    function launchGame(game) {
+        if (!game || !game.launch)
+            return
+        remember("game:" + game.id)
+        closeAndRun(() => launcherData.launchGame(game))
+    }
+    function openUrl(url) {
+        closeAndRun(() => Qt.openUrlExternally(url))
+    }
+    function installPackage(pkg) {
+        closeAndRun(() => launcherData.installPackage(pkg))
+    }
     function modeFor(text) {
         if (text.startsWith("g ")) return "games"
         if (text.startsWith("f ")) return "files"
@@ -504,8 +523,9 @@ FocusScope {
         return [{ text: pinned ? i18n("Unpin from sidebar") : i18n("Pin to sidebar"), icon: pinned ? "window-unpin" : "window-pin", run: () => launcherData.toggleSidebar(entry) }]
     }
     function openPin(pin) {
-        if (launcherData.openSidebarPin(pin))
-            root.hide()
+        if (!pin || pin.missing)
+            return
+        closeAndRun(() => launcherData.openSidebarPin(pin))
     }
     function sidebarEntries(pin, index) {
         const count = launcherData.sidebarPins.length
@@ -521,7 +541,7 @@ FocusScope {
         } else {
             entries.push({ text: game && game.launch ? i18n("Play") : i18n("Open"), icon: game && game.launch ? "media-playback-start" : pin.kind === "path" ? "document-open" : "system-run", run: () => launcher.openPin(pin) })
             if (pin.kind === "path" && pin.folder !== true)
-                entries.push({ text: i18n("Open containing folder"), icon: "folder-open", run: () => { launcherData.showSidebarPinInFolder(pin); root.hide() } })
+                entries.push({ text: i18n("Open containing folder"), icon: "folder-open", run: () => launcher.closeAndRun(() => launcherData.showSidebarPinInFolder(pin)) })
             entries.push({ text: i18n("Unpin from sidebar"), icon: "window-unpin", run: () => launcherData.removeSidebar(pin) })
         }
         entries.push({ separator: true })
@@ -610,11 +630,12 @@ FocusScope {
             launcherData.favorites.addFavorite(favoriteId)
     }
     function trigger(model, index, key) {
+        if (!model)
+            return
         remember(key)
         if (key && String(key).indexOf(".desktop") >= 0)
             launcherData.trackApp(key)
-        if (model && model.trigger(index, "", null) !== false)
-            root.hide()
+        closeAndRun(() => model.trigger(index, "", null))
     }
     function kickerEntries(model, index, actions, favoriteId, url) {
         const entries = [{ text: i18n("Open"), icon: "system-run", run: () => launcher.trigger(model, index, favoriteId) }]
@@ -646,10 +667,7 @@ FocusScope {
             entries.push({
                 text: action.text,
                 icon: action.icon || "",
-                run: () => {
-                    if (model.trigger(index, action.actionId, action.actionArgument) !== false)
-                        root.hide()
-                }
+                run: () => launcher.closeAndRun(() => model.trigger(index, action.actionId, action.actionArgument))
             })
         }
         if (entries.length > 0 && entries[entries.length - 1].separator)
@@ -657,14 +675,14 @@ FocusScope {
         return entries
     }
     function gameEntries(game) {
-        const entries = [{ text: i18n("Play"), icon: "media-playback-start", run: () => { launcher.remember("game:" + game.id); launcherData.launchGame(game); root.hide() } }]
+        const entries = [{ text: i18n("Play"), icon: "media-playback-start", run: () => launcher.launchGame(game) }]
         for (const entry of sidebarToggleEntry(launcherData.sidebarEntryForGame(game)))
             entries.push(entry)
         if (game.appid) {
             entries.push({ separator: true })
-            entries.push({ text: i18n("Store page"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally("steam://store/" + game.appid); root.hide() } })
-            entries.push({ text: i18n("Properties"), icon: "configure", run: () => { Qt.openUrlExternally("steam://gameproperties/" + game.appid); root.hide() } })
-            entries.push({ text: i18n("Browse local files"), icon: "folder-open", run: () => { Qt.openUrlExternally("steam://open/games/details/" + game.appid); root.hide() } })
+            entries.push({ text: i18n("Store page"), icon: "internet-web-browser", run: () => launcher.openUrl("steam://store/" + game.appid) })
+            entries.push({ text: i18n("Properties"), icon: "configure", run: () => launcher.openUrl("steam://gameproperties/" + game.appid) })
+            entries.push({ text: i18n("Browse local files"), icon: "folder-open", run: () => launcher.openUrl("steam://open/games/details/" + game.appid) })
         }
         entries.push({ separator: true })
         entries.push({ text: i18n("Set custom art…"), icon: "insert-image", run: () => launcherData.pickArt(game) })
@@ -675,20 +693,20 @@ FocusScope {
                 entries.push({ separator: true })
                 entries.push({ text: i18n("Playing now"), friendHeader: true, disabled: true })
             }
-            entries.push({ text: friend.name, icon: "im-user", iconSource: friend.avatar || "", run: () => { Qt.openUrlExternally(friend.chat); root.hide() } })
+            entries.push({ text: friend.name, icon: "im-user", iconSource: friend.avatar || "", run: () => launcher.openUrl(friend.chat) })
         }
         return entries
     }
     function friendEntries(friend) {
-        const entries = [{ text: i18n("Open chat"), icon: "dialog-messages", run: () => { Qt.openUrlExternally(friend.chat); root.hide() } }]
+        const entries = [{ text: i18n("Open chat"), icon: "dialog-messages", run: () => launcher.openUrl(friend.chat) }]
         if (friend.join)
-            entries.push({ text: i18n("Join game"), icon: "media-playback-start", run: () => { Qt.openUrlExternally(friend.join); root.hide() } })
+            entries.push({ text: i18n("Join game"), icon: "media-playback-start", run: () => launcher.openUrl(friend.join) })
         if (friend.ingame && friend.watch)
-            entries.push({ text: i18n("Watch game"), icon: "view-visible", run: () => { Qt.openUrlExternally(friend.watch); root.hide() } })
+            entries.push({ text: i18n("Watch game"), icon: "view-visible", run: () => launcher.openUrl(friend.watch) })
         entries.push({ separator: true })
-        entries.push({ text: i18n("View profile"), icon: "user-identity", run: () => { Qt.openUrlExternally(friend.profile); root.hide() } })
+        entries.push({ text: i18n("View profile"), icon: "user-identity", run: () => launcher.openUrl(friend.profile) })
         if (friend.profile_web)
-            entries.push({ text: i18n("Open profile in browser"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally(friend.profile_web); root.hide() } })
+            entries.push({ text: i18n("Open profile in browser"), icon: "internet-web-browser", run: () => launcher.openUrl(friend.profile_web) })
         return entries
     }
     function sessionIcon(label) {
@@ -740,10 +758,10 @@ FocusScope {
     }
     function packageEntries(pkg) {
         return [
-            { text: i18n("Install with Shelly"), icon: "shelly", run: () => { launcherData.installPackage(pkg); root.hide() } },
+            { text: i18n("Install with Shelly"), icon: "shelly", run: () => launcher.installPackage(pkg) },
             { separator: true },
-            { text: pkg.source === "aur" ? i18n("Open AUR page") : i18n("Open package page"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally(pkg.page); root.hide() } },
-            { text: i18n("Open project website"), icon: "globe", disabled: !pkg.url, run: () => { Qt.openUrlExternally(pkg.url); root.hide() } },
+            { text: pkg.source === "aur" ? i18n("Open AUR page") : i18n("Open package page"), icon: "internet-web-browser", run: () => launcher.openUrl(pkg.page) },
+            { text: i18n("Open project website"), icon: "globe", disabled: !pkg.url, run: () => launcher.openUrl(pkg.url) },
             { text: i18n("Copy name"), icon: "edit-copy", run: () => launcherData.copyText(pkg.name) }
         ]
     }

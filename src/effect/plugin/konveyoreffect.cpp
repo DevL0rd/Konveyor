@@ -12,7 +12,7 @@ KonveyorEffect::KonveyorEffect()
         ++d->bindCount;
         d->lastBindKey = Config::bindKeyLabel(bind);
         d->lastBindAction = bind.action.name;
-        changeEngine().perform(bind.action);
+        performAction(bind.action);
     });
     d->flushTimer.setSingleShot(true);
     d->flushTimer.setInterval(0);

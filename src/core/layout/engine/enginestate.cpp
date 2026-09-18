@@ -120,6 +120,7 @@ WindowState buildWindowState(
     state.ruleOpacity = window.isIgnoringOpacityRule() ? 1.0 : window.rules().opacity.value_or(1.0);
     state.onActiveWorkspace = context.onActive;
     state.isFloating = workspace.isFloating(window.id());
+    state.isForceResizable = window.rules().forceResizable.value_or(false);
     state.isActive = window.isActivated();
     state.isFocused = window.isFocused();
     state.isUrgent = window.isUrgent();

@@ -6,6 +6,8 @@
 #include <QObject>
 #include <QTimer>
 
+#include <expected>
+
 namespace Konveyor
 {
 
@@ -19,6 +21,7 @@ public:
     void start();
     QString load(const QString &path = QString());
     const Config::Config &config() const;
+    std::expected<void, QString> setForceResizable(const QString &appId, bool enabled);
 
 Q_SIGNALS:
     void configChanged(const Config::Config &config);

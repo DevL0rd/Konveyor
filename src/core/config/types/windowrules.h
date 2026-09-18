@@ -74,6 +74,7 @@ struct WindowRule
     std::optional<NewWindowPlacement> newWindowPlacement;
     std::optional<int> maxRowsPerColumn;
     std::optional<bool> floatChildWindows;
+    std::optional<bool> forceResizable;
 
     std::optional<double> opacity;
     std::optional<int> minWidth;

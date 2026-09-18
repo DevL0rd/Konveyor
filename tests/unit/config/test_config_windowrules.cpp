@@ -30,6 +30,7 @@ void TestConfigWindowRules::parsesWindowRuleMatchers()
             new-window-placement "column"
             max-rows-per-column 2
             float-child-windows true
+            force-resizable true
         }
     )"));
     const WindowRule &rule = config.windowRules.first();
@@ -41,6 +42,7 @@ void TestConfigWindowRules::parsesWindowRuleMatchers()
     QCOMPARE(rule.newWindowPlacement, std::optional(NewWindowPlacement::Column));
     QCOMPARE(rule.maxRowsPerColumn, std::optional(2));
     QCOMPARE(rule.floatChildWindows, std::optional(true));
+    QCOMPARE(rule.forceResizable, std::optional(true));
     QCOMPARE(rule.matches.first().title->pattern(), QStringLiteral("Picture-in-Picture"));
     QCOMPARE(rule.matches.at(1).isActive, std::optional {true});
     QCOMPARE(rule.matches.at(1).isFocused, std::optional {false});

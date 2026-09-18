@@ -37,7 +37,8 @@ QSize nonNegativeSize(QSizeF size);
 QSizeF clampedNonNegative(QSizeF size);
 QSize roundedSize(QSizeF size);
 
-GeometryUpdate geometryUpdateFor(const QRectF &current, const std::optional<QSizeF> &requestedSize, const QRectF &frame);
+GeometryUpdate geometryUpdateFor(
+    const QRectF &current, const std::optional<QSizeF> &requestedSize, const QRectF &frame, bool allowResize = true);
 
 QRectF workAreaWithStruts(QRectF parentArea, double scale, const Config::Struts &struts);
 double scrollToReveal(double curX, double viewWidth, double newColX, double newColWidth, double gaps);

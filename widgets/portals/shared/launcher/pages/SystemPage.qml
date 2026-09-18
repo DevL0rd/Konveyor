@@ -147,7 +147,7 @@ PopScroll {
                     launcher.goToPage(modelData.page)
                     return
                 }
-                root.hide()
+                launcher.hide()
                 if (modelData.command === "")
                     Plasmoid.internalAction("configure").trigger()
                 else

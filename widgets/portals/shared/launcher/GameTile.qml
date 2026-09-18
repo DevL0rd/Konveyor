@@ -16,8 +16,7 @@ Item {
     height: grid.cellHeight
 
     function activate() {
-        launcherData.launchGame(game)
-        root.hide()
+        launcher.launchGame(game)
     }
     function openMenu() {
         launcher.openMenu(launcher.gameEntries(game), tile)

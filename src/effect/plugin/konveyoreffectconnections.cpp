@@ -109,19 +109,7 @@ void KonveyorEffect::connectWindowLifecycle()
 
 void KonveyorEffect::connectWindowState()
 {
-    connect(&d->windows, &WindowRegistry::sizeCommitted, this, [this](Layout::WindowId id, const QSizeF &size) {
-        KWin::Window *window = d->windows.windowOf(id);
-        if (window && adoptFloatingGeometry(id, window)) {
-            scheduleFlush();
-            return;
-        }
-        const bool acknowledgesRequest = d->applier.isEchoOfAppliedSize(id, size);
-        const bool resizedByUser = !d->applier.isApplying() && window && window->isInteractiveResize();
-        if (acknowledgesRequest || resizedByUser) {
-            changeEngine().windowSizeCommitted(id, size);
-        }
-        scheduleFlush();
-    });
+    connect(&d->windows, &WindowRegistry::sizeCommitted, this, &KonveyorEffect::handleWindowSizeCommitted);
     connect(&d->windows, &WindowRegistry::fullscreenRequested, this, [this](Layout::WindowId id, bool fullscreen) {
         if (!d->applier.isApplying()) {
             changeEngine().setWindowFullscreen(id, fullscreen);
@@ -143,6 +131,26 @@ void KonveyorEffect::connectWindowState()
     for (const auto &[signal, phase] : phases) {
         connect(&d->windows, signal, this, [this, phase](Layout::WindowId id, bool isMove) { onInteractive(id, isMove, phase); });
     }
+}
+
+void KonveyorEffect::handleWindowSizeCommitted(Layout::WindowId id, const QSizeF &size)
+{
+    KWin::Window *window = d->windows.windowOf(id);
+    if (window && adoptFloatingGeometry(id, window)) {
+        scheduleFlush();
+        return;
+    }
+    const bool acknowledgesRequest = d->applier.isEchoOfAppliedSize(id, size);
+    const bool resizedByUser = !d->applier.isApplying() && window && window->isInteractiveResize();
+    const std::optional<Layout::WindowState> state = readEngine().windowState(id);
+    const bool resizedByApp = !d->applier.isApplying() && window && !window->isResizable() && state && !state->isForceResizable;
+    if (resizedByApp) {
+        changeEngine().updateWindowProperties(id, d->windows.propertiesOf(window));
+    }
+    if (acknowledgesRequest || resizedByUser || resizedByApp) {
+        changeEngine().windowSizeCommitted(id, size);
+    }
+    scheduleFlush();
 }
 
 void KonveyorEffect::connectDragAndDrop()

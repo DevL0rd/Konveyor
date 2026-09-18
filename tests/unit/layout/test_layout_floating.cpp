@@ -10,6 +10,34 @@ Layout::ActionResult moveFloating(Fixture &fixture, const QString &x, const QStr
     return fixture.perform(QStringLiteral("move-floating-window"), {}, {{QStringLiteral("x"), x}, {QStringLiteral("y"), y}});
 }
 
+void verifyTiledWindowKeepsSize(const Layout::WindowProperties &properties)
+{
+    Fixture fixture;
+    const QSizeF expected = properties.frameSize;
+    const auto id = fixture.addWith(properties);
+    QVERIFY(!fixture.state(id).isFloating);
+    QCOMPARE(fixture.frame(id).size(), expected);
+    QVERIFY(fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("600")}).ok);
+    QCOMPARE(fixture.frame(id).width(), expected.width());
+    VERIFY_INVARIANTS(fixture);
+}
+
+Config::Config forceResizableConfig()
+{
+    Config::Config config = instantConfig();
+    Config::WindowRule rule = ruleFor(QStringLiteral("game"));
+    rule.forceResizable = true;
+    config.windowRules.append(rule);
+    return config;
+}
+
+Layout::WindowProperties nonResizableGame()
+{
+    Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(300, 200));
+    properties.isResizable = false;
+    return properties;
+}
+
 }
 
 class TestLayoutFloating : public QObject
@@ -76,15 +104,49 @@ private Q_SLOTS:
 
     void fixedSizeWindowTiles()
     {
-        Fixture fixture;
         Layout::WindowProperties properties = makeWindow(QStringLiteral("fixed"), QStringLiteral("fixed"), QSizeF(300, 200));
         properties.minSize = QSizeF(300, 200);
         properties.maxSize = QSizeF(300, 200);
+        verifyTiledWindowKeepsSize(properties);
+    }
+
+    void nonResizableWindowWithoutSizeHintsKeepsItsSize()
+    {
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("fixed"), QStringLiteral("fixed"), QSizeF(300, 200));
+        properties.isResizable = false;
+        verifyTiledWindowKeepsSize(properties);
+    }
+
+    void disablingForceResizeUsesCurrentAppLimits()
+    {
+        Fixture fixture(forceResizableConfig());
+        Layout::WindowProperties properties = nonResizableGame();
         const auto id = fixture.addWith(properties);
-        QVERIFY(!fixture.state(id).isFloating);
-        QCOMPARE(fixture.frame(id).size(), QSizeF(936, 1048));
-        QVERIFY(fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("600")}).ok);
-        QCOMPARE(fixture.frame(id).width(), 600.0);
+        QVERIFY(fixture.frame(id).size() != properties.frameSize);
+
+        properties.minSize = QSizeF(420, 270);
+        properties.maxSize = QSizeF(420, 270);
+        properties.frameSize = fixture.frame(id).size();
+        fixture.engine().updateWindowProperties(id, properties);
+        fixture.setConfig(instantConfig());
+        fixture.settle();
+        QCOMPARE(fixture.frame(id).size(), QSizeF(420, 270));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void disablingForceResizeDoesNotGuessWithoutAppLimits()
+    {
+        Fixture fixture(forceResizableConfig());
+        Layout::WindowProperties properties = nonResizableGame();
+        const auto id = fixture.addWith(properties);
+        const QSizeF forcedSize = fixture.frame(id).size();
+        QVERIFY(forcedSize != properties.frameSize);
+
+        properties.frameSize = forcedSize;
+        fixture.engine().updateWindowProperties(id, properties);
+        fixture.setConfig(instantConfig());
+        fixture.settle();
+        QCOMPARE(fixture.frame(id).size(), forcedSize);
         VERIFY_INVARIANTS(fixture);
     }
 

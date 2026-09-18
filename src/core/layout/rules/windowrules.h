@@ -30,6 +30,7 @@ struct EffectiveWindowRules
     std::optional<Config::NewWindowPlacement> newWindowPlacement;
     std::optional<int> maxRowsPerColumn;
     std::optional<bool> floatChildWindows;
+    std::optional<bool> forceResizable;
     std::optional<int> minWidth;
     std::optional<int> minHeight;
     std::optional<int> maxWidth;

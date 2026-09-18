@@ -416,9 +416,7 @@ PopScroll {
                 { text: i18n("More"), icon: "overflow-menu", run: () => gameHero.openMenu() }
             ]
             function activate() {
-                launcher.remember("game:" + modelData.id)
-                launcherData.launchGame(modelData)
-                root.hide()
+                launcher.launchGame(modelData)
             }
             function openMenu() {
                 launcher.openMenu(launcher.gameEntries(modelData), gameHero)
@@ -504,9 +502,7 @@ PopScroll {
                 subtitleColor: playing.length > 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
                 selected: GridView.isCurrentItem && grid.sectionActive
                 function activate() {
-                    launcher.remember("game:" + modelData.id)
-                    launcherData.launchGame(modelData)
-                    root.hide()
+                    launcher.launchGame(modelData)
                 }
                 function openMenu() {
                     launcher.openMenu(launcher.gameEntries(modelData), gameRow)
@@ -590,7 +586,7 @@ PopScroll {
                         function activate() {
                             if (runnerKind.kind === "answer") {
                                 launcherData.copyText(model.display || "")
-                                root.hide()
+                                launcher.hide()
                                 return
                             }
                             launcher.trigger(sourceModel, sourceIndex, "")
@@ -705,8 +701,7 @@ PopScroll {
             trailing: modelData.source === "aur" ? i18np("AUR · %1 vote", "AUR · %1 votes", modelData.votes) : modelData.repo
             selected: GridView.isCurrentItem && grid.sectionActive
             function activate() {
-                launcherData.installPackage(modelData)
-                root.hide()
+                launcher.installPackage(modelData)
             }
             function openMenu() {
                 launcher.openMenu(launcher.packageEntries(modelData), packageRow)

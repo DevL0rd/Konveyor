@@ -7,6 +7,34 @@
 namespace Konveyor::Layout
 {
 
+namespace
+{
+
+struct SizeLimits
+{
+    QSize min;
+    QSize max;
+};
+
+SizeLimits appSizeLimits(const WindowProperties &properties, QSize current)
+{
+    SizeLimits limits {nonNegativeSize(properties.minSize), nonNegativeSize(properties.maxSize)};
+    if (properties.isResizable) {
+        return limits;
+    }
+    if (limits.min.width() == 0 && limits.max.width() == 0) {
+        limits.min.setWidth(current.width());
+        limits.max.setWidth(current.width());
+    }
+    if (limits.min.height() == 0 && limits.max.height() == 0) {
+        limits.min.setHeight(current.height());
+        limits.max.setHeight(current.height());
+    }
+    return limits;
+}
+
+}
+
 LayoutWindow::LayoutWindow(WindowId id, const WindowProperties &properties)
     : m_id(id)
     , m_properties(properties)
@@ -29,22 +57,26 @@ bool LayoutWindow::setRules(const EffectiveWindowRules &rules)
 
 QSize LayoutWindow::minSize() const
 {
-    return m_rules.limitMinSize(nonNegativeSize(m_properties.minSize));
+    const bool forceResizable = m_rules.forceResizable.value_or(false);
+    const SizeLimits limits = appSizeLimits(m_properties, roundedSize(m_size));
+    return m_rules.limitMinSize(forceResizable ? QSize(0, 0) : limits.min);
 }
 
 QSize LayoutWindow::maxSize() const
 {
-    return m_rules.limitMaxSize(nonNegativeSize(m_properties.maxSize));
+    const bool forceResizable = m_rules.forceResizable.value_or(false);
+    const SizeLimits limits = appSizeLimits(m_properties, roundedSize(m_size));
+    return m_rules.limitMaxSize(forceResizable ? QSize(0, 0) : limits.max);
 }
 
 QSize LayoutWindow::tiledMinSize() const
 {
-    return m_rules.limitMinSize(QSize(0, 0));
+    return minSize();
 }
 
 QSize LayoutWindow::tiledMaxSize() const
 {
-    return m_rules.limitMaxSize(QSize(0, 0));
+    return maxSize();
 }
 
 std::optional<QSize> LayoutWindow::pendingSize() const

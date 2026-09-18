@@ -205,6 +205,9 @@ void TestConfigBinds::capturesActionArgumentsAndProperties()
     const Bind width = firstBind(QStringLiteral("Mod+Minus { set-column-width \"-10%\"; }"));
     QCOMPARE(width.action.arguments, QStringList({QStringLiteral("-10%")}));
 
+    const Bind force = firstBind(QStringLiteral("Mod+Alt+R { toggle-force-resizable; }"));
+    QCOMPARE(force.action.name, QStringLiteral("toggle-force-resizable"));
+
     const Bind move = firstBind(QStringLiteral("Mod+Shift+1 { move-column-to-workspace 1 focus=false; }"));
     QCOMPARE(move.action.properties.size(), 1);
     QCOMPARE(move.action.properties.first().first, QStringLiteral("focus"));

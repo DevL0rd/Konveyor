@@ -31,7 +31,7 @@ constexpr const char *kSimpleActions[] = {"close-window", "fullscreen-window", "
     "move-workspace-to-monitor-left", "move-workspace-to-monitor-right", "move-workspace-to-monitor-down", "move-workspace-to-monitor-up",
     "move-workspace-to-monitor-previous", "move-workspace-to-monitor-next", "toggle-window-floating", "move-window-to-floating",
     "move-window-to-tiling", "focus-floating", "focus-tiling", "switch-focus-between-floating-and-tiling", "toggle-window-rule-opacity",
-    "toggle-overview", "open-overview", "close-overview"};
+    "toggle-force-resizable", "toggle-overview", "open-overview", "close-overview"};
 
 struct ActionSpec
 {

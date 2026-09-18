@@ -1,5 +1,6 @@
 #include "plugin/configmanager.h"
 
+#include "config/forceresizable.h"
 #include "config/loader.h"
 
 #include <KNotification>
@@ -7,6 +8,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSaveFile>
 #include <QStandardPaths>
 
 namespace Konveyor
@@ -16,6 +18,7 @@ namespace
 {
 
 constexpr int reloadDebounceMs = 50;
+constexpr QLatin1StringView forceResizableFileName("force-resizable.kdl");
 
 QString bundledDefaultConfig()
 {
@@ -30,6 +33,31 @@ void sendNotification(const QString &title, const QString &text)
     notification->setText(text);
     notification->setIconName(QStringLiteral("preferences-system-windows-effect"));
     notification->sendEvent();
+}
+
+std::expected<QString, QString> readText(const QString &path, bool allowMissing)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (allowMissing && !file.exists()) {
+            return QString();
+        }
+        return std::unexpected(QStringLiteral("Could not read %1: %2").arg(path, file.errorString()));
+    }
+    return QString::fromUtf8(file.readAll());
+}
+
+std::expected<void, QString> writeText(const QString &path, const QString &text)
+{
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return std::unexpected(QStringLiteral("Could not write %1: %2").arg(path, file.errorString()));
+    }
+    if (file.write(text.toUtf8()) < 0 || !file.commit()) {
+        return std::unexpected(QStringLiteral("Could not write %1: %2").arg(path, file.errorString()));
+    }
+    return {};
 }
 
 }
@@ -79,6 +107,40 @@ QString ConfigManager::load(const QString &path)
 const Config::Config &ConfigManager::config() const
 {
     return m_config;
+}
+
+std::expected<void, QString> ConfigManager::setForceResizable(const QString &appId, bool enabled)
+{
+    const QString overridePath = QDir(QFileInfo(m_path).absolutePath()).filePath(forceResizableFileName);
+    const auto overrideText = readText(overridePath, true);
+    if (!overrideText) {
+        return std::unexpected(overrideText.error());
+    }
+    const auto updatedOverride = Config::setForceResizableRule(*overrideText, overridePath, appId, enabled);
+    if (!updatedOverride) {
+        return std::unexpected(updatedOverride.error());
+    }
+    const auto mainText = readText(m_path, false);
+    if (!mainText) {
+        return std::unexpected(mainText.error());
+    }
+    const auto updatedMain = Config::ensureTrailingForceResizableInclude(*mainText, m_path);
+    if (!updatedMain) {
+        return std::unexpected(updatedMain.error());
+    }
+    if (const auto written = writeText(overridePath, *updatedOverride); !written) {
+        return written;
+    }
+    if (*updatedMain != *mainText) {
+        if (const auto written = writeText(m_path, *updatedMain); !written) {
+            return written;
+        }
+    }
+    const QString error = load();
+    if (!error.isEmpty()) {
+        return std::unexpected(error);
+    }
+    return {};
 }
 
 void ConfigManager::ensureConfigFileExists() const

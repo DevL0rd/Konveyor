@@ -200,8 +200,7 @@ ColumnLayout {
                 height: grid.cellHeight
 
                 function activate() {
-                    launcherData.launchGame(modelData)
-                    root.hide()
+                    launcher.launchGame(modelData)
                 }
                 function openMenu() {
                     launcher.openMenu(launcher.gameEntries(modelData), row)
@@ -331,8 +330,7 @@ ColumnLayout {
             function activate() {
                 const game = page.shown[cover.currentIndex]
                 if (game) {
-                    launcherData.launchGame(game)
-                    root.hide()
+                    launcher.launchGame(game)
                 }
             }
             function openMenu() {
@@ -353,8 +351,7 @@ ColumnLayout {
                 highlightCenter: flow.sectionActive
                 launchOnCenterClick: true
                 onLaunchRequested: function(game) {
-                    launcherData.launchGame(game)
-                    root.hide()
+                    launcher.launchGame(game)
                 }
                 onMenuRequested: function(game) {
                     launcher.openMenu(launcher.gameEntries(game), cover)

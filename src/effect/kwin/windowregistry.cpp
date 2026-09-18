@@ -66,6 +66,7 @@ Layout::WindowProperties WindowRegistry::propertiesOf(KWin::Window *window) cons
     properties.parent = window->transientFor() ? idOf(window->transientFor()) : std::nullopt;
     properties.isUrgent = window->isDemandingAttention();
     properties.isDialog = window->isDialog() || window->isModal();
+    properties.isResizable = window->isResizable();
     properties.wantsFullscreen = window->isFullScreen() && !m_adopting;
     properties.wantsMaximized = isMaximizeRequested(window) && !m_adopting;
     properties.frameSize = window->frameGeometry().size();

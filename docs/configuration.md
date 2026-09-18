@@ -33,6 +33,15 @@ You get gaps, borders, a focus ring, tab indicators, preset widths, centering mo
 
 The default config ships a `portrait` monitor profile for screens taller than they are wide: columns fill the width and stack two windows, so Mod+Left/Right flips between full-width pages and Mod+Up/Down moves between the rows, then on to the workspace above or below.
 
+Tiled windows respect application size limits by default. Add `force-resizable true` to a window rule when a specific app should ignore those limits and fill its grid cell. <kbd>Meta</kbd> + <kbd>Alt</kbd> + <kbd>R</kbd> toggles this for the focused app and stores the override in `~/.config/konveyor/force-resizable.kdl`. When force resizing is off, Konveyor never resizes a window that the application marks non-resizable. The app remains free to change its own resolution, and Konveyor updates the grid around its new size.
+
+```kdl
+window-rule {
+    match app-id=r#"^example-game$"#
+    force-resizable true
+}
+```
+
 ```kdl
 monitor-profile "portrait" {
     match aspect-ratio-below=1.0

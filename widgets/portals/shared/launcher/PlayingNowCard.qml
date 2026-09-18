@@ -20,18 +20,18 @@ Item {
     function entries() {
         const list = []
         if (entry.game)
-            list.push({ text: i18n("Play %1", entry.name), icon: "media-playback-start", run: () => { launcherData.launchGame(entry.game); root.hide() } })
+            list.push({ text: i18n("Play %1", entry.name), icon: "media-playback-start", run: () => launcher.launchGame(entry.game) })
         for (const friend of entry.friends) {
             if (list.length > 0)
                 list.push({ separator: true })
             list.push({ text: friend.name, disabled: true })
             if (friend.join)
-                list.push({ text: i18n("Join %1", friend.name), icon: "media-playback-start", run: () => { Qt.openUrlExternally(friend.join); root.hide() } })
-            list.push({ text: i18n("Chat with %1", friend.name), icon: "dialog-messages", run: () => { Qt.openUrlExternally(friend.chat); root.hide() } })
+                list.push({ text: i18n("Join %1", friend.name), icon: "media-playback-start", run: () => launcher.openUrl(friend.join) })
+            list.push({ text: i18n("Chat with %1", friend.name), icon: "dialog-messages", run: () => launcher.openUrl(friend.chat) })
         }
         if (entry.appid) {
             list.push({ separator: true })
-            list.push({ text: i18n("Store page"), icon: "internet-web-browser", run: () => { Qt.openUrlExternally("steam://store/" + entry.appid); root.hide() } })
+            list.push({ text: i18n("Store page"), icon: "internet-web-browser", run: () => launcher.openUrl("steam://store/" + entry.appid) })
         }
         return list
     }

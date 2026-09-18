@@ -30,10 +30,7 @@ PopScroll {
         Segment {
             text: i18n("Open Steam friends")
             iconName: "system-users-symbolic"
-            onClicked: {
-                Qt.openUrlExternally("steam://open/friends")
-                root.hide()
-            }
+            onClicked: launcher.openUrl("steam://open/friends")
         }
     }
 

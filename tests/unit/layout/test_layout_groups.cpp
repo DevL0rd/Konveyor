@@ -134,6 +134,23 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void laterRuleKeepsSteamMainWindowTiled()
+    {
+        Config::Config config = groupConfig(Config::GroupAppWindows::Beside);
+        Config::WindowRule steam = ruleFor(QStringLiteral("steam"));
+        steam.floatChildWindows = true;
+        config.windowRules.append(steam);
+        Config::WindowRule main = ruleFor(QStringLiteral("steam"));
+        main.matches.first().title = QRegularExpression(QStringLiteral("^Steam$"));
+        main.openFloating = false;
+        config.windowRules.append(main);
+        Fixture fixture(config);
+        fixture.addWith(makeWindow(QStringLiteral("steam"), QStringLiteral("Loading")));
+        const auto steamMain = fixture.addWith(makeWindow(QStringLiteral("steam"), QStringLiteral("Steam")));
+        QVERIFY(!fixture.state(steamMain).isFloating);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void offKeepsTheOldBehaviour()
     {
         Fixture fixture(groupConfig(Config::GroupAppWindows::Off));

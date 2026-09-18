@@ -43,6 +43,7 @@ struct WindowProperties
     std::optional<WindowId> parent;
     bool isUrgent = false;
     bool isDialog = false;
+    bool isResizable = true;
     bool wantsFullscreen = false;
     bool wantsMaximized = false;
     QSizeF frameSize;
@@ -110,6 +111,7 @@ struct WindowState
     bool visible = true;
     bool onActiveWorkspace = true;
     bool isFloating = false;
+    bool isForceResizable = false;
     bool isActive = false;
     bool isFocused = false;
     bool isUrgent = false;

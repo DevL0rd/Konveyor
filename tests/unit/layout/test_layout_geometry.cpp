@@ -96,6 +96,14 @@ private Q_SLOTS:
         QCOMPARE(geometryUpdateFor(QRectF(16, 58.4, 1446.4, 1138.4), QSizeF(1446.4, 1138.4), frame), GeometryUpdate::MoveResize);
     }
 
+    void geometryUpdateNeverResizesWhenDisallowed()
+    {
+        const QRectF frame(40, 58, 1200, 900);
+        QCOMPARE(geometryUpdateFor(QRectF(40, 58, 800, 600), std::nullopt, frame, false), GeometryUpdate::None);
+        QCOMPARE(geometryUpdateFor(QRectF(20, 30, 800, 600), std::nullopt, frame, false), GeometryUpdate::Move);
+        QCOMPARE(geometryUpdateFor(QRectF(40, 58, 800, 600), QSizeF(800, 600), frame, false), GeometryUpdate::None);
+    }
+
     void clampsAndCentersInArea()
     {
         const QRectF area(0, 0, 100, 100);

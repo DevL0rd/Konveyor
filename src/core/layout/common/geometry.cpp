@@ -112,10 +112,13 @@ QSize roundedSize(QSizeF size)
     return {roundToInt(size.width()), roundToInt(size.height())};
 }
 
-GeometryUpdate geometryUpdateFor(const QRectF &current, const std::optional<QSizeF> &requestedSize, const QRectF &frame)
+GeometryUpdate geometryUpdateFor(const QRectF &current, const std::optional<QSizeF> &requestedSize, const QRectF &frame, bool allowResize)
 {
     const auto within = [](double a, double b, double tolerance) { return std::abs(a - b) < tolerance; };
     const bool samePosition = within(current.x(), frame.x(), 0.5) && within(current.y(), frame.y(), 0.5);
+    if (!allowResize) {
+        return samePosition ? GeometryUpdate::None : GeometryUpdate::Move;
+    }
     const bool sameRequest
         = requestedSize && within(requestedSize->width(), frame.width(), 0.5) && within(requestedSize->height(), frame.height(), 0.5);
     const bool sizeAnswered = within(current.width(), frame.width(), 1.0) && within(current.height(), frame.height(), 1.0);
