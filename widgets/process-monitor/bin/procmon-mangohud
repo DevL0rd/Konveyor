@@ -7,9 +7,9 @@ import sys
 
 APP = "Linux-Process-Mon"
 CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+CACHE_HOME = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 MANGOHUD_CONF = os.path.join(CONFIG_HOME, "MangoHud", "MangoHud.conf")
 BACKUP = os.path.join(CONFIG_HOME, APP, "mangohud-backup.json")
-RUNTIME = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
 LAYER_DIRS = [
     "/usr/share/vulkan/implicit_layer.d",
     "/etc/vulkan/implicit_layer.d",
@@ -19,10 +19,11 @@ LAYER_DIRS = [
 
 def wanted_settings():
     return {
+        "autostart_log": "1",
         "control": "mangohud-%p",
         "log_duration": "0",
         "log_interval": "500",
-        "output_folder": os.path.join(RUNTIME, APP, "mangohud"),
+        "output_folder": os.path.join(CACHE_HOME, APP, "mangohud"),
     }
 
 
@@ -88,10 +89,21 @@ def configure():
         return 0
     settings = wanted_settings()
     lines = read_lines()
-    if not os.path.exists(BACKUP):
+    previous = current_values(lines, settings.keys())
+    try:
+        with open(BACKUP) as f:
+            saved = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        saved = {}
+    changed = False
+    for key, value in previous.items():
+        if key not in saved:
+            saved[key] = value
+            changed = True
+    if changed or not os.path.exists(BACKUP):
         os.makedirs(os.path.dirname(BACKUP), exist_ok=True)
         with open(BACKUP, "w") as f:
-            json.dump(current_values(lines, settings.keys()), f, indent=2)
+            json.dump(saved, f, indent=2)
     write_lines(apply(lines, settings))
     print(f"Configured MangoHud to report FPS ({MANGOHUD_CONF}).")
     return 0

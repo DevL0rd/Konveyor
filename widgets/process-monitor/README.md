@@ -65,11 +65,11 @@ Click it for the full view:
 
 Frame rates come from [MangoHud](https://github.com/flightlessmango/MangoHud).
 When MangoHud is installed, `install.sh` adds a few lines to
-`~/.config/MangoHud/MangoHud.conf` so it logs frame times to a folder in memory
-that the collector reads. Your MangoHud overlay looks and behaves the same, even
-when it's hidden. Any game or app you run with MangoHud (`mangohud %command%` in
-Steam, or `MANGOHUD=1`) then shows its frame rate. `uninstall.sh` puts your
-previous MangoHud settings back.
+`~/.config/MangoHud/MangoHud.conf` so it logs frame times to a private cache
+folder that the collector reads and cleans continuously. Your MangoHud overlay
+looks and behaves the same, even when it's hidden. Any game or app you run with
+MangoHud (`mangohud %command%` in Steam, or `MANGOHUD=1`) then shows its frame
+rate. `uninstall.sh` puts your previous MangoHud settings back.
 
 ## Settings
 

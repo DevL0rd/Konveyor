@@ -16,7 +16,8 @@ PANEL_DIR = os.path.join(RUNDIR, "panel")
 PANEL = os.path.join(PANEL_DIR, "panel.json")
 FOCUS = os.path.join(RUNDIR, "focus")
 CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
-MANGO_DIR = os.path.join(RUNDIR, "mangohud")
+CACHE_HOME = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+MANGO_DIR = os.path.join(CACHE_HOME, APP, "mangohud")
 
 CLK = os.sysconf("SC_CLK_TCK")
 PAGE = os.sysconf("SC_PAGE_SIZE")
@@ -55,12 +56,14 @@ GENERIC_COMMS = {
 }
 
 _icon_map = None
+_steam_apps = {}
 _icon_map_when = 0.0
 _icon_resolved = {}
+_identity_cache = {}
 
 
 def _parse_desktop(path):
-    icon = exe = tryexe = wm = ""
+    icon = exe = tryexe = wm = name = ""
     in_entry = False
     try:
         for ln in open(path, encoding="utf-8", errors="ignore"):
@@ -76,9 +79,10 @@ def _parse_desktop(path):
             elif k == "Exec" and not exe: exe = v
             elif k == "TryExec" and not tryexe: tryexe = v
             elif k == "StartupWMClass" and not wm: wm = v
+            elif k == "Name" and not name: name = v
     except OSError:
         return None
-    return icon, exe, tryexe, wm
+    return icon, exe, tryexe, wm, name
 
 
 def _exec_basename(exe):
@@ -93,12 +97,13 @@ def _exec_basename(exe):
 
 def build_icon_map():
     m = {}
+    steam = {}
     for d in DESKTOP_DIRS:
         for path in glob.glob(os.path.join(d, "*.desktop")):
             r = _parse_desktop(path)
             if not r or not r[0]:
                 continue
-            icon, exe, tryexe, wm = r
+            icon, exe, tryexe, wm, name = r
             keys = {os.path.basename(path)[:-8].lower()}
             if exe:
                 b = _exec_basename(exe)
@@ -107,15 +112,21 @@ def build_icon_map():
                 keys.add(os.path.basename(tryexe).lower())
             if wm:
                 keys.add(wm.lower())
+            marker = "steam://rungameid/"
+            if marker in exe:
+                app_id = exe.split(marker, 1)[1].split()[0].strip("\"'")
+                if app_id.isdigit():
+                    steam[app_id] = (name, icon or "steam_icon_" + app_id)
             for k in keys:
                 m.setdefault(k, icon)
-    return m
+    return m, steam
 
 
 def refresh_icon_map(now):
-    global _icon_map, _icon_map_when
+    global _icon_map, _steam_apps, _icon_map_when
     if _icon_map is None or now - _icon_map_when > 300:
-        _icon_map = build_icon_map(); _icon_map_when = now; _icon_resolved.clear(); _row_cache.clear()
+        _icon_map, _steam_apps = build_icon_map(); _icon_map_when = now
+        _icon_resolved.clear(); _identity_cache.clear(); _row_cache.clear()
 
 
 def resolve_icon(comm):
@@ -128,6 +139,32 @@ def resolve_icon(comm):
     icon = ICON_ALIASES.get(c) or ("" if c in GENERIC_COMMS else _icon_map.get(c, "")) or ""
     _icon_resolved[comm] = icon
     return icon
+
+
+def process_identity(pid, fallback_name, fallback_icon):
+    cached = _identity_cache.get(pid)
+    if cached is not None:
+        return cached
+    app_id = ""
+    try:
+        with open(f"/proc/{pid}/environ", "rb") as f:
+            env = f.read()
+        for item in env.split(b"\0"):
+            if item.startswith(b"SteamAppId=") or item.startswith(b"STEAM_COMPAT_APP_ID="):
+                value = item.split(b"=", 1)[1].decode(errors="ignore")
+                if value.isdigit():
+                    app_id = value
+                    if item.startswith(b"SteamAppId="):
+                        break
+    except OSError:
+        pass
+    if app_id:
+        steam_name, steam_icon = _steam_apps.get(app_id, ("", "steam_icon_" + app_id))
+        identity = (steam_name or fallback_name, steam_icon or fallback_icon)
+    else:
+        identity = (fallback_name, fallback_icon)
+    _identity_cache[pid] = identity
+    return identity
 
 
 def load_config():
@@ -445,6 +482,10 @@ def start_mangohud_logging():
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as conn:
                 conn.settimeout(0.2)
                 conn.connect("\0" + MANGOHUD_SOCKET_PREFIX[1:] + str(pid))
+                try:
+                    conn.recv(4096)
+                except OSError:
+                    pass
                 conn.sendall(b":logging=1;")
             started.add(pid)
         except OSError:
@@ -571,6 +612,11 @@ def build():
     _prev["t"] = ticks
     _prev["io"] = io
     _prev["when"] = now
+    focus_pid = _read_focus()
+    focused = rows.get(focus_pid)
+    if focused is not None:
+        focused["name"], focused["icon"] = process_identity(
+            focus_pid, focused["name"], focused.get("icon", ""))
     snap = {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL,
             "vram_total": vram_total(), "procs": list(rows.values())}
     _panel["rows"] = rows

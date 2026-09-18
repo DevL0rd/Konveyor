@@ -66,7 +66,7 @@ PopCard {
         Kirigami.Icon {
             Layout.preferredWidth: Kirigami.Units.iconSizes.large
             Layout.preferredHeight: Kirigami.Units.iconSizes.large
-            source: root.activePid > 0 && root.activeIcon ? root.activeIcon : card.proc && card.proc.icon ? card.proc.icon : card.proc ? card.proc.name : ""
+            source: card.proc && card.proc.icon ? card.proc.icon : card.proc ? card.proc.name : ""
             fallback: "application-x-executable"
         }
         ColumnLayout {

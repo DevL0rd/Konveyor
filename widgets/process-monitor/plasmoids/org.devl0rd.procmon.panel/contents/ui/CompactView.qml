@@ -111,7 +111,6 @@ MouseArea {
             Layout.preferredWidth: compact.iconLen
             Layout.preferredHeight: Layout.preferredWidth
             source: compact.system ? root.panelIcon
-                  : root.activeIcon ? root.activeIcon
                   : compact.proc.icon ? compact.proc.icon : compact.proc.name
             fallback: root.panelIcon
         }

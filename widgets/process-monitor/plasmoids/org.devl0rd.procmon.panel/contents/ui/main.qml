@@ -99,11 +99,6 @@ PlasmoidItem {
         const pid = tasks.activeTask ? tasks.data(tasks.activeTask, TaskManager.AbstractTasksModel.AppPid) : 0
         return pid > 0 ? pid : 0
     }
-    readonly property string activeAppName: {
-        tasks.count
-        return tasks.activeTask ? (tasks.data(tasks.activeTask, TaskManager.AbstractTasksModel.AppName) || "") : ""
-    }
-    readonly property var activeIcon: tasks.activeTask ? tasks.data(tasks.activeTask, Qt.DecorationRole) : null
     property int lastActivePid: 0
     onActivePidChanged: if (activePid > 0) lastActivePid = activePid
     readonly property int focusPid: activePid > 0 ? activePid : lastActivePid
@@ -397,9 +392,7 @@ PlasmoidItem {
         revealFocused()
     }
 
-    property string lastActiveAppName: ""
-    onActiveAppNameChanged: if (activePid > 0 && activeAppName) lastActiveAppName = activeAppName
-    readonly property string focusName: focusProc ? (activePid > 0 && activeAppName ? activeAppName : (lastActiveAppName || focusProc.name)) : ""
+    readonly property string focusName: focusProc ? focusProc.name : ""
 
     toolTipMainText: focusProc ? focusName + " · PID " + focusProc.pid : i18n("Process Monitor")
     property bool tooltipWanted: false
