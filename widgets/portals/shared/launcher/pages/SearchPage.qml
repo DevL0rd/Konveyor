@@ -200,6 +200,7 @@ PopScroll {
         TileGrid {
             id: resultGrid
             visible: count > 0
+            limit: page.mode === "all" ? 12 : -1
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
             cellWidth: Math.floor(width / Math.max(1, Math.floor(width / page.rowWidth)))

@@ -1225,8 +1225,8 @@ FocusScope {
                     Loader {
                         id: searchLoader
                         anchors.fill: parent
-                        active: launcher.searching || launcher.warm || item !== null
-                        asynchronous: !launcher.searching
+                        active: launcher.shown || item !== null
+                        asynchronous: true
                         visible: launcher.searching
                         source: Qt.resolvedUrl("pages/SearchPage.qml")
                     }

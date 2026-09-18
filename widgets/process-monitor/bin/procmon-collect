@@ -140,7 +140,8 @@ def resolve_icon(comm):
 
 
 def process_identity(pid, fallback_name, fallback_icon):
-    cached = _identity_cache.get(pid)
+    cache_key = (pid, fallback_name, fallback_icon)
+    cached = _identity_cache.get(cache_key)
     if cached is not None:
         return cached
     app_id = ""
@@ -161,7 +162,7 @@ def process_identity(pid, fallback_name, fallback_icon):
         identity = (steam_name or fallback_name, steam_icon or fallback_icon)
     else:
         identity = (fallback_name, fallback_icon)
-    _identity_cache[pid] = identity
+    _identity_cache[cache_key] = identity
     return identity
 
 
@@ -500,7 +501,7 @@ def build():
     focused = rows.get(focus_pid)
     if focused is not None:
         focused["name"], focused["icon"] = process_identity(
-            focus_pid, focused["name"], focused.get("icon", ""))
+            focus_pid, _panel["focus_name"] or focused["name"], focused.get("icon", ""))
     snap = {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL,
             "vram_total": vram_total(), "procs": list(rows.values())}
     _panel["rows"] = rows
@@ -508,7 +509,7 @@ def build():
     return snap
 
 
-_panel = {"rows": {}, "totals": {}, "focus": 0, "focus_stamp": None, "sig": None}
+_panel = {"rows": {}, "totals": {}, "focus": 0, "focus_name": "", "focus_stamp": None, "sig": None}
 
 
 def _bytes_text(b):
@@ -532,9 +533,12 @@ def _read_focus():
         _panel["focus_stamp"] = stamp
         try:
             with open(FOCUS) as f:
-                _panel["focus"] = int(f.read().strip() or 0)
+                parts = f.read().splitlines()
+            _panel["focus"] = int(parts[0].strip() or 0)
+            _panel["focus_name"] = parts[1].strip() if len(parts) > 1 else ""
         except (OSError, ValueError):
             _panel["focus"] = 0
+            _panel["focus_name"] = ""
     return _panel["focus"]
 
 

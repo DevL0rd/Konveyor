@@ -100,16 +100,28 @@ PlasmoidItem {
         const pid = tasks.activeTask ? tasks.data(tasks.activeTask, TaskManager.AbstractTasksModel.AppPid) : 0
         return pid > 0 ? pid : 0
     }
+    readonly property string activeAppName: {
+        tasks.count
+        const name = tasks.activeTask ? tasks.data(tasks.activeTask, TaskManager.AbstractTasksModel.AppName) : ""
+        return name ? String(name) : ""
+    }
     property int lastActivePid: 0
-    onActivePidChanged: if (activePid > 0) lastActivePid = activePid
+    property string lastActiveAppName: ""
+    onActivePidChanged: if (activePid > 0) {
+        lastActivePid = activePid
+        lastActiveAppName = activeAppName
+    }
+    onActiveAppNameChanged: if (activePid > 0) lastActiveAppName = activeAppName
     readonly property int focusPid: activePid > 0 ? activePid : lastActivePid
+    readonly property string focusAppName: activePid > 0 ? activeAppName : lastActiveAppName
     onFocusPidChanged: {
         writeFocus()
         requestRebuild()
     }
+    onFocusAppNameChanged: writeFocus()
     function writeFocus() {
         if (runtimeDir)
-            run("printf %s " + focusPid + " > " + shq(runtimeDir + "/focus"))
+            run("printf '%s\\n%s\\n' " + focusPid + " " + shq(focusAppName) + " > " + shq(runtimeDir + "/focus"))
     }
 
     function colOf(key) {
