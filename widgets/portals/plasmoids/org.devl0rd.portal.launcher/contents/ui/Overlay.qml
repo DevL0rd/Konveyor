@@ -24,7 +24,6 @@ Item {
         if (!screen)
             return
         targetScreen = screen
-        placeCard()
     }
     function placeCard() {
         card.x = Math.round(screenRect.x + (screenRect.width - card.width) / 2)
@@ -85,8 +84,8 @@ Item {
         title: i18n("Kontrol Panel")
         visualParent: cardAnchor
 
-        onWidthChanged: if (visible) overlay.placeCard()
-        onHeightChanged: if (visible) overlay.placeCard()
+        onWidthChanged: if (visible) Qt.callLater(overlay.placeCard)
+        onHeightChanged: if (visible) Qt.callLater(overlay.placeCard)
         onActiveChanged: {
             if (active)
                 view.hadFocus = true
@@ -103,8 +102,10 @@ Item {
                 Qt.callLater(function() {
                     overlay.syncScreen()
                     card.visible = true
-                    overlay.placeCard()
-                    card.requestActivate()
+                    Qt.callLater(function() {
+                        overlay.placeCard()
+                        card.requestActivate()
+                    })
                 })
             }
             onPageChanged: root.currentPage = page
