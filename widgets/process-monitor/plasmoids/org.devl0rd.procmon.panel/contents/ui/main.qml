@@ -104,7 +104,9 @@ PlasmoidItem {
         return tasks.activeTask ? (tasks.data(tasks.activeTask, TaskManager.AbstractTasksModel.AppName) || "") : ""
     }
     readonly property var activeIcon: tasks.activeTask ? tasks.data(tasks.activeTask, Qt.DecorationRole) : null
-    readonly property int focusPid: activePid
+    property int lastActivePid: 0
+    onActivePidChanged: if (activePid > 0) lastActivePid = activePid
+    readonly property int focusPid: activePid > 0 ? activePid : lastActivePid
     onFocusPidChanged: {
         writeFocus()
         requestRebuild()
@@ -214,12 +216,12 @@ PlasmoidItem {
                 if (message.compactSig === compactSig)
                     return
                 compactSig = message.compactSig
-                root.focusProc = message.focus
+                root.focusProc = message.focus || root.focusProc
                 root.summary = message.summary
                 return
             }
             compactSig = ""
-            root.focusProc = message.focus
+            root.focusProc = message.focus || root.focusProc
             root.focusHistory = message.focusHistory
             root.summary = message.summary
             root.procByPid = message.procByPid
@@ -395,7 +397,9 @@ PlasmoidItem {
         revealFocused()
     }
 
-    readonly property string focusName: focusProc ? (activePid > 0 && activeAppName ? activeAppName : focusProc.name) : ""
+    property string lastActiveAppName: ""
+    onActiveAppNameChanged: if (activePid > 0 && activeAppName) lastActiveAppName = activeAppName
+    readonly property string focusName: focusProc ? (activePid > 0 && activeAppName ? activeAppName : (lastActiveAppName || focusProc.name)) : ""
 
     toolTipMainText: focusProc ? focusName + " · PID " + focusProc.pid : i18n("Process Monitor")
     property bool tooltipWanted: false

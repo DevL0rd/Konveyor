@@ -5,7 +5,6 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import "lib"
 import "lib/PopStyle.js" as Style
-import "lib/PopStage.js" as Stage
 
 MouseArea {
     id: compact
@@ -15,9 +14,19 @@ MouseArea {
     readonly property string chipStyle: Plasmoid.configuration.compactStyle
     readonly property bool showLabels: vertical || thickness >= Kirigami.Units.gridUnit * 2.4
     readonly property bool temps: Plasmoid.configuration.compactShowTemps
-    readonly property bool shrink: Plasmoid.configuration.panelShrink
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
+    readonly property bool hasData: !!root.snap.cpu
+    readonly property real screenSpan: vertical ? Screen.height : Screen.width
+    readonly property bool wideScreen: Screen.width >= Screen.height
+    property bool probingWidth: true
+    property real settledWidth: 0
     property bool wasExpanded: false
+
+    onScreenSpanChanged: {
+        probingWidth = true
+        settledWidth = 0
+        widthProbe.restart()
+    }
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
@@ -30,31 +39,45 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    readonly property real padding: Kirigami.Units.smallSpacing * 2
-    readonly property real spacing: vertical ? chips.rowSpacing : chips.columnSpacing
-    readonly property var chipItems: [cpuChip.stageSpan, ramChip.stageSpan, gpuChip.stageSpan]
-    readonly property real chipSpace: (vertical ? height : width) - padding
-    readonly property var chipShare: Stage.share(chipSpace, chipItems, spacing)
-    readonly property real minimumSpan: Math.ceil(Stage.span(chipItems, spacing, "min")) + padding
-    readonly property real preferredSpan: Math.ceil(Stage.span(chipItems, spacing, "max")) + padding
+    PopFit {
+        id: fit
+        vertical: compact.vertical
+        thickness: compact.thickness
+        span: compact.vertical ? compact.height : compact.width
+        spacing: compact.vertical ? chips.rowSpacing : chips.columnSpacing
+        shrink: Plasmoid.configuration.panelShrink
+        flushEnds: true
+        fixed: compact.hasData ? 0 : Math.round(compact.thickness * 0.55)
+        items: [cpuChip.stageSpan, gpuChip.stageSpan, ramChip.stageSpan]
+    }
 
-    Layout.minimumWidth: vertical ? 0 : Math.max(thickness, shrink ? minimumSpan : preferredSpan)
-    Layout.preferredWidth: vertical ? 0 : Math.max(thickness, preferredSpan)
-    Layout.minimumHeight: vertical ? Math.max(thickness, shrink ? minimumSpan : preferredSpan) : 0
-    Layout.preferredHeight: vertical ? Math.max(thickness, preferredSpan) : 0
+    Timer {
+        id: widthProbe
+        interval: 200
+        running: true
+        onTriggered: {
+            compact.settledWidth = fit.tileSpan
+            compact.probingWidth = false
+        }
+    }
 
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: Kirigami.Units.cornerRadius
-        color: Qt.alpha(Kirigami.Theme.textColor, compact.containsMouse || root.expanded ? 0.08 : 0)
-        Behavior on color { ColorAnimation { duration: 150 } }
+    Layout.minimumWidth: vertical ? 0 : (fit.shrink && !wideScreen ? fit.minimumSpan : fit.preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
+    Layout.minimumHeight: vertical ? (fit.shrink ? fit.minimumSpan : fit.preferredSpan) : 0
+    Layout.preferredHeight: vertical ? fit.preferredSpan : 0
+
+    PopTile {
+        vertical: compact.vertical
+        inset: fit.inset
+        endInset: fit.endInset
+        span: fit.tileSpan
+        lit: compact.containsMouse || root.expanded
     }
 
     Kirigami.Icon {
         anchors.centerIn: parent
-        visible: !root.snap.cpu
-        width: Math.min(parent.width, parent.height) * 0.8
+        visible: !compact.hasData
+        width: Math.round(compact.thickness * 0.55)
         height: width
         source: root.panelIcon
         opacity: 0.6
@@ -63,7 +86,7 @@ MouseArea {
     GridLayout {
         id: chips
         anchors.centerIn: parent
-        visible: !!root.snap.cpu
+        visible: compact.hasData
         flow: compact.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
         columnSpacing: Kirigami.Units.largeSpacing
         rowSpacing: Kirigami.Units.smallSpacing
@@ -72,12 +95,13 @@ MouseArea {
             id: cpuChip
             visible: Plasmoid.configuration.compactShowCpu
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
             minimumStage: "small"
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[0] : -1
+            fitSpace: fit.space(0)
             label: i18n("CPU")
             widestValue: "100%"
             widestSecondary: compact.temps ? "100°" : ""
@@ -90,14 +114,14 @@ MouseArea {
         }
         PopChip {
             id: gpuChip
-            cappedStage: ramChip.stage
             visible: Plasmoid.configuration.compactShowGpu && root.gpu !== null
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[2] : -1
+            fitSpace: fit.space(1)
             label: i18n("GPU")
             widestValue: "100%"
             widestSecondary: compact.temps ? "100°" : ""
@@ -110,14 +134,14 @@ MouseArea {
         }
         PopChip {
             id: ramChip
-            cappedStage: cpuChip.stage
             visible: Plasmoid.configuration.compactShowRam
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             chipStyle: compact.chipStyle
             showLabel: compact.showLabels
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[1] : -1
+            fitSpace: fit.space(2)
             label: i18n("RAM")
             widestValue: "100%"
             value: Math.round(root.mem.pct || 0) + "%"

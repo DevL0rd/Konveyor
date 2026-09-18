@@ -5,7 +5,6 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import "lib"
 import "lib/PopStyle.js" as Style
-import "lib/PopStage.js" as Stage
 
 MouseArea {
     id: compact
@@ -17,13 +16,22 @@ MouseArea {
     readonly property var down: root.speed(root.network.down_mbps)
     readonly property var up: root.speed(root.network.up_mbps)
     readonly property bool showNumbers: root.ready && root.routerState !== "offline"
-    readonly property bool shrink: Plasmoid.configuration.panelShrink
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     readonly property real downScale: Plasmoid.configuration.maxMbps > 0 ? Plasmoid.configuration.maxMbps
                                     : Plasmoid.configuration.planDownMbps > 0 ? Plasmoid.configuration.planDownMbps
                                     : Math.max(1, Plasmoid.configuration.peakDown)
     readonly property real upScale: Plasmoid.configuration.maxMbps > 0 ? Plasmoid.configuration.maxMbps : Math.max(1, Plasmoid.configuration.peakUp)
+    readonly property real screenSpan: vertical ? Screen.height : Screen.width
+    readonly property bool wideScreen: Screen.width >= Screen.height
+    property bool probingWidth: true
+    property real settledWidth: 0
     property bool wasExpanded: false
+
+    onScreenSpanChanged: {
+        probingWidth = true
+        settledWidth = 0
+        widthProbe.restart()
+    }
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
@@ -36,74 +44,90 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    readonly property real padding: Kirigami.Units.smallSpacing * 2
-    readonly property real spacing: vertical ? content.rowSpacing : content.columnSpacing
-    readonly property var chipItems: [downChip.stageSpan, upChip.stageSpan, pingChip.stageSpan, clientsChip.stageSpan, blockedChip.stageSpan]
-    readonly property real chipSpace: (vertical ? height : width) - padding
-    readonly property var chipShare: Stage.share(chipSpace, chipItems, spacing)
-    readonly property real minimumSpan: Math.ceil(Stage.span(chipItems, spacing, "min")) + padding
-    readonly property real preferredSpan: Math.ceil(Stage.span(chipItems, spacing, "max")) + padding
+    PopFit {
+        id: fit
+        vertical: compact.vertical
+        thickness: compact.thickness
+        span: compact.vertical ? compact.height : compact.width
+        spacing: compact.vertical ? content.rowSpacing : content.columnSpacing
+        shrink: Plasmoid.configuration.panelShrink
+        flushEnds: true
+        fixed: compact.showNumbers ? 0 : Math.round(compact.thickness * 0.6)
+        items: [downChip.stageSpan, upChip.stageSpan, pingChip.stageSpan, clientsChip.stageSpan, blockedChip.stageSpan]
+    }
 
-    Layout.minimumWidth: vertical ? 0 : Math.max(thickness, shrink ? minimumSpan : preferredSpan)
-    Layout.preferredWidth: vertical ? 0 : Math.max(thickness, preferredSpan)
-    Layout.minimumHeight: vertical ? Math.max(thickness, shrink ? minimumSpan : preferredSpan) : 0
-    Layout.preferredHeight: vertical ? Math.max(thickness, preferredSpan) : 0
+    Timer {
+        id: widthProbe
+        interval: 200
+        running: true
+        onTriggered: {
+            compact.settledWidth = fit.tileSpan
+            compact.probingWidth = false
+        }
+    }
 
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: Kirigami.Units.cornerRadius
-        color: Qt.alpha(Kirigami.Theme.textColor, compact.containsMouse || root.expanded ? 0.08 : 0)
-        Behavior on color { ColorAnimation { duration: 150 } }
+    Layout.minimumWidth: vertical ? 0 : (fit.shrink && !wideScreen ? fit.minimumSpan : fit.preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
+    Layout.minimumHeight: vertical ? (fit.shrink ? fit.minimumSpan : fit.preferredSpan) : 0
+    Layout.preferredHeight: vertical ? fit.preferredSpan : 0
+
+    PopTile {
+        vertical: compact.vertical
+        inset: fit.inset
+        endInset: fit.endInset
+        span: fit.tileSpan
+        lit: compact.containsMouse || root.expanded
+    }
+
+    Item {
+        anchors.centerIn: parent
+        visible: !compact.showNumbers
+        width: Math.round(compact.thickness * 0.6)
+        height: width
+        Kirigami.Icon {
+            anchors.fill: parent
+            source: root.routerState === "offline" ? "network-disconnect" : "network-wireless-hotspot"
+            opacity: root.routerState === "offline" ? 0.7 : 1
+        }
+        Rectangle {
+            visible: root.routerState !== "ok"
+            width: Math.round(parent.width * 0.5)
+            height: width
+            radius: width / 2
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: -2
+            color: root.stateColor
+            border.width: 1.5
+            border.color: Kirigami.Theme.backgroundColor
+            Kirigami.Icon {
+                visible: root.routerState === "paused"
+                anchors.fill: parent
+                anchors.margins: 1
+                source: "media-playback-pause"
+                color: Kirigami.Theme.backgroundColor
+                isMask: true
+            }
+        }
     }
 
     GridLayout {
         id: content
         anchors.centerIn: parent
+        visible: compact.showNumbers
         flow: compact.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
         columnSpacing: Kirigami.Units.largeSpacing
         rowSpacing: Kirigami.Units.smallSpacing
 
-        Item {
-            visible: !compact.showNumbers
-            Layout.alignment: Qt.AlignCenter
-            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
-            Layout.preferredHeight: Layout.preferredWidth
-            Kirigami.Icon {
-                anchors.fill: parent
-                source: root.routerState === "offline" ? "network-disconnect" : "network-wireless-hotspot"
-                opacity: root.routerState === "offline" ? 0.7 : 1
-            }
-            Rectangle {
-                visible: root.routerState !== "ok"
-                width: Math.round(parent.width * 0.5)
-                height: width
-                radius: width / 2
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.margins: -2
-                color: root.stateColor
-                border.width: 1.5
-                border.color: Kirigami.Theme.backgroundColor
-                Kirigami.Icon {
-                    visible: root.routerState === "paused"
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    source: "media-playback-pause"
-                    color: Kirigami.Theme.backgroundColor
-                    isMask: true
-                }
-            }
-        }
-
         PopChip {
             id: downChip
-            visible: compact.showNumbers
+            minimumStage: "small"
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             showLabel: compact.showLabels
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[0] : -1
+            fitSpace: fit.space(0)
             label: i18n("DOWN")
             valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
             widestValue: "888.8"
@@ -115,13 +139,13 @@ MouseArea {
         }
         PopChip {
             id: upChip
-            cappedStage: downChip.stage
-            visible: compact.showNumbers
+            minimumStage: "small"
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             showLabel: compact.showLabels
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[1] : -1
+            fitSpace: fit.space(1)
             label: i18n("UP")
             valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
             widestValue: "888.8"
@@ -133,13 +157,14 @@ MouseArea {
         }
         PopChip {
             id: pingChip
-            cappedStage: upChip.stage
-            visible: compact.showNumbers && compact.extra === "ping"
+            minimumStage: "small"
+            visible: compact.extra === "ping"
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             showLabel: compact.showLabels
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[2] : -1
+            fitSpace: fit.space(2)
             label: i18n("PING")
             widestValue: "888"
             widestSecondary: compact.vertical ? "" : "ms"
@@ -151,13 +176,14 @@ MouseArea {
         }
         PopChip {
             id: clientsChip
-            cappedStage: upChip.stage
-            visible: compact.showNumbers && compact.extra === "clients"
+            minimumStage: "small"
+            visible: compact.extra === "clients"
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             showLabel: compact.showLabels
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[3] : -1
+            fitSpace: fit.space(3)
             label: i18n("DEVICES")
             widestValue: "888"
             value: root.onlineCount + ""
@@ -166,13 +192,14 @@ MouseArea {
         }
         PopChip {
             id: blockedChip
-            cappedStage: upChip.stage
-            visible: compact.showNumbers && compact.extra === "blocked" && root.dns !== null
+            minimumStage: "small"
+            visible: compact.extra === "blocked" && root.dns !== null
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             showLabel: compact.showLabels
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[4] : -1
+            fitSpace: fit.space(4)
             label: i18n("BLOCKED")
             widestValue: "100%"
             value: root.dns ? Math.round(root.dns.blocked_pct || 0) + "%" : ""

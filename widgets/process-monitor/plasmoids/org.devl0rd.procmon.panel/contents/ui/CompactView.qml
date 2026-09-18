@@ -6,22 +6,30 @@ import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
 import "lib"
 import "lib/PopStyle.js" as Style
-import "lib/PopStage.js" as Stage
 
 MouseArea {
     id: compact
 
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property real thickness: vertical ? width : height
-    readonly property real valueSize: Math.max(Kirigami.Theme.smallFont.pixelSize, Math.min(Kirigami.Theme.defaultFont.pixelSize * 1.05, thickness * 0.4))
+    readonly property real valueSize: Math.max(Kirigami.Units.gridUnit * 0.6, Math.min(Kirigami.Theme.defaultFont.pixelSize * 1.3, fit.innerThickness * 0.52))
     readonly property var proc: root.focusProc
     readonly property bool system: proc === null
     readonly property real cpu: system ? root.summary.cpu : proc.cpu
     readonly property real gpu: system ? root.summary.gpu : proc.gpu
     readonly property bool showFps: Plasmoid.configuration.compactShowFps && proc !== null && proc.fps >= 0
-    readonly property bool shrink: Plasmoid.configuration.panelShrink
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
+    readonly property bool lit: containsMouse || root.expanded
+    readonly property real screenSpan: vertical ? Screen.height : Screen.width
+    property bool probingWidth: true
+    property real settledWidth: 0
     property bool wasExpanded: false
+
+    onScreenSpanChanged: {
+        probingWidth = true
+        settledWidth = 0
+        widthProbe.restart()
+    }
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
@@ -34,42 +42,51 @@ MouseArea {
             root.expanded = !wasExpanded
     }
 
-    readonly property real inset: Math.max(2, Math.round(thickness * 0.08))
-    readonly property real sidePadding: Kirigami.Units.largeSpacing * 1.25
-    readonly property real tightPadding: Kirigami.Units.smallSpacing
-    readonly property bool lit: containsMouse || root.expanded
-
-    readonly property real iconLen: Math.round(valueSize * 1.35)
-    readonly property bool nameWanted: !vertical && Plasmoid.configuration.compactMaxWidth > 0 && (lockedStage === "" || lockedStage === "full")
+    readonly property real iconLen: Math.round(fit.innerThickness * 0.8)
+    readonly property bool nameWanted: !vertical && Plasmoid.configuration.compactMaxWidth > 0
     readonly property real nameMax: nameWanted ? Kirigami.Units.gridUnit * Plasmoid.configuration.compactMaxWidth : 0
-    readonly property real spacing: vertical ? content.rowSpacing : content.columnSpacing
-    readonly property var chipItems: [cpuChip.stageSpan, gpuChip.stageSpan, fpsChip.stageSpan,
-                                      ({ min: 0, max: compact.nameMax, sizes: [0, 0, 0, 0], low: 0, high: 0, flex: true })]
-    readonly property real fixedSpan: iconLen + spacing
-    readonly property real minSpan: fixedSpan + Stage.span(chipItems, spacing, "min")
-    readonly property real preferredSpan: fixedSpan + Stage.span(chipItems, spacing, "max")
-    readonly property real rawSpace: (vertical ? height : width) - inset * 2
-    readonly property real pad: Math.max(tightPadding, Math.min(sidePadding, (rawSpace - minSpan) / 2))
-    readonly property var chipShare: Stage.share(rawSpace - pad * 2 - fixedSpan, chipItems, spacing)
-    readonly property real nameWidth: shrink ? chipShare[3] : nameMax
+    readonly property real nameSize: nameWanted ? Math.min(nameMax, Math.ceil(nameMetrics.advanceWidth) + Kirigami.Units.smallSpacing * 2) : 0
+    readonly property var nameSpan: ({ min: 0, max: nameSize, sizes: [0, 0, nameSize, nameSize], low: 0, high: 3 })
 
-    Layout.minimumWidth: vertical ? 0 : Math.ceil(shrink ? minSpan + tightPadding * 2 + inset * 2 : preferredSpan + sidePadding * 2 + inset * 2)
-    Layout.preferredWidth: vertical ? 0 : Math.ceil(preferredSpan + sidePadding * 2 + inset * 2)
-    Layout.minimumHeight: vertical ? Math.ceil(shrink ? minSpan + tightPadding * 2 + inset * 2 : preferredSpan + sidePadding * 2 + inset * 2) : 0
-    Layout.preferredHeight: vertical ? Math.ceil(preferredSpan + sidePadding * 2 + inset * 2) : 0
+    TextMetrics {
+        id: nameMetrics
+        font.pixelSize: compact.valueSize * 0.92
+        font.weight: Font.DemiBold
+        text: compact.system ? i18n("System") : root.focusName
+    }
 
-    Rectangle {
-        id: tile
-        anchors.fill: parent
-        anchors.margins: compact.inset
-        radius: Kirigami.Units.cornerRadius * 2
-        border.width: 1
-        border.color: Qt.alpha(Kirigami.Theme.textColor, compact.lit ? 0.28 : 0.16)
-        gradient: Gradient {
-            orientation: compact.vertical ? Gradient.Horizontal : Gradient.Vertical
-            GradientStop { position: 0; color: Qt.alpha(Kirigami.Theme.textColor, compact.lit ? 0.16 : 0.10) }
-            GradientStop { position: 1; color: Qt.alpha(Kirigami.Theme.textColor, compact.lit ? 0.09 : 0.04) }
+    PopFit {
+        id: fit
+        vertical: compact.vertical
+        thickness: compact.thickness
+        span: compact.vertical ? compact.height : compact.width
+        spacing: compact.vertical ? content.rowSpacing : content.columnSpacing
+        shrink: Plasmoid.configuration.panelShrink
+        fixed: compact.iconLen
+        items: [compact.nameSpan, cpuChip.stageSpan, gpuChip.stageSpan, fpsChip.stageSpan]
+    }
+
+    Timer {
+        id: widthProbe
+        interval: 200
+        running: true
+        onTriggered: {
+            compact.settledWidth = fit.tileSpan
+            compact.probingWidth = false
         }
+    }
+
+    Layout.minimumWidth: vertical ? 0 : (fit.shrink ? fit.minimumSpan : fit.preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
+    Layout.minimumHeight: vertical ? (fit.shrink ? fit.minimumSpan : fit.preferredSpan) : 0
+    Layout.preferredHeight: vertical ? fit.preferredSpan : 0
+
+    PopTile {
+        id: tile
+        vertical: compact.vertical
+        inset: fit.inset
+        span: fit.tileSpan
+        lit: compact.lit
     }
 
     Rectangle {
@@ -100,13 +117,13 @@ MouseArea {
 
         PlasmaComponents.Label {
             id: nameLabel
-            visible: compact.nameWidth >= Kirigami.Units.gridUnit * 2
+            visible: fit.share[0] > 0
             Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: Math.floor(compact.nameWidth)
+            Layout.preferredWidth: Math.floor(Math.min(compact.nameSize, fit.share[0]))
             Layout.maximumWidth: Layout.preferredWidth
-            text: compact.system ? i18n("System") : root.focusName
+            text: nameMetrics.text
             opacity: compact.system ? 0.7 : 1
-            font.pixelSize: compact.valueSize * 0.92
+            font.pixelSize: nameMetrics.font.pixelSize
             font.weight: Font.DemiBold
             elide: Text.ElideRight
         }
@@ -115,10 +132,12 @@ MouseArea {
             id: cpuChip
             visible: Plasmoid.configuration.compactShowCpu
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             chipStyle: "text"
+            contentGap: Kirigami.Units.largeSpacing
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[0] : -1
+            fitSpace: fit.space(1)
             label: i18n("CPU")
             widestValue: "100%"
             value: Math.round(compact.cpu) + "%"
@@ -126,13 +145,14 @@ MouseArea {
         }
         PopChip {
             id: gpuChip
-            cappedStage: cpuChip.stage
             visible: Plasmoid.configuration.compactShowGpu
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             chipStyle: "text"
+            contentGap: Kirigami.Units.largeSpacing
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[1] : -1
+            fitSpace: fit.space(2)
             label: i18n("GPU")
             widestValue: "100%"
             value: Math.round(compact.gpu) + "%"
@@ -140,13 +160,14 @@ MouseArea {
         }
         PopChip {
             id: fpsChip
-            cappedStage: gpuChip.stage
             visible: compact.showFps
             vertical: compact.vertical
-            panelThickness: compact.thickness
+            adaptive: true
+            panelThickness: fit.innerThickness
             chipStyle: "text"
+            contentGap: Kirigami.Units.largeSpacing
             lockedStage: compact.lockedStage
-            fitSpace: compact.shrink ? compact.chipShare[2] : -1
+            fitSpace: fit.space(3)
             label: i18n("FPS")
             widestValue: "888"
             value: compact.proc ? compact.proc.fps + "" : ""
