@@ -100,7 +100,6 @@ QString DBusService::Gestures() const
     return compact(m_handlers.gestures());
 }
 
-
 bool DBusService::MultiTouchActive() const
 {
     return m_multiTouchActive;
