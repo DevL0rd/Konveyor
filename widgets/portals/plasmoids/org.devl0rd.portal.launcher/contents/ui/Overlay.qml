@@ -15,7 +15,16 @@ Item {
 
     function pickScreen() {
         const screens = Qt.application.screens
+        if (root.openedByKey && dim.screen)
+            return dim.screen
         return screens.find(entry => entry.name === root.openScreen) || screens[0]
+    }
+    function syncScreen() {
+        const screen = pickScreen()
+        if (!screen)
+            return
+        targetScreen = screen
+        placeCard()
     }
     function placeCard() {
         card.x = Math.round(screenRect.x + (screenRect.width - card.width) / 2)
@@ -44,6 +53,8 @@ Item {
         LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityNone
         LayerShell.Window.wantsToBeOnActiveScreen: true
 
+        onScreenChanged: if (root.open && root.openedByKey) Qt.callLater(overlay.syncScreen)
+
         Rectangle {
             anchors.fill: parent
             color: "black"
@@ -53,6 +64,12 @@ Item {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             onClicked: root.hide()
+        }
+        Item {
+            id: cardAnchor
+            anchors.centerIn: parent
+            width: 1
+            height: 1
         }
     }
 
@@ -66,6 +83,7 @@ Item {
         flags: Qt.FramelessWindowHint
         hideOnWindowDeactivate: false
         title: i18n("Kontrol Panel")
+        visualParent: cardAnchor
 
         onWidthChanged: if (visible) overlay.placeCard()
         onHeightChanged: if (visible) overlay.placeCard()
@@ -81,12 +99,13 @@ Item {
             width: overlay.cardWidth
             height: overlay.cardHeight
             onActivateRequested: {
-                overlay.targetScreen = overlay.pickScreen()
                 dim.visible = true
-                overlay.placeCard()
-                card.visible = true
-                overlay.placeCard()
-                card.requestActivate()
+                Qt.callLater(function() {
+                    overlay.syncScreen()
+                    card.visible = true
+                    overlay.placeCard()
+                    card.requestActivate()
+                })
             }
             onPageChanged: root.currentPage = page
             onCloseFinished: {

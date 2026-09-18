@@ -177,6 +177,9 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
         = restore == d->minimizedPlacements.constEnd() ? std::nullopt : std::optional(*restore);
     d->minimizedPlacements.remove(window);
     changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);
+    if (window == KWin::workspace()->activeWindow()) {
+        followActiveWindow();
+    }
 }
 
 }
