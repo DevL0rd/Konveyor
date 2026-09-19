@@ -124,7 +124,7 @@ void WindowApplier::applyGeometry(
     if (frame.isEmpty()) {
         return;
     }
-    if (window->isFullScreen()) {
+    if (window->isFullScreen() || window->isRequestedFullScreen()) {
         if (!window->isActive()) {
             window->updateLayer();
         }

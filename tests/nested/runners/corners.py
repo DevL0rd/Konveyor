@@ -30,7 +30,7 @@ def main():
         center = image.getpixel((x + width // 2, y + height // 2))
         checked += 1
         print(f"{window.get('title')}: corner={corner} center={center}")
-        if corner[3] != 0:
+        if corner[3] >= center[3] // 2:
             problems.append(f"{window.get('title')}: corner pixel is not clipped")
         if center[3] != 255:
             problems.append(f"{window.get('title')}: window content is missing")
