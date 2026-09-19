@@ -11,6 +11,34 @@ void runMonitorOverlay(const QStringList &arguments)
     QProcess::startDetached(QDir::home().filePath(QStringLiteral(".local/bin/monitor-overlay")), arguments);
 }
 
+void attachMonitorWindow(KWin::Window *window, KWin::Window *target)
+{
+    if (!window || !target || window == target) {
+        return;
+    }
+    if (KWin::Window *previous = window->transientFor(); previous && previous != target) {
+        previous->removeTransient(window);
+    }
+    if (!target->transients().contains(window)) {
+        target->addTransient(window);
+    }
+    if (window->transientFor() != target) {
+        window->setTransientFor(target);
+    }
+    window->setSkipTaskbar(true);
+    window->setSkipPager(true);
+    window->setSkipSwitcher(true);
+}
+
+void detachMonitorWindow(KWin::Window *window)
+{
+    if (window) {
+        if (KWin::Window *target = window->transientFor()) {
+            target->removeTransient(window);
+        }
+    }
+}
+
 }
 
 void KonveyorEffect::installInputFilter()
@@ -251,6 +279,11 @@ void KonveyorEffect::observeMonitorOverlay(KWin::Window *window)
     const bool panel = match.captured(1) == QLatin1String("Panel");
     const Layout::WindowId target = match.captured(2).toULongLong();
     const int slot = match.captured(3).toInt();
+    KWin::Window *targetWindow = d->windows.windowOf(target);
+    if (!targetWindow) {
+        return;
+    }
+    attachMonitorWindow(window, targetWindow);
     if (panel) {
         d->monitorPanels[target].insert(slot, window);
         connect(window, &KWin::Window::frameGeometryChanged, this, [this, target] { placeMonitorPanels(target); });
@@ -264,11 +297,13 @@ void KonveyorEffect::observeMonitorOverlay(KWin::Window *window)
 
 void KonveyorEffect::forgetMonitorOverlay(KWin::Window *window)
 {
+    bool forgotten = false;
     for (auto target = d->monitorOverlays.begin(); target != d->monitorOverlays.end();) {
         auto &slotMap = target.value();
         for (auto slot = slotMap.begin(); slot != slotMap.end();) {
             if (slot.value() == window) {
                 slot = slotMap.erase(slot);
+                forgotten = true;
             } else {
                 ++slot;
             }
@@ -286,6 +321,7 @@ void KonveyorEffect::forgetMonitorOverlay(KWin::Window *window)
         for (auto slot = slotMap.begin(); slot != slotMap.end();) {
             if (slot.value() == window) {
                 slot = slotMap.erase(slot);
+                forgotten = true;
             } else {
                 ++slot;
             }
@@ -297,6 +333,9 @@ void KonveyorEffect::forgetMonitorOverlay(KWin::Window *window)
             ++target;
             placeMonitorPanels(id);
         }
+    }
+    if (forgotten) {
+        detachMonitorWindow(window);
     }
 }
 

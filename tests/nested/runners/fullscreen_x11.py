@@ -19,12 +19,12 @@ def check_overlay(problems):
     image = capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
     column = [int(v) for v in window_state("A").split("|")[1].replace(" ", ",").replace("x", ",").split(",")]
     center = image.getpixel((column[0] + column[2] // 2, column[1] + column[3] // 2))
-    left_edge = image.getpixel((4, image.height // 2))
-    print(f"drawn while unfocused: center of A {center}, left edge {left_edge}")
+    right_edge = image.getpixel((image.width - 4, image.height // 2))
+    print(f"drawn while unfocused: center of A {center}, right edge {right_edge}")
     if center != COLUMN_COLOR:
         problems.append(f"the focused column is not drawn over the fullscreen window ({center})")
-    if left_edge != WHITE:
-        problems.append(f"the fullscreen window did not stay in place behind the columns ({left_edge})")
+    if right_edge != WHITE:
+        problems.append(f"the fullscreen window did not stay in place behind the columns ({right_edge})")
 
 
 def main():
@@ -48,7 +48,7 @@ def main():
     if unfocused != FULLSCREEN:
         problems.append(f"unfocused fullscreen window left its output geometry ({unfocused})")
     check_overlay(problems)
-    konveyor_action("focus-column-left")
+    konveyor_action("focus-column-right")
     time.sleep(2)
     back = window_state(TITLE)
     print(f"back on the fullscreen window: {back}, active {active_title()}")

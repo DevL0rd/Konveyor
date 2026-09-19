@@ -58,22 +58,51 @@ Item {
             width: 0
             height: 0
 
+            Timer {
+                id: showTimer
+
+                interval: 50
+                onTriggered: {
+                    if (!Number.isFinite(card.desiredWidth) || card.desiredWidth <= 0)
+                        return
+                    if (Math.abs(card.desiredWidth - card.preparedWidth) > 0.5) {
+                        card.preparedWidth = card.desiredWidth
+                        restart()
+                        return
+                    }
+                    card.readyToShow = true
+                }
+            }
+
             PlasmaCore.Dialog {
                 id: card
 
-                visible: compactLoader.status === Loader.Ready
-                type: PlasmaCore.Dialog.CriticalNotification
+                property bool readyToShow: false
+                property real preparedWidth: 0
+                readonly property real desiredWidth: compactLoader.item
+                    ? Math.min(holder.target.width / 3, compactLoader.item.overlayPreferredWidth)
+                    : 0
+
+                function prepareToShow() {
+                    if (readyToShow || compactLoader.status !== Loader.Ready || !Number.isFinite(desiredWidth) || desiredWidth <= 0)
+                        return
+                    preparedWidth = desiredWidth
+                    showTimer.restart()
+                }
+
+                visible: readyToShow
+                type: PlasmaCore.Dialog.Normal
                 location: PlasmaCore.Types.Floating
                 backgroundHints: PlasmaCore.Dialog.NoBackground
                 flags: Qt.FramelessWindowHint
                 hideOnWindowDeactivate: false
                 title: "Konveyor Monitor Overlay " + holder.target.windowId + " " + overlay.slot
+                onDesiredWidthChanged: prepareToShow()
 
                 mainItem: Item {
                     id: surface
 
-                    width: Math.min(holder.target.width / 3,
-                                    compactLoader.item ? compactLoader.item.overlayPreferredWidth : Kirigami.Units.gridUnit * 12)
+                    width: card.readyToShow ? card.desiredWidth : card.preparedWidth
                     height: overlay.overlayHeight
 
                     Loader {
@@ -85,6 +114,7 @@ Item {
                                 item.overlayMode = true
                             if (item && "overlayTargetPid" in item)
                                 item.overlayTargetPid = holder.target.pid
+                            card.prepareToShow()
                         }
                     }
 
@@ -106,7 +136,7 @@ Item {
 
                         property bool hadFocus: false
                         visible: false
-                        type: PlasmaCore.Dialog.CriticalNotification
+                        type: PlasmaCore.Dialog.AppletPopup
                         location: PlasmaCore.Types.Floating
                         backgroundHints: PlasmaCore.Dialog.StandardBackground
                         flags: Qt.FramelessWindowHint

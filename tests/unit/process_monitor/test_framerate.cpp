@@ -50,6 +50,30 @@ private Q_SLOTS:
         QVERIFY(rate.has_value());
         QCOMPARE(rate->fps, 60);
     }
+
+    void reportsEveryAcceptedFrametime()
+    {
+        FrameRateTracker tracker;
+        QVERIFY(!tracker.addFrame(0).has_value());
+        const auto first = tracker.addFrame(16666666);
+        QVERIFY(first.has_value());
+        QVERIFY(qAbs(*first - 16.666666) < 0.0001);
+        QVERIFY(!tracker.addFrame(16700000).has_value());
+        const auto second = tracker.addFrame(33333332);
+        QVERIFY(second.has_value());
+        QVERIFY(qAbs(*second - 16.666666) < 0.0001);
+    }
+
+    void omitsFrametimeAfterResetGap()
+    {
+        FrameRateTracker tracker;
+        tracker.addFrame(0);
+        QVERIFY(tracker.addFrame(16666666).has_value());
+        QVERIFY(!tracker.addFrame(3000000000).has_value());
+        const auto resumed = tracker.addFrame(3016666666);
+        QVERIFY(resumed.has_value());
+        QVERIFY(qAbs(*resumed - 16.666666) < 0.0001);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestFrameRate)

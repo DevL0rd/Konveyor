@@ -23,6 +23,17 @@ if(TARGET process_monitor_framerate)
     set_tests_properties(test_process_monitor_framerate PROPERTIES LABELS "unit;process-monitor" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
 
+find_package(Qt6 REQUIRED COMPONENTS Qml Quick)
+add_executable(test_monitor_overlay_qml unit/widgets/test_monitor_overlay_qml.cpp)
+target_link_libraries(test_monitor_overlay_qml PRIVATE Qt6::Qml Qt6::Quick Qt6::Test)
+target_compile_options(test_monitor_overlay_qml PRIVATE -Wall -Wextra -Werror)
+target_compile_definitions(test_monitor_overlay_qml PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+add_test(NAME test_monitor_overlay_qml COMMAND test_monitor_overlay_qml)
+set_tests_properties(test_monitor_overlay_qml PROPERTIES LABELS "unit;widgets" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+add_test(NAME test_monitor_overlay_service COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_monitor_overlay_service.py)
+set_tests_properties(test_monitor_overlay_service PROPERTIES LABELS "unit;widgets")
+
 file(GLOB KONVEYOR_NESTED_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/nested/test_*.py)
 foreach(test_script ${KONVEYOR_NESTED_TESTS})
     get_filename_component(name ${test_script} NAME_WE)
