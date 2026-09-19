@@ -112,6 +112,8 @@ struct WindowState
     bool onActiveWorkspace = true;
     bool isFloating = false;
     bool isForceResizable = false;
+    bool isForceResizableByRule = false;
+    bool isExpansionForceResizable = false;
     bool isActive = false;
     bool isFocused = false;
     bool isUrgent = false;
@@ -128,6 +130,9 @@ struct WindowState
     TabBarState tabBar;
     int columnIndex = 0;
     int tileIndex = 0;
+    std::optional<int> widthPresetIndex;
+    std::optional<int> nativeWidthSuccessorIndex;
+    int widthPresetCount = 0;
     bool operator==(const WindowState &) const = default;
 };
 

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <limits>
 
 namespace Konveyor::Layout
 {
@@ -27,15 +28,39 @@ template<class Pred> std::optional<std::size_t> findPreset(std::size_t len, bool
 
 }
 
-void Column::toggleWidth(std::optional<std::size_t> tileIndex, bool forwards)
+void Column::toggleWidth(std::optional<std::size_t> tileIndex, bool forwards, bool fromNative)
 {
     const std::size_t idx = tileIndex.value_or(activeTileIndex);
     const auto current = (fillsWidth || maximizePending) ? std::nullopt : presetWidthIndex;
     const auto len = static_cast<std::size_t>(m_options->layout.presetColumnWidths.size());
-    const std::size_t presetIndex = current ? nextPresetIndex(current, len, forwards) : findPresetWidthIndex(idx, forwards);
+    const auto closest = fromNative ? closestWidthPresetIndex(idx) : std::nullopt;
+    const std::size_t presetIndex = closest ? (forwards ? *closest : (*closest + len - 1) % len)
+                                            : current ? nextPresetIndex(current, len, forwards) : findPresetWidthIndex(idx, forwards);
     const Config::PresetSize preset = m_options->layout.presetColumnWidths[static_cast<qsizetype>(presetIndex)];
     setColumnWidth(sizeChangeFromPreset(preset), idx, true);
     presetWidthIndex = presetIndex;
+}
+
+std::optional<std::size_t> Column::closestWidthPresetIndex(std::size_t tileIndex) const
+{
+    const auto nativeSize = tiles[tileIndex].window().nativeSize();
+    const auto &presets = m_options->layout.presetColumnWidths;
+    if (!nativeSize || presets.isEmpty()) {
+        return std::nullopt;
+    }
+    const double nativeWindow = nativeSize->width();
+    const double nativeTile = tiles[tileIndex].outerWidthFor(nativeWindow);
+    std::size_t closest = 0;
+    double closestDistance = std::numeric_limits<double>::max();
+    for (qsizetype i = 0; i < presets.size(); ++i) {
+        const PresetExtent resolved = presetWidthExtent(presets[i]);
+        const double distance = std::abs(resolved.value - (resolved.isTile ? nativeTile : nativeWindow));
+        if (distance < closestDistance) {
+            closest = static_cast<std::size_t>(i);
+            closestDistance = distance;
+        }
+    }
+    return closest;
 }
 
 ColumnWidth Column::computeNewWidth(SizeChange change, std::optional<std::size_t> tileIndex) const

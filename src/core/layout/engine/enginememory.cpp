@@ -54,17 +54,28 @@ bool rememberFloating(WindowMemory &memory, const FloatingLayer &floating, bool 
     return changed;
 }
 
+bool rememberNativeSizes(WindowMemory &memory, const Workspace &workspace)
+{
+    bool changed = false;
+    for (const ConstTileRef &ref : workspace.placedTiles(false)) {
+        const LayoutWindow &window = ref.tile->window();
+        const QString &appId = window.properties().appId;
+        if (!appId.isEmpty() && window.nativeSize()) {
+            changed |= store(memory[appId].nativeSize, *window.nativeSize());
+        }
+    }
+    return changed;
+}
+
 }
 
 void Engine::Private::rememberWindows()
 {
     const bool sizes = config.layout.rememberWindowSizes;
     const bool positions = config.layout.rememberWindowPositions;
-    if (!sizes && !positions) {
-        return;
-    }
     bool changed = false;
     for (Workspace *workspace : allWorkspaces()) {
+        changed |= rememberNativeSizes(windowMemory, *workspace);
         if (sizes) {
             changed |= rememberColumns(windowMemory, workspace->scrolling());
         }
@@ -78,7 +89,11 @@ void Engine::Private::rememberWindows()
 void Engine::Private::applyRememberedSize(NewWindowPlan &plan, const QString &appId) const
 {
     const auto remembered = windowMemory.constFind(appId);
-    if (!config.layout.rememberWindowSizes || remembered == windowMemory.constEnd()) {
+    if (remembered == windowMemory.constEnd()) {
+        return;
+    }
+    plan.nativeSize = remembered->nativeSize;
+    if (!config.layout.rememberWindowSizes) {
         return;
     }
     if (plan.isFloating) {

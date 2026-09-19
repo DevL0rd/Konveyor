@@ -121,6 +121,32 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void nativeWidthCycleIsInsertedBeforeTheClosestPreset()
+    {
+        Config::Config config = instantConfig();
+        config.layout.presetColumnWidths = {Config::PresetSize(Config::Fixed {300}), Config::PresetSize(Config::Fixed {600}),
+            Config::PresetSize(Config::Fixed {900})};
+        Config::WindowRule rule = ruleFor(QStringLiteral("game"));
+        rule.forceResizable = true;
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(550, 300));
+        properties.isResizable = false;
+        const auto id = fixture.addWith(properties);
+
+        fixture.perform(QStringLiteral("switch-preset-column-width"), {}, {{QStringLiteral("from-native"), QStringLiteral("true")}});
+        QCOMPARE(fixture.frame(id).width(), 600.0);
+        QCOMPARE(fixture.state(id).widthPresetIndex, std::optional(1));
+        QCOMPARE(fixture.state(id).nativeWidthSuccessorIndex, std::optional(1));
+
+        fixture.perform(
+            QStringLiteral("switch-preset-column-width-back"), {}, {{QStringLiteral("from-native"), QStringLiteral("true")}});
+        QCOMPARE(fixture.frame(id).width(), 300.0);
+        QCOMPARE(fixture.state(id).widthPresetIndex, std::optional(0));
+        QCOMPARE(fixture.state(id).widthPresetCount, 3);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void consumeAndExpelWindow()
     {
         Fixture fixture;

@@ -133,7 +133,7 @@ WindowMode initialSizing(const NewWindowPlan &plan, const Workspace &workspace, 
 
 LayoutWindow makeNewWindow(WindowId id, const WindowProperties &properties, const NewWindowPlan &plan, const Workspace &workspace)
 {
-    LayoutWindow window(id, properties);
+    LayoutWindow window(id, properties, plan.nativeSize);
     window.setRules(plan.rules);
 
     std::optional<Config::PresetSize> configureWidth = plan.width;

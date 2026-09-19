@@ -99,7 +99,7 @@ private:
     void scheduleFlush();
     Layout::Hooks makeHooks();
     Layout::ActionResult performAction(const Config::Action &action, std::optional<Layout::WindowId> target = std::nullopt);
-    Layout::ActionResult toggleForceResizable(std::optional<Layout::WindowId> target);
+    Layout::ActionResult cycleNonResizableWidth(const Config::Action &action, std::optional<Layout::WindowId> target);
     QString performActionJson(const QString &json);
 
     struct Private;

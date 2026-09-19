@@ -29,8 +29,16 @@ void addSizeAction(ActionTable &table, const char *name, SizeSetter setter)
 
 void registerPresetActions(ActionTable &table)
 {
-    addWorkspaceAction(table, "switch-preset-column-width", +[](Workspace &ws) { ws.toggleWidth(true); });
-    addWorkspaceAction(table, "switch-preset-column-width-back", +[](Workspace &ws) { ws.toggleWidth(false); });
+    const auto addColumnWidthAction = [&table](const char *name, bool forwards) {
+        addEngineAction(table, name, [forwards](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
+            if (Workspace *workspace = d.activeWorkspace()) {
+                workspace->toggleWidth(forwards, actionFlag(action, QStringLiteral("from-native"), false));
+            }
+            return ActionResult();
+        });
+    };
+    addColumnWidthAction("switch-preset-column-width", true);
+    addColumnWidthAction("switch-preset-column-width-back", false);
     addTargetAction(
         table, "switch-preset-window-width", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleWindowWidth(id, true); });
     addTargetAction(

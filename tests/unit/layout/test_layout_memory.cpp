@@ -72,6 +72,26 @@ private Q_SLOTS:
         QCOMPARE(fixture.engine().windowMemory(), memory);
     }
 
+    void nativeSizeIsAlwaysRememberedAndRestored()
+    {
+        int changes = 0;
+        Layout::Hooks hooks;
+        hooks.windowMemoryChanged = [&changes] { ++changes; };
+        Fixture fixture(instantConfig(), QRectF(0, 0, 1920, 1080), hooks);
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(300, 200));
+        properties.isResizable = false;
+        const auto first = fixture.addWith(properties);
+        fixture.remove(first);
+
+        Layout::WindowMemory memory = fixture.engine().windowMemory();
+        QCOMPARE(memory[QStringLiteral("game")].nativeSize, std::optional(QSize(300, 200)));
+        QVERIFY(changes > 0);
+
+        properties.frameSize = QSizeF(800, 600);
+        const auto reopened = fixture.addWith(properties);
+        QCOMPARE(fixture.frame(reopened).size(), QSizeF(300, 200));
+    }
+
     void reopensFloatingAtRememberedSizeAndPosition()
     {
         Fixture fixture(memoryConfig(true));
@@ -104,6 +124,7 @@ private Q_SLOTS:
         memory[QStringLiteral("picker")].floatingSize = QSize(640, 480);
         memory[QStringLiteral("picker")].floatingPosition = QPointF(0.25, 0.5);
         memory[QStringLiteral("browser")].columnWidth = Layout::ColumnWidth::proportion(0.5);
+        memory[QStringLiteral("game")].nativeSize = QSize(1280, 720);
         QCOMPARE(Layout::windowMemoryFromJson(Layout::windowMemoryToJson(memory)), memory);
     }
 };

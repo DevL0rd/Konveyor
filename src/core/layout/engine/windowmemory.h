@@ -18,6 +18,7 @@ struct RememberedWindow
     std::optional<ColumnWidth> columnWidth;
     std::optional<QSize> floatingSize;
     std::optional<QPointF> floatingPosition;
+    std::optional<QSize> nativeSize;
     bool operator==(const RememberedWindow &) const = default;
 };
 

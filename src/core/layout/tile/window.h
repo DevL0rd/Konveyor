@@ -22,11 +22,11 @@ public:
         FollowWindow
     };
 
-    LayoutWindow(WindowId id, const WindowProperties &properties);
+    LayoutWindow(WindowId id, const WindowProperties &properties, std::optional<QSize> nativeSize = std::nullopt);
 
     WindowId id() const { return m_id; }
     const WindowProperties &properties() const { return m_properties; }
-    void setProperties(const WindowProperties &properties) { m_properties = properties; }
+    void setProperties(const WindowProperties &properties);
     const EffectiveWindowRules &rules() const { return m_rules; }
     bool setRules(const EffectiveWindowRules &rules);
 
@@ -35,6 +35,11 @@ public:
     QSize maxSize() const;
     QSize tiledMinSize() const;
     QSize tiledMaxSize() const;
+    std::optional<QSize> nativeSize() const { return m_nativeSize; }
+    bool isForceResizable() const;
+    bool isForceResizableByRule() const;
+    bool isExpansionForceResizable() const { return m_expansionForceResizable; }
+    void setExpansionForceResizable(bool enabled) { m_expansionForceResizable = enabled; }
     std::optional<QSize> requestedSize() const { return m_requestedSize; }
     std::optional<QSize> pendingSize() const;
 
@@ -77,6 +82,7 @@ public:
 private:
     WindowId m_id;
     WindowProperties m_properties;
+    std::optional<QSize> m_nativeSize;
     EffectiveWindowRules m_rules;
     QSizeF m_size;
     std::optional<QSize> m_requestedSize;
@@ -96,6 +102,7 @@ private:
     bool m_isFloating = false;
     bool m_needsRuleRecompute = false;
     bool m_ignoreOpacityRule = false;
+    bool m_expansionForceResizable = false;
     std::optional<Anim::Duration> m_focusTimestamp;
     std::optional<quint8> m_resizeEdges;
 };

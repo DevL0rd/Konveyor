@@ -61,6 +61,10 @@ void applyExactConstraints(std::vector<WindowHeight> &heights, const std::vector
 void Column::layoutTiles(bool animate)
 {
     const WindowMode mode = requestedMode();
+    const bool forceExpansion = mode == WindowMode::Maximized || (mode == WindowMode::Normal && fillsWidth);
+    for (Tile &tile : tiles) {
+        tile.window().setExpansionForceResizable(forceExpansion);
+    }
     if (mode != WindowMode::Normal) {
         requestExpandedSizes(mode, animate);
         return;

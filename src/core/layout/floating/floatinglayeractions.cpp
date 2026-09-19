@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace Konveyor::Layout
 {
@@ -127,16 +128,42 @@ std::size_t FloatingLayer::togglePresetIndex(std::size_t idx, bool horizontal, b
     return forwards ? 0 : len - 1;
 }
 
-void FloatingLayer::toggleWindowWidth(std::optional<WindowId> window, bool forwards)
+void FloatingLayer::toggleWindowWidth(std::optional<WindowId> window, bool forwards, bool fromNative)
 {
     const auto idx = targetIndex(window);
     if (!idx) {
         return;
     }
-    const std::size_t presetIndex = togglePresetIndex(*idx, true, forwards);
+    const auto len = static_cast<std::size_t>(m_options->layout.presetColumnWidths.size());
+    const auto closest = fromNative ? closestWidthPresetIndex(*idx) : std::nullopt;
+    const std::size_t presetIndex
+        = closest ? (forwards ? *closest : (*closest + len - 1) % len) : togglePresetIndex(*idx, true, forwards);
     setWindowSize(*idx, sizeChangeFromPreset(m_options->layout.presetColumnWidths[static_cast<qsizetype>(presetIndex)]), true, true);
     m_tiles[*idx].floatingWidthPresetIndex = presetIndex;
     endResize(m_tiles[*idx].id());
+}
+
+std::optional<std::size_t> FloatingLayer::closestWidthPresetIndex(std::size_t tileIndex) const
+{
+    const Tile &tile = m_tiles[tileIndex];
+    const auto nativeSize = tile.window().nativeSize();
+    const auto &presets = m_options->layout.presetColumnWidths;
+    if (!nativeSize || presets.isEmpty()) {
+        return std::nullopt;
+    }
+    const double nativeWindow = nativeSize->width();
+    const double nativeTile = tile.outerWidthFor(nativeWindow);
+    std::size_t closest = 0;
+    double closestDistance = std::numeric_limits<double>::max();
+    for (qsizetype i = 0; i < presets.size(); ++i) {
+        const PresetExtent resolved = measureFloatingPreset(presets[i], m_workingArea.width());
+        const double distance = std::abs(resolved.value - (resolved.isTile ? nativeTile : nativeWindow));
+        if (distance < closestDistance) {
+            closest = static_cast<std::size_t>(i);
+            closestDistance = distance;
+        }
+    }
+    return closest;
 }
 
 void FloatingLayer::toggleWindowHeight(std::optional<WindowId> window, bool forwards)

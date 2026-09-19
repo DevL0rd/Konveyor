@@ -16,31 +16,60 @@ struct SizeLimits
     QSize max;
 };
 
-SizeLimits appSizeLimits(const WindowProperties &properties, QSize current)
+SizeLimits appSizeLimits(const WindowProperties &properties, QSize current, std::optional<QSize> nativeSize)
 {
     SizeLimits limits {nonNegativeSize(properties.minSize), nonNegativeSize(properties.maxSize)};
     if (properties.isResizable) {
         return limits;
     }
+    const QSize fallback = nativeSize.value_or(current);
     if (limits.min.width() == 0 && limits.max.width() == 0) {
-        limits.min.setWidth(current.width());
-        limits.max.setWidth(current.width());
+        limits.min.setWidth(fallback.width());
+        limits.max.setWidth(fallback.width());
     }
     if (limits.min.height() == 0 && limits.max.height() == 0) {
-        limits.min.setHeight(current.height());
-        limits.max.setHeight(current.height());
+        limits.min.setHeight(fallback.height());
+        limits.max.setHeight(fallback.height());
     }
     return limits;
 }
 
+std::optional<QSize> initialNativeSize(const WindowProperties &properties, std::optional<QSize> remembered)
+{
+    if (properties.isResizable) {
+        return std::nullopt;
+    }
+    const QSize size = remembered.value_or(roundedSize(properties.frameSize));
+    return size.isEmpty() ? std::nullopt : std::optional(size);
 }
 
-LayoutWindow::LayoutWindow(WindowId id, const WindowProperties &properties)
+}
+
+LayoutWindow::LayoutWindow(WindowId id, const WindowProperties &properties, std::optional<QSize> nativeSize)
     : m_id(id)
     , m_properties(properties)
+    , m_nativeSize(initialNativeSize(properties, nativeSize))
     , m_size(clampedNonNegative(QSizeF(std::round(properties.frameSize.width()), std::round(properties.frameSize.height()))))
     , m_isUrgent(properties.isUrgent)
 { }
+
+void LayoutWindow::setProperties(const WindowProperties &properties)
+{
+    m_properties = properties;
+    if (!properties.isResizable && !isForceResizable() && !properties.frameSize.isEmpty()) {
+        m_nativeSize = roundedSize(properties.frameSize);
+    }
+}
+
+bool LayoutWindow::isForceResizable() const
+{
+    return isForceResizableByRule() || m_expansionForceResizable;
+}
+
+bool LayoutWindow::isForceResizableByRule() const
+{
+    return m_rules.forceResizable.value_or(false);
+}
 
 bool LayoutWindow::setRules(const EffectiveWindowRules &rules)
 {
@@ -57,15 +86,15 @@ bool LayoutWindow::setRules(const EffectiveWindowRules &rules)
 
 QSize LayoutWindow::minSize() const
 {
-    const bool forceResizable = m_rules.forceResizable.value_or(false);
-    const SizeLimits limits = appSizeLimits(m_properties, roundedSize(m_size));
+    const bool forceResizable = isForceResizable();
+    const SizeLimits limits = appSizeLimits(m_properties, roundedSize(m_size), m_nativeSize);
     return m_rules.limitMinSize(forceResizable ? QSize(0, 0) : limits.min);
 }
 
 QSize LayoutWindow::maxSize() const
 {
-    const bool forceResizable = m_rules.forceResizable.value_or(false);
-    const SizeLimits limits = appSizeLimits(m_properties, roundedSize(m_size));
+    const bool forceResizable = isForceResizable();
+    const SizeLimits limits = appSizeLimits(m_properties, roundedSize(m_size), m_nativeSize);
     return m_rules.limitMaxSize(forceResizable ? QSize(0, 0) : limits.max);
 }
 

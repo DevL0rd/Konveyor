@@ -127,7 +127,7 @@ public:
     Column *columnById(quint64 columnId);
     std::optional<QRectF> dropSlotRect(DropSlot position) const;
 
-    void toggleWidth(bool forwards);
+    void toggleWidth(bool forwards, bool fromNative = false);
     void toggleFillWidth();
     void toggleFillWidthFor(WindowId window);
     void setWindowWidth(std::optional<WindowId> window, SizeChange change);

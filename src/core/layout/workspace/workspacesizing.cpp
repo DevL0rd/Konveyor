@@ -131,12 +131,12 @@ void Workspace::cycleExpansion(WindowId window)
     }
 }
 
-void Workspace::toggleWidth(bool forwards)
+void Workspace::toggleWidth(bool forwards, bool fromNative)
 {
     if (isFloatingFocused()) {
-        m_floating.toggleWindowWidth(std::nullopt, forwards);
+        m_floating.toggleWindowWidth(std::nullopt, forwards, fromNative);
     } else {
-        m_strip.toggleWidth(forwards);
+        m_strip.toggleWidth(forwards, fromNative);
     }
 }
 

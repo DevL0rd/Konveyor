@@ -120,7 +120,9 @@ WindowState buildWindowState(
     state.ruleOpacity = window.isIgnoringOpacityRule() ? 1.0 : window.rules().opacity.value_or(1.0);
     state.onActiveWorkspace = context.onActive;
     state.isFloating = workspace.isFloating(window.id());
-    state.isForceResizable = window.rules().forceResizable.value_or(false);
+    state.isForceResizable = window.isForceResizable();
+    state.isForceResizableByRule = window.isForceResizableByRule();
+    state.isExpansionForceResizable = window.isExpansionForceResizable();
     state.isActive = window.isActivated();
     state.isFocused = window.isFocused();
     state.isUrgent = window.isUrgent();
@@ -243,6 +245,24 @@ void Engine::Private::appendWorkspaceStates(
         const TileIndex index = indices.value(tile.id());
         state.columnIndex = index.column;
         state.tileIndex = index.tile;
+        state.widthPresetCount = workspace.options()->layout.presetColumnWidths.size();
+        if (state.isFloating) {
+            state.widthPresetIndex = tile.floatingWidthPresetIndex
+                ? std::optional(static_cast<int>(*tile.floatingWidthPresetIndex))
+                : std::nullopt;
+            if (const auto closest = workspace.floating().closestWidthPresetIndex(static_cast<std::size_t>(index.tile))) {
+                state.nativeWidthSuccessorIndex = static_cast<int>(*closest);
+            }
+        } else if (const Column *column = workspace.scrolling().columnFor(tile.id()); column && column->presetWidthIndex) {
+            state.widthPresetIndex = static_cast<int>(*column->presetWidthIndex);
+        }
+        if (!state.isFloating) {
+            if (const Column *column = workspace.scrolling().columnFor(tile.id())) {
+                if (const auto closest = column->closestWidthPresetIndex(static_cast<std::size_t>(index.tile))) {
+                    state.nativeWidthSuccessorIndex = static_cast<int>(*closest);
+                }
+            }
+        }
         const bool fullscreen = tile.sizingMode() == WindowMode::Fullscreen;
         const int ownIndex = fullscreen ? BackgroundFullscreenStackingIndex : index.stacking;
         state.stackingIndex = fullscreen && state.isActive ? FullscreenStackingIndex : ownIndex;

@@ -75,7 +75,8 @@ public:
     bool moveUp();
     bool moveDown();
 
-    void toggleWidth(std::optional<std::size_t> tileIndex, bool forwards);
+    void toggleWidth(std::optional<std::size_t> tileIndex, bool forwards, bool fromNative = false);
+    std::optional<std::size_t> closestWidthPresetIndex(std::size_t tileIndex) const;
     void toggleFillWidth();
     void setColumnWidth(SizeChange change, std::optional<std::size_t> tileIndex, bool animate);
     void setWindowHeight(SizeChange change, std::optional<std::size_t> tileIndex, bool animate);

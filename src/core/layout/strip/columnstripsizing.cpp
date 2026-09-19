@@ -61,13 +61,13 @@ bool ColumnStrip::setMaximized(WindowId window, bool maximize)
     return true;
 }
 
-void ColumnStrip::toggleWidth(bool forwards)
+void ColumnStrip::toggleWidth(bool forwards, bool fromNative)
 {
     if (m_columns.empty()) {
         return;
     }
     Column &column = m_columns[m_activeColumnIndex];
-    column.toggleWidth(std::nullopt, forwards);
+    column.toggleWidth(std::nullopt, forwards, fromNative);
     cancelResizeForColumn(column);
 }
 

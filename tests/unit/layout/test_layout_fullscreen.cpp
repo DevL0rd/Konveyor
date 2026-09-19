@@ -67,6 +67,50 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void cycleExpansionTemporarilyResizesFixedWindowThenRestoresNativeSize()
+    {
+        Fixture fixture;
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(300, 200));
+        properties.isResizable = false;
+        const auto id = fixture.addWith(properties);
+
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+        QCOMPARE(fixture.frame(id), QRectF(16, 16, 1888, 1048));
+        QVERIFY(fixture.state(id).isExpansionForceResizable);
+
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+        QCOMPARE(fixture.frame(id), QRectF(0, 0, 1920, 1080));
+        QVERIFY(fixture.state(id).isExpansionForceResizable);
+
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+        QCOMPARE(fixture.frame(id).size(), QSizeF(300, 200));
+        QVERIFY(!fixture.state(id).isForceResizable);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void cycleExpansionReturnsForceResizableWindowToItsPreset()
+    {
+        Config::Config config = instantConfig();
+        Config::WindowRule rule = ruleFor(QStringLiteral("game"));
+        rule.forceResizable = true;
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(300, 200));
+        properties.isResizable = false;
+        const auto id = fixture.addWith(properties);
+        fixture.perform(QStringLiteral("switch-preset-column-width"), {}, {{QStringLiteral("from-native"), QStringLiteral("true")}});
+        const QSizeF preset = fixture.frame(id).size();
+
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+
+        QCOMPARE(fixture.frame(id).size(), preset);
+        QVERIFY(fixture.state(id).isForceResizableByRule);
+        QVERIFY(!fixture.state(id).isExpansionForceResizable);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void expandedWindowsCoverTheWholeOutputWithoutGaps()
     {
         Fixture fixture;

@@ -92,7 +92,6 @@ const actions = [
     a("center-column", "size", "Center the column", "align-horizontal-center"),
     a("center-window", "size", "Center the window", "align-horizontal-center"),
     a("center-visible-columns", "size", "Center all visible columns", "align-horizontal-center"),
-    a("toggle-force-resizable", "size", "Toggle force resizing for the app", "transform-scale"),
 
     a("close-window", "windows", "Close the window", "window-close"),
     a("fullscreen-window", "windows", "Toggle fullscreen", "view-fullscreen"),

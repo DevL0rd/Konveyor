@@ -205,9 +205,6 @@ void TestConfigBinds::capturesActionArgumentsAndProperties()
     const Bind width = firstBind(QStringLiteral("Mod+Minus { set-column-width \"-10%\"; }"));
     QCOMPARE(width.action.arguments, QStringList({QStringLiteral("-10%")}));
 
-    const Bind force = firstBind(QStringLiteral("Mod+Alt+R { toggle-force-resizable; }"));
-    QCOMPARE(force.action.name, QStringLiteral("toggle-force-resizable"));
-
     const Bind move = firstBind(QStringLiteral("Mod+Shift+1 { move-column-to-workspace 1 focus=false; }"));
     QCOMPARE(move.action.properties.size(), 1);
     QCOMPARE(move.action.properties.first().first, QStringLiteral("focus"));
@@ -217,6 +214,8 @@ void TestConfigBinds::capturesActionArgumentsAndProperties()
 void TestConfigBinds::rejectsUnknownAction()
 {
     QCOMPARE(bindError(QStringLiteral("Mod+A { do-a-barrel-roll; }")).message, QStringLiteral("unknown action `do-a-barrel-roll`"));
+    QCOMPARE(bindError(QStringLiteral("Mod+Alt+R { toggle-force-resizable; }")).message,
+        QStringLiteral("unknown action `toggle-force-resizable`"));
 }
 
 void TestConfigBinds::rejectsMissingActionArgument()

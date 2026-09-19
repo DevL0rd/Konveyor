@@ -83,29 +83,48 @@ QString KonveyorEffect::performActionJson(const QString &json)
 
 Layout::ActionResult KonveyorEffect::performAction(const Config::Action &action, std::optional<Layout::WindowId> target)
 {
-    if (action.name == QLatin1String("toggle-force-resizable")) {
-        return toggleForceResizable(target);
+    if (action.name == QLatin1String("switch-preset-column-width")
+        || action.name == QLatin1String("switch-preset-column-width-back")) {
+        return cycleNonResizableWidth(action, target);
     }
     return changeEngine().perform(action, target);
 }
 
-Layout::ActionResult KonveyorEffect::toggleForceResizable(std::optional<Layout::WindowId> target)
+Layout::ActionResult KonveyorEffect::cycleNonResizableWidth(const Config::Action &action, std::optional<Layout::WindowId> target)
 {
     const std::optional<Layout::WindowId> id = target ? target : readEngine().focusedWindow();
     if (!id) {
-        return {false, QStringLiteral("no focused window")};
+        return changeEngine().perform(action, target);
     }
     KWin::Window *window = d->windows.windowOf(*id);
     const std::optional<Layout::WindowState> state = readEngine().windowState(*id);
     if (!window || !state) {
         return {false, QStringLiteral("window is no longer available")};
     }
+    if (window->isResizable()) {
+        return changeEngine().perform(action, target);
+    }
+    if (state->sizingMode == Layout::WindowMode::Fullscreen
+        || state->requestedSizingMode == Layout::WindowMode::Fullscreen) {
+        return {};
+    }
     const Layout::WindowProperties properties = d->windows.propertiesOf(window);
     if (properties.appId.isEmpty()) {
         return {false, QStringLiteral("window has no application id")};
     }
-    changeEngine().updateWindowProperties(*id, properties);
-    const bool enabled = !state->isForceResizable;
+    const bool forwards = action.name == QLatin1String("switch-preset-column-width");
+    const int successor = state->nativeWidthSuccessorIndex.value_or(0);
+    const int predecessor = state->widthPresetCount > 0 ? (successor + state->widthPresetCount - 1) % state->widthPresetCount : 0;
+    const bool atNativeEdge = state->widthPresetIndex && state->nativeWidthSuccessorIndex && state->widthPresetCount > 0
+        && !state->isExpansionForceResizable
+        && (forwards ? *state->widthPresetIndex == predecessor : *state->widthPresetIndex == successor);
+    if (state->isForceResizableByRule && !atNativeEdge) {
+        return changeEngine().perform(action, target);
+    }
+    if (!state->isForceResizableByRule) {
+        changeEngine().updateWindowProperties(*id, properties);
+    }
+    const bool enabled = !state->isForceResizableByRule;
     const auto saved = d->config.setForceResizable(properties.appId, enabled);
     if (!saved) {
         return {false, saved.error()};
@@ -116,7 +135,12 @@ Layout::ActionResult KonveyorEffect::toggleForceResizable(std::optional<Layout::
     notification->setText(window->caption().isEmpty() ? properties.appId : window->caption());
     notification->setIconName(QStringLiteral("transform-scale"));
     notification->sendEvent();
-    return {};
+    if (!enabled) {
+        return {};
+    }
+    Config::Action presetAction = action;
+    presetAction.properties.append({QStringLiteral("from-native"), QStringLiteral("true")});
+    return changeEngine().perform(presetAction, target);
 }
 
 QJsonDocument KonveyorEffect::lastBindJson() const

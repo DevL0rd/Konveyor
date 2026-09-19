@@ -23,6 +23,9 @@ QJsonObject entryToJson(const RememberedWindow &entry)
     if (entry.floatingPosition) {
         object[QStringLiteral("floating-position")] = QJsonArray {entry.floatingPosition->x(), entry.floatingPosition->y()};
     }
+    if (entry.nativeSize) {
+        object[QStringLiteral("native-size")] = QJsonArray {entry.nativeSize->width(), entry.nativeSize->height()};
+    }
     return object;
 }
 
@@ -41,6 +44,10 @@ RememberedWindow entryFromJson(const QJsonObject &object)
     const QJsonArray position = object[QStringLiteral("floating-position")].toArray();
     if (position.size() == 2) {
         entry.floatingPosition = QPointF(position[0].toDouble(), position[1].toDouble());
+    }
+    const QJsonArray nativeSize = object[QStringLiteral("native-size")].toArray();
+    if (nativeSize.size() == 2) {
+        entry.nativeSize = QSize(nativeSize[0].toInt(), nativeSize[1].toInt());
     }
     return entry;
 }

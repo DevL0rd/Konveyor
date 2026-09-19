@@ -147,7 +147,7 @@ public:
     void centerWindow(std::optional<WindowId> window);
     void centerVisibleColumns();
 
-    void toggleWidth(bool forwards);
+    void toggleWidth(bool forwards, bool fromNative = false);
     void toggleFillWidth();
     void toggleFillWidthFor(WindowId window);
     void setColumnWidth(SizeChange change);

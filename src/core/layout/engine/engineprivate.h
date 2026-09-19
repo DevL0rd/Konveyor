@@ -43,6 +43,7 @@ struct NewWindowPlan
     std::size_t monitorIndex = 0;
     std::optional<WorkspaceId> workspace;
     std::optional<WindowId> parent;
+    std::optional<QSize> nativeSize;
     Activation activate = Activation::Smart;
 };
 
