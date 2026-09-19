@@ -11,6 +11,10 @@ import "lib/Format.js" as Fmt
 Item {
     id: full
 
+    property bool overlayMode: false
+    signal overlayCloseRequested()
+    readonly property real overlayPreferredWidth: Layout.preferredWidth
+    readonly property real overlayPreferredHeight: Layout.preferredHeight
     Layout.minimumWidth: Kirigami.Units.gridUnit * 13
     Layout.minimumHeight: Kirigami.Units.gridUnit * 12
     Layout.preferredWidth: Kirigami.Units.gridUnit * (root.locked ? 24 : 30)
@@ -29,7 +33,7 @@ Item {
     Loader {
         id: loader
         anchors.fill: parent
-        active: root.popupAlive
+        active: full.overlayMode || root.popupAlive
         sourceComponent: shellComponent
         onLoaded: if (root.expanded) item.focusSearch()
     }
@@ -76,7 +80,7 @@ Item {
                 target: root
                 function onTabKeyChanged() { if (shell.searchText !== "") shell.clearSearch() }
             }
-            onCloseRequested: root.expanded = false
+            onCloseRequested: if (full.overlayMode) full.overlayCloseRequested(); else root.expanded = false
             onSearchAccepted: if (results.item) results.item.activateFirst()
 
             headerActions: [

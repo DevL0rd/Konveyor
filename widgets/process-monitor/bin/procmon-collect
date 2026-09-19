@@ -579,7 +579,7 @@ def panel_snapshot(snap):
                  "cpu": round(total[0], 1), "gpu": total[3], "ram": total[1], "vram": total[6], "disk": total[7],
                  "threads": total[2], "enc": total[4], "dec": total[5],
                  "fps": best["fps"] if best else -1, "frametime": best["frametime"] if best else 0,
-                 "fpsLow": best["fps_low"] if best else 0}
+                 "fpsLow": best["fps_low"] if best else 0, "framePid": best["pid"] if best else pid}
     if focus is None:
         sig = ("-", summary["count"], round(summary["cpu"]), round(summary["gpu"]))
     else:

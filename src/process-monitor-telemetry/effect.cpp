@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonValue>
 
 namespace ProcessMonitor
 {
@@ -28,7 +29,8 @@ TelemetryEffect::TelemetryEffect()
         track(window);
     }
     QDBusConnection bus = QDBusConnection::sessionBus();
-    const bool objectRegistered = bus.registerObject(QString::fromLatin1(Path), this, QDBusConnection::ExportScriptableSlots);
+    const bool objectRegistered = bus.registerObject(
+        QString::fromLatin1(Path), this, QDBusConnection::ExportScriptableSlots | QDBusConnection::ExportScriptableSignals);
     m_registered = objectRegistered && bus.registerService(QString::fromLatin1(Service));
     if (!m_registered && objectRegistered) {
         bus.unregisterObject(QString::fromLatin1(Path));
@@ -65,13 +67,32 @@ QString TelemetryEffect::Frames() const
     return QString::fromUtf8(QJsonDocument(frames).toJson(QJsonDocument::Compact));
 }
 
+void TelemetryEffect::Watch(const QString &pidsJson)
+{
+    const QJsonDocument document = QJsonDocument::fromJson(pidsJson.toUtf8());
+    QSet<qint64> watched;
+    for (const QJsonValue &value : document.array()) {
+        const qint64 pid = value.toInteger();
+        if (pid > 0) {
+            watched.insert(pid);
+        }
+    }
+    m_watchedPids = std::move(watched);
+}
+
 void TelemetryEffect::track(KWin::EffectWindow *window)
 {
     if (!window || m_rates.contains(window)) {
         return;
     }
     m_rates.insert(window, {});
-    connect(window, &KWin::EffectWindow::windowDamaged, this, [this, window]() { m_rates[window].addFrame(m_clock.nsecsElapsed()); });
+    connect(window, &KWin::EffectWindow::windowDamaged, this, [this, window]() {
+        const qint64 pid = window->pid();
+        const std::optional<double> frametime = m_rates[window].addFrame(m_clock.nsecsElapsed());
+        if (frametime && m_watchedPids.contains(pid)) {
+            Q_EMIT Frame(pid, *frametime);
+        }
+    });
 }
 
 }

@@ -180,4 +180,11 @@ PlasmoidItem {
 
     compactRepresentation: CompactView {}
     fullRepresentation: FullView {}
+
+    MonitorOverlay {
+        active: Plasmoid.pluginName === "org.devl0rd.sysmon.panel"
+        slot: 0
+        content: Component { CompactView {} }
+        popupContent: Component { FullView {} }
+    }
 }

@@ -22,6 +22,9 @@ def start(widget, arguments, flags):
 
 
 def main():
+    overlay = os.path.join(ROOT, "service", "monitor-overlay")
+    if os.path.isfile(overlay):
+        subprocess.run([sys.executable, overlay, "hide"], check=False)
     running = {}
     for widget, arguments, flags in COLLECTORS:
         if os.path.isfile(os.path.join(ROOT, widget, arguments[0])):

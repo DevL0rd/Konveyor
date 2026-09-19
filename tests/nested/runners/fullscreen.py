@@ -18,14 +18,14 @@ COLUMN_COLOR = (47, 48, 51, 255)
 def check_overlay(problems):
     image = capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
     middle = image.height // 2
-    left_edge = image.getpixel((4, middle))
+    column = [int(value) for value in window_state("A").split("|")[1].replace(" ", ",").replace("x", ",").split(",")]
+    column_center = image.getpixel((column[0] + column[2] // 2, column[1] + column[3] // 2))
     right_side = image.getpixel((image.width - 40, middle))
-    column_left = next(x for x in range(image.width) if image.getpixel((x, middle)) == COLUMN_COLOR)
-    beside = image.getpixel((column_left - 40, middle))
-    edge_gap = image.getpixel((image.width - 4, middle))
-    print(f"drawn while unfocused: left edge {left_edge}, right side {right_side}, beside the column {beside}, edge gap {edge_gap}")
-    if left_edge != FULLSCREEN_COLOR or right_side != COLUMN_COLOR:
-        problems.append(f"column A is not drawn over the fullscreen window that stays in place ({left_edge}, {right_side})")
+    beside = image.getpixel((min(image.width - 1, column[0] + column[2] + 40), middle))
+    edge_gap = image.getpixel((4, middle))
+    print(f"drawn while unfocused: column center {column_center}, right side {right_side}, beside the column {beside}, edge gap {edge_gap}")
+    if column_center != COLUMN_COLOR or right_side != FULLSCREEN_COLOR:
+        problems.append(f"column A is not drawn over the fullscreen window that stays in place ({column_center}, {right_side})")
     if not beside[0] < FULLSCREEN_COLOR[0] - 40:
         problems.append(f"the fullscreen window is not shaded beside the overlaid column ({beside})")
     if not edge_gap[0] < FULLSCREEN_COLOR[0] - 60:

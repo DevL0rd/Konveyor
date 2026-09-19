@@ -9,7 +9,12 @@ import "lib/PopStyle.js" as Style
 MouseArea {
     id: compact
 
+    property bool overlayMode: false
+    property color overlayBackgroundColor: Qt.rgba(25 / 255, 25 / 255, 25 / 255, 1)
+    property real overlayBackgroundOpacity: 1
+    signal overlayClicked()
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property real overlayPreferredWidth: overlayMode ? fit.preferredSpan : Layout.preferredWidth
     readonly property real thickness: vertical ? width : height
     readonly property bool showLabels: vertical || thickness >= Kirigami.Units.gridUnit * 2.4
     readonly property string extra: Plasmoid.configuration.compactExtra
@@ -40,6 +45,8 @@ MouseArea {
     onClicked: function(mouse) {
         if (mouse.button === Qt.MiddleButton)
             root.middleClick()
+        else if (overlayMode)
+            compact.overlayClicked()
         else
             root.expanded = !wasExpanded
     }
@@ -77,6 +84,9 @@ MouseArea {
         endInset: fit.endInset
         span: fit.tileSpan
         lit: compact.containsMouse || root.expanded
+        customBackground: compact.overlayMode
+        backgroundColor: compact.overlayBackgroundColor
+        backgroundOpacity: compact.overlayBackgroundOpacity
     }
 
     Item {

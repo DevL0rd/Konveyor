@@ -55,6 +55,7 @@ link_commands() {
     link_command portals/bin/portal-packages
     link_command portals/bin/portal-launcher
     link_command portals/bin/portal-friends
+    link_command service/monitor-overlay
     install -m755 "$WIDGETS_DIR/screen-rotate/bin/linux-plasma-screen-rotate" "$BIN_DIR/linux-plasma-screen-rotate"
 }
 

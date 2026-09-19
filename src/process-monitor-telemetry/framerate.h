@@ -17,7 +17,7 @@ struct FrameRate
 class FrameRateTracker
 {
 public:
-    void addFrame(qint64 timestampNs);
+    std::optional<double> addFrame(qint64 timestampNs);
     std::optional<FrameRate> rateAt(qint64 timestampNs) const;
 
 private:

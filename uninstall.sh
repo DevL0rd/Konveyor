@@ -52,8 +52,11 @@ disable_in_kwin() {
     done
     kwinrc_delete Plugins konveyor_effectEnabled
     if $WIDGETS; then
-        kwinrc_delete Plugins process_monitor_telemetryEnabled
-        kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect process_monitor_telemetry
+        for plugin in $(process_monitor_telemetry_plugin_ids | sort -u); do
+            kwinrc_delete Plugins "${plugin}Enabled"
+            kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect "$plugin"
+            run_root rm -f "$KONVEYOR_PLUGIN_DIR/${plugin}.so"
+        done
     fi
     kwin_dbus /KWin reconfigure
 

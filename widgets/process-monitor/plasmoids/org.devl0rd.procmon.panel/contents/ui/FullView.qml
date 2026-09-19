@@ -11,6 +11,10 @@ import "lib/PopStyle.js" as Style
 Item {
     id: full
 
+    property bool overlayMode: false
+    signal overlayCloseRequested()
+    readonly property real overlayPreferredWidth: Layout.preferredWidth
+    readonly property real overlayPreferredHeight: Layout.preferredHeight
     Layout.minimumWidth: Kirigami.Units.gridUnit * 13
     Layout.minimumHeight: Kirigami.Units.gridUnit * 12
     Layout.preferredWidth: Kirigami.Units.gridUnit * 38
@@ -26,7 +30,7 @@ Item {
     Loader {
         id: loader
         anchors.fill: parent
-        active: root.popupAlive
+        active: full.overlayMode || root.popupAlive
         sourceComponent: shellComponent
         onLoaded: if (root.expanded) item.focusSearch()
     }
@@ -77,7 +81,7 @@ Item {
             statusText: root.hasData ? i18n("Live") : i18n("Waiting for the collector")
             searchPlaceholder: i18n("Search by name or PID…")
             matchCount: root.searchText.trim() === "" ? -1 : root.rows.count
-            onCloseRequested: root.expanded = false
+            onCloseRequested: if (full.overlayMode) full.overlayCloseRequested(); else root.expanded = false
             onSearchAccepted: if (root.rows.count > 0) root.expandedPid = root.rows.get(0).pid
 
             Component.onCompleted: searchText = root.searchText

@@ -84,7 +84,7 @@ function frameInfo(pid) {
             steps++
         }
     }
-    return best ? { fps: best.fps, frametime: best.frametime, fpsLow: best.fps_low } : null
+    return best ? { pid: best.pid, fps: best.fps, frametime: best.frametime, fpsLow: best.fps_low } : null
 }
 
 function focusInfo(pid) {
@@ -102,7 +102,8 @@ function focusInfo(pid) {
         disk: p.adisk !== undefined ? p.adisk : (p.disk || 0),
         threads: p.athreads !== undefined ? p.athreads : (p.threads || 0),
         enc: p.aenc || p.enc || 0, dec: p.adec || p.dec || 0,
-        fps: frames ? frames.fps : -1, frametime: frames ? frames.frametime : 0, fpsLow: frames ? frames.fpsLow : 0
+        fps: frames ? frames.fps : -1, frametime: frames ? frames.frametime : 0, fpsLow: frames ? frames.fpsLow : 0,
+        framePid: frames ? frames.pid : p.pid
     }
 }
 
@@ -282,6 +283,14 @@ WorkerScript.onMessage = function(msg) {
     }
     var sum = summary()
     var out = { focus: focus, summary: sum, full: s.full, compactSig: compactSignature(focus, sum) }
+    var overlayProcByPid = {}
+    var overlayPids = s.overlayPids || []
+    for (var overlayIndex = 0; overlayIndex < overlayPids.length; overlayIndex++) {
+        var overlayProc = focusInfo(overlayPids[overlayIndex])
+        if (overlayProc) overlayProcByPid[overlayProc.pid] = overlayProc
+    }
+    out.overlayProcByPid = overlayProcByPid
+    out.overlay = overlayPids.length > 0
     if (s.full) out.focusHistory = focusHistory()
     if (s.full) {
         var built = build(s)

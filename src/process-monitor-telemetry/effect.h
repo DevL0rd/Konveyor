@@ -6,6 +6,7 @@
 
 #include <QElapsedTimer>
 #include <QHash>
+#include <QSet>
 
 namespace KWin
 {
@@ -28,12 +29,17 @@ public:
 
 public Q_SLOTS:
     Q_SCRIPTABLE QString Frames() const;
+    Q_SCRIPTABLE void Watch(const QString &pidsJson);
+
+Q_SIGNALS:
+    Q_SCRIPTABLE void Frame(qint64 pid, double frametime);
 
 private:
     void track(KWin::EffectWindow *window);
 
     QElapsedTimer m_clock;
     QHash<KWin::EffectWindow *, FrameRateTracker> m_rates;
+    QSet<qint64> m_watchedPids;
     bool m_registered = false;
 };
 

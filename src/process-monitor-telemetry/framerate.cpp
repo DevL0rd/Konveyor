@@ -16,15 +16,18 @@ constexpr qint64 DuplicateThreshold = 500000;
 
 }
 
-void FrameRateTracker::addFrame(qint64 timestampNs)
+std::optional<double> FrameRateTracker::addFrame(qint64 timestampNs)
 {
+    std::optional<double> frametime;
     if (!m_frames.isEmpty()) {
         const qint64 gap = timestampNs - m_frames.constLast();
         if (gap < DuplicateThreshold) {
-            return;
+            return std::nullopt;
         }
         if (gap > ResetGap) {
             m_frames.clear();
+        } else {
+            frametime = static_cast<double>(gap) / 1000000.0;
         }
     }
     m_frames.append(timestampNs);
@@ -32,6 +35,7 @@ void FrameRateTracker::addFrame(qint64 timestampNs)
     if (first != m_frames.cbegin()) {
         m_frames.erase(m_frames.begin(), m_frames.begin() + std::distance(m_frames.cbegin(), first));
     }
+    return frametime;
 }
 
 std::optional<FrameRate> FrameRateTracker::rateAt(qint64 timestampNs) const
