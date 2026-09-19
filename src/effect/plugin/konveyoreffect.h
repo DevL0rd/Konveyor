@@ -86,6 +86,10 @@ private:
     void connectDesktopSync();
     void applyConfig(const Config::Config &config);
     void onWindowAdded(Layout::WindowId id, KWin::Window *window);
+    void observeMonitorOverlay(KWin::Window *window);
+    void forgetMonitorOverlay(KWin::Window *window);
+    void placeMonitorOverlays(Layout::WindowId id);
+    void placeMonitorPanels(Layout::WindowId id);
     void onInteractive(Layout::WindowId id, bool isMove, int phase);
     void flush();
     void stepAnimations();

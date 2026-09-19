@@ -10,14 +10,22 @@ import "lib/PopStyle.js" as Style
 MouseArea {
     id: compact
 
+    property int overlayTargetPid: 0
+    property bool overlayMode: false
+    property color overlayBackgroundColor: Qt.rgba(25 / 255, 25 / 255, 25 / 255, 1)
+    property real overlayBackgroundOpacity: 1
+    signal overlayClicked()
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property real overlayPreferredWidth: overlayMode ? fit.preferredSpan : Layout.preferredWidth
     readonly property real thickness: vertical ? width : height
     readonly property real valueSize: Math.max(Kirigami.Units.gridUnit * 0.6, Math.min(Kirigami.Theme.defaultFont.pixelSize * 1.3, fit.innerThickness * 0.52))
-    readonly property var proc: root.focusProc
+    readonly property var proc: overlayTargetPid > 0 ? (root.overlayProcByPid[overlayTargetPid] || null) : root.focusProc
     readonly property bool system: proc === null
     readonly property real cpu: system ? root.summary.cpu : proc.cpu
     readonly property real gpu: system ? root.summary.gpu : proc.gpu
     readonly property bool showFps: Plasmoid.configuration.compactShowFps && proc !== null && proc.fps >= 0
+    readonly property int framePid: proc ? (proc.framePid || proc.pid) : 0
+    readonly property var frametimes: root.frametimesFor(framePid)
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     readonly property bool lit: containsMouse || root.expanded
     readonly property real screenSpan: vertical ? Screen.height : Screen.width
@@ -39,6 +47,8 @@ MouseArea {
     onClicked: function(mouse) {
         if (mouse.button === Qt.MiddleButton)
             root.middleClick()
+        else if (overlayMode)
+            compact.overlayClicked()
         else
             root.expanded = !wasExpanded
     }
@@ -53,7 +63,7 @@ MouseArea {
         id: nameMetrics
         font.pixelSize: compact.valueSize * 0.92
         font.weight: Font.DemiBold
-        text: compact.system ? i18n("System") : root.focusName
+        text: compact.system ? i18n("System") : (compact.overlayTargetPid > 0 ? compact.proc.name : root.focusName)
     }
 
     PopFit {
@@ -88,6 +98,24 @@ MouseArea {
         inset: fit.inset
         span: fit.tileSpan
         lit: compact.lit
+        customBackground: compact.overlayMode
+        backgroundColor: compact.overlayBackgroundColor
+        backgroundOpacity: compact.overlayBackgroundOpacity
+    }
+
+    Sparkline {
+        anchors.fill: tile
+        anchors.margins: 1
+        visible: compact.frametimes.length > 1
+        values: compact.frametimes
+        rangeFloor: 33.333
+        lineColor: Kirigami.Theme.highlightColor
+        dangerFrom: 16.667
+        dangerColor: Kirigami.Theme.negativeTextColor
+        gradient: false
+        peakMarker: false
+        hoverable: false
+        opacity: 0.55
     }
 
     Rectangle {

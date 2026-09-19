@@ -204,6 +204,7 @@ window-rule {
 
 binds {
     Mod+K hotkey-overlay-title="Show Shortcut Cheatsheet" { show-hotkey-overlay; }
+    Mod+Grave hotkey-overlay-title="Toggle Monitor Overlay" { spawn "$HOME/.local/bin/monitor-overlay" "toggle"; }
 
     // KDE already gives you an overview: Meta+W for the current desktop and
     // Meta+G for every desktop at once, both with a search field, so no

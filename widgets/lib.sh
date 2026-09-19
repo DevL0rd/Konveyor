@@ -96,6 +96,7 @@ stage_lib() {
     rm -rf "$plasmoid/contents/ui/lib"
     mkdir -p "$plasmoid/contents/ui/lib"
     cp "$SHARED_DIR/"*.qml "$SHARED_DIR/"*.js "$plasmoid/contents/ui/lib/"
+    cp "$WIDGETS_DIR/shared/MonitorOverlay.qml" "$plasmoid/contents/ui/lib/"
     local extra
     for extra in "$@"; do
         cp -r "$extra/." "$plasmoid/contents/ui/lib/"

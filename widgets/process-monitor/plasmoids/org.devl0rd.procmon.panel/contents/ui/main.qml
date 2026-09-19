@@ -5,9 +5,11 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.workspace.dbus as DBus
 import org.kde.taskmanager as TaskManager
 import "lib"
 import "lib/PopStyle.js" as Style
+import "lib/Ring.js" as Ring
 
 PlasmoidItem {
     id: root
@@ -40,10 +42,14 @@ PlasmoidItem {
     property var summary: ({ count: 0, cpu: 0, gpu: 0, vram: 0, memTotal: 0, vramTotal: 0, gpuTop: null })
     property var procByPid: ({})
     property var sortHistByPid: ({})
+    property var overlayProcByPid: ({})
+    property var frametimeRings: ({})
+    property int frametimeGeneration: 0
     property var expandedRows: ({})
     property int expandedPid: 0
     property string searchText
     property var rowsView: null
+    property bool sortSyncPending: false
     onRowsViewChanged: requestRebuild()
     readonly property int windowRows: 40
     property int windowStart: 0
@@ -119,6 +125,75 @@ PlasmoidItem {
         requestRebuild()
     }
     onFocusAppNameChanged: writeFocus()
+    readonly property var frametimeWatchPids: {
+        const seen = {}
+        const result = []
+        function add(pid) {
+            pid = Number(pid) || 0
+            if (pid > 0 && seen[pid] !== true) {
+                seen[pid] = true
+                result.push(pid)
+            }
+        }
+        add(focusPid)
+        if (focusProc)
+            add(focusProc.framePid)
+        for (const pid of monitorOverlay.pids) {
+            add(pid)
+            const proc = overlayProcByPid[pid]
+            if (proc)
+                add(proc.framePid)
+        }
+        return result.sort((a, b) => a - b)
+    }
+    readonly property string frametimeWatchKey: frametimeWatchPids.join(",")
+    onFrametimeWatchKeyChanged: syncFrametimeWatch()
+
+    function syncFrametimeWatch() {
+        const message = {
+            service: "org.devl0rd.ProcessMonitor.FrameTelemetry",
+            path: "/FrameTelemetry",
+            iface: "org.devl0rd.ProcessMonitor.FrameTelemetry",
+            member: "Watch",
+            arguments: [JSON.stringify(frametimeWatchPids)]
+        }
+        DBus.SessionBus.asyncCall(message)
+        const keep = {}
+        for (const pid of frametimeWatchPids)
+            if (frametimeRings[pid]) keep[pid] = frametimeRings[pid]
+        frametimeRings = keep
+    }
+
+    function recordFrametime(pid, frametime) {
+        if (pid <= 0 || frametime <= 0 || frametime > 2000)
+            return
+        let ring = frametimeRings[pid]
+        if (!ring) {
+            ring = Ring.make(240)
+            frametimeRings[pid] = ring
+        }
+        Ring.push(ring, frametime)
+        frametimeGeneration++
+    }
+
+    function frametimesFor(pid) {
+        frametimeGeneration
+        const ring = frametimeRings[pid]
+        return ring ? Ring.values(ring) : []
+    }
+
+    DBus.SignalWatcher {
+        enabled: root.dataWanted
+        busType: DBus.BusType.Session
+        service: "org.devl0rd.ProcessMonitor.FrameTelemetry"
+        path: "/FrameTelemetry"
+        iface: "org.devl0rd.ProcessMonitor.FrameTelemetry"
+
+        function dbusFrame(pid, frametime) {
+            root.recordFrametime(Number(pid), Number(frametime))
+        }
+    }
+
     function writeFocus() {
         if (runtimeDir)
             run("printf '%s\\n%s\\n' " + focusPid + " " + shq(focusAppName) + " > " + shq(runtimeDir + "/focus"))
@@ -171,7 +246,7 @@ PlasmoidItem {
     property string runtimeDir
     readonly property string cachePath: runtimeDir ? runtimeDir + "/data.json" : ""
     readonly property string panelPath: runtimeDir ? runtimeDir + "/panel/panel.json" : ""
-    readonly property bool compactOnly: inPanel && !popupAlive
+    readonly property bool compactOnly: inPanel && !popupAlive && monitorOverlay.pids.length === 0
     onCompactOnlyChanged: read()
     P5Support.DataSource {
         id: pathHelper
@@ -207,7 +282,8 @@ PlasmoidItem {
             sortColumn: sortColumn, sortNoagg: column ? !!column.noagg : true, sortDescending: Plasmoid.configuration.sortDescending,
             searchText: searchText.trim(), showKernel: Plasmoid.configuration.showKernelThreads, hideSystemd: Plasmoid.configuration.hideSystemd,
             expanded: expandedRows, tree: Plasmoid.configuration.treeView, filter: Plasmoid.configuration.processFilter,
-            focusPid: focusPid, full: popupAlive && rowsView !== null,
+            focusPid: focusPid, full: rowsView !== null,
+            overlayPids: monitorOverlay.pids,
             windowStart: windowStart, windowEnd: windowEnd, windowPids: windowPids()
         }
     }
@@ -224,7 +300,9 @@ PlasmoidItem {
             if (!root.hasData)
                 root.hasData = true
             if (!message.full) {
-                if (message.compactSig === compactSig)
+                if (message.overlayProcByPid)
+                    root.overlayProcByPid = message.overlayProcByPid
+                if (message.compactSig === compactSig && !message.overlay)
                     return
                 compactSig = message.compactSig
                 root.focusProc = message.focus || root.focusProc
@@ -235,14 +313,21 @@ PlasmoidItem {
             root.focusProc = message.focus || root.focusProc
             root.focusHistory = message.focusHistory
             root.summary = message.summary
+            root.overlayProcByPid = message.overlayProcByPid || ({})
             root.procByPid = message.procByPid
             root.sortHistByPid = message.sortHistByPid
             if (!message.desired)
                 return
-            if (!root.rowsView || root.rowsView.contentY < Kirigami.Units.gridUnit * 1.7)
+            if (root.sortSyncPending) {
                 root.syncModel(message.desired)
-            else
+                root.sortSyncPending = false
+                if (root.rowsView)
+                    root.rowsView.positionViewAtBeginning()
+            } else if (!root.rowsView || root.rowsView.contentY < Kirigami.Units.gridUnit * 1.7) {
+                root.syncModel(message.desired)
+            } else {
                 root.syncFrozen(message.desired)
+            }
         }
     }
     Connections {
@@ -260,6 +345,17 @@ PlasmoidItem {
     Component.onCompleted: {
         pathHelper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Linux-Process-Mon\"")
         applyInterval()
+        syncFrametimeWatch()
+    }
+    Component.onDestruction: {
+        const message = {
+            service: "org.devl0rd.ProcessMonitor.FrameTelemetry",
+            path: "/FrameTelemetry",
+            iface: "org.devl0rd.ProcessMonitor.FrameTelemetry",
+            member: "Watch",
+            arguments: ["[]"]
+        }
+        DBus.SessionBus.asyncCall(message)
     }
     function applyInterval() {
         run("$HOME/.local/bin/procmon-collect --set-interval " + (Math.max(500, Plasmoid.configuration.updateInterval) / 1000))
@@ -336,6 +432,10 @@ PlasmoidItem {
     }
     function headerSort(key) {
         const descending = Plasmoid.configuration.sortColumn === key ? !Plasmoid.configuration.sortDescending : key !== "name"
+        sortSyncPending = true
+        windowStart = 0
+        if (rowsView)
+            rowsView.positionViewAtBeginning()
         Plasmoid.configuration.sortColumn = key
         Plasmoid.configuration.sortDescending = descending
     }
@@ -424,4 +524,13 @@ PlasmoidItem {
 
     compactRepresentation: CompactView {}
     fullRepresentation: FullView {}
+
+    MonitorOverlay {
+        id: monitorOverlay
+        active: Plasmoid.pluginName === "org.devl0rd.procmon.panel"
+        slot: 1
+        content: Component { CompactView {} }
+        popupContent: Component { FullView {} }
+        onPidsChanged: root.read()
+    }
 }

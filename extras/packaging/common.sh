@@ -67,6 +67,14 @@ konveyor_loaded_plugin_ids() {
     find "$KONVEYOR_PLUGIN_DIR" -maxdepth 1 -name 'konveyor_effect*.so' -printf '%f\n' 2>/dev/null | sed 's/\.so$//'
 }
 
+process_monitor_telemetry_plugin_ids() {
+    grep -oE '^process_monitor_telemetry[A-Za-z0-9_]*Enabled' "${XDG_CONFIG_HOME:-$HOME/.config}/kwinrc" 2>/dev/null | sed 's/Enabled$//'
+    if command -v qdbus6 >/dev/null; then
+        qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadedEffects 2>/dev/null | grep -E '^process_monitor_telemetry' || true
+    fi
+    find "$KONVEYOR_PLUGIN_DIR" -maxdepth 1 -name 'process_monitor_telemetry*.so' -printf '%f\n' 2>/dev/null | sed 's/\.so$//'
+}
+
 konveyor_disable_plugin_id() {
     kwinrc_delete Plugins "${1}Enabled"
     kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect "$1"

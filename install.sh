@@ -86,6 +86,12 @@ install_versioned_plugin() {
     run_root install -Dm755 "$BUILD_DIR/bin/kwin/effects/plugins/konveyor_effect.so" "$KONVEYOR_PLUGIN_DIR/${PLUGIN_ID}.so"
     run_root rm -f "$KONVEYOR_PLUGIN_DIR/konveyor_effect.so"
     printf '%s\n' "$PLUGIN_ID" | run_root tee "$KONVEYOR_STATE_DIR/plugin-id" >/dev/null
+    if $WIDGETS; then
+        TELEMETRY_PLUGIN_ID="process_monitor_telemetry_$(date +%s)"
+        run_root install -Dm755 "$BUILD_DIR/bin/kwin/effects/plugins/process_monitor_telemetry.so" "$KONVEYOR_PLUGIN_DIR/${TELEMETRY_PLUGIN_ID}.so"
+        printf '%s\n' "$TELEMETRY_PLUGIN_ID" | run_root tee "$KONVEYOR_STATE_DIR/telemetry-plugin-id" >/dev/null
+    fi
+    run_root rm -f "$KONVEYOR_PLUGIN_DIR/process_monitor_telemetry.so"
 }
 
 register_updates() {
@@ -119,6 +125,9 @@ remove_previous_plugin_files() {
     for file in "$KONVEYOR_PLUGIN_DIR"/konveyor_effect*.so; do
         [[ -e $file && $(basename "$file" .so) != "$PLUGIN_ID" ]] && run_root rm -f "$file"
     done
+    for file in "$KONVEYOR_PLUGIN_DIR"/process_monitor_telemetry*.so; do
+        [[ -e $file && $(basename "$file" .so) != "${TELEMETRY_PLUGIN_ID:-}" ]] && run_root rm -f "$file"
+    done
     return 0
 }
 
@@ -135,24 +144,33 @@ configure_kwin() {
     kwinrc_write Plugins "${PLUGIN_ID}Enabled" true
     if $WIDGETS; then
         say "Enabling Process Monitor frame telemetry in KWin"
-        kwinrc_write Plugins process_monitor_telemetryEnabled true
+        for previous in $(process_monitor_telemetry_plugin_ids | sort -u); do
+            [[ $previous == "$TELEMETRY_PLUGIN_ID" ]] || {
+                kwinrc_delete Plugins "${previous}Enabled"
+                kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect "$previous"
+            }
+        done
+        kwinrc_write Plugins process_monitor_telemetryEnabled false
+        kwinrc_write Plugins "${TELEMETRY_PLUGIN_ID}Enabled" true
     else
-        kwinrc_delete Plugins process_monitor_telemetryEnabled
-        kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect process_monitor_telemetry
+        for previous in $(process_monitor_telemetry_plugin_ids | sort -u); do
+            kwinrc_delete Plugins "${previous}Enabled"
+            kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect "$previous"
+        done
     fi
     kwin_dbus /KWin reconfigure
 }
 
 activate() {
     kwin_dbus /Effects org.kde.kwin.Effects.loadEffect "$PLUGIN_ID"
-    $WIDGETS && kwin_dbus /Effects org.kde.kwin.Effects.loadEffect process_monitor_telemetry
+    $WIDGETS && kwin_dbus /Effects org.kde.kwin.Effects.loadEffect "$TELEMETRY_PLUGIN_ID"
     sleep 1
     if qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.isEffectLoaded "$PLUGIN_ID" 2>/dev/null | grep -q true; then
         say "Konveyor is live now — no logout needed. Press Super+K for the shortcut cheatsheet."
     else
         say "Installed. Log out and back in to start it."
     fi
-    if $WIDGETS && qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.isEffectLoaded process_monitor_telemetry 2>/dev/null | grep -q true; then
+    if $WIDGETS && qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.isEffectLoaded "$TELEMETRY_PLUGIN_ID" 2>/dev/null | grep -q true; then
         say "Process Monitor frame telemetry is live now"
     fi
 }
@@ -161,6 +179,9 @@ finish_update() {
     PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/plugin-id")
     if grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null; then
         WIDGETS=false
+    fi
+    if $WIDGETS; then
+        TELEMETRY_PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/telemetry-plugin-id")
     fi
     configure_kwin
     activate

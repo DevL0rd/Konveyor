@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+import fcntl
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def runtime_directory():
+    return Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "Konveyor-Monitor-Overlay"
+
+
+def read_state(path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def konveyor_json(request):
+    try:
+        result = subprocess.run(
+            ["konveyor", "msg", "--json", request], capture_output=True, check=True, text=True, timeout=2
+        )
+        return json.loads(result.stdout)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+
+
+def focused_output():
+    outputs = konveyor_json("focused-output")
+    if isinstance(outputs, list) and outputs:
+        return outputs[0].get("logical", {})
+    return {}
+
+
+def focused_target():
+    window = konveyor_json("focused-window")
+    layout = window.get("layout", {}) if isinstance(window, dict) else {}
+    position = layout.get("tile_pos_in_workspace_view")
+    size = layout.get("window_size")
+    app_id = window.get("app_id", "") if isinstance(window, dict) else ""
+    if not app_id or not isinstance(position, list) or len(position) != 2 or not isinstance(size, list) or len(size) != 2:
+        return None
+    if size[0] <= 0 or size[1] <= 0:
+        return None
+    output = focused_output()
+    fullscreen = bool(
+        output
+        and abs(position[0] - output.get("x", 0)) <= 1
+        and abs(position[1] - output.get("y", 0)) <= 1
+        and abs(size[0] - output.get("width", 0)) <= 1
+        and abs(size[1] - output.get("height", 0)) <= 1
+    )
+    return {
+        "key": app_id,
+        "appId": app_id,
+        "pid": int(window.get("pid", 0) or 0),
+        "windowId": int(window.get("id", 0) or 0),
+        "x": position[0],
+        "y": output.get("y", position[1]) if fullscreen else position[1],
+        "width": size[0],
+        "height": size[1],
+        "fullscreen": fullscreen,
+    }
+
+
+def write_state(path, state):
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(state, separators=(",", ":")))
+    os.replace(temporary, path)
+
+
+def main():
+    mode = sys.argv[1] if len(sys.argv) > 1 else "toggle"
+    if mode not in ("toggle", "show", "hide", "remove", "update-fullscreen"):
+        sys.stderr.write("usage: monitor-overlay [toggle|show|hide|remove|update-fullscreen]\n")
+        return 2
+    directory = runtime_directory()
+    directory.mkdir(parents=True, exist_ok=True)
+    state_path = directory / "state.json"
+    with (directory / "lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        current = read_state(state_path)
+        targets = current.get("targets", []) if isinstance(current.get("targets"), list) else []
+        if mode == "hide":
+            targets = []
+        elif mode == "remove":
+            if len(sys.argv) < 3:
+                return 2
+            window_id = int(sys.argv[2])
+            targets = [target for target in targets if int(target.get("windowId", 0) or 0) != window_id]
+        elif mode == "update-fullscreen":
+            if len(sys.argv) < 4:
+                return 2
+            window_id = int(sys.argv[2])
+            fullscreen = sys.argv[3] == "1"
+            changed = False
+            for target in targets:
+                if int(target.get("windowId", 0) or 0) == window_id and bool(target.get("fullscreen")) != fullscreen:
+                    target["fullscreen"] = fullscreen
+                    changed = True
+            if not changed:
+                return 0
+        else:
+            target = focused_target()
+            if not target:
+                return 1
+            existing = next((index for index, item in enumerate(targets) if item.get("key") == target["key"]), -1)
+            if mode == "toggle" and existing >= 0:
+                targets.pop(existing)
+            elif existing >= 0:
+                targets[existing] = target
+            else:
+                targets.append(target)
+        write_state(state_path, {"targets": targets, "generation": time.time_ns()})
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -13,6 +13,10 @@ import "lib/Highlight.js" as Highlight
 Item {
     id: full
 
+    property bool overlayMode: false
+    signal overlayCloseRequested()
+    readonly property real overlayPreferredWidth: Layout.preferredWidth
+    readonly property real overlayPreferredHeight: Layout.preferredHeight
     Layout.minimumWidth: Kirigami.Units.gridUnit * 13
     Layout.minimumHeight: Kirigami.Units.gridUnit * 12
     Layout.preferredWidth: Kirigami.Units.gridUnit * 26
@@ -21,7 +25,7 @@ Item {
     Loader {
         id: loader
         anchors.fill: parent
-        active: root.popupAlive
+        active: full.overlayMode || root.popupAlive
         sourceComponent: dashboard
         onLoaded: if (root.expanded) item.focusSearch()
     }
@@ -163,7 +167,7 @@ Item {
             searchPlaceholder: i18n("Search CPU, cores, GPU, memory…")
             matchCount: query === "" ? -1 : matchedCards.length
             onSearchAccepted: if (matchedCards.length > 0) scroll.scrollTo(matchedCards[0])
-            onCloseRequested: root.expanded = false
+            onCloseRequested: if (full.overlayMode) full.overlayCloseRequested(); else root.expanded = false
 
             headerExtra: [
                 Pill {

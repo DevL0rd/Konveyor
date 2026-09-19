@@ -395,4 +395,11 @@ PlasmoidItem {
 
     compactRepresentation: CompactView {}
     fullRepresentation: FullView {}
+
+    MonitorOverlay {
+        active: Plasmoid.pluginName === "org.devl0rd.routermon.panel"
+        slot: 2
+        content: Component { CompactView {} }
+        popupContent: Component { FullView {} }
+    }
 }

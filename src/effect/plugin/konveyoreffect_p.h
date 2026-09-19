@@ -38,7 +38,10 @@
 #include <utility>
 
 #include <QJsonArray>
+#include <QDir>
+#include <QPointer>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QSet>
 #include <QTimer>
 
@@ -109,6 +112,10 @@ struct KonveyorEffect::Private
     std::optional<Layout::WindowId> touchMovePending;
     QHash<Layout::WindowId, QString> homeOutputs;
     QHash<KWin::Window *, Layout::RestorePlacement> minimizedPlacements;
+    QHash<Layout::WindowId, QHash<int, QPointer<KWin::Window>>> monitorOverlays;
+    QHash<Layout::WindowId, QHash<int, QPointer<KWin::Window>>> monitorPanels;
+    QSet<Layout::WindowId> placingMonitorOverlays;
+    QSet<Layout::WindowId> placingMonitorPanels;
 
     Private(Layout::Hooks hooks, ShortcutManager::Handler shortcutHandler)
         : engine(clock, std::move(hooks))

@@ -3,6 +3,16 @@
 namespace Konveyor
 {
 
+namespace
+{
+
+void runMonitorOverlay(const QStringList &arguments)
+{
+    QProcess::startDetached(QDir::home().filePath(QStringLiteral(".local/bin/monitor-overlay")), arguments);
+}
+
+}
+
 void KonveyorEffect::installInputFilter()
 {
     d->spillInput = std::make_unique<SpillInputFilter>([this](KWin::Window *window, const QPointF &position) {
@@ -81,6 +91,22 @@ void KonveyorEffect::connectRegistries()
 
 void KonveyorEffect::connectWindowLifecycle()
 {
+    connect(KWin::workspace(), &KWin::Workspace::windowAdded, this, [this](KWin::Window *window) {
+        observeMonitorOverlay(window);
+        connect(window, &KWin::Window::captionChanged, this, [this, window] { observeMonitorOverlay(window); });
+    });
+    connect(KWin::workspace(), &KWin::Workspace::windowRemoved, this, [this](KWin::Window *window) {
+        if (const std::optional<Layout::WindowId> id = d->windows.idOf(window)) {
+            d->monitorOverlays.remove(*id);
+            d->monitorPanels.remove(*id);
+            runMonitorOverlay({QStringLiteral("remove"), QString::number(*id)});
+        }
+        forgetMonitorOverlay(window);
+    });
+    for (KWin::Window *window : KWin::workspace()->windows()) {
+        observeMonitorOverlay(window);
+        connect(window, &KWin::Window::captionChanged, this, [this, window] { observeMonitorOverlay(window); });
+    }
     connect(&d->windows, &WindowRegistry::windowAdded, this, &KonveyorEffect::onWindowAdded);
     connect(&d->windows, &WindowRegistry::windowRemoved, this, [this](Layout::WindowId id) {
         changeEngine().removeWindow(id);
@@ -185,9 +211,148 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
         = restore == d->minimizedPlacements.constEnd() ? std::nullopt : std::optional(*restore);
     d->minimizedPlacements.remove(window);
     changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);
+    connect(window, &KWin::Window::frameGeometryChanged, this, [this, id] {
+        placeMonitorOverlays(id);
+        placeMonitorPanels(id);
+    });
+    connect(window, &KWin::Window::fullScreenChanged, this, [this, id, window] {
+        placeMonitorOverlays(id);
+        if (d->monitorOverlays.contains(id)) {
+            runMonitorOverlay(
+                {QStringLiteral("update-fullscreen"), QString::number(id), window->isFullScreen() ? QStringLiteral("1") : QStringLiteral("0")});
+        }
+    });
+    placeMonitorOverlays(id);
     if (window == KWin::workspace()->activeWindow()) {
         followActiveWindow();
     }
+}
+
+void KonveyorEffect::observeMonitorOverlay(KWin::Window *window)
+{
+    static const QRegularExpression pattern(QStringLiteral("^Konveyor Monitor (Overlay|Panel) (\\d+) ([0-2])$"));
+    if (!window) {
+        return;
+    }
+    const QRegularExpressionMatch match = pattern.match(window->caption());
+    if (match.hasMatch()) {
+        const bool panel = match.captured(1) == QLatin1String("Panel");
+        const Layout::WindowId target = match.captured(2).toULongLong();
+        const int slot = match.captured(3).toInt();
+        const auto &windows = panel ? d->monitorPanels : d->monitorOverlays;
+        if (windows.value(target).value(slot) == window) {
+            return;
+        }
+    }
+    forgetMonitorOverlay(window);
+    if (!match.hasMatch()) {
+        return;
+    }
+    const bool panel = match.captured(1) == QLatin1String("Panel");
+    const Layout::WindowId target = match.captured(2).toULongLong();
+    const int slot = match.captured(3).toInt();
+    if (panel) {
+        d->monitorPanels[target].insert(slot, window);
+        connect(window, &KWin::Window::frameGeometryChanged, this, [this, target] { placeMonitorPanels(target); });
+        placeMonitorPanels(target);
+    } else {
+        d->monitorOverlays[target].insert(slot, window);
+        connect(window, &KWin::Window::frameGeometryChanged, this, [this, target] { placeMonitorOverlays(target); });
+        placeMonitorOverlays(target);
+    }
+}
+
+void KonveyorEffect::forgetMonitorOverlay(KWin::Window *window)
+{
+    for (auto target = d->monitorOverlays.begin(); target != d->monitorOverlays.end();) {
+        auto &slotMap = target.value();
+        for (auto slot = slotMap.begin(); slot != slotMap.end();) {
+            if (slot.value() == window) {
+                slot = slotMap.erase(slot);
+            } else {
+                ++slot;
+            }
+        }
+        if (slotMap.isEmpty()) {
+            target = d->monitorOverlays.erase(target);
+        } else {
+            const Layout::WindowId id = target.key();
+            ++target;
+            placeMonitorOverlays(id);
+        }
+    }
+    for (auto target = d->monitorPanels.begin(); target != d->monitorPanels.end();) {
+        auto &slotMap = target.value();
+        for (auto slot = slotMap.begin(); slot != slotMap.end();) {
+            if (slot.value() == window) {
+                slot = slotMap.erase(slot);
+            } else {
+                ++slot;
+            }
+        }
+        if (slotMap.isEmpty()) {
+            target = d->monitorPanels.erase(target);
+        } else {
+            const Layout::WindowId id = target.key();
+            ++target;
+            placeMonitorPanels(id);
+        }
+    }
+}
+
+void KonveyorEffect::placeMonitorOverlays(Layout::WindowId id)
+{
+    if (d->placingMonitorOverlays.contains(id)) {
+        return;
+    }
+    KWin::Window *target = d->windows.windowOf(id);
+    const auto overlays = d->monitorOverlays.value(id);
+    if (!target || overlays.isEmpty()) {
+        return;
+    }
+    d->placingMonitorOverlays.insert(id);
+    qreal width = 0;
+    for (int slot = 0; slot < 3; ++slot) {
+        if (KWin::Window *overlay = overlays.value(slot)) {
+            width += overlay->frameGeometry().width();
+        }
+    }
+    qreal x = target->frameGeometry().x() + (target->frameGeometry().width() - width) / 2;
+    const qreal y = target->frameGeometry().y();
+    for (int slot = 0; slot < 3; ++slot) {
+        if (KWin::Window *overlay = overlays.value(slot)) {
+            const QPointF position(qRound(x), qRound(y));
+            if (overlay->frameGeometry().topLeft() != position) {
+                overlay->move(position);
+            }
+            x += overlay->frameGeometry().width();
+        }
+    }
+    d->placingMonitorOverlays.remove(id);
+}
+
+void KonveyorEffect::placeMonitorPanels(Layout::WindowId id)
+{
+    if (d->placingMonitorPanels.contains(id)) {
+        return;
+    }
+    KWin::Window *target = d->windows.windowOf(id);
+    const auto panels = d->monitorPanels.value(id);
+    if (!target || panels.isEmpty()) {
+        return;
+    }
+    d->placingMonitorPanels.insert(id);
+    for (KWin::Window *panel : panels) {
+        if (!panel) {
+            continue;
+        }
+        const QPointF position(qRound(target->frameGeometry().x() + (target->frameGeometry().width() - panel->frameGeometry().width()) / 2),
+            qRound(target->frameGeometry().y() + (target->frameGeometry().height() - panel->frameGeometry().height()) / 2));
+        if (panel->frameGeometry().topLeft() != position) {
+            panel->move(position);
+        }
+    }
+    d->placingMonitorPanels.remove(id);
 }
 
 }
