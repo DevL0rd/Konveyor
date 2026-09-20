@@ -96,6 +96,8 @@ QVariantMap globalValues(const Config::Config &config)
         {QStringLiteral("hide-desktop-widgets"), config.hideDesktopWidgets},
         {QStringLiteral("fill-panels-on-maximize"), config.fillPanelsOnMaximize},
         {QStringLiteral("disable-minimize"), config.disableMinimize},
+        {QStringLiteral("experiments/prevent-fullscreen-minimize"), config.experiments.preventFullscreenMinimize},
+        {QStringLiteral("experiments/prevent-fullscreen-exit"), config.experiments.preventFullscreenExit},
         {QStringLiteral("config-notification/disable-failed"), config.configNotificationDisableFailed},
         {QStringLiteral("input/focus-follows-mouse"), input.focusFollowsMouse},
         {QStringLiteral("input/warp-mouse-to-focus"), input.warpMouseToFocus},

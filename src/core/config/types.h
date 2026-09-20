@@ -8,6 +8,13 @@
 namespace Konveyor::Config
 {
 
+struct Experiments
+{
+    bool preventFullscreenMinimize = false;
+    bool preventFullscreenExit = false;
+    bool operator==(const Experiments &) const = default;
+};
+
 struct Config
 {
     Layout layout;
@@ -17,6 +24,7 @@ struct Config
     bool hideDesktopWidgets = false;
     bool fillPanelsOnMaximize = false;
     bool disableMinimize = false;
+    Experiments experiments;
     QList<OutputConfig> outputs;
     QList<MonitorProfile> monitorProfiles;
     QList<NamedWorkspace> workspaces;

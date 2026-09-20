@@ -20,7 +20,9 @@ const pages = [
     { id: "workspaces", title: "Workspaces", icon: "virtual-desktops", file: "pages/WorkspacesPage.qml",
       description: "Named workspaces and switching behavior" },
     { id: "plasma", title: "Plasma Integration", icon: "plasma", file: "pages/PlasmaPage.qml",
-      description: "Desktop widgets, panels, minimizing and notifications" }
+      description: "Desktop widgets, panels, minimizing and notifications" },
+    { id: "experiments", title: "Experiments", icon: "applications-science", file: "pages/ExperimentsPage.qml",
+      description: "Optional fullscreen behavior still being tested" }
 ];
 
 function byId(id) {

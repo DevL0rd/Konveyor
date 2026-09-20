@@ -9,10 +9,11 @@
 .import "index/MonitorsIndex.js" as MonitorsIndex
 .import "index/WorkspacesIndex.js" as WorkspacesIndex
 .import "index/PlasmaIndex.js" as PlasmaIndex
+.import "index/ExperimentsIndex.js" as ExperimentsIndex
 
 const entries = [].concat(
     LayoutIndex.entries, LookIndex.entries, MotionIndex.entries, MouseIndex.entries, TouchIndex.entries, ShortcutsIndex.entries,
-    RulesIndex.entries, MonitorsIndex.entries, WorkspacesIndex.entries, PlasmaIndex.entries);
+    RulesIndex.entries, MonitorsIndex.entries, WorkspacesIndex.entries, PlasmaIndex.entries, ExperimentsIndex.entries);
 
 function search(query) {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);

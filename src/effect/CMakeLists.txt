@@ -1,6 +1,7 @@
 find_package(KWin REQUIRED COMPONENTS kwineffects)
 find_package(KDecoration3 REQUIRED)
 find_package(KF6 REQUIRED COMPONENTS CoreAddons GlobalAccel Config ColorScheme Notifications I18n)
+find_package(XCB REQUIRED COMPONENTS XCB ICCCM)
 
 kcoreaddons_add_plugin(konveyor_effect INSTALL_NAMESPACE "kwin/effects/plugins")
 
@@ -23,4 +24,6 @@ target_link_libraries(konveyor_effect PRIVATE
     KF6::Notifications
     KF6::I18n
     Qt6::DBus
+    XCB::XCB
+    XCB::ICCCM
 )

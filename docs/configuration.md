@@ -1,6 +1,6 @@
 # Configuration
 
-Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the Kontrol Panel's sidebar, or press the gear (<kbd>Ctrl</kbd> + <kbd>,</kbd>). Every option has a page there with a live preview: layout, look, motion, mouse, touch and gestures, shortcuts, window rules, monitors, workspaces and Plasma integration. Changes apply instantly, and Undo (<kbd>Ctrl</kbd> + <kbd>Z</kbd>) takes them back. `portal-launcher settings` opens the page directly. The Kontrol Panel comes with the Konveyor widgets; if you installed with `--no-widgets`, edit the file below instead.
+Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the Kontrol Panel's sidebar, or press the gear (<kbd>Ctrl</kbd> + <kbd>,</kbd>). Every option has a page there: layout, look, motion, mouse, touch and gestures, shortcuts, window rules, monitors, workspaces, Plasma integration and experiments. Changes apply instantly, and Undo (<kbd>Ctrl</kbd> + <kbd>Z</kbd>) takes them back. `portal-launcher settings` opens the page directly. The Kontrol Panel comes with the Konveyor widgets; if you installed with `--no-widgets`, edit the file below instead.
 
 The settings page edits `~/.config/konveyor/config.kdl` in place and keeps your comments and formatting, so you can use both.
 
@@ -39,6 +39,15 @@ Tiled windows respect application size limits by default. Add `force-resizable t
 window-rule {
     match app-id=r#"^example-game$"#
     force-resizable true
+}
+```
+
+Experimental fullscreen focus handling is global and disabled by default. `prevent-fullscreen-minimize` intercepts native Wayland and XWayland applications that try to minimize themselves while fullscreen; XWayland applications may stop drawing until they are focused again. `prevent-fullscreen-exit` prevents an unfocused native Wayland or XWayland application from leaving fullscreen. Both also recognize undecorated windows that cover an entire output.
+
+```kdl
+experiments {
+    prevent-fullscreen-minimize
+    prevent-fullscreen-exit
 }
 ```
 

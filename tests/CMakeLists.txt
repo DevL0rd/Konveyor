@@ -1,3 +1,5 @@
+enable_language(C)
+
 function(konveyor_add_unit_test source module)
     get_filename_component(name ${source} NAME_WE)
     add_executable(${name} ${source})
@@ -33,6 +35,24 @@ set_tests_properties(test_monitor_overlay_qml PROPERTIES LABELS "unit;widgets" E
 
 add_test(NAME test_monitor_overlay_service COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_monitor_overlay_service.py)
 set_tests_properties(test_monitor_overlay_service PROPERTIES LABELS "unit;widgets")
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
+find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
+pkg_get_variable(WAYLAND_PROTOCOLS_DATA wayland-protocols pkgdatadir)
+set(XDG_SHELL_XML ${WAYLAND_PROTOCOLS_DATA}/stable/xdg-shell/xdg-shell.xml)
+set(XDG_SHELL_HEADER ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h)
+set(XDG_SHELL_CODE ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c)
+add_custom_command(OUTPUT ${XDG_SHELL_HEADER}
+    COMMAND ${WAYLAND_SCANNER} client-header ${XDG_SHELL_XML} ${XDG_SHELL_HEADER}
+    DEPENDS ${XDG_SHELL_XML})
+add_custom_command(OUTPUT ${XDG_SHELL_CODE}
+    COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_CODE}
+    DEPENDS ${XDG_SHELL_XML})
+add_executable(fullscreen_guard_client nested/clients/fullscreen_guard_client.cpp ${XDG_SHELL_HEADER} ${XDG_SHELL_CODE})
+target_include_directories(fullscreen_guard_client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(fullscreen_guard_client PRIVATE PkgConfig::WAYLAND_CLIENT)
+target_compile_options(fullscreen_guard_client PRIVATE -Wall -Wextra -Werror)
 
 file(GLOB KONVEYOR_NESTED_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/nested/test_*.py)
 foreach(test_script ${KONVEYOR_NESTED_TESTS})

@@ -12,6 +12,7 @@
 #include "input/spillinputfilter.h"
 #include "input/touchpadcontactreader.h"
 #include "kwin/desktopsync.h"
+#include "kwin/fullscreenguard.h"
 #include "kwin/minimizerule.h"
 #include "kwin/outputregistry.h"
 #include "kwin/windowapplier.h"
@@ -81,6 +82,7 @@ struct KonveyorEffect::Private
     ConfigManager config;
     AccentColor accent;
     WindowRegistry windows;
+    FullscreenGuard fullscreenGuard;
     OutputRegistry outputs;
     Layout::Engine engine;
     Layout::GestureRouter gestures;
@@ -118,7 +120,8 @@ struct KonveyorEffect::Private
     QSet<Layout::WindowId> placingMonitorPanels;
 
     Private(Layout::Hooks hooks, ShortcutManager::Handler shortcutHandler)
-        : engine(clock, std::move(hooks))
+        : fullscreenGuard(windows)
+        , engine(clock, std::move(hooks))
         , gestures(engine)
         , applier(windows)
         , decorations(accent)

@@ -41,6 +41,11 @@ def window_state(title):
     return printed[0] if printed else None
 
 
+def window_minimized(title):
+    printed = run_script(for_window(title, 'print("MARK|" + w.minimized);'))
+    return printed[0] == "true" if printed else None
+
+
 def watch_changes(title, seconds):
     return run_script(for_window(title, 'w.frameGeometryChanged.connect(() => print("MARK|geometry|" + w.frameGeometry));'
                                         ' w.fullScreenChanged.connect(() => print("MARK|fullscreen|" + w.fullScreen));'), seconds)

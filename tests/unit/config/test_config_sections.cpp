@@ -11,6 +11,7 @@ class TestConfigSections : public QObject
 
 private Q_SLOTS:
     void hidesDesktopWidgetsFlag();
+    void experimentsFlags();
     void rejectsUnsupportedSections_data();
     void rejectsUnsupportedSections();
 };
@@ -23,6 +24,21 @@ void TestConfigSections::hidesDesktopWidgetsFlag()
     QVERIFY(parsed(QStringLiteral("fill-panels-on-maximize\n")).fillPanelsOnMaximize);
     QVERIFY(!parsed(QString()).disableMinimize);
     QVERIFY(parsed(QStringLiteral("disable-minimize\n")).disableMinimize);
+}
+
+void TestConfigSections::experimentsFlags()
+{
+    const Config defaults = parsed(QString());
+    QVERIFY(!defaults.experiments.preventFullscreenMinimize);
+    QVERIFY(!defaults.experiments.preventFullscreenExit);
+    const Config enabled = parsed(QStringLiteral(R"(
+        experiments {
+            prevent-fullscreen-minimize
+            prevent-fullscreen-exit
+        }
+    )"));
+    QVERIFY(enabled.experiments.preventFullscreenMinimize);
+    QVERIFY(enabled.experiments.preventFullscreenExit);
 }
 
 void TestConfigSections::rejectsUnsupportedSections_data()

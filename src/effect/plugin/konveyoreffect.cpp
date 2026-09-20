@@ -161,6 +161,7 @@ void KonveyorEffect::flush()
 {
     const QList<Layout::WindowState> states = readEngine().windowStates();
     d->desktops.apply(readEngine().workspaceStates(), states);
+    d->fullscreenGuard.update(states);
     d->applier.apply(states);
     updateHomeOutputs(states);
     acknowledgeSettledModeChanges(states);
@@ -223,6 +224,7 @@ void KonveyorEffect::applyConfig(const Config::Config &config)
     d->plasmaShell.setHideDesktopWidgets(config.hideDesktopWidgets);
     d->plasmaShell.setFillPanels(config.fillPanelsOnMaximize);
     MinimizeRule::apply(config.disableMinimize);
+    d->fullscreenGuard.setExperiments(config.experiments.preventFullscreenMinimize, config.experiments.preventFullscreenExit);
 }
 
 void KonveyorEffect::applyHotCorners(const Config::HotCorners &corners)

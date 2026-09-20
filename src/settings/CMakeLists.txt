@@ -42,6 +42,7 @@ ecm_target_qml_sources(konveyor_settings PATH catalog SOURCES
     qml/catalog/SettingsIndex.js
 )
 ecm_target_qml_sources(konveyor_settings PATH catalog/index SOURCES
+    qml/catalog/index/ExperimentsIndex.js
     qml/catalog/index/LayoutIndex.js
     qml/catalog/index/LookIndex.js
     qml/catalog/index/MonitorsIndex.js
@@ -116,6 +117,7 @@ ecm_target_qml_sources(konveyor_settings PATH components/rules SOURCES
     qml/components/rules/TextMatchField.qml
 )
 ecm_target_qml_sources(konveyor_settings PATH pages SOURCES
+    qml/pages/ExperimentsPage.qml
     qml/pages/LayoutPage.qml
     qml/pages/LookPage.qml
     qml/pages/MonitorProfilePage.qml

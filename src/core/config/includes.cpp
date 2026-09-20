@@ -65,6 +65,15 @@ void addSimpleHandlers(NodeTable &table, LoadContext &context)
     table.insert(
         QStringLiteral("fill-panels-on-maximize"), [&config](const Kdl::Node &node) { config.fillPanelsOnMaximize = flagArgument(node); });
     table.insert(QStringLiteral("disable-minimize"), [&config](const Kdl::Node &node) { config.disableMinimize = flagArgument(node); });
+    table.insert(QStringLiteral("experiments"), [&config](const Kdl::Node &node) {
+        expectNoArguments(node);
+        NodeTable inner;
+        inner.insert(QStringLiteral("prevent-fullscreen-minimize"),
+            [&config](const Kdl::Node &child) { config.experiments.preventFullscreenMinimize = flagArgument(child); });
+        inner.insert(QStringLiteral("prevent-fullscreen-exit"),
+            [&config](const Kdl::Node &child) { config.experiments.preventFullscreenExit = flagArgument(child); });
+        decodeChildren(node, inner);
+    });
     table.insert(QStringLiteral("config-notification"), [&config](const Kdl::Node &node) {
         expectOnlyChildren(node);
         NodeTable inner;
