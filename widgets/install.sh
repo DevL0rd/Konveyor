@@ -1,8 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WIDGETS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$WIDGETS_DIR/../extras/packaging/common.sh"
+INSTALLER_WIDGETS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_WIDGETS_DIR="${KONVEYOR_WIDGETS_SOURCE:-$INSTALLER_WIDGETS_DIR}"
+WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
+
+say() {
+    printf '\033[1;34m==>\033[0m %s\n' "$*"
+}
+
+die() {
+    printf '\033[1;31merror:\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+stage_runtime() {
+    [[ -f $SOURCE_WIDGETS_DIR/lib.sh && -f $SOURCE_WIDGETS_DIR/service/konveyor-widgets ]] \
+        || die "widget source is incomplete: $SOURCE_WIDGETS_DIR"
+    if [[ $SOURCE_WIDGETS_DIR == "$WIDGETS_RUNTIME_DIR" ]]; then
+        return
+    fi
+    local parent temporary previous
+    parent=$(dirname "$WIDGETS_RUNTIME_DIR")
+    mkdir -p "$parent"
+    temporary=$(mktemp -d "$parent/.widgets.XXXXXX")
+    previous="$parent/.widgets.previous.$$"
+    cp -a "$SOURCE_WIDGETS_DIR/." "$temporary/"
+    find "$temporary" -name .git -prune -exec rm -rf {} +
+    if [[ -e $WIDGETS_RUNTIME_DIR ]]; then
+        mv "$WIDGETS_RUNTIME_DIR" "$previous"
+    fi
+    mv "$temporary" "$WIDGETS_RUNTIME_DIR"
+    rm -rf "$previous"
+}
+
+stage_runtime
+WIDGETS_DIR="$WIDGETS_RUNTIME_DIR"
 source "$WIDGETS_DIR/lib.sh"
 
 RESTART_PLASMA=true
@@ -49,6 +82,7 @@ link_commands() {
     link_command process-monitor/bin/procmon-collect
     link_command router-monitor/bin/routermon-collect
     link_command router-monitor/bin/routermon-ctl
+    link_command router-monitor/bin/routermon-config
     link_command router-monitor/bin/routermon-speedtest
     link_command system-log/bin/logmon-collect
     link_command portals/bin/portal-games
@@ -64,6 +98,7 @@ create_configs() {
     seed_config process-monitor "Linux-Process-Mon"
     seed_config router-monitor "Linux-Router-Monitor" "set your router host, user and AdGuard Home login there"
     seed_config portals "Plasma-App-Portal" "paste your free Steam Web API key there (https://steamcommunity.com/dev/apikey)"
+    chmod 0600 "$CONFIG_HOME/Linux-Router-Monitor/config.json" "$CONFIG_HOME/Plasma-App-Portal/config.json"
 }
 
 main() {
@@ -80,6 +115,7 @@ main() {
     if $RESTART_PLASMA; then
         take_over_launcher_and_restart
     else
+        python3 "$WIDGETS_DIR/service/overlay-hosts" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
         say "Plasma was left running; the widgets load on its next start"
     fi
     say "Konveyor widgets are installed. Add them from Add Widgets; configs live in ~/.config"

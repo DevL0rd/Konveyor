@@ -22,7 +22,8 @@ import time
 # paths only, so the common cache-read path starts a near-empty interpreter.
 
 APP = "Linux-Router-Monitor"
-CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+CONFIG = os.path.join(CONFIG_HOME, APP, "config.json")
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 CACHE = os.path.join(RUNDIR, "data.json")
 STATE = os.path.join(RUNDIR, "state.json")
@@ -238,6 +239,76 @@ def rate(cur, old, dt):
     if old is None or dt <= 0 or cur < old:
         return 0.0
     return (cur - old) / dt
+
+
+def _default_interface():
+    try:
+        choices = []
+        with open("/proc/net/route") as routes:
+            next(routes, None)
+            for line in routes:
+                fields = line.split()
+                if len(fields) >= 8 and fields[1] == "00000000" and int(fields[3], 16) & 2:
+                    choices.append((int(fields[6]), fields[0]))
+        return min(choices)[1] if choices else ""
+    except (OSError, ValueError):
+        return ""
+
+
+def _interface_bytes(interface):
+    try:
+        with open("/proc/net/dev") as devices:
+            for line in devices:
+                if ":" not in line:
+                    continue
+                name, values = line.split(":", 1)
+                if name.strip() == interface:
+                    fields = values.split()
+                    return int(fields[0]), int(fields[8])
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0, 0
+
+
+def local_network_fallback(cfg, state, error):
+    """Keep the compact widget useful while router SSH is not configured."""
+    import re
+    import subprocess
+
+    now = time.time()
+    previous = state.get("local_fallback") or {}
+    interface = _default_interface()
+    rx, tx = _interface_bytes(interface)
+    dt = now - previous.get("ts", now)
+    down = rate(rx, previous.get("rx") if previous.get("interface") == interface else None, dt)
+    up = rate(tx, previous.get("tx") if previous.get("interface") == interface else None, dt)
+    ping_rtt = previous.get("ping_rtt", 0)
+    ping_loss = previous.get("ping_loss", 100)
+    last_ping = previous.get("last_ping", 0)
+    if now - last_ping >= 5:
+        try:
+            result = subprocess.run(
+                ["ping", "-n", "-c", "1", "-W", "1", str(cfg.get("ping_target", "8.8.8.8"))],
+                capture_output=True, text=True, timeout=3,
+            )
+            match = re.search(r"time[=<]([\d.]+)\s*ms", result.stdout)
+            ping_rtt = round(float(match.group(1)), 1) if match else 0
+            ping_loss = 0 if result.returncode == 0 else 100
+        except (OSError, subprocess.SubprocessError, ValueError):
+            ping_rtt, ping_loss = 0, 100
+        last_ping = now
+    state["local_fallback"] = {
+        "ts": now, "interface": interface, "rx": rx, "tx": tx,
+        "ping_rtt": ping_rtt, "ping_loss": ping_loss, "last_ping": last_ping,
+    }
+    return {
+        "ts": now, "online": False, "paused": False, "fallback": "local", "error": error,
+        "network": {
+            "down_mbps": round(down * 8 / 1e6, 2),
+            "up_mbps": round(up * 8 / 1e6, 2),
+            "ping_rtt": ping_rtt, "ping_loss": ping_loss,
+        },
+    }, state
 
 
 def fetch_agh(cfg):
@@ -508,8 +579,7 @@ def refresh(cfg):
             snap["network"]["ping_loss"] = pg["loss"]
     except Exception as e:
         log(f"refresh error: {e}")
-        snap = {"ts": time.time(), "online": False, "error": str(e)}
-        state = prev
+        snap, state = local_network_fallback(cfg, prev, str(e))
     _atomic_write(CACHE, snap)
     _atomic_write(STATE, state)
     return snap
@@ -568,7 +638,7 @@ def serve():
                 snap, prev = build(cfg, prev)
             except Exception as e:
                 log(f"serve error: {e}")
-                snap = {"ts": time.time(), "online": False, "error": str(e), "paused": False}
+                snap, prev = local_network_fallback(cfg, prev, str(e))
                 ok = False
             _atomic_write(CACHE, snap)   # fast data written first (never blocked)
             # RECONNECT (incl. first connect): router went offline -> online, so

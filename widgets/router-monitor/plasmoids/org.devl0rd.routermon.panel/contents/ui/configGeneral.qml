@@ -4,8 +4,12 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols as KQuickControls
 import org.kde.plasma.plasmoid
+import org.kde.plasma.plasma5support as P5Support
 
 Kirigami.FormLayout {
+    id: form
+
+    property string title: i18n("General")
     property alias cfg_accentColor: accent.text
     property alias cfg_showCharts: showCharts.checked
     property alias cfg_showPerCore: showPerCore.checked
@@ -35,7 +39,196 @@ Kirigami.FormLayout {
     property string cfg_clientFilter
     property string cfg_speedHistory
     property alias cfg_rememberTab: rememberTab.checked
+    property var cfg_accentColorDefault
+    property var cfg_clientFilterDefault
+    property var cfg_compactExtraDefault
+    property var cfg_currentTabDefault
+    property var cfg_defaultTabDefault
+    property var cfg_lastResultDefault
+    property var cfg_maxMbpsDefault
+    property var cfg_middleClickPauseDefault
+    property var cfg_panelDetailDefault
+    property var cfg_panelShrinkDefault
+    property var cfg_peakDownDefault
+    property var cfg_peakUpDefault
+    property var cfg_pinnedMacsDefault
+    property var cfg_planDownMbpsDefault
+    property var cfg_rememberTabDefault
+    property var cfg_showChartDefault
+    property var cfg_showChartsDefault
+    property var cfg_showInterferenceDefault
+    property var cfg_showOpenUIDefault
+    property var cfg_showPerCoreDefault
+    property var cfg_showProtectionDefault
+    property var cfg_showRebootDefault
+    property var cfg_showRestartWifiDefault
+    property var cfg_showTempsDefault
+    property var cfg_showTopListsDefault
+    property var cfg_showWebUIDefault
+    property var cfg_sortByDefault
+    property var cfg_speedHistoryDefault
+    property var cfg_sshUserDefault
     readonly property bool tabbed: Plasmoid.metaData.pluginId === "org.devl0rd.routermon.panel"
+    property bool connectionLoaded: false
+    property bool connectionBusy: false
+    property string connectionResult
+    property bool connectionError: false
+
+    function shq(value) {
+        return "'" + String(value).replace(/'/g, "'\\''") + "'"
+    }
+    function connectionArguments(mode, password) {
+        let command = "$HOME/.local/bin/routermon-config " + mode
+            + " " + shq(routerHost.text.trim())
+            + " " + shq(routerUser.text.trim())
+            + " " + shq(routerKey.text.trim())
+            + " " + shq(remoteScript.text.trim())
+        if (password !== undefined)
+            command += " " + shq(Qt.btoa(password))
+        return command + " # " + Date.now()
+    }
+    function runConnectionAction(mode, password) {
+        connectionBusy = true
+        connectionResult = i18n("Working…")
+        connectionError = false
+        connectionAction.connectSource(connectionArguments(mode, password))
+    }
+    function openRouterSettings() {
+        const host = routerHost.text.trim()
+        if (host !== "")
+            launcher.connectSource("xdg-open " + shq(/^https?:\/\//.test(host) ? host : "http://" + host))
+    }
+
+    Component.onCompleted: connectionReader.connectSource("$HOME/.local/bin/routermon-config get # " + Date.now())
+
+    P5Support.DataSource {
+        id: connectionReader
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            form.connectionBusy = false
+            try {
+                const config = JSON.parse(result.stdout || "{}")
+                routerHost.text = config.host || ""
+                routerUser.text = config.user || "admin"
+                routerKey.text = config.ssh_key || "~/.ssh/id_ed25519"
+                remoteScript.text = config.remote_script || "/jffs/lrm-collect.sh"
+                form.connectionLoaded = true
+            } catch (error) {
+                form.connectionResult = i18n("Could not read the router connection settings")
+                form.connectionError = true
+            }
+        }
+    }
+    P5Support.DataSource {
+        id: connectionAction
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            const failed = Number(result["exit code"] || 0) !== 0
+            form.connectionError = failed
+            form.connectionResult = String(failed ? (result.stderr || result.stdout) : result.stdout).trim()
+            if (!failed && form.connectionResult === "")
+                form.connectionResult = i18n("Done")
+        }
+    }
+    P5Support.DataSource {
+        id: launcher
+        engine: "executable"
+        onNewData: function(source, result) { disconnectSource(source) }
+    }
+
+    Kirigami.Heading {
+        Kirigami.FormData.isSection: true
+        text: i18n("Router connection")
+        level: 3
+    }
+    Kirigami.InlineMessage {
+        Layout.fillWidth: true
+        visible: true
+        type: Kirigami.MessageType.Information
+        text: i18n("Router Monitor connects to ASUS / Asuswrt-Merlin over SSH. 1. Open the router settings. 2. Go to Administration → System → SSH Daemon. 3. Set Enable SSH to LAN only and allow password login. 4. Enter the login below and select Set up automatically. The password is not saved, and password login can be turned off afterward.")
+    }
+    QQC2.TextField {
+        id: routerHost
+        Kirigami.FormData.label: i18n("Router host:")
+        placeholderText: "192.168.50.1"
+    }
+    QQC2.TextField {
+        id: routerUser
+        Kirigami.FormData.label: i18n("Router SSH user:")
+        placeholderText: "admin"
+    }
+    QQC2.TextField {
+        id: routerKey
+        Kirigami.FormData.label: i18n("Private key:")
+        placeholderText: "~/.ssh/id_ed25519"
+    }
+    QQC2.TextField {
+        id: remoteScript
+        Kirigami.FormData.label: i18n("Remote collector:")
+        placeholderText: "/jffs/lrm-collect.sh"
+    }
+    QQC2.TextField {
+        id: routerPassword
+        Kirigami.FormData.label: i18n("Router password (not saved):")
+        placeholderText: i18n("Used once while connecting")
+        echoMode: TextInput.Password
+        passwordCharacter: "•"
+    }
+    QQC2.Button {
+        Kirigami.FormData.label: i18n("Router settings:")
+        text: i18n("Open router settings")
+        enabled: routerHost.text.trim() !== ""
+        onClicked: form.openRouterSettings()
+    }
+    QQC2.Button {
+        Kirigami.FormData.label: i18n("Recommended:")
+        text: form.connectionBusy ? i18n("Setting up…") : i18n("Set up automatically")
+        enabled: form.connectionLoaded && !form.connectionBusy && routerPassword.text !== ""
+        onClicked: {
+            const password = routerPassword.text
+            routerPassword.text = ""
+            form.runConnectionAction("connect", password)
+        }
+    }
+    RowLayout {
+        Kirigami.FormData.label: i18n("Manual setup:")
+        QQC2.Button {
+            text: i18n("Save")
+            enabled: form.connectionLoaded && !form.connectionBusy
+            onClicked: form.runConnectionAction("save")
+        }
+        QQC2.Button {
+            text: i18n("Authorize key")
+            enabled: form.connectionLoaded && !form.connectionBusy && routerPassword.text !== ""
+            onClicked: {
+                const password = routerPassword.text
+                routerPassword.text = ""
+                form.runConnectionAction("authorize", password)
+            }
+        }
+        QQC2.Button {
+            text: i18n("Test SSH")
+            enabled: form.connectionLoaded && !form.connectionBusy
+            onClicked: form.runConnectionAction("test")
+        }
+        QQC2.Button {
+            text: i18n("Install collector")
+            enabled: form.connectionLoaded && !form.connectionBusy
+            onClicked: form.runConnectionAction("install")
+        }
+    }
+    QQC2.Label {
+        Kirigami.FormData.label: i18n("Status:")
+        Layout.fillWidth: true
+        text: form.connectionResult || i18n("Enter the router login above, then select Set up automatically.")
+        color: form.connectionError ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+        opacity: form.connectionError ? 1 : 0.65
+        wrapMode: Text.Wrap
+    }
+
+    Item { Kirigami.FormData.isSection: true }
 
     QQC2.ComboBox {
         Kirigami.FormData.label: i18n("Panel also shows:")
@@ -128,8 +321,8 @@ Kirigami.FormLayout {
     }
     QQC2.TextField {
         id: sshUser
-        Kirigami.FormData.label: i18n("SSH user:")
-        placeholderText: i18n("your user name")
+        Kirigami.FormData.label: i18n("Client SSH user:")
+        placeholderText: i18n("For opening terminals on client devices")
     }
 
     Item { Kirigami.FormData.isSection: true }

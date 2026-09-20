@@ -23,7 +23,8 @@ import os, re, sys, json, time, urllib.parse, urllib.request, urllib.error
 
 HOME = os.path.expanduser("~")
 APP = "Plasma-App-Portal"
-CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config"))
+CONFIG = os.path.join(CONFIG_HOME, APP, "config.json")
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 SNAP = os.path.join(RUNDIR, "friends.json")
 STEAM_ROOTS = [os.path.join(HOME, ".local/share/Steam"),
@@ -160,7 +161,7 @@ def build_snapshot(cfg):
     key = (cfg.get("steam_api_key") or "").strip()
     if not key or "PASTE" in key:
         return {"ts": time.time(), "ok": False, "by_appid": {},
-                "error": "no steam_api_key in config"}
+                "needs_api_key": True, "error": "no steam_api_key in config"}
     sid = (cfg.get("steamid") or "").strip() or detect_steamid()
     if not sid:
         return {"ts": time.time(), "ok": False, "by_appid": {},
@@ -179,7 +180,7 @@ def build_snapshot(cfg):
             by_appid.setdefault(appid, []).append(friend_entry(p, appid))
     for lst in by_appid.values():
         lst.sort(key=lambda f: f["name"].lower())
-    return {"ts": time.time(), "ok": True, "self": sid,
+    return {"ts": time.time(), "ok": True, "needs_api_key": False, "self": sid,
             "count": len(ids), "friends": friends, "by_appid": by_appid,
             "error": ""}
 
@@ -246,7 +247,14 @@ def cmd_set_key():
     tmp = CONFIG + ".tmp"
     with open(tmp, "w") as f:
         json.dump(cfg, f, indent=2)
+    os.chmod(tmp, 0o600)
     os.replace(tmp, CONFIG)
+    try:
+        write_snapshot(build_snapshot(cfg))
+    except Exception as error:
+        write_snapshot({"ts": time.time(), "ok": False, "by_appid": {}, "error": str(error)})
+        print(str(error))
+        return 1
     print("ok")
     return 0
 

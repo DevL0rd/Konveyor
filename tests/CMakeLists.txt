@@ -36,6 +36,9 @@ set_tests_properties(test_monitor_overlay_qml PROPERTIES LABELS "unit;widgets" E
 add_test(NAME test_monitor_overlay_service COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_monitor_overlay_service.py)
 set_tests_properties(test_monitor_overlay_service PROPERTIES LABELS "unit;widgets")
 
+add_test(NAME test_overlay_hosts COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_overlay_hosts.py)
+set_tests_properties(test_overlay_hosts PROPERTIES LABELS "unit;widgets")
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
 find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)

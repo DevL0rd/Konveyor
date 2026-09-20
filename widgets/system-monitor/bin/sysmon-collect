@@ -18,7 +18,8 @@ import os, re, sys, json, time, glob, socket
 APP = "Linux-System-Monitor"
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 DATA = os.path.join(RUNDIR, "data.json")
-CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+CONFIG = os.path.join(CONFIG_HOME, APP, "config.json")
 
 
 def load_config():

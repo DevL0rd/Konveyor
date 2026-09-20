@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -14,6 +15,20 @@ PopScroll {
     readonly property var onlineList: launcherData.friends.filter(friend => !friend.ingame && friend.state > 0)
     readonly property var offlineList: launcherData.friends.filter(friend => !friend.ingame && !(friend.state > 0))
     readonly property int columnWidth: Kirigami.Units.gridUnit * 16
+    readonly property bool needsApiKey: launcherData.friendsNeedsApiKey
+
+    function saveApiKey() {
+        if (!launcherData.steamKeyBusy && apiKey.text.trim() !== "")
+            launcherData.setSteamApiKey(apiKey.text)
+    }
+
+    Connections {
+        target: launcherData
+        function onSteamKeyResultChanged() {
+            if (launcherData.steamKeyResult !== "" && !launcherData.steamKeyError)
+                apiKey.text = ""
+        }
+    }
 
     RowLayout {
         Layout.fillWidth: true
@@ -50,10 +65,65 @@ PopScroll {
         delegate: PlayingNowCard {}
     }
 
-    PlasmaComponents.Label {
-        visible: launcherData.friends.length === 0
+    Rectangle {
+        visible: page.needsApiKey
         Layout.fillWidth: true
-        text: i18n("No friends loaded. Add your Steam Web API key in the Steam Friends widget settings.")
+        implicitHeight: apiSetup.implicitHeight + Kirigami.Units.largeSpacing * 2
+        radius: Kirigami.Units.cornerRadius * 2
+        color: launcher.well
+        border.width: 1
+        border.color: launcher.hairline
+
+        ColumnLayout {
+            id: apiSetup
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.largeSpacing
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Heading {
+                level: 3
+                text: i18n("Connect Steam Friends")
+            }
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                text: i18n("Paste a Steam Web API key to load your friends.")
+                wrapMode: Text.Wrap
+                opacity: 0.7
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                QQC2.TextField {
+                    id: apiKey
+                    Layout.fillWidth: true
+                    placeholderText: i18n("Steam Web API key")
+                    echoMode: TextInput.Password
+                    onAccepted: page.saveApiKey()
+                }
+                QQC2.Button {
+                    text: i18n("Get a key")
+                    onClicked: launcher.openUrl("https://steamcommunity.com/dev/apikey")
+                }
+                QQC2.Button {
+                    id: saveKey
+                    text: launcherData.steamKeyBusy ? i18n("Saving…") : i18n("Save and connect")
+                    enabled: !launcherData.steamKeyBusy && apiKey.text.trim() !== ""
+                    onClicked: page.saveApiKey()
+                }
+            }
+            PlasmaComponents.Label {
+                visible: launcherData.steamKeyResult !== ""
+                Layout.fillWidth: true
+                text: launcherData.steamKeyResult
+                wrapMode: Text.Wrap
+                color: launcherData.steamKeyError ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.positiveTextColor
+            }
+        }
+    }
+
+    PlasmaComponents.Label {
+        visible: launcherData.friends.length === 0 && !page.needsApiKey
+        Layout.fillWidth: true
+        text: launcherData.friendsError !== "" ? launcherData.friendsError : i18n("No friends loaded")
         wrapMode: Text.Wrap
         opacity: 0.6
     }

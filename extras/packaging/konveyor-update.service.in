@@ -5,7 +5,9 @@ After=graphical-session.target
 
 [Service]
 Type=oneshot
-ExecStart=@SOURCE_DIR@/install.sh --finish-update
+Environment=KONVEYOR_SOURCE_DIR=@SOURCE_DIR@
+Environment=KONVEYOR_INSTALL_SUPPORT=/usr/lib/konveyor
+ExecStart=/usr/lib/konveyor/install --finish-update
 
 [Install]
 WantedBy=graphical-session.target

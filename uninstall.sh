@@ -3,6 +3,7 @@ set -euo pipefail
 
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SOURCE_DIR/extras/packaging/common.sh"
+WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
 
 PURGE=false
 WIDGETS=true
@@ -74,7 +75,7 @@ remove_files() {
     while IFS= read -r file; do
         [[ -n $file ]] && run_root rm -f "$file"
     done <"$manifest"
-    run_root rm -f "$KONVEYOR_HOOK"
+    run_root rm -f "$KONVEYOR_HOOK" /usr/lib/konveyor/install /usr/lib/konveyor/common.sh
     run_root rm -rf "$KONVEYOR_STATE_DIR"
 }
 
@@ -100,7 +101,9 @@ main() {
     [[ $EUID -ne 0 ]] || die "run uninstall.sh as your normal user; it asks for sudo when needed"
     disable_in_kwin
     if $WIDGETS; then
-        "$SOURCE_DIR/widgets/uninstall.sh"
+        local widget_uninstaller="$WIDGETS_RUNTIME_DIR/uninstall.sh"
+        [[ -x $widget_uninstaller ]] || widget_uninstaller="$SOURCE_DIR/widgets/uninstall.sh"
+        "$widget_uninstaller"
     fi
     remove_files
     remove_update_unit

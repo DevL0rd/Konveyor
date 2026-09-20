@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SOURCE_DIR/extras/packaging/common.sh"
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="${KONVEYOR_SOURCE_DIR:-$INSTALL_DIR}"
+INSTALL_SUPPORT="${KONVEYOR_INSTALL_SUPPORT:-$SOURCE_DIR/extras/packaging}"
+source "$INSTALL_SUPPORT/common.sh"
 
 BUILD_DIR="${KONVEYOR_BUILD_DIR:-$SOURCE_DIR/build-release}"
 SKIP_DEPS=false
@@ -13,6 +15,8 @@ AUR=false
 MODE=install
 OPTIONS_FILE="$HOME/.local/state/konveyor/install-options"
 UPDATE_PENDING="$HOME/.local/state/konveyor/update-pending"
+INSTALLED_UPDATER="/usr/lib/konveyor/install"
+WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
 
 usage() {
     cat <<EOF
@@ -100,6 +104,8 @@ register_updates() {
         return 0
     fi
     say "Registering Konveyor with system updates"
+    run_root install -Dm755 "$SOURCE_DIR/install.sh" "$INSTALLED_UPDATER"
+    run_root install -Dm644 "$SOURCE_DIR/extras/packaging/common.sh" "/usr/lib/konveyor/common.sh"
     run_root install -Dm644 "$SOURCE_DIR/extras/packaging/konveyor-rebuild.hook" "$KONVEYOR_HOOK"
     printf '%s\n%s\n' "$SOURCE_DIR" "${KONVEYOR_OWNER:-$(id -un)}" | run_root tee "$KONVEYOR_STATE_DIR/source" >/dev/null
     $SYSTEM_UPDATE_ROOT && return 0
@@ -111,7 +117,9 @@ register_updates() {
 }
 
 unregister_updates() {
-    [[ -e $KONVEYOR_HOOK || -e $KONVEYOR_STATE_DIR/source ]] && run_root rm -f "$KONVEYOR_HOOK" "$KONVEYOR_STATE_DIR/source"
+    if [[ -e $KONVEYOR_HOOK || -e $KONVEYOR_STATE_DIR/source || -e $INSTALLED_UPDATER ]]; then
+        run_root rm -f "$KONVEYOR_HOOK" "$KONVEYOR_STATE_DIR/source" "$INSTALLED_UPDATER" /usr/lib/konveyor/common.sh
+    fi
     local unit="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$KONVEYOR_UPDATE_UNIT"
     if [[ -e $unit ]]; then
         systemctl --user disable "$KONVEYOR_UPDATE_UNIT" >/dev/null 2>&1 || true
@@ -186,7 +194,9 @@ finish_update() {
     configure_kwin
     activate
     if $WIDGETS; then
-        "$SOURCE_DIR/widgets/install.sh" --no-restart
+        local widget_installer="$WIDGETS_RUNTIME_DIR/install.sh"
+        [[ -x $widget_installer ]] || widget_installer="$SOURCE_DIR/widgets/install.sh"
+        KONVEYOR_WIDGETS_SOURCE="$SOURCE_DIR/widgets" "$widget_installer" --no-restart
     fi
     rm -f "$UPDATE_PENDING"
     notify_owner "Konveyor updated" "Konveyor $(git -C "$SOURCE_DIR" describe --always --tags 2>/dev/null) is installed. Restart Plasma or log out and back in to load the updated widgets."
@@ -202,7 +212,8 @@ system_update() {
     register_updates
     remove_previous_plugin_files
     if owner_session_running; then
-        as_owner "$SOURCE_DIR/install.sh" --finish-update
+        as_owner env KONVEYOR_SOURCE_DIR="$SOURCE_DIR" KONVEYOR_INSTALL_SUPPORT=/usr/lib/konveyor \
+            "$INSTALLED_UPDATER" --finish-update
     else
         local pending
         pending="$(getent passwd "$KONVEYOR_OWNER" | cut -d: -f6)/.local/state/konveyor/update-pending"

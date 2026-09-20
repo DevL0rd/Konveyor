@@ -24,7 +24,8 @@ import urllib.error
 WLIFACES = ["eth7", "eth8", "eth9", "eth10"]
 
 APP = "Linux-Router-Monitor"
-CONFIG = os.path.expanduser(f"~/.config/{APP}/config.json")
+CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+CONFIG = os.path.join(CONFIG_HOME, APP, "config.json")
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 SOCK = os.path.join(RUNDIR, "cm.sock")
 LOG = os.path.expanduser(f"~/.local/state/{APP}/monitor.log")

@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Id": "org.devl0rd.sysmon.overlay",
+        "Name": "Konveyor System Monitor Overlay Host",
+        "Description": "Background host for the Konveyor system monitor overlay",
+        "Icon": "cpu",
+        "Authors": [
+            { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
+        ],
+        "Category": "System Information",
+        "EnabledByDefault": false,
+        "License": "MIT",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Konveyor"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-NotificationArea": "true",
+    "X-Plasma-NotificationAreaCategory": "SystemServices"
+}

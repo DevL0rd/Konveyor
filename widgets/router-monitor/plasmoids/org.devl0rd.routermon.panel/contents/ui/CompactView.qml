@@ -20,7 +20,7 @@ MouseArea {
     readonly property string extra: Plasmoid.configuration.compactExtra
     readonly property var down: root.speed(root.network.down_mbps)
     readonly property var up: root.speed(root.network.up_mbps)
-    readonly property bool showNumbers: root.ready && root.routerState !== "offline"
+    readonly property bool showNumbers: root.ready && (root.routerState !== "offline" || root.localFallback)
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     readonly property real downScale: Plasmoid.configuration.maxMbps > 0 ? Plasmoid.configuration.maxMbps
                                     : Plasmoid.configuration.planDownMbps > 0 ? Plasmoid.configuration.planDownMbps
@@ -139,7 +139,7 @@ MouseArea {
             lockedStage: compact.lockedStage
             fitSpace: fit.space(0)
             label: i18n("DOWN")
-            valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
+            valueColor: root.routerState === "ok" || root.localFallback ? Kirigami.Theme.textColor : root.stateColor
             widestValue: "888.8"
             widestSecondary: compact.vertical ? "" : i18n("Mb/s")
             value: compact.down.value
@@ -157,7 +157,7 @@ MouseArea {
             lockedStage: compact.lockedStage
             fitSpace: fit.space(1)
             label: i18n("UP")
-            valueColor: root.routerState === "ok" ? Kirigami.Theme.textColor : root.stateColor
+            valueColor: root.routerState === "ok" || root.localFallback ? Kirigami.Theme.textColor : root.stateColor
             widestValue: "888.8"
             widestSecondary: compact.vertical ? "" : i18n("Mb/s")
             value: compact.up.value
@@ -168,7 +168,7 @@ MouseArea {
         PopChip {
             id: pingChip
             minimumStage: "small"
-            visible: compact.extra === "ping"
+            visible: compact.extra === "ping" || root.localFallback
             vertical: compact.vertical
             adaptive: true
             panelThickness: fit.innerThickness
@@ -187,7 +187,7 @@ MouseArea {
         PopChip {
             id: clientsChip
             minimumStage: "small"
-            visible: compact.extra === "clients"
+            visible: compact.extra === "clients" && !root.localFallback
             vertical: compact.vertical
             adaptive: true
             panelThickness: fit.innerThickness
@@ -203,7 +203,7 @@ MouseArea {
         PopChip {
             id: blockedChip
             minimumStage: "small"
-            visible: compact.extra === "blocked" && root.dns !== null
+            visible: compact.extra === "blocked" && !root.localFallback && root.dns !== null
             vertical: compact.vertical
             adaptive: true
             panelThickness: fit.innerThickness

@@ -102,6 +102,8 @@ Item {
                 mainItem: Item {
                     id: surface
 
+                    Kirigami.Theme.inherit: false
+                    Kirigami.Theme.colorSet: Kirigami.Theme.Window
                     width: card.readyToShow ? card.desiredWidth : card.preparedWidth
                     height: overlay.overlayHeight
 
@@ -161,6 +163,8 @@ Item {
                         onVisibleChanged: if (!visible) hadFocus = false
 
                         mainItem: Item {
+                            Kirigami.Theme.inherit: false
+                            Kirigami.Theme.colorSet: Kirigami.Theme.Window
                             width: popupLoader.item ? popupLoader.item.overlayPreferredWidth : Kirigami.Units.gridUnit * 30
                             height: popupLoader.item ? popupLoader.item.overlayPreferredHeight : Kirigami.Units.gridUnit * 40
 

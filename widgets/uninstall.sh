@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WIDGETS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$WIDGETS_DIR/../extras/packaging/common.sh"
+SCRIPT_WIDGETS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
+WIDGETS_DIR="$SCRIPT_WIDGETS_DIR"
+[[ -f $WIDGETS_RUNTIME_DIR/lib.sh ]] && WIDGETS_DIR="$WIDGETS_RUNTIME_DIR"
+
+say() {
+    printf '\033[1;34m==>\033[0m %s\n' "$*"
+}
+
+die() {
+    printf '\033[1;31merror:\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
 source "$WIDGETS_DIR/lib.sh"
 
 PLASMOIDS=(
-    org.devl0rd.sysmon org.devl0rd.sysmon.panel
-    org.devl0rd.procmon org.devl0rd.procmon.panel
+    org.devl0rd.sysmon org.devl0rd.sysmon.panel org.devl0rd.sysmon.overlay
+    org.devl0rd.procmon org.devl0rd.procmon.panel org.devl0rd.procmon.overlay
     org.devl0rd.routermon.system org.devl0rd.routermon.network org.devl0rd.routermon.wifi org.devl0rd.routermon.dns
-    org.devl0rd.routermon.clients org.devl0rd.routermon.speedtest org.devl0rd.routermon.panel
+    org.devl0rd.routermon.clients org.devl0rd.routermon.speedtest org.devl0rd.routermon.panel org.devl0rd.routermon.overlay
     org.devl0rd.logmon.journal
     org.devl0rd.portal org.devl0rd.portal.friends org.devl0rd.portal.launcher
     dev.devl0rd.screenrotate
 )
-COMMANDS=(sysmon-collect procmon-collect routermon-collect routermon-ctl routermon-speedtest logmon-collect
+COMMANDS=(sysmon-collect procmon-collect routermon-collect routermon-ctl routermon-config routermon-speedtest logmon-collect
     portal-games portal-packages portal-launcher portal-friends monitor-overlay linux-plasma-screen-rotate)
 RUNTIME_DIRS=(Linux-System-Monitor Linux-Process-Mon Linux-Router-Monitor Linux-Log-Monitor Plasma-App-Portal Konveyor-Monitor-Overlay)
 
@@ -60,6 +72,7 @@ main() {
 
     say "Restoring the application launcher and removing the widgets"
     systemctl --user stop "$PLASMA_SERVICE" 2>/dev/null || true
+    python3 "$WIDGETS_DIR/service/overlay-hosts" uninstall "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     python3 "$WIDGETS_DIR/service/panel-launcher" uninstall "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     "$WIDGETS_DIR/desktop-hider/desktop-containment" uninstall
     for item in "${PLASMOIDS[@]}"; do
@@ -68,6 +81,7 @@ main() {
     systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
     systemctl --user start "$PLASMA_SERVICE" 2>/dev/null || true
 
+    rm -rf "$WIDGETS_RUNTIME_DIR"
     say "Widget configs in ~/.config (router and Steam credentials) were kept"
 }
 

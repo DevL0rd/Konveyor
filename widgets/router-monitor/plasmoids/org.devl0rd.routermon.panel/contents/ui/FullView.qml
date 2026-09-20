@@ -150,7 +150,7 @@ Item {
                         anchors.fill: parent
                         online: root.online
                         paused: root.paused
-                        color: Qt.alpha(Kirigami.Theme.backgroundColor, 0.92)
+                        color: Kirigami.Theme.backgroundColor
                         radius: Kirigami.Units.cornerRadius * 2
                     }
 

@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""Manage Router Monitor connection settings outside the source checkout."""
+
+import base64
+import json
+import os
+import shlex
+import stat
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+APP = "Linux-Router-Monitor"
+CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+CONFIG = CONFIG_HOME / APP / "config.json"
+COLLECTOR = Path(__file__).resolve().parent.parent / "router" / "collect.sh"
+
+
+def load_config():
+    try:
+        return json.loads(CONFIG.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_config(config):
+    CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    temporary = CONFIG.with_suffix(".tmp")
+    temporary.write_text(json.dumps(config, indent=2) + "\n")
+    temporary.chmod(0o600)
+    temporary.replace(CONFIG)
+
+
+def update_connection(arguments):
+    if len(arguments) < 4:
+        raise ValueError("host, user, SSH key and remote script are required")
+    host, user, key, remote = (value.strip() for value in arguments[:4])
+    if not host or not user or not key or not remote:
+        raise ValueError("connection fields cannot be empty")
+    config = load_config()
+    config.update({"host": host, "user": user, "ssh_key": key, "remote_script": remote})
+    config.setdefault("poll_interval", 0.5)
+    config.setdefault("cache_ttl", 0.45)
+    config.setdefault("ping_target", "8.8.8.8")
+    config.setdefault("control_persist", "60")
+    save_config(config)
+    return config
+
+
+def key_path(config):
+    return Path(os.path.expandvars(os.path.expanduser(config.get("ssh_key", "~/.ssh/id_ed25519"))))
+
+
+def target(config):
+    return f"{config.get('user', 'admin')}@{config['host']}"
+
+
+def ssh_command(config):
+    return [
+        "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
+        "-o", "StrictHostKeyChecking=accept-new", "-i", str(key_path(config)), target(config),
+    ]
+
+
+def ensure_key(config):
+    private = key_path(config)
+    public = Path(str(private) + ".pub")
+    private.parent.mkdir(parents=True, exist_ok=True)
+    if not private.exists():
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(private)], check=True)
+    if not public.exists():
+        result = subprocess.run(["ssh-keygen", "-y", "-f", str(private)], check=True, capture_output=True, text=True)
+        public.write_text(result.stdout.strip() + "\n")
+        public.chmod(0o644)
+    return public
+
+
+def authorize(config, encoded_password):
+    try:
+        password = base64.b64decode(encoded_password.encode(), validate=True).decode()
+    except (ValueError, UnicodeDecodeError) as error:
+        raise ValueError("invalid password payload") from error
+    if not password:
+        raise ValueError("router password is empty")
+    public = ensure_key(config)
+    with tempfile.TemporaryDirectory(prefix="routermon-askpass-") as directory:
+        askpass = Path(directory) / "askpass"
+        askpass.write_text("#!/bin/sh\nprintf '%s\\n' \"$ROUTERMON_PASSWORD\"\n")
+        askpass.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        environment = os.environ.copy()
+        environment.update({
+            "SSH_ASKPASS": str(askpass),
+            "SSH_ASKPASS_REQUIRE": "force",
+            "ROUTERMON_PASSWORD": password,
+            "DISPLAY": environment.get("DISPLAY", ":0"),
+        })
+        result = subprocess.run(
+            ["setsid", "-w", "ssh-copy-id", "-f", "-i", str(public), target(config)],
+            env=environment, capture_output=True, text=True, timeout=30,
+        )
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip().splitlines()
+        raise RuntimeError(detail[-1] if detail else "SSH key authorization failed")
+    print("SSH key authorized")
+
+
+def test_connection(config):
+    result = subprocess.run(ssh_command(config) + ["true"], capture_output=True, text=True, timeout=12)
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip().splitlines()
+        raise RuntimeError(detail[-1] if detail else "SSH authentication failed")
+    print("SSH connection succeeded")
+
+
+def install_collector(config):
+    if not COLLECTOR.is_file():
+        raise RuntimeError(f"collector is missing from the installed runtime: {COLLECTOR}")
+    remote = shlex.quote(config.get("remote_script", "/jffs/lrm-collect.sh"))
+    result = subprocess.run(
+        ssh_command(config) + [f"cat > {remote} && chmod +x {remote}"],
+        input=COLLECTOR.read_bytes(), capture_output=True, timeout=20,
+    )
+    if result.returncode:
+        detail = (result.stderr or result.stdout).decode(errors="replace").strip().splitlines()
+        raise RuntimeError(detail[-1] if detail else "collector installation failed")
+    print("Router collector installed")
+
+
+def public_config(config):
+    return {
+        "host": config.get("host", ""),
+        "user": config.get("user", "admin"),
+        "ssh_key": config.get("ssh_key", "~/.ssh/id_ed25519"),
+        "remote_script": config.get("remote_script", "/jffs/lrm-collect.sh"),
+    }
+
+
+def main():
+    mode = sys.argv[1] if len(sys.argv) > 1 else "get"
+    try:
+        if mode == "get":
+            print(json.dumps(public_config(load_config()), separators=(",", ":")))
+        elif mode in ("save", "test", "install", "authorize", "connect"):
+            config = update_connection(sys.argv[2:6])
+            if mode == "save":
+                print("Connection settings saved")
+            elif mode == "test":
+                test_connection(config)
+            elif mode == "install":
+                install_collector(config)
+            elif mode == "authorize":
+                authorize(config, sys.argv[6] if len(sys.argv) > 6 else "")
+            else:
+                authorize(config, sys.argv[6] if len(sys.argv) > 6 else "")
+                install_collector(config)
+                print("Router connected")
+        else:
+            raise ValueError("usage: routermon-config [get|save|test|install|authorize|connect]")
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        print(str(error), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -13,6 +13,9 @@ import "lib/Format.js" as Fmt
 PlasmoidItem {
     id: root
 
+    readonly property bool overlayHost: Plasmoid.pluginName === "org.devl0rd.routermon.overlay"
+    readonly property bool overlayVisible: overlayHost && monitorOverlay.targets.length > 0
+    Plasmoid.status: overlayHost ? PlasmaCore.Types.HiddenStatus : PlasmaCore.Types.ActiveStatus
     readonly property var lockedTabs: ({
         "org.devl0rd.routermon.network": { key: "network", label: i18n("Network") },
         "org.devl0rd.routermon.wifi": { key: "wifi", label: i18n("WiFi") },
@@ -34,7 +37,7 @@ PlasmoidItem {
 
     RouterData {
         id: routerData
-        active: root.inPanel || root.visible
+        active: root.overlayHost ? root.overlayVisible : (root.inPanel || root.visible)
         onUpdated: root.onSnapshot()
     }
 
@@ -45,6 +48,7 @@ PlasmoidItem {
     readonly property var info: snap.info || ({})
     readonly property var system: snap.system || ({})
     readonly property var network: snap.network || ({})
+    readonly property bool localFallback: snap.fallback === "local"
     readonly property var wifi: snap.wifi || ({})
     readonly property var radios: wifi.radios || []
     readonly property var stations: wifi.stations || []
@@ -375,6 +379,8 @@ PlasmoidItem {
     toolTipMainText: info.model ? i18n("%1 · %2", info.model, network.wan_ip || i18n("no WAN")) : i18n("Router")
     property bool tooltipWanted: false
     function tooltipText() {
+        if (localFallback)
+            return i18n("Router not connected · showing this computer's network I/O and ping")
         if (routerState === "paused" || routerState === "offline")
             return stateText
         const lines = [i18n("↓ %1  ↑ %2 · %3 ms · %4% loss", speedText(network.down_mbps), speedText(network.up_mbps),
@@ -397,7 +403,8 @@ PlasmoidItem {
     fullRepresentation: FullView {}
 
     MonitorOverlay {
-        active: Plasmoid.pluginName === "org.devl0rd.routermon.panel"
+        id: monitorOverlay
+        active: root.overlayHost
         slot: 2
         content: Component { CompactView {} }
         popupContent: Component { FullView {} }

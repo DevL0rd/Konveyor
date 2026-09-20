@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+import re
+import sys
+
+
+HOSTS = (
+    "org.devl0rd.sysmon.overlay",
+    "org.devl0rd.procmon.overlay",
+    "org.devl0rd.routermon.overlay",
+)
+SYSTEM_TRAY = "org.kde.plasma.systemtray"
+APPLET = re.compile(r"^\[Containments\]\[(\d+)\]\[Applets\]\[(\d+)\]$")
+
+
+def read_groups(path):
+    groups, header, lines = [], None, []
+    with open(path) as handle:
+        for line in handle.read().splitlines():
+            if line.startswith("[") and line.endswith("]"):
+                groups.append((header, lines))
+                header, lines = line, []
+            else:
+                lines.append(line)
+    groups.append((header, lines))
+    return groups
+
+
+def write_groups(path, groups):
+    out = []
+    for header, lines in groups:
+        if header is not None:
+            out.append(header)
+        out.extend(lines)
+    with open(path, "w") as handle:
+        handle.write("\n".join(out) + "\n")
+
+
+def value(lines, key):
+    for line in lines:
+        if line.startswith(key + "="):
+            return line.split("=", 1)[1]
+    return None
+
+
+def set_value(lines, key, new):
+    kept = [line for line in lines if not line.startswith(key + "=")]
+    if new is not None:
+        position = next((i for i, line in enumerate(kept) if line == ""), len(kept))
+        kept.insert(position, f"{key}={new}")
+    return kept
+
+
+def items(lines, key):
+    return [item for item in (value(lines, key) or "").split(",") if item]
+
+
+def set_items(lines, key, wanted):
+    unique = list(dict.fromkeys(wanted))
+    return set_value(lines, key, ",".join(unique) if unique else None)
+
+
+def tray_headers(groups):
+    return [header for header, lines in groups
+            if header and APPLET.match(header) and value(lines, "plugin") == SYSTEM_TRAY]
+
+
+def remove_stale_host_groups(groups, keep_tray=None):
+    tray_prefixes = tuple(header + "[Applets][" for header in tray_headers(groups))
+    stale = set()
+    for header, lines in groups:
+        if not header or not header.startswith(tray_prefixes):
+            continue
+        if value(lines, "plugin") in HOSTS and (keep_tray is None or not header.startswith(keep_tray + "[Applets][")):
+            stale.add(header)
+    return [(header, lines) for header, lines in groups
+            if not header or not any(header == prefix or header.startswith(prefix + "[") for prefix in stale)]
+
+
+def configure(groups, install):
+    original = groups
+    trays = tray_headers(groups)
+    if not trays:
+        return groups, False
+    primary = trays[0] if install else None
+    groups = remove_stale_host_groups(groups, primary)
+    general_headers = {tray + "[General]": tray for tray in trays}
+    found_primary_general = False
+    result = []
+    for header, lines in groups:
+        tray = general_headers.get(header)
+        if tray:
+            found_primary_general |= tray == primary
+            for key in ("extraItems", "hiddenItems", "knownItems"):
+                current = [item for item in items(lines, key) if item not in HOSTS]
+                if install and tray == primary:
+                    current.extend(HOSTS)
+                lines = set_items(lines, key, current)
+        result.append((header, lines))
+    if install and not found_primary_general:
+        result.append((primary + "[General]", [
+            "extraItems=" + ",".join(HOSTS),
+            "hiddenItems=" + ",".join(HOSTS),
+            "knownItems=" + ",".join(HOSTS),
+        ]))
+    return result, result != original
+
+
+def main():
+    if len(sys.argv) != 3 or sys.argv[1] not in ("install", "uninstall"):
+        sys.stderr.write("usage: overlay-hosts install|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n")
+        return 2
+    path = sys.argv[2]
+    try:
+        groups = read_groups(path)
+    except FileNotFoundError:
+        return 0
+    install = sys.argv[1] == "install"
+    configured, changed = configure(groups, install)
+    if install and not tray_headers(groups):
+        sys.stderr.write("overlay-hosts: no Plasma system tray was found\n")
+        return 1
+    if changed:
+        write_groups(path, configured)
+        print("Konveyor monitor overlay hosts installed" if install else "Konveyor monitor overlay hosts removed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

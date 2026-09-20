@@ -50,7 +50,8 @@ pull_updates() {
 }
 
 if pull_updates; then
-    KONVEYOR_OWNER="$owner" "$source_dir/install.sh" --system-update
+    KONVEYOR_OWNER="$owner" KONVEYOR_SOURCE_DIR="$source_dir" KONVEYOR_INSTALL_SUPPORT=/usr/lib/konveyor \
+        /usr/lib/konveyor/install --system-update
     exit 0
 fi
 
@@ -59,7 +60,8 @@ build_dir="$source_dir/build-release"
 [[ -d $build_dir ]] || exit 0
 as_owner cmake --build "$build_dir" >/dev/null
 cmake --install "$build_dir" >/dev/null
-if [[ -x $source_dir/widgets/desktop-hider/desktop-containment ]]; then
-    as_owner "$source_dir/widgets/desktop-hider/desktop-containment" install || true
+runtime_widgets="$home/.local/share/konveyor/widgets"
+if [[ -x $runtime_widgets/desktop-hider/desktop-containment ]]; then
+    as_owner "$runtime_widgets/desktop-hider/desktop-containment" install || true
 fi
 log "rebuilt for the new KWin and Plasma; log out and back in to load it"

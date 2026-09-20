@@ -123,7 +123,7 @@ copy_panel_ui() {
     for pattern in "$@"; do
         cp -r "$source/contents/ui/"$pattern "$target/contents/ui/"
     done
-    cp "$source/contents/config/main.xml" "$target/contents/config/"
+    cp "$source/contents/config/main.xml" "$source/contents/config/config.qml" "$target/contents/config/"
 }
 
 install_plasmoids() {
@@ -201,6 +201,7 @@ remove_keyboard_toggle() {
 take_over_launcher_and_restart() {
     say "Restarting Plasma"
     systemctl --user stop "$PLASMA_SERVICE"
+    python3 "$WIDGETS_DIR/service/overlay-hosts" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     python3 "$WIDGETS_DIR/service/panel-launcher" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
     systemctl --user start "$PLASMA_SERVICE"

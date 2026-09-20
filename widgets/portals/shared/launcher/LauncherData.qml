@@ -37,6 +37,11 @@ Item {
     property var playingNow: []
     property int friendsOnline: 0
     property int friendsInGame: 0
+    property string friendsError: ""
+    property bool friendsNeedsApiKey: false
+    property bool steamKeyBusy: false
+    property string steamKeyResult: ""
+    property bool steamKeyError: false
     property real gamesLoadedAt: 0
     property var now: new Date()
     property var packages: []
@@ -755,6 +760,27 @@ Item {
 
     property string friendsPath: ""
     P5Support.DataSource {
+        id: steamKeyWriter
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            data.steamKeyBusy = false
+            const failed = Number(result["exit code"] || 0) !== 0
+            data.steamKeyError = failed
+            data.steamKeyResult = String(failed ? (result.stderr || result.stdout) : i18n("Steam API key saved")).trim()
+            data.readFriends()
+        }
+    }
+    function setSteamApiKey(key) {
+        const clean = String(key).trim()
+        if (clean === "")
+            return
+        steamKeyBusy = true
+        steamKeyResult = ""
+        steamKeyError = false
+        steamKeyWriter.connectSource("$HOME/.local/bin/portal-friends --set-key " + shq(clean) + " # " + Date.now())
+    }
+    P5Support.DataSource {
         id: pathSource
         engine: "executable"
         onNewData: function(source, result) {
@@ -777,6 +803,8 @@ Item {
             } catch (error) {
                 return
             }
+            data.friendsError = parsed.error || ""
+            data.friendsNeedsApiKey = parsed.needs_api_key === true || data.friendsError.indexOf("steam_api_key") >= 0
             const list = (parsed.friends || []).slice().sort((a, b) => {
                 const rank = f => f.ingame ? 0 : f.state > 0 ? 1 : 2
                 const diff = rank(a) - rank(b)

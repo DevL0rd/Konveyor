@@ -55,6 +55,52 @@ private Q_SLOTS:
         QVERIFY(source.contains("card.prepareToShow()"));
         QVERIFY(source.contains("interval: 50"));
     }
+
+    void detachedSurfacesUseWindowColors()
+    {
+        QFile file(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/shared/MonitorOverlay.qml"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray source = file.readAll();
+        QCOMPARE(source.count("Kirigami.Theme.inherit: false"), 2);
+        QCOMPARE(source.count("Kirigami.Theme.colorSet: Kirigami.Theme.Window"), 2);
+    }
+
+    void detachedProcessColorsUseTheSurfaceTheme()
+    {
+        QFile rootFile(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/process-monitor/plasmoids/org.devl0rd.procmon.panel/contents/ui/main.qml"));
+        QVERIFY(rootFile.open(QIODevice::ReadOnly));
+        const QByteArray rootSource = rootFile.readAll();
+        QVERIFY(rootSource.contains("function heatColor(value, theme)"));
+        QVERIFY(rootSource.contains("function colColor(p, column, theme)"));
+        QVERIFY(rootSource.contains("function fpsColor(fps, theme)"));
+
+        const QStringList viewNames {QStringLiteral("CompactView.qml"), QStringLiteral("FocusCard.qml"), QStringLiteral("ProcessRow.qml")};
+        for (const QString &viewName : viewNames) {
+            QFile viewFile(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/process-monitor/plasmoids/org.devl0rd.procmon.panel/contents/ui/") + viewName);
+            QVERIFY2(viewFile.open(QIODevice::ReadOnly), qPrintable(viewName));
+            const QByteArray viewSource = viewFile.readAll();
+            QVERIFY2(viewSource.contains("Kirigami.Theme"), qPrintable(viewName));
+            QVERIFY2(!viewSource.contains("root.fpsColor(compact.proc ? compact.proc.fps : 0)"), qPrintable(viewName));
+            QVERIFY2(!viewSource.contains("root.colColor(row.proc, modelData)"), qPrintable(viewName));
+        }
+    }
+
+    void detachedSystemMetricColorsUseTheSurfaceTheme()
+    {
+        QFile file(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/shared/common/PopMetricTabs.qml"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray source = file.readAll();
+        QVERIFY(source.contains("tab.modelData.color(tab.value, Kirigami.Theme)"));
+    }
+
+    void offlineRouterPanelDoesNotBleedThroughText()
+    {
+        QFile file(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/router-monitor/shared/lib/StatusOverlay.qml"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray source = file.readAll();
+        QVERIFY(source.contains("color: Kirigami.Theme.backgroundColor"));
+        QVERIFY(!source.contains("color: Qt.alpha(Kirigami.Theme.backgroundColor"));
+    }
 };
 
 QTEST_MAIN(TestMonitorOverlayQml)
