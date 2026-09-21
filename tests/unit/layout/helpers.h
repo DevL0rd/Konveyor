@@ -155,6 +155,31 @@ private:
     qint64 m_elapsed = 0;
 };
 
+inline Config::Config nativeWidthCycleConfig(bool floating)
+{
+    Config::Config config = instantConfig();
+    config.layout.presetColumnWidths
+        = {Config::PresetSize(Config::Fixed {300}), Config::PresetSize(Config::Fixed {600}), Config::PresetSize(Config::Fixed {900})};
+    Config::WindowRule rule = ruleFor(QStringLiteral("game"));
+    rule.forceResizable = true;
+    rule.openFloating = floating;
+    config.windowRules.append(rule);
+    return config;
+}
+
+inline void verifyNativeWidthCycle(Fixture &fixture, Layout::WindowId id)
+{
+    fixture.perform(QStringLiteral("switch-preset-column-width"), {}, {{QStringLiteral("from-native"), QStringLiteral("true")}});
+    QCOMPARE(fixture.frame(id).width(), 600.0);
+    QCOMPARE(fixture.state(id).widthPresetIndex, std::optional(1));
+    QCOMPARE(fixture.state(id).nativeWidthSuccessorIndex, std::optional(1));
+
+    fixture.perform(QStringLiteral("switch-preset-column-width-back"), {}, {{QStringLiteral("from-native"), QStringLiteral("true")}});
+    QCOMPARE(fixture.frame(id).width(), 300.0);
+    QCOMPARE(fixture.state(id).widthPresetIndex, std::optional(0));
+    QCOMPARE(fixture.state(id).widthPresetCount, 3);
+}
+
 }
 
 #define VERIFY_INVARIANTS(fixture) QVERIFY2((fixture).invariants().isEmpty(), qPrintable((fixture).invariants()))

@@ -1,5 +1,7 @@
 #include "plugin/konveyoreffect_p.h"
 
+#include <functional>
+
 namespace Konveyor
 {
 
@@ -37,6 +39,32 @@ void detachMonitorWindow(KWin::Window *window)
             target->removeTransient(window);
         }
     }
+}
+
+using MonitorWindowMap = QHash<Layout::WindowId, QHash<int, QPointer<KWin::Window>>>;
+
+bool removeMonitorWindow(MonitorWindowMap &windows, KWin::Window *window, const std::function<void(Layout::WindowId)> &place)
+{
+    bool removed = false;
+    for (auto target = windows.begin(); target != windows.end();) {
+        auto &slotMap = target.value();
+        for (auto slot = slotMap.begin(); slot != slotMap.end();) {
+            if (slot.value() == window) {
+                slot = slotMap.erase(slot);
+                removed = true;
+            } else {
+                ++slot;
+            }
+        }
+        if (slotMap.isEmpty()) {
+            target = windows.erase(target);
+        } else {
+            const Layout::WindowId id = target.key();
+            ++target;
+            place(id);
+        }
+    }
+    return removed;
 }
 
 }
@@ -246,8 +274,8 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
     connect(window, &KWin::Window::fullScreenChanged, this, [this, id, window] {
         placeMonitorOverlays(id);
         if (d->monitorOverlays.contains(id)) {
-            runMonitorOverlay(
-                {QStringLiteral("update-fullscreen"), QString::number(id), window->isFullScreen() ? QStringLiteral("1") : QStringLiteral("0")});
+            runMonitorOverlay({QStringLiteral("update-fullscreen"), QString::number(id),
+                window->isFullScreen() ? QStringLiteral("1") : QStringLiteral("0")});
         }
     });
     placeMonitorOverlays(id);
@@ -297,43 +325,8 @@ void KonveyorEffect::observeMonitorOverlay(KWin::Window *window)
 
 void KonveyorEffect::forgetMonitorOverlay(KWin::Window *window)
 {
-    bool forgotten = false;
-    for (auto target = d->monitorOverlays.begin(); target != d->monitorOverlays.end();) {
-        auto &slotMap = target.value();
-        for (auto slot = slotMap.begin(); slot != slotMap.end();) {
-            if (slot.value() == window) {
-                slot = slotMap.erase(slot);
-                forgotten = true;
-            } else {
-                ++slot;
-            }
-        }
-        if (slotMap.isEmpty()) {
-            target = d->monitorOverlays.erase(target);
-        } else {
-            const Layout::WindowId id = target.key();
-            ++target;
-            placeMonitorOverlays(id);
-        }
-    }
-    for (auto target = d->monitorPanels.begin(); target != d->monitorPanels.end();) {
-        auto &slotMap = target.value();
-        for (auto slot = slotMap.begin(); slot != slotMap.end();) {
-            if (slot.value() == window) {
-                slot = slotMap.erase(slot);
-                forgotten = true;
-            } else {
-                ++slot;
-            }
-        }
-        if (slotMap.isEmpty()) {
-            target = d->monitorPanels.erase(target);
-        } else {
-            const Layout::WindowId id = target.key();
-            ++target;
-            placeMonitorPanels(id);
-        }
-    }
+    bool forgotten = removeMonitorWindow(d->monitorOverlays, window, [this](Layout::WindowId id) { placeMonitorOverlays(id); });
+    forgotten = removeMonitorWindow(d->monitorPanels, window, [this](Layout::WindowId id) { placeMonitorPanels(id); }) || forgotten;
     if (forgotten) {
         detachMonitorWindow(window);
     }

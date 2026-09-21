@@ -67,7 +67,8 @@ private Q_SLOTS:
 
     void detachedProcessColorsUseTheSurfaceTheme()
     {
-        QFile rootFile(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/process-monitor/plasmoids/org.devl0rd.procmon.panel/contents/ui/main.qml"));
+        QFile rootFile(
+            QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/process-monitor/plasmoids/org.devl0rd.procmon.panel/contents/ui/main.qml"));
         QVERIFY(rootFile.open(QIODevice::ReadOnly));
         const QByteArray rootSource = rootFile.readAll();
         QVERIFY(rootSource.contains("function heatColor(value, theme)"));
@@ -76,7 +77,8 @@ private Q_SLOTS:
 
         const QStringList viewNames {QStringLiteral("CompactView.qml"), QStringLiteral("FocusCard.qml"), QStringLiteral("ProcessRow.qml")};
         for (const QString &viewName : viewNames) {
-            QFile viewFile(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/process-monitor/plasmoids/org.devl0rd.procmon.panel/contents/ui/") + viewName);
+            QFile viewFile(
+                QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/process-monitor/plasmoids/org.devl0rd.procmon.panel/contents/ui/") + viewName);
             QVERIFY2(viewFile.open(QIODevice::ReadOnly), qPrintable(viewName));
             const QByteArray viewSource = viewFile.readAll();
             QVERIFY2(viewSource.contains("Kirigami.Theme"), qPrintable(viewName));

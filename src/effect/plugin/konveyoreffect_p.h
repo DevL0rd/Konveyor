@@ -38,8 +38,8 @@
 #include <chrono>
 #include <utility>
 
-#include <QJsonArray>
 #include <QDir>
+#include <QJsonArray>
 #include <QPointer>
 #include <QProcess>
 #include <QRegularExpression>

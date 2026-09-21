@@ -227,6 +227,36 @@ void applyTabBars(QList<WindowState> &states, const Workspace &workspace, const 
     }
 }
 
+void applyWidthPresetState(WindowState &state, const Tile &tile, const Workspace &workspace, const TileIndex &index)
+{
+    state.widthPresetCount = workspace.options()->layout.presetColumnWidths.size();
+    if (state.isFloating) {
+        state.widthPresetIndex
+            = tile.floatingWidthPresetIndex ? std::optional(static_cast<int>(*tile.floatingWidthPresetIndex)) : std::nullopt;
+        if (const auto closest = workspace.floating().closestWidthPresetIndex(static_cast<std::size_t>(index.tile))) {
+            state.nativeWidthSuccessorIndex = static_cast<int>(*closest);
+        }
+        return;
+    }
+    const Column *column = workspace.scrolling().columnFor(tile.id());
+    if (!column) {
+        return;
+    }
+    if (column->presetWidthIndex) {
+        state.widthPresetIndex = static_cast<int>(*column->presetWidthIndex);
+    }
+    if (const auto closest = column->closestWidthPresetIndex(static_cast<std::size_t>(index.tile))) {
+        state.nativeWidthSuccessorIndex = static_cast<int>(*closest);
+    }
+}
+
+void applyStackingState(WindowState &state, const Tile &tile, const TileIndex &index)
+{
+    const bool fullscreen = tile.sizingMode() == WindowMode::Fullscreen;
+    const int ownIndex = fullscreen ? BackgroundFullscreenStackingIndex : index.stacking;
+    state.stackingIndex = fullscreen && state.isActive ? FullscreenStackingIndex : ownIndex;
+}
+
 }
 
 void Engine::Private::appendWorkspaceStates(
@@ -245,27 +275,8 @@ void Engine::Private::appendWorkspaceStates(
         const TileIndex index = indices.value(tile.id());
         state.columnIndex = index.column;
         state.tileIndex = index.tile;
-        state.widthPresetCount = workspace.options()->layout.presetColumnWidths.size();
-        if (state.isFloating) {
-            state.widthPresetIndex = tile.floatingWidthPresetIndex
-                ? std::optional(static_cast<int>(*tile.floatingWidthPresetIndex))
-                : std::nullopt;
-            if (const auto closest = workspace.floating().closestWidthPresetIndex(static_cast<std::size_t>(index.tile))) {
-                state.nativeWidthSuccessorIndex = static_cast<int>(*closest);
-            }
-        } else if (const Column *column = workspace.scrolling().columnFor(tile.id()); column && column->presetWidthIndex) {
-            state.widthPresetIndex = static_cast<int>(*column->presetWidthIndex);
-        }
-        if (!state.isFloating) {
-            if (const Column *column = workspace.scrolling().columnFor(tile.id())) {
-                if (const auto closest = column->closestWidthPresetIndex(static_cast<std::size_t>(index.tile))) {
-                    state.nativeWidthSuccessorIndex = static_cast<int>(*closest);
-                }
-            }
-        }
-        const bool fullscreen = tile.sizingMode() == WindowMode::Fullscreen;
-        const int ownIndex = fullscreen ? BackgroundFullscreenStackingIndex : index.stacking;
-        state.stackingIndex = fullscreen && state.isActive ? FullscreenStackingIndex : ownIndex;
+        applyWidthPresetState(state, tile, workspace, index);
+        applyStackingState(state, tile, index);
         states.append(state);
     }
 

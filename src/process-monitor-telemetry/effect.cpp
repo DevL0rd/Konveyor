@@ -71,7 +71,7 @@ void TelemetryEffect::Watch(const QString &pidsJson)
 {
     const QJsonDocument document = QJsonDocument::fromJson(pidsJson.toUtf8());
     QSet<qint64> watched;
-    for (const QJsonValue &value : document.array()) {
+    for (const auto value : document.array()) {
         const qint64 pid = value.toInteger();
         if (pid > 0) {
             watched.insert(pid);

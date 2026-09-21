@@ -35,7 +35,8 @@ void Column::toggleWidth(std::optional<std::size_t> tileIndex, bool forwards, bo
     const auto len = static_cast<std::size_t>(m_options->layout.presetColumnWidths.size());
     const auto closest = fromNative ? closestWidthPresetIndex(idx) : std::nullopt;
     const std::size_t presetIndex = closest ? (forwards ? *closest : (*closest + len - 1) % len)
-                                            : current ? nextPresetIndex(current, len, forwards) : findPresetWidthIndex(idx, forwards);
+        : current                           ? nextPresetIndex(current, len, forwards)
+                                            : findPresetWidthIndex(idx, forwards);
     const Config::PresetSize preset = m_options->layout.presetColumnWidths[static_cast<qsizetype>(presetIndex)];
     setColumnWidth(sizeChangeFromPreset(preset), idx, true);
     presetWidthIndex = presetIndex;

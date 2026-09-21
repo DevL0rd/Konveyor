@@ -89,6 +89,10 @@ Every new window gets its own column right next to the one you're using. When th
 
 <p align="center"><img alt="An ultrawide monitor showing four columns side by side" src="docs/screenshot.png" width="88%"></p>
 
+### 🖥️ Built for multiple screens
+
+Konveyor supports multi-monitor setups natively. Each display keeps its own scrolling row and workspace stack, windows move freely between screens, and per-monitor profiles let a laptop, ultrawide and portrait display each use the layout that fits it best.
+
 ### 🗂️ Stack them. Tab them.
 
 Pull a window into the column next to it to stack them, then flip the column into tabs when you want one at a time. Kick it back out whenever you like.

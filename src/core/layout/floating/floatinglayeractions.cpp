@@ -136,8 +136,7 @@ void FloatingLayer::toggleWindowWidth(std::optional<WindowId> window, bool forwa
     }
     const auto len = static_cast<std::size_t>(m_options->layout.presetColumnWidths.size());
     const auto closest = fromNative ? closestWidthPresetIndex(*idx) : std::nullopt;
-    const std::size_t presetIndex
-        = closest ? (forwards ? *closest : (*closest + len - 1) % len) : togglePresetIndex(*idx, true, forwards);
+    const std::size_t presetIndex = closest ? (forwards ? *closest : (*closest + len - 1) % len) : togglePresetIndex(*idx, true, forwards);
     setWindowSize(*idx, sizeChangeFromPreset(m_options->layout.presetColumnWidths[static_cast<qsizetype>(presetIndex)]), true, true);
     m_tiles[*idx].floatingWidthPresetIndex = presetIndex;
     endResize(m_tiles[*idx].id());

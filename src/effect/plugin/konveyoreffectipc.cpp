@@ -5,6 +5,36 @@
 namespace Konveyor
 {
 
+namespace
+{
+
+bool isFullscreen(const Layout::WindowState &state)
+{
+    return state.sizingMode == Layout::WindowMode::Fullscreen || state.requestedSizingMode == Layout::WindowMode::Fullscreen;
+}
+
+bool isAtNativeWidthEdge(const Layout::WindowState &state, bool forwards)
+{
+    if (!state.widthPresetIndex || !state.nativeWidthSuccessorIndex || state.widthPresetCount <= 0 || state.isExpansionForceResizable) {
+        return false;
+    }
+    const int successor = *state.nativeWidthSuccessorIndex;
+    const int predecessor = (successor + state.widthPresetCount - 1) % state.widthPresetCount;
+    return forwards ? *state.widthPresetIndex == predecessor : *state.widthPresetIndex == successor;
+}
+
+void notifyForceResizable(KWin::Window *window, const QString &appId, bool enabled)
+{
+    auto *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout);
+    notification->setComponentName(QStringLiteral("plasma_workspace"));
+    notification->setTitle(enabled ? QStringLiteral("Force resizing enabled") : QStringLiteral("Force resizing disabled"));
+    notification->setText(window->caption().isEmpty() ? appId : window->caption());
+    notification->setIconName(QStringLiteral("transform-scale"));
+    notification->sendEvent();
+}
+
+}
+
 QJsonDocument KonveyorEffect::windowsJson() const
 {
     QJsonArray array;
@@ -83,8 +113,7 @@ QString KonveyorEffect::performActionJson(const QString &json)
 
 Layout::ActionResult KonveyorEffect::performAction(const Config::Action &action, std::optional<Layout::WindowId> target)
 {
-    if (action.name == QLatin1String("switch-preset-column-width")
-        || action.name == QLatin1String("switch-preset-column-width-back")) {
+    if (action.name == QLatin1String("switch-preset-column-width") || action.name == QLatin1String("switch-preset-column-width-back")) {
         return cycleNonResizableWidth(action, target);
     }
     return changeEngine().perform(action, target);
@@ -104,8 +133,7 @@ Layout::ActionResult KonveyorEffect::cycleNonResizableWidth(const Config::Action
     if (window->isResizable()) {
         return changeEngine().perform(action, target);
     }
-    if (state->sizingMode == Layout::WindowMode::Fullscreen
-        || state->requestedSizingMode == Layout::WindowMode::Fullscreen) {
+    if (isFullscreen(*state)) {
         return {};
     }
     const Layout::WindowProperties properties = d->windows.propertiesOf(window);
@@ -113,12 +141,7 @@ Layout::ActionResult KonveyorEffect::cycleNonResizableWidth(const Config::Action
         return {false, QStringLiteral("window has no application id")};
     }
     const bool forwards = action.name == QLatin1String("switch-preset-column-width");
-    const int successor = state->nativeWidthSuccessorIndex.value_or(0);
-    const int predecessor = state->widthPresetCount > 0 ? (successor + state->widthPresetCount - 1) % state->widthPresetCount : 0;
-    const bool atNativeEdge = state->widthPresetIndex && state->nativeWidthSuccessorIndex && state->widthPresetCount > 0
-        && !state->isExpansionForceResizable
-        && (forwards ? *state->widthPresetIndex == predecessor : *state->widthPresetIndex == successor);
-    if (state->isForceResizableByRule && !atNativeEdge) {
+    if (state->isForceResizableByRule && !isAtNativeWidthEdge(*state, forwards)) {
         return changeEngine().perform(action, target);
     }
     if (!state->isForceResizableByRule) {
@@ -129,12 +152,7 @@ Layout::ActionResult KonveyorEffect::cycleNonResizableWidth(const Config::Action
     if (!saved) {
         return {false, saved.error()};
     }
-    auto *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout);
-    notification->setComponentName(QStringLiteral("plasma_workspace"));
-    notification->setTitle(enabled ? QStringLiteral("Force resizing enabled") : QStringLiteral("Force resizing disabled"));
-    notification->setText(window->caption().isEmpty() ? properties.appId : window->caption());
-    notification->setIconName(QStringLiteral("transform-scale"));
-    notification->sendEvent();
+    notifyForceResizable(window, properties.appId, enabled);
     if (!enabled) {
         return {};
     }
