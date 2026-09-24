@@ -233,7 +233,7 @@ Item {
     property bool shortcutsRequested: false
     function refreshShortcuts() {
         shortcutsRequested = true
-        shortcutsSource.connectSource("konveyor-cheatsheet --json # " + Date.now())
+        shortcutsSource.connectSource("PATH=\"$HOME/.local/bin:$PATH\" konveyor-cheatsheet --json # " + Date.now())
     }
     function ensureShortcuts() {
         if (!shortcutsRequested)

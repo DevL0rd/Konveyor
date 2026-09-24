@@ -1,5 +1,5 @@
 {
-  "host": "192.168.50.1",
+  "host": "",
   "user": "admin",
   "ssh_key": "~/.ssh/id_ed25519",
   "remote_script": "/jffs/lrm-collect.sh",
@@ -9,7 +9,7 @@
   "control_persist": "60",
   "adguard": {
     "enabled": true,
-    "url": "http://192.168.50.1:3000",
+    "url": "",
     "username": "",
     "password": ""
   },

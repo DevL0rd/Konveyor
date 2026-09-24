@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PlasmaComponents
 
 ColumnLayout {
     id: rail
@@ -13,6 +13,7 @@ ColumnLayout {
     readonly property bool scrolling: false
     readonly property int columns: 1
     readonly property int shownCount: entries.length
+    readonly property color ink: Kirigami.Theme.textColor
     signal chosen(string id)
 
     function itemAtIndex(index) {
@@ -62,9 +63,9 @@ ColumnLayout {
             Rectangle {
                 anchors.fill: parent
                 radius: Kirigami.Units.cornerRadius * 1.5
-                color: row.open ? launcher.selectedFill : row.containsMouse || row.keyboard ? launcher.hoverFill : "transparent"
+                color: row.open ? Qt.alpha(rail.ink, 0.13) : row.containsMouse || row.keyboard ? Qt.alpha(rail.ink, 0.06) : "transparent"
                 border.width: row.open || row.keyboard ? 1 : 0
-                border.color: row.keyboard ? launcher.selectedLine : launcher.hairline
+                border.color: row.keyboard ? Qt.alpha(rail.ink, 0.35) : Qt.alpha(rail.ink, 0.09)
             }
             RowLayout {
                 anchors.fill: parent
@@ -77,7 +78,7 @@ ColumnLayout {
                     source: row.modelData.icon
                     opacity: row.open ? 1 : 0.75
                 }
-                PlasmaComponents.Label {
+                QQC2.Label {
                     Layout.fillWidth: true
                     text: row.modelData.title
                     elide: Text.ElideRight

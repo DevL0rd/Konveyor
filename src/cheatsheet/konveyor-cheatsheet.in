@@ -13,6 +13,7 @@ KGLOBALSHORTCUTS = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 DATA_HOME = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
 QML = Path(os.environ.get("KONVEYOR_CHEATSHEET_QML", Path(__file__).resolve().parent.parent / "share" / "konveyor" / "cheatsheet" / "Cheatsheet.qml"))
+VIEWER = Path(os.environ.get("KONVEYOR_CHEATSHEET_VIEWER", "@KDE_INSTALL_FULL_LIBEXECDIR@/konveyor-cheatsheet-viewer"))
 PORTAL_LAUNCHER = Path.home() / ".local" / "bin" / "portal-launcher"
 WIDGETS_SECTION = "Konveyor widgets"
 GESTURES_SECTION = "Gestures"
@@ -232,7 +233,7 @@ def main():
     if close_running():
         return 0
     env = dict(os.environ, QT_WAYLAND_SHELL_INTEGRATION="layer-shell")
-    process = subprocess.Popen(["qml6", str(QML), "--", json.dumps(build_sections())], env=env)
+    process = subprocess.Popen([str(VIEWER), str(QML), json.dumps(build_sections())], env=env)
     PID_FILE.write_text(str(process.pid))
     code = process.wait()
     if PID_FILE.exists() and PID_FILE.read_text().strip() == str(process.pid):

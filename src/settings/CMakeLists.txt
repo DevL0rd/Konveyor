@@ -81,6 +81,9 @@ ecm_target_qml_sources(konveyor_settings PATH components SOURCES
     qml/components/Segmented.qml
     qml/components/SettingRow.qml
     qml/components/SettingsPage.qml
+    qml/components/SettingsRail.qml
+    qml/components/SettingsStack.qml
+    qml/components/SettingsView.qml
     qml/components/ShortcutRow.qml
     qml/components/SizePicker.qml
     qml/components/SliderRow.qml

@@ -30,6 +30,7 @@ STATE = os.path.join(RUNDIR, "state.json")
 LOCK = os.path.join(RUNDIR, "refresh.lock")
 SOCK = os.path.join(RUNDIR, "cm.sock")
 PAUSE = os.path.join(RUNDIR, "paused")
+NOT_SET_UP = "Router not set up yet"
 LOGDIR = os.path.expanduser(f"~/.local/state/{APP}")
 LOG = os.path.join(LOGDIR, "monitor.log")
 
@@ -316,7 +317,7 @@ def fetch_agh(cfg):
     import urllib.error
     import urllib.request
     a = cfg.get("adguard", {})
-    if not a.get("enabled"):
+    if not a.get("enabled") or not a.get("url"):
         return None
     base = a["url"].rstrip("/")
     hdr = {}
@@ -562,6 +563,11 @@ def refresh(cfg):
         prev = json.load(open(STATE)) if os.path.exists(STATE) else {}
     except (ValueError, OSError):
         prev = {}
+    if not cfg.get("host"):
+        snap, state = local_network_fallback(cfg, prev, NOT_SET_UP)
+        _atomic_write(CACHE, snap)
+        _atomic_write(STATE, state)
+        return snap
     try:
         sc = compute_static(cfg)
         if sc:
@@ -632,6 +638,9 @@ def serve():
                 data = {"online": True}
             data["paused"] = True
             _atomic_write(CACHE, data)
+        elif not cfg.get("host"):
+            snap, prev = local_network_fallback(cfg, prev, NOT_SET_UP)
+            _atomic_write(CACHE, snap)
         else:
             ok = True
             try:

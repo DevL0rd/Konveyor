@@ -12,7 +12,14 @@ Item {
     property bool showKeys: false
     property real clock: 0
     readonly property bool hasScene: scene !== null && scene !== undefined
-    readonly property var cursor: hasScene ? (animated ? Scenes.cursor(scene, clock) : Scenes.still(scene)) : null
+    readonly property var view: {
+        if (!scene) {
+            return null;
+        }
+        const at = animated ? Scenes.cursor(scene, clock) : Scenes.still(scene);
+        return { cursor: at, windows: scene.windows.map((frames, index) => Scenes.rect(scene, index, at)), panel: Scenes.panel(scene, at) };
+    }
+    readonly property var cursor: view ? view.cursor : null
     readonly property bool compact: height < Kirigami.Units.gridUnit * 3
     property real aspect: 16 / 10
     readonly property var keyboard: {
@@ -41,11 +48,31 @@ Item {
         return Scenes.scrollFrames(widths, mode);
     }
 
+    function syncWindows() {
+        const rects = view ? view.windows : [];
+        while (windowRects.count > rects.length) {
+            windowRects.remove(windowRects.count - 1);
+        }
+        rects.forEach((rect, index) => {
+            if (index < windowRects.count) {
+                windowRects.set(index, rect);
+            } else {
+                windowRects.append(rect);
+            }
+        });
+    }
+
     onSceneChanged: {
         clock = 0;
         if (loop.running) {
             loop.restart();
         }
+    }
+    onViewChanged: syncWindows()
+    Component.onCompleted: syncWindows()
+
+    ListModel {
+        id: windowRects
     }
 
     NumberAnimation {
@@ -53,7 +80,7 @@ Item {
         target: demo
         property: "clock"
         from: 0
-        to: demo.hasScene ? Scenes.duration(demo.scene) : 1
+        to: demo.scene ? Scenes.duration(demo.scene) : 1
         duration: to
         loops: Animation.Infinite
         running: demo.visible && demo.animated && demo.hasScene
@@ -63,14 +90,14 @@ Item {
         id: stage
         width: parent.width
         height: demo.showKeys ? parent.height * 0.7 : parent.height
-        readonly property int count: demo.hasScene ? demo.scene.monitors : 1
-        readonly property bool stacked: demo.hasScene && demo.scene.stackedMonitors
+        readonly property int count: demo.scene ? demo.scene.monitors : 1
+        readonly property bool stacked: demo.scene ? demo.scene.stackedMonitors : false
         readonly property real spacing: count > 1 ? Kirigami.Units.smallSpacing : 0
         readonly property real frameHeight: stacked ? Math.min((height - spacing) / count, width / demo.aspect) : Math.min(height, (width - spacing * (count - 1)) / count / demo.aspect)
         readonly property real frameWidth: frameHeight * demo.aspect
 
         Repeater {
-            model: demo.hasScene ? stage.count : 0
+            model: demo.scene ? stage.count : 0
 
             MiniScreen {
                 id: screen
@@ -82,11 +109,11 @@ Item {
                 y: stage.stacked ? (stage.height - stage.count * height - stage.spacing * (stage.count - 1)) / 2 + index * (height + stage.spacing) : (stage.height - height) / 2
 
                 Repeater {
-                    model: demo.scene.windows.length
+                    model: windowRects
 
                     MiniWindow {
-                        required property int index
-                        readonly property var r: Scenes.rect(demo.scene, index, demo.cursor)
+                        required property var model
+                        readonly property var r: model
                         compact: demo.compact
                         x: (r.x - screen.index + r.w * (1 - r.s) / 2) * screen.width
                         y: (r.y + r.h * (1 - r.s) / 2) * screen.height
@@ -108,7 +135,7 @@ Item {
                 MiniPanel {
                     z: 10
                     anchors.centerIn: parent
-                    shown: demo.hasScene && screen.index === 0 ? Scenes.panel(demo.scene, demo.cursor) : 0
+                    shown: demo.view && screen.index === 0 ? demo.view.panel : 0
                 }
             }
         }
@@ -132,7 +159,7 @@ Item {
 
             Rectangle {
                 required property var modelData
-                readonly property bool pressed: modelData.name !== "" && (modelData.name === "meta" || modelData.name === (demo.hasScene ? demo.scene.key : ""))
+                readonly property bool pressed: modelData.name !== "" && (modelData.name === "meta" || modelData.name === (demo.scene ? demo.scene.key : ""))
                 readonly property real glow: pressed && demo.cursor ? demo.cursor.glow : 0
                 x: pad.unit * 0.2 + modelData.c * pad.unit + pad.unit * 0.08
                 y: pad.unit * 0.2 + modelData.r * pad.unit + pad.unit * 0.08

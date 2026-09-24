@@ -55,6 +55,13 @@ class TestMonitorOverlayService(unittest.TestCase):
             self.assertEqual(self.module.main(), 0)
         return json.loads((self.directory / "state.json").read_text())
 
+    def test_konveyor_is_found_in_local_bin_first(self):
+        with patch.object(self.module.subprocess, "run") as run, patch.dict(self.module.os.environ, {"PATH": "/usr/bin"}):
+            run.return_value.stdout = "[]"
+            self.module.konveyor_json("focused-output")
+        self.assertEqual(run.call_args.args[0][0], "konveyor")
+        self.assertEqual(run.call_args.kwargs["env"]["PATH"], f"{Path.home() / '.local' / 'bin'}:/usr/bin")
+
     def test_toggle_is_per_application(self):
         state = self.run_mode("toggle")
         self.assertEqual(len(state["targets"]), 1)

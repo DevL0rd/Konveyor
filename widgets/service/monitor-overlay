@@ -22,7 +22,8 @@ def read_state(path):
 def konveyor_json(request):
     try:
         result = subprocess.run(
-            ["konveyor", "msg", "--json", request], capture_output=True, check=True, text=True, timeout=2
+            ["konveyor", "msg", "--json", request], capture_output=True, check=True, text=True, timeout=2,
+            env={**os.environ, "PATH": f"{Path.home() / '.local' / 'bin'}:{os.environ.get('PATH', '')}"}
         )
         return json.loads(result.stdout)
     except (OSError, subprocess.SubprocessError, ValueError):
