@@ -72,8 +72,16 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
     <td>Run <code>./install.sh --no-widgets</code> to skip the widgets, or <code>./uninstall.sh --keep-widgets</code> to remove only the window manager.</td>
   </tr>
   <tr>
+    <td>🧊 <b>Atomic desktops</b></td>
+    <td>On Fedora Atomic desktops like Kinoite, Aurora and Bazzite, the installer builds Konveyor in a toolbox that matches your system's KWin exactly and installs it to <code>~/.local</code>, so the read-only system stays untouched. Log out and back in once after the first install. When a system update brings a new KWin, run <code>./install.sh</code> again.</td>
+  </tr>
+  <tr>
     <td>🖥️ <b>Needs</b></td>
-    <td>KDE Plasma 6.4 or newer on Wayland. The installer sets up dependencies on Arch, Fedora, openSUSE and Debian-based systems.</td>
+    <td>KDE Plasma 6.7 or newer on Wayland.</td>
+  </tr>
+  <tr>
+    <td>🐧 <b>Distros</b></td>
+    <td>The installer sets everything up on Arch and Arch-based systems like CachyOS, Fedora, openSUSE Tumbleweed, Debian testing and Fedora Atomic desktops like Kinoite, Aurora and Bazzite. Kubuntu 26.04 and Debian 13 still ship an older Plasma, and SteamOS isn't supported yet.</td>
   </tr>
 </table>
 

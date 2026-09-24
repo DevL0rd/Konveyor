@@ -3,6 +3,19 @@
 namespace Konveyor
 {
 
+namespace
+{
+bool focusArrivesLater(const KWin::Window *window)
+{
+#ifdef KONVEYOR_KWIN_ASYNC_FOCUS
+    return window->takesAsyncFocus();
+#else
+    Q_UNUSED(window)
+    return false;
+#endif
+}
+}
+
 void KonveyorEffect::handlePointerMotion(const QPointF &position, qint64 timestampMs)
 {
     if (d->titlebarDrag) {
@@ -21,10 +34,31 @@ void KonveyorEffect::handlePointerMotion(const QPointF &position, qint64 timesta
 
 void KonveyorEffect::followActiveWindow()
 {
-    if (const std::optional<Layout::WindowId> id = d->windows.idOf(KWin::workspace()->activeWindow())) {
+    KWin::Window *active = KWin::workspace()->activeWindow();
+    d->followedWindow = active;
+    if (const std::optional<Layout::WindowId> id = d->windows.idOf(active)) {
         changeEngine().activateWindow(*id);
+        moveActiveOutputHome(*id);
     } else {
         changeEngine().setLayoutFocused(false);
+    }
+}
+
+void KonveyorEffect::followActiveOutput(const QString &name)
+{
+    KWin::Window *active = KWin::workspace()->activeWindow();
+    if (active != d->followedWindow && d->windows.idOf(active)) {
+        return;
+    }
+    changeEngine().focusOutput(name);
+}
+
+void KonveyorEffect::moveActiveOutputHome(Layout::WindowId id)
+{
+    const std::optional<Layout::WindowState> state = readEngine().windowState(id);
+    KWin::LogicalOutput *home = state ? d->outputs.outputNamed(state->output) : nullptr;
+    if (home && home != KWin::workspace()->activeOutput()) {
+        KWin::workspace()->setActiveOutput(home);
     }
 }
 
@@ -37,7 +71,9 @@ void KonveyorEffect::applyFocusRequest()
     }
     if (window != KWin::workspace()->activeWindow()) {
         KWin::workspace()->activateWindow(window);
-        followActiveWindow();
+        if (!focusArrivesLater(window)) {
+            followActiveWindow();
+        }
     }
     if (window == KWin::workspace()->activeWindow()) {
         warpPointerTo(*id);

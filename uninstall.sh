@@ -31,8 +31,7 @@ parse_arguments() {
 }
 
 restore_plasma_panels() {
-    command -v qdbus6 >/dev/null || return 0
-    qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript '
+    gdbus call --session --dest org.kde.plasmashell --object-path /PlasmaShell --method org.kde.PlasmaShell.evaluateScript '
 for (const panel of panels()) {
     panel.currentConfigGroup = ["Konveyor"];
     const saved = panel.readConfig("savedLengthMode", "");
@@ -49,20 +48,21 @@ disable_in_kwin() {
     local plugin
     for plugin in $(konveyor_loaded_plugin_ids | sort -u); do
         konveyor_disable_plugin_id "$plugin"
-        run_root rm -f "$KONVEYOR_PLUGIN_DIR/${plugin}.so"
+        [[ -n $KONVEYOR_PLUGIN_DIR ]] && run_prefix rm -f "$KONVEYOR_PLUGIN_DIR/${plugin}.so"
     done
     kwinrc_delete Plugins konveyor_effectEnabled
     if $WIDGETS; then
         for plugin in $(process_monitor_telemetry_plugin_ids | sort -u); do
             kwinrc_delete Plugins "${plugin}Enabled"
             kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect "$plugin"
-            run_root rm -f "$KONVEYOR_PLUGIN_DIR/${plugin}.so"
+            [[ -n $KONVEYOR_PLUGIN_DIR ]] && run_prefix rm -f "$KONVEYOR_PLUGIN_DIR/${plugin}.so"
         done
     fi
-    kwin_dbus /KWin reconfigure
+    remove_misplaced_plugins
+    kwin_dbus /KWin org.kde.KWin.reconfigure
 
     say "Restoring the KDE shortcuts Konveyor had taken over"
-    konveyor restore-shortcuts
+    "$KONVEYOR_PREFIX/bin/konveyor" restore-shortcuts
 }
 
 remove_files() {
@@ -73,10 +73,22 @@ remove_files() {
     fi
     say "Removing installed files"
     while IFS= read -r file; do
-        [[ -n $file ]] && run_root rm -f "$file"
+        [[ -n $file ]] && run_prefix rm -f "$file"
     done <"$manifest"
-    run_root rm -f "$KONVEYOR_HOOK" /usr/lib/konveyor/install /usr/lib/konveyor/common.sh
-    run_root rm -rf "$KONVEYOR_STATE_DIR"
+    if [[ -e $KONVEYOR_HOOK || -e /usr/lib/konveyor/install || -e /usr/lib/konveyor/common.sh ]]; then
+        run_root rm -f "$KONVEYOR_HOOK" /usr/lib/konveyor/install /usr/lib/konveyor/common.sh
+    fi
+    run_prefix rm -rf "$KONVEYOR_STATE_DIR"
+}
+
+remove_atomic_setup() {
+    rm -f "$KONVEYOR_SESSION_ENV"
+    $KONVEYOR_ATOMIC || return 0
+    local name
+    for name in $(podman ps --all --format '{{.Names}}' | grep -E '^konveyor-fedora-[0-9]+$' || true); do
+        say "Removing the $name build toolbox"
+        toolbox rm --force "$name" >/dev/null
+    done
 }
 
 remove_update_unit() {
@@ -99,6 +111,7 @@ purge_config() {
 main() {
     parse_arguments "$@"
     [[ $EUID -ne 0 ]] || die "run uninstall.sh as your normal user; it asks for sudo when needed"
+    KONVEYOR_PLUGIN_DIR=$(konveyor_plugin_dir)
     disable_in_kwin
     if $WIDGETS; then
         local widget_uninstaller="$WIDGETS_RUNTIME_DIR/uninstall.sh"
@@ -106,6 +119,7 @@ main() {
         "$widget_uninstaller"
     fi
     remove_files
+    remove_atomic_setup
     remove_update_unit
     purge_config
     say "Konveyor is uninstalled. Log out and back in to fully unload it from KWin."

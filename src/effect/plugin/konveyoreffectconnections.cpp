@@ -248,7 +248,7 @@ void KonveyorEffect::connectOutputs()
     connect(
         &d->outputs, &OutputRegistry::outputChanged, this, [this](const Layout::OutputInfo &info) { changeEngine().updateOutput(info); });
     connect(&d->outputs, &OutputRegistry::outputRemoved, this, [this](const QString &name) { changeEngine().removeOutput(name); });
-    connect(&d->outputs, &OutputRegistry::activeOutputChanged, this, [this](const QString &name) { changeEngine().focusOutput(name); });
+    connect(&d->outputs, &OutputRegistry::activeOutputChanged, this, &KonveyorEffect::followActiveOutput);
 }
 
 void KonveyorEffect::connectDesktopSync()

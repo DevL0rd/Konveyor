@@ -64,7 +64,7 @@ done
 
 check_commands() {
     local missing=()
-    for command_name in python3 kpackagetool6 qdbus6 systemctl journalctl busctl gdbus kscreen-doctor jq ssh curl; do
+    for command_name in python3 kpackagetool6 systemctl journalctl busctl gdbus kscreen-doctor jq ssh curl; do
         command -v "$command_name" >/dev/null || missing+=("$command_name")
     done
     if ((${#missing[@]})); then

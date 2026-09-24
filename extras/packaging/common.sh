@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 
+KONVEYOR_ATOMIC=false
+KONVEYOR_BUILD_ENV=()
+if [[ -e /run/ostree-booted ]]; then
+    KONVEYOR_ATOMIC=true
+    KONVEYOR_PREFIX="${KONVEYOR_PREFIX:-$HOME/.local}"
+    KONVEYOR_TOOLBOX="konveyor-fedora-$(. /etc/os-release && printf '%s' "$VERSION_ID")"
+    KONVEYOR_BUILD_ENV=(toolbox run --container "$KONVEYOR_TOOLBOX")
+fi
 KONVEYOR_PREFIX="${KONVEYOR_PREFIX:-/usr}"
 KONVEYOR_STATE_DIR="$KONVEYOR_PREFIX/share/konveyor"
 KONVEYOR_HOOK="/etc/pacman.d/hooks/konveyor-rebuild.hook"
-KONVEYOR_PLUGIN_DIR="$KONVEYOR_PREFIX/lib/qt6/plugins/kwin/effects/plugins"
+KONVEYOR_PLUGIN_DIR=""
+KONVEYOR_SESSION_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/konveyor.conf"
 KONVEYOR_UPDATE_UNIT="konveyor-update.service"
 KONVEYOR_CONFLICTING_SCRIPTS=(karousel krohnkite kzones polonium bismuth devl0rd-hide-desktop-widgets)
 
@@ -22,6 +31,36 @@ run_root() {
     else
         sudo "$@"
     fi
+}
+
+run_prefix() {
+    if $KONVEYOR_ATOMIC; then
+        "$@"
+    else
+        run_root "$@"
+    fi
+}
+
+manifest_entry() {
+    local entry
+    entry=$(grep -m1 -E "$2" "$1") || die "$1 lists no file matching $2"
+    printf '%s\n' "$entry"
+}
+
+konveyor_plugin_dir() {
+    local manifest="$KONVEYOR_STATE_DIR/install_manifest.txt" plugin
+    [[ -f $manifest ]] || return 0
+    plugin=$(manifest_entry "$manifest" '/kwin/effects/plugins/konveyor_effect\.so$') || exit 1
+    dirname "$plugin"
+}
+
+remove_misplaced_plugins() {
+    local stray="$KONVEYOR_PREFIX/lib/qt6/plugins/kwin/effects/plugins" file
+    [[ $stray != "$KONVEYOR_PLUGIN_DIR" && -d $stray ]] || return 0
+    for file in "$stray"/konveyor_effect*.so "$stray"/process_monitor_telemetry*.so; do
+        [[ -e $file ]] && run_prefix rm -f "$file"
+    done
+    return 0
 }
 
 as_owner() {
@@ -47,8 +86,12 @@ notify_owner() {
 }
 
 kwin_dbus() {
-    command -v qdbus6 >/dev/null || return 0
-    as_owner qdbus6 org.kde.KWin "$@" >/dev/null 2>&1 || true
+    as_owner gdbus call --session --dest org.kde.KWin --object-path "$1" --method "$2" "${@:3}" >/dev/null 2>&1 || true
+}
+
+kwin_loaded_effects() {
+    gdbus call --session --dest org.kde.KWin --object-path /Effects \
+        --method org.freedesktop.DBus.Properties.Get org.kde.kwin.Effects loadedEffects 2>/dev/null || true
 }
 
 kwinrc_write() {
@@ -59,20 +102,21 @@ kwinrc_delete() {
     as_owner kwriteconfig6 --file kwinrc --group "$1" --key "$2" --delete
 }
 
-konveyor_loaded_plugin_ids() {
-    grep -oE '^konveyor_effect[A-Za-z0-9_]*Enabled' "${XDG_CONFIG_HOME:-$HOME/.config}/kwinrc" 2>/dev/null | sed 's/Enabled$//'
-    if command -v qdbus6 >/dev/null; then
-        qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadedEffects 2>/dev/null | grep -E '^konveyor_effect' || true
+plugin_ids() {
+    grep -oE "^$1[A-Za-z0-9_]*Enabled" "${XDG_CONFIG_HOME:-$HOME/.config}/kwinrc" 2>/dev/null | sed 's/Enabled$//'
+    kwin_loaded_effects | grep -oE "\b$1[A-Za-z0-9_]*" || true
+    if [[ -n $KONVEYOR_PLUGIN_DIR ]]; then
+        find "$KONVEYOR_PLUGIN_DIR" -maxdepth 1 -name "$1*.so" -printf '%f\n' 2>/dev/null | sed 's/\.so$//'
     fi
-    find "$KONVEYOR_PLUGIN_DIR" -maxdepth 1 -name 'konveyor_effect*.so' -printf '%f\n' 2>/dev/null | sed 's/\.so$//'
+    return 0
+}
+
+konveyor_loaded_plugin_ids() {
+    plugin_ids konveyor_effect
 }
 
 process_monitor_telemetry_plugin_ids() {
-    grep -oE '^process_monitor_telemetry[A-Za-z0-9_]*Enabled' "${XDG_CONFIG_HOME:-$HOME/.config}/kwinrc" 2>/dev/null | sed 's/Enabled$//'
-    if command -v qdbus6 >/dev/null; then
-        qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadedEffects 2>/dev/null | grep -E '^process_monitor_telemetry' || true
-    fi
-    find "$KONVEYOR_PLUGIN_DIR" -maxdepth 1 -name 'process_monitor_telemetry*.so' -printf '%f\n' 2>/dev/null | sed 's/\.so$//'
+    plugin_ids process_monitor_telemetry
 }
 
 konveyor_disable_plugin_id() {

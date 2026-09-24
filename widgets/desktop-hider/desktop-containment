@@ -39,7 +39,7 @@ install_containment() {
     local staging
     staging=$(mktemp -d)
     cp -a "$SYSTEM_CONTAINMENT" "$staging/org.kde.desktopcontainment"
-    if ! patch --batch --forward --silent -d "$staging/org.kde.desktopcontainment" -p1 <"$HIDER_DIR/patches/desktopcontainment.patch" >/dev/null; then
+    if ! GIT_CEILING_DIRECTORIES="$staging" git -C "$staging/org.kde.desktopcontainment" apply -p1 <"$HIDER_DIR/patches/desktopcontainment.patch" >/dev/null 2>&1; then
         rm -rf "$staging"
         managed && rm -rf "$TARGET"
         note "Skipping desktop widget hiding: this Plasma version's desktop containment doesn't take the patch"

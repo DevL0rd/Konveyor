@@ -65,8 +65,8 @@ install_dependencies() {
 
 build() {
     say "Building (this takes a minute)"
-    as_owner cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$KONVEYOR_PREFIX" -DKONVEYOR_BUILD_TESTS=OFF >/dev/null
-    as_owner cmake --build "$BUILD_DIR"
+    as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$KONVEYOR_PREFIX" -DKONVEYOR_BUILD_TESTS=OFF >/dev/null
+    as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake --build "$BUILD_DIR"
 }
 
 remove_stale_files() {
@@ -74,28 +74,29 @@ remove_stale_files() {
     [[ -f $previous ]] || return 0
     while IFS= read -r file; do
         [[ $file == "$KONVEYOR_PREFIX"/* && $file != *..* && ( -f $file || -L $file ) ]] || continue
-        run_root rm -f "$file"
+        run_prefix rm -f "$file"
     done < <(comm -23 <(sort -u "$previous") <(sort -u "$current"))
 }
 
 install_files() {
     say "Installing to $KONVEYOR_PREFIX"
-    run_root cmake --install "$BUILD_DIR" >/dev/null
+    run_prefix "${KONVEYOR_BUILD_ENV[@]}" cmake --install "$BUILD_DIR" >/dev/null
     remove_stale_files
-    run_root install -Dm644 "$BUILD_DIR/install_manifest.txt" "$KONVEYOR_STATE_DIR/install_manifest.txt"
+    run_prefix install -Dm644 "$BUILD_DIR/install_manifest.txt" "$KONVEYOR_STATE_DIR/install_manifest.txt"
+    KONVEYOR_PLUGIN_DIR=$(konveyor_plugin_dir)
 }
 
 install_versioned_plugin() {
     PLUGIN_ID="konveyor_effect_$(date +%s)"
-    run_root install -Dm755 "$BUILD_DIR/bin/kwin/effects/plugins/konveyor_effect.so" "$KONVEYOR_PLUGIN_DIR/${PLUGIN_ID}.so"
-    run_root rm -f "$KONVEYOR_PLUGIN_DIR/konveyor_effect.so"
-    printf '%s\n' "$PLUGIN_ID" | run_root tee "$KONVEYOR_STATE_DIR/plugin-id" >/dev/null
+    run_prefix install -Dm755 "$BUILD_DIR/bin/kwin/effects/plugins/konveyor_effect.so" "$KONVEYOR_PLUGIN_DIR/${PLUGIN_ID}.so"
+    run_prefix rm -f "$KONVEYOR_PLUGIN_DIR/konveyor_effect.so"
+    printf '%s\n' "$PLUGIN_ID" | run_prefix tee "$KONVEYOR_STATE_DIR/plugin-id" >/dev/null
     if $WIDGETS; then
         TELEMETRY_PLUGIN_ID="process_monitor_telemetry_$(date +%s)"
-        run_root install -Dm755 "$BUILD_DIR/bin/kwin/effects/plugins/process_monitor_telemetry.so" "$KONVEYOR_PLUGIN_DIR/${TELEMETRY_PLUGIN_ID}.so"
-        printf '%s\n' "$TELEMETRY_PLUGIN_ID" | run_root tee "$KONVEYOR_STATE_DIR/telemetry-plugin-id" >/dev/null
+        run_prefix install -Dm755 "$BUILD_DIR/bin/kwin/effects/plugins/process_monitor_telemetry.so" "$KONVEYOR_PLUGIN_DIR/${TELEMETRY_PLUGIN_ID}.so"
+        printf '%s\n' "$TELEMETRY_PLUGIN_ID" | run_prefix tee "$KONVEYOR_STATE_DIR/telemetry-plugin-id" >/dev/null
     fi
-    run_root rm -f "$KONVEYOR_PLUGIN_DIR/process_monitor_telemetry.so"
+    run_prefix rm -f "$KONVEYOR_PLUGIN_DIR/process_monitor_telemetry.so"
 }
 
 register_updates() {
@@ -131,12 +132,12 @@ unregister_updates() {
 remove_previous_plugin_files() {
     local file
     for file in "$KONVEYOR_PLUGIN_DIR"/konveyor_effect*.so; do
-        [[ -e $file && $(basename "$file" .so) != "$PLUGIN_ID" ]] && run_root rm -f "$file"
+        [[ -e $file && $(basename "$file" .so) != "$PLUGIN_ID" ]] && run_prefix rm -f "$file"
     done
     for file in "$KONVEYOR_PLUGIN_DIR"/process_monitor_telemetry*.so; do
-        [[ -e $file && $(basename "$file" .so) != "${TELEMETRY_PLUGIN_ID:-}" ]] && run_root rm -f "$file"
+        [[ -e $file && $(basename "$file" .so) != "${TELEMETRY_PLUGIN_ID:-}" ]] && run_prefix rm -f "$file"
     done
-    return 0
+    remove_misplaced_plugins
 }
 
 configure_kwin() {
@@ -166,24 +167,39 @@ configure_kwin() {
             kwin_dbus /Effects org.kde.kwin.Effects.unloadEffect "$previous"
         done
     fi
-    kwin_dbus /KWin reconfigure
+    kwin_dbus /KWin org.kde.KWin.reconfigure
+}
+
+configure_session_paths() {
+    $KONVEYOR_ATOMIC || return 0
+    local qml
+    qml=$(manifest_entry "$KONVEYOR_STATE_DIR/install_manifest.txt" '/org/kde/konveyor/settings/qmldir$')
+    say "Adding Konveyor to the session's Qt plugin and QML paths"
+    mkdir -p "$(dirname "$KONVEYOR_SESSION_ENV")"
+    printf 'QT_PLUGIN_PATH=%s${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}\nQML_IMPORT_PATH=%s${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}\n' \
+        "${KONVEYOR_PLUGIN_DIR%/kwin/effects/plugins}" "${qml%/org/kde/konveyor/settings/qmldir}" >"$KONVEYOR_SESSION_ENV"
+}
+
+effect_loaded() {
+    gdbus call --session --dest org.kde.KWin --object-path /Effects --method org.kde.kwin.Effects.isEffectLoaded "$1" 2>/dev/null | grep -q true
 }
 
 activate() {
     kwin_dbus /Effects org.kde.kwin.Effects.loadEffect "$PLUGIN_ID"
     $WIDGETS && kwin_dbus /Effects org.kde.kwin.Effects.loadEffect "$TELEMETRY_PLUGIN_ID"
     sleep 1
-    if qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.isEffectLoaded "$PLUGIN_ID" 2>/dev/null | grep -q true; then
+    if effect_loaded "$PLUGIN_ID"; then
         say "Konveyor is live now — no logout needed. Press Super+K for the shortcut cheatsheet."
     else
         say "Installed. Log out and back in to start it."
     fi
-    if $WIDGETS && qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.isEffectLoaded "$TELEMETRY_PLUGIN_ID" 2>/dev/null | grep -q true; then
+    if $WIDGETS && effect_loaded "$TELEMETRY_PLUGIN_ID"; then
         say "Process Monitor frame telemetry is live now"
     fi
 }
 
 finish_update() {
+    KONVEYOR_PLUGIN_DIR=$(konveyor_plugin_dir)
     PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/plugin-id")
     if grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null; then
         WIDGETS=false
@@ -239,6 +255,7 @@ main() {
     register_updates
     remove_previous_plugin_files
     configure_kwin
+    configure_session_paths
     activate
     mkdir -p "$(dirname "$OPTIONS_FILE")"
     printf 'widgets=%s\n' "$WIDGETS" >"$OPTIONS_FILE"

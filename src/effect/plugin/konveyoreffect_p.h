@@ -109,6 +109,7 @@ struct KonveyorEffect::Private
     QString lastBindKey;
     QString lastBindAction;
     std::optional<Layout::WindowId> focusRequest;
+    QPointer<KWin::Window> followedWindow;
     std::optional<Layout::WindowId> titlebarDrag;
     std::optional<Layout::WindowId> touchLift;
     std::optional<Layout::WindowId> touchMovePending;

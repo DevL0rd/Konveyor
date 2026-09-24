@@ -264,7 +264,7 @@ Layout::Hooks KonveyorEffect::makeHooks()
     hooks.spawn = [](const QString &command) { QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), command}); };
     hooks.compositorAction = [](const QString &name) {
         if (name == QLatin1String("show-hotkey-overlay")) {
-            QProcess::startDetached(QStringLiteral("konveyor-cheatsheet"), {});
+            QProcess::startDetached(QStringLiteral(KONVEYOR_BINDIR "/konveyor-cheatsheet"), {});
             return;
         }
         qInfo() << "konveyor: action left to KDE:" << name;
