@@ -19,7 +19,7 @@ struct Layout
     bool emptyWorkspaceAboveFirst = false;
     ColumnDisplay defaultColumnDisplay = ColumnDisplay::Normal;
     QList<PresetSize> presetColumnWidths;
-    std::optional<PresetSize> defaultColumnWidth = Proportion {0.25};
+    std::optional<PresetSize> defaultColumnWidth = Proportion {0.5};
     bool rememberWindowSizes = false;
     bool rememberWindowPositions = false;
     GroupAppWindows groupAppWindows = GroupAppWindows::Beside;

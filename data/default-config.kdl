@@ -23,7 +23,7 @@ layout {
         proportion 1.0
     }
 
-    default-column-width { proportion 0.25; }
+    default-column-width { proportion 0.5; }
     remember-window-sizes false
     remember-window-positions false
 
