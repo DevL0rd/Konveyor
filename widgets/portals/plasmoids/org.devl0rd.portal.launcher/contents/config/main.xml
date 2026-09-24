@@ -11,6 +11,7 @@
         <entry name="cardHeight" type="Int"><default>56</default></entry>
         <entry name="dimStrength" type="Double"><default>0.55</default></entry>
         <entry name="defaultPage" type="String"><default>home</default></entry>
+        <entry name="openPageOnStart" type="String"><default></default></entry>
         <entry name="tileSize" type="Int"><default>52</default></entry>
         <entry name="showRecentApps" type="Bool"><default>true</default></entry>
         <entry name="showRecentFiles" type="Bool"><default>true</default></entry>

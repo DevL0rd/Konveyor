@@ -5,6 +5,7 @@ import sys
 LAUNCHER = "org.devl0rd.portal.launcher"
 MENUS = ("org.kde.plasma.kickoff", "org.kde.plasma.kicker", "org.kde.plasma.kickerdash")
 MARK = "konveyorReplaced"
+OPEN_PAGE = "openPageOnStart"
 APPLET = re.compile(r"^\[Containments\]\[(\d+)\]\[Applets\]\[(\d+)\]$")
 CONTAINMENT = re.compile(r"^\[Containments\]\[(\d+)\]$")
 
@@ -95,19 +96,39 @@ def uninstall(groups):
     return result, changed
 
 
+def open_page(groups, page):
+    wanted = {header + "[Configuration][General]" for _, header, lines in panel_applets(groups) if value(lines, "plugin") == LAUNCHER}
+    if not wanted:
+        return groups, False
+    result = []
+    for header, lines in groups:
+        if header in wanted:
+            lines = set_value(lines, OPEN_PAGE, page)
+            wanted.discard(header)
+        result.append((header, lines))
+    result.extend((header, [f"{OPEN_PAGE}={page}", ""]) for header in sorted(wanted))
+    return result, True
+
+
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in ("install", "uninstall"):
-        sys.stderr.write("usage: portal-panel-launcher install|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n")
+    arguments = sys.argv[1:]
+    if arguments[:1] not in (["install"], ["uninstall"], ["open-page"]) or len(arguments) != (3 if arguments[0] == "open-page" else 2):
+        sys.stderr.write("usage: portal-panel-launcher install|uninstall|open-page PAGE <plasma-org.kde.plasma.desktop-appletsrc>\n")
         return 2
-    path = sys.argv[2]
+    path = arguments[-1]
     try:
         groups = read_groups(path)
     except FileNotFoundError:
         return 0
-    groups, changed = (install if sys.argv[1] == "install" else uninstall)(groups)
+    if arguments[0] == "open-page":
+        groups, changed = open_page(groups, arguments[1])
+        if changed:
+            write_groups(path, groups)
+        return 0
+    groups, changed = (install if arguments[0] == "install" else uninstall)(groups)
     if changed:
         write_groups(path, groups)
-        print("Portal Launcher placed where the application launcher was" if sys.argv[1] == "install"
+        print("Portal Launcher placed where the application launcher was" if arguments[0] == "install"
               else "Restored the original application launcher")
     return 0
 

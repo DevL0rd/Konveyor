@@ -203,6 +203,7 @@ take_over_launcher_and_restart() {
     systemctl --user stop "$PLASMA_SERVICE"
     python3 "$WIDGETS_DIR/service/overlay-hosts" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     python3 "$WIDGETS_DIR/service/panel-launcher" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
+    python3 "$WIDGETS_DIR/service/panel-launcher" open-page shortcuts "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
     systemctl --user start "$PLASMA_SERVICE"
 }

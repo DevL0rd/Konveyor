@@ -106,6 +106,15 @@ PlasmoidItem {
     }
     Component.onCompleted: root.expanded = false
 
+    readonly property bool shellReady: Plasmoid.containment !== null && Plasmoid.containment.isUiReady
+    onShellReadyChanged: {
+        const page = Plasmoid.configuration.openPageOnStart
+        if (shellReady && page !== "") {
+            Plasmoid.configuration.openPageOnStart = ""
+            root.handleRequest(page)
+        }
+    }
+
     Connections {
         target: Plasmoid
         function onActivated() {
