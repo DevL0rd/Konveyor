@@ -56,7 +56,7 @@ jobs:
             plasma: dnf install -y git plasma-desktop
           - name: openSUSE Tumbleweed
             image: opensuse/tumbleweed
-            plasma: zypper --non-interactive install --force-resolution git plasma6-desktop
+            plasma: zypper --non-interactive dup --allow-downgrade && zypper --non-interactive install --force-resolution git plasma6-desktop
           - name: Debian testing
             image: debian:testing
             plasma: apt-get update && apt-get install -y git plasma-desktop
