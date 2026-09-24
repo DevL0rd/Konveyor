@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
 
 KONVEYOR_ATOMIC=false
+KONVEYOR_BUILD_BOX=""
 KONVEYOR_BUILD_ENV=()
 if [[ -e /run/ostree-booted ]]; then
     KONVEYOR_ATOMIC=true
+    KONVEYOR_BUILD_BOX="konveyor-fedora-$(. /etc/os-release && printf '%s' "$VERSION_ID")"
+    KONVEYOR_BUILD_ENV=(toolbox run --container "$KONVEYOR_BUILD_BOX")
+elif [[ $(. /etc/os-release && printf '%s' "$ID") == steamos ]]; then
+    KONVEYOR_ATOMIC=true
+    KONVEYOR_BUILD_BOX="konveyor-steamos"
+    KONVEYOR_BUILD_ENV=(distrobox enter "$KONVEYOR_BUILD_BOX" --)
+fi
+if $KONVEYOR_ATOMIC; then
     KONVEYOR_PREFIX="${KONVEYOR_PREFIX:-$HOME/.local}"
-    KONVEYOR_TOOLBOX="konveyor-fedora-$(. /etc/os-release && printf '%s' "$VERSION_ID")"
-    KONVEYOR_BUILD_ENV=(toolbox run --container "$KONVEYOR_TOOLBOX")
 fi
 KONVEYOR_PREFIX="${KONVEYOR_PREFIX:-/usr}"
 KONVEYOR_STATE_DIR="$KONVEYOR_PREFIX/share/konveyor"
-KONVEYOR_HOOK="/etc/pacman.d/hooks/konveyor-rebuild.hook"
+KONVEYOR_BUILT_FOR="$KONVEYOR_STATE_DIR/built-for"
+KONVEYOR_PULLED_IMAGES="$KONVEYOR_STATE_DIR/pulled-images"
 KONVEYOR_PLUGIN_DIR=""
 KONVEYOR_SESSION_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/konveyor.conf"
 KONVEYOR_UPDATE_UNIT="konveyor-update.service"
+KONVEYOR_GIT_ENV=(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS= GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=15")
 KONVEYOR_CONFLICTING_SCRIPTS=(karousel krohnkite kzones polonium bismuth devl0rd-hide-desktop-widgets)
 
 say() {
@@ -63,6 +72,30 @@ remove_misplaced_plugins() {
     return 0
 }
 
+remember_pulled_image() {
+    podman image exists "$1" && return 0
+    mkdir -p "$KONVEYOR_STATE_DIR"
+    printf '%s\n' "$1" >>"$KONVEYOR_PULLED_IMAGES"
+}
+
+remove_unused_pulled_images() {
+    local image kept=()
+    [[ -f $KONVEYOR_PULLED_IMAGES ]] || return 0
+    while IFS= read -r image; do
+        if [[ -n $(podman ps --all --quiet --filter "ancestor=$image") ]]; then
+            kept+=("$image")
+        elif podman image exists "$image"; then
+            say "Removing the $image image"
+            podman image rm "$image" >/dev/null
+        fi
+    done <"$KONVEYOR_PULLED_IMAGES"
+    if ((${#kept[@]})); then
+        printf '%s\n' "${kept[@]}" >"$KONVEYOR_PULLED_IMAGES"
+    else
+        rm -f "$KONVEYOR_PULLED_IMAGES"
+    fi
+}
+
 as_owner() {
     if [[ $EUID -ne 0 || -z ${KONVEYOR_OWNER:-} ]]; then
         "$@"
@@ -92,6 +125,31 @@ kwin_dbus() {
 kwin_loaded_effects() {
     gdbus call --session --dest org.kde.KWin --object-path /Effects \
         --method org.freedesktop.DBus.Properties.Get org.kde.kwin.Effects loadedEffects 2>/dev/null || true
+}
+
+library_version() {
+    local library
+    library=$(find /usr/lib /usr/lib64 -maxdepth 2 -name "$1.so.6" -print -quit 2>/dev/null)
+    [[ -n $library ]] && basename "$(readlink -f "$library")" | sed "s/^$1\.so\.//"
+}
+
+kwin_version() {
+    library_version libkwin
+}
+
+kwin_headers_version() {
+    local file
+    file=$(find /usr/lib /usr/lib64 -maxdepth 4 -path '*/cmake/KWin/KWinConfigVersion.cmake' -print -quit 2>/dev/null)
+    [[ -n $file ]] && sed -n 's/^set(PACKAGE_VERSION "\(.*\)")$/\1/p' "$file"
+}
+
+system_fingerprint() {
+    printf 'kwin=%s\n' "$(kwin_version)"
+    printf 'qt=%s\n' "$(library_version libQt6Core)"
+    printf 'containment=%s\n' "$(find /usr/share/plasma/plasmoids/org.kde.desktopcontainment -type f -print0 2>/dev/null | LC_ALL=C sort -z | xargs -0r sha256sum | sha256sum | cut -d' ' -f1)"
+    if $KONVEYOR_ATOMIC; then
+        printf 'image=%s\n' "$(. /etc/os-release && printf '%s' "${OSTREE_VERSION:-$BUILD_ID}")"
+    fi
 }
 
 kwinrc_write() {

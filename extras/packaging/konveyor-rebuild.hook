@@ -10,4 +10,3 @@ When = PostTransaction
 Exec = /usr/lib/konveyor/konveyor-rebuild
 Depends = cmake
 Depends = git
-NeedsTargets

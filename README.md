@@ -57,7 +57,7 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
 <table>
   <tr>
     <td>🔄 <b>Update</b></td>
-    <td>On Arch-based systems Konveyor updates itself with every system update, and rebuilds when KWin or Plasma update. Anywhere else, run <code>./install.sh</code> again. It's safe to repeat and keeps your settings.</td>
+    <td>Konveyor updates itself with every system update and rebuilds when KWin, Qt or Plasma update. On Fedora Atomic desktops and SteamOS that happens at your next login after an update. You can also run <code>./install.sh</code> again any time. It's safe to repeat and keeps your settings.</td>
   </tr>
   <tr>
     <td>📦 <b>From a package</b></td>
@@ -73,7 +73,7 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
   </tr>
   <tr>
     <td>🧊 <b>Atomic desktops</b></td>
-    <td>On Fedora Atomic desktops like Kinoite, Aurora and Bazzite, the installer builds Konveyor in a toolbox that matches your system's KWin exactly and installs it to <code>~/.local</code>, so the read-only system stays untouched. Log out and back in once after the first install. When a system update brings a new KWin, run <code>./install.sh</code> again.</td>
+    <td>On Fedora Atomic desktops like Kinoite, Aurora and Bazzite, the installer builds Konveyor in a toolbox that matches your system's KWin exactly. On SteamOS it uses a distrobox that matches Valve's packages. Either way it installs to <code>~/.local</code>, so the read-only system stays untouched. Log out and back in once after the first install. After a system update, Konveyor rebuilds itself at your next login.</td>
   </tr>
   <tr>
     <td>🖥️ <b>Needs</b></td>
@@ -81,7 +81,7 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
   </tr>
   <tr>
     <td>🐧 <b>Distros</b></td>
-    <td>The installer sets everything up on Arch and Arch-based systems like CachyOS, Fedora, openSUSE Tumbleweed, Debian testing and Fedora Atomic desktops like Kinoite, Aurora and Bazzite. Kubuntu 26.04 and Debian 13 still ship an older Plasma, and SteamOS isn't supported yet.</td>
+    <td>The installer sets everything up on Arch and Arch-based systems like CachyOS, Fedora, openSUSE Tumbleweed, Debian testing and Fedora Atomic desktops like Kinoite, Aurora and Bazzite, plus SteamOS 3.9 and newer in Desktop Mode (on the Preview update channel for now). Kubuntu 26.04, Debian 13 and SteamOS 3.8 still ship an older Plasma.</td>
   </tr>
 </table>
 
@@ -329,7 +329,7 @@ Everything the widgets need is installed for you, and one background service fee
 <table>
   <tr>
     <td>📡 <b>Router Monitor</b></td>
-    <td>Add your router's address, user and AdGuard Home login to <code>~/.config/Linux-Router-Monitor/config.json</code>, then run <code>./install.sh</code> again.</td>
+    <td>Enter your router's address in the Router Monitor to connect it, or add the address, user and your AdGuard Home URL and login to <code>~/.config/Linux-Router-Monitor/config.json</code>, then run <code>./install.sh</code> again.</td>
   </tr>
   <tr>
     <td>👥 <b>Steam friends</b></td>
@@ -353,7 +353,7 @@ Everything the widgets need is installed for you, and one background service fee
 
 ## 🎛️ Settings that show you
 
-Every Konveyor setting lives in the Kontrol Panel. Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the sidebar, hit the gear, or press <kbd>Ctrl</kbd> + <kbd>,</kbd>. Every option has a live preview, changes apply instantly, and Undo takes them back.
+Every Konveyor setting lives in the Kontrol Panel. Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the sidebar, hit the gear, or press <kbd>Ctrl</kbd> + <kbd>,</kbd>. The same pages are in **System Settings → Window Management → Konveyor** and behind **Configure** next to Konveyor under Desktop Effects, so they're there without the widgets too. Every option has a live preview, changes apply instantly, and Undo takes them back.
 
 <p align="center"><img alt="A tour through the Konveyor settings pages" src="docs/media/settings-tour.gif" width="88%"></p>
 

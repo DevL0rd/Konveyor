@@ -44,6 +44,45 @@ jobs:
       - name: Run the full check suite
         run: ./tools/check.sh
 
+  distros:
+    name: Install dependencies and build on ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Fedora 44
+            image: fedora:44
+            plasma: dnf install -y git plasma-desktop
+          - name: openSUSE Tumbleweed
+            image: opensuse/tumbleweed
+            plasma: zypper --non-interactive install --force-resolution git plasma6-desktop
+          - name: Debian testing
+            image: debian:testing
+            plasma: apt-get update && apt-get install -y git plasma-desktop
+    container:
+      image: ${{ matrix.image }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install Plasma
+        run: ${{ matrix.plasma }}
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Konveyor's dependencies
+        run: extras/packaging/dependencies.sh
+
+      - name: Build and install
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DKONVEYOR_BUILD_TESTS=OFF
+          cmake --build build
+          DESTDIR="$PWD/staging" cmake --install build
+          find staging -path '*/kwin/effects/plugins/konveyor_effect.so' | grep .
+          find staging -path '*/plasma/kcms/systemsettings/kcm_konveyor.so' | grep .
+
   release:
     name: Release
     needs: checks

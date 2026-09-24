@@ -69,6 +69,7 @@ main() {
         rm -rf "${XDG_RUNTIME_DIR:-/tmp}/$item"
     done
     rm -f "$PLASMA_OVERRIDE_DIR/konveyor-widgets.conf" "$CONFIG_HOME/environment.d/konveyor-widgets.conf"
+    [[ -d $PLASMA_OVERRIDE_DIR ]] && rmdir --ignore-fail-on-non-empty "$PLASMA_OVERRIDE_DIR"
 
     say "Restoring the application launcher and removing the widgets"
     systemctl --user stop "$PLASMA_SERVICE" 2>/dev/null || true

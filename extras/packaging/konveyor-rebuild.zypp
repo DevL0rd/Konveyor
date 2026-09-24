@@ -1,0 +1,10 @@
+#!/bin/bash
+exec 3>&1 1>&2
+while IFS= read -r -d '' frame; do
+    command=${frame%%$'\n'*}
+    if [[ $command == COMMITEND && -x /usr/lib/konveyor/konveyor-rebuild ]]; then
+        systemd-run --no-block --collect --unit=konveyor-rebuild /usr/lib/konveyor/konveyor-rebuild
+    fi
+    printf 'ACK\n\n\0' >&3
+    [[ $command == _DISCONNECT ]] && exit 0
+done

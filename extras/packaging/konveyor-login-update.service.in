@@ -1,0 +1,12 @@
+[Unit]
+Description=Rebuild Konveyor when the system image changed
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+Environment=KONVEYOR_SOURCE_DIR=@SOURCE_DIR@
+Environment=KONVEYOR_INSTALL_SUPPORT=%h/.local/lib/konveyor
+ExecStart=%h/.local/lib/konveyor/install --login-update
+
+[Install]
+WantedBy=graphical-session.target

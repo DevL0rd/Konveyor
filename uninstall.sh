@@ -3,6 +3,7 @@ set -euo pipefail
 
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SOURCE_DIR/extras/packaging/common.sh"
+source "$SOURCE_DIR/extras/packaging/updates.sh"
 WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
 
 PURGE=false
@@ -75,34 +76,46 @@ remove_files() {
     while IFS= read -r file; do
         [[ -n $file ]] && run_prefix rm -f "$file"
     done <"$manifest"
-    if [[ -e $KONVEYOR_HOOK || -e /usr/lib/konveyor/install || -e /usr/lib/konveyor/common.sh ]]; then
-        run_root rm -f "$KONVEYOR_HOOK" /usr/lib/konveyor/install /usr/lib/konveyor/common.sh
-    fi
+    remove_empty_directories "$manifest"
+    unregister_updates
     run_prefix rm -rf "$KONVEYOR_STATE_DIR"
+}
+
+removable_directory() {
+    [[ $1/ == */konveyor/* ]] || { $KONVEYOR_ATOMIC && [[ $1 == "$KONVEYOR_PREFIX"/*/* ]]; }
+}
+
+remove_empty_directories() {
+    local directory
+    while IFS= read -r directory; do
+        while removable_directory "$directory" && [[ -d $directory && -z $(ls -A "$directory") ]]; do
+            run_prefix rmdir "$directory"
+            directory=$(dirname "$directory")
+        done
+    done < <(sed 's|/[^/]*$||' "$1" | sort -ru)
 }
 
 remove_atomic_setup() {
     rm -f "$KONVEYOR_SESSION_ENV"
     $KONVEYOR_ATOMIC || return 0
     local name
-    for name in $(podman ps --all --format '{{.Names}}' | grep -E '^konveyor-fedora-[0-9]+$' || true); do
-        say "Removing the $name build toolbox"
-        toolbox rm --force "$name" >/dev/null
+    for name in $(podman ps --all --format '{{.Names}}' | grep -E '^konveyor-(fedora-[0-9]+|steamos)$' || true); do
+        say "Removing the $name build container"
+        podman rm --force --volumes "$name" >/dev/null
     done
+    remove_unused_pulled_images
 }
 
 remove_update_unit() {
-    local unit="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$KONVEYOR_UPDATE_UNIT"
-    if [[ -e $unit ]]; then
-        systemctl --user disable "$KONVEYOR_UPDATE_UNIT" >/dev/null 2>&1 || true
-        rm -f "$unit"
-        systemctl --user daemon-reload
-    fi
-    rm -f "$HOME/.local/state/konveyor/update-pending" "$HOME/.local/state/konveyor/install-options"
+    unregister_updates
+    systemctl --user daemon-reload
+}
+
+remove_state() {
+    rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/konveyor" "${XDG_STATE_HOME:-$HOME/.local/state}/konveyorstaterc"
 }
 
 purge_config() {
-    rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/konveyorstaterc"
     $PURGE || return 0
     say "Deleting ~/.config/konveyor"
     rm -rf "${XDG_CONFIG_HOME:-$HOME/.config}/konveyor"
@@ -118,9 +131,10 @@ main() {
         [[ -x $widget_uninstaller ]] || widget_uninstaller="$SOURCE_DIR/widgets/uninstall.sh"
         "$widget_uninstaller"
     fi
-    remove_files
     remove_atomic_setup
+    remove_files
     remove_update_unit
+    remove_state
     purge_config
     say "Konveyor is uninstalled. Log out and back in to fully unload it from KWin."
 }

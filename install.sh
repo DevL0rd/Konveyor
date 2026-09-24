@@ -5,6 +5,7 @@ INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="${KONVEYOR_SOURCE_DIR:-$INSTALL_DIR}"
 INSTALL_SUPPORT="${KONVEYOR_INSTALL_SUPPORT:-$SOURCE_DIR/extras/packaging}"
 source "$INSTALL_SUPPORT/common.sh"
+source "$INSTALL_SUPPORT/updates.sh"
 
 BUILD_DIR="${KONVEYOR_BUILD_DIR:-$SOURCE_DIR/build-release}"
 SKIP_DEPS=false
@@ -15,16 +16,15 @@ AUR=false
 MODE=install
 OPTIONS_FILE="$HOME/.local/state/konveyor/install-options"
 UPDATE_PENDING="$HOME/.local/state/konveyor/update-pending"
-INSTALLED_UPDATER="/usr/lib/konveyor/install"
 WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
 
 usage() {
     cat <<EOF
 Usage: ./install.sh [--skip-deps] [--no-pull] [--no-widgets] [--aur]
 
-Builds and installs Konveyor, enables it in KWin, installs the Konveyor widgets and, on
-pacman-based systems, keeps a git checkout updated: every system update pulls new commits
-and reinstalls, and KWin or Plasma updates rebuild it. Run it again at any time to update.
+Builds and installs Konveyor, enables it in KWin, installs the Konveyor widgets and keeps a git
+checkout updated: every system update pulls new commits and reinstalls, and KWin, Qt or Plasma
+updates rebuild it. Run it again at any time to update.
 
   --skip-deps   Do not install build and widget dependencies with the system package manager
   --no-pull     Do not update the source checkout with git pull
@@ -43,6 +43,7 @@ parse_arguments() {
         --aur) AUR=true ;;
         --system-update) MODE=system-update ;;
         --finish-update) MODE=finish-update ;;
+        --login-update) MODE=login-update ;;
         -h | --help) usage; exit 0 ;;
         *) die "unknown option: $argument" ;;
         esac
@@ -65,8 +66,13 @@ install_dependencies() {
 
 build() {
     say "Building (this takes a minute)"
-    as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$KONVEYOR_PREFIX" -DKONVEYOR_BUILD_TESTS=OFF >/dev/null
-    as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake --build "$BUILD_DIR"
+    local system_paths=OFF
+    [[ $KONVEYOR_PREFIX == /usr ]] && system_paths=ON
+    as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$KONVEYOR_PREFIX" \
+        -DKDE_INSTALL_USE_QT_SYS_PATHS="$system_paths" -DKONVEYOR_BUILD_TESTS=OFF >/dev/null
+    local clean=()
+    [[ $(system_fingerprint) == "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/null)" ]] || clean=(--clean-first)
+    as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake --build "$BUILD_DIR" "${clean[@]}"
 }
 
 remove_stale_files() {
@@ -97,36 +103,6 @@ install_versioned_plugin() {
         printf '%s\n' "$TELEMETRY_PLUGIN_ID" | run_prefix tee "$KONVEYOR_STATE_DIR/telemetry-plugin-id" >/dev/null
     fi
     run_prefix rm -f "$KONVEYOR_PLUGIN_DIR/process_monitor_telemetry.so"
-}
-
-register_updates() {
-    if $AUR || ! command -v pacman >/dev/null || ! git -C "$SOURCE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-        unregister_updates
-        return 0
-    fi
-    say "Registering Konveyor with system updates"
-    run_root install -Dm755 "$SOURCE_DIR/install.sh" "$INSTALLED_UPDATER"
-    run_root install -Dm644 "$SOURCE_DIR/extras/packaging/common.sh" "/usr/lib/konveyor/common.sh"
-    run_root install -Dm644 "$SOURCE_DIR/extras/packaging/konveyor-rebuild.hook" "$KONVEYOR_HOOK"
-    printf '%s\n%s\n' "$SOURCE_DIR" "${KONVEYOR_OWNER:-$(id -un)}" | run_root tee "$KONVEYOR_STATE_DIR/source" >/dev/null
-    $SYSTEM_UPDATE_ROOT && return 0
-    local units="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
-    mkdir -p "$units"
-    sed "s|@SOURCE_DIR@|$SOURCE_DIR|g" "$SOURCE_DIR/extras/packaging/konveyor-update.service.in" >"$units/$KONVEYOR_UPDATE_UNIT"
-    systemctl --user daemon-reload
-    systemctl --user enable "$KONVEYOR_UPDATE_UNIT" >/dev/null 2>&1
-}
-
-unregister_updates() {
-    if [[ -e $KONVEYOR_HOOK || -e $KONVEYOR_STATE_DIR/source || -e $INSTALLED_UPDATER ]]; then
-        run_root rm -f "$KONVEYOR_HOOK" "$KONVEYOR_STATE_DIR/source" "$INSTALLED_UPDATER" /usr/lib/konveyor/common.sh
-    fi
-    local unit="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$KONVEYOR_UPDATE_UNIT"
-    if [[ -e $unit ]]; then
-        systemctl --user disable "$KONVEYOR_UPDATE_UNIT" >/dev/null 2>&1 || true
-        rm -f "$unit"
-    fi
-    return 0
 }
 
 remove_previous_plugin_files() {
@@ -170,14 +146,24 @@ configure_kwin() {
     kwin_dbus /KWin org.kde.KWin.reconfigure
 }
 
+add_session_path() {
+    local current
+    current=$(systemctl --user show-environment | sed -n "s/^$1=//p")
+    [[ ":$current:" == *":$2:"* ]] || systemctl --user set-environment "$1=$2${current:+:$current}"
+}
+
 configure_session_paths() {
     $KONVEYOR_ATOMIC || return 0
-    local qml
+    local plugins qml
+    plugins="${KONVEYOR_PLUGIN_DIR%/kwin/effects/plugins}"
     qml=$(manifest_entry "$KONVEYOR_STATE_DIR/install_manifest.txt" '/org/kde/konveyor/settings/qmldir$')
+    qml="${qml%/org/kde/konveyor/settings/qmldir}"
     say "Adding Konveyor to the session's Qt plugin and QML paths"
     mkdir -p "$(dirname "$KONVEYOR_SESSION_ENV")"
     printf 'QT_PLUGIN_PATH=%s${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}\nQML_IMPORT_PATH=%s${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}\n' \
-        "${KONVEYOR_PLUGIN_DIR%/kwin/effects/plugins}" "${qml%/org/kde/konveyor/settings/qmldir}" >"$KONVEYOR_SESSION_ENV"
+        "$plugins" "$qml" >"$KONVEYOR_SESSION_ENV"
+    add_session_path QT_PLUGIN_PATH "$plugins"
+    add_session_path QML_IMPORT_PATH "$qml"
 }
 
 effect_loaded() {
@@ -208,6 +194,7 @@ finish_update() {
         TELEMETRY_PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/telemetry-plugin-id")
     fi
     configure_kwin
+    configure_session_paths
     activate
     if $WIDGETS; then
         local widget_installer="$WIDGETS_RUNTIME_DIR/install.sh"
@@ -219,17 +206,18 @@ finish_update() {
 }
 
 system_update() {
-    [[ $EUID -eq 0 && -n ${KONVEYOR_OWNER:-} ]] || die "--system-update runs from the pacman hook"
+    [[ $EUID -eq 0 && -n ${KONVEYOR_OWNER:-} ]] || die "--system-update runs from the system update hook"
     SYSTEM_UPDATE_ROOT=true
-    as_owner git -C "$SOURCE_DIR" submodule update --init --recursive --quiet
+    source_git submodule update --init --recursive --quiet
     build
     install_files
     install_versioned_plugin
+    record_fingerprint
     register_updates
     remove_previous_plugin_files
     if owner_session_running; then
-        as_owner env KONVEYOR_SOURCE_DIR="$SOURCE_DIR" KONVEYOR_INSTALL_SUPPORT=/usr/lib/konveyor \
-            "$INSTALLED_UPDATER" --finish-update
+        as_owner env KONVEYOR_SOURCE_DIR="$SOURCE_DIR" KONVEYOR_INSTALL_SUPPORT="$KONVEYOR_UPDATER_DIR" \
+            "$KONVEYOR_UPDATER_DIR/install" --finish-update
     else
         local pending
         pending="$(getent passwd "$KONVEYOR_OWNER" | cut -d: -f6)/.local/state/konveyor/update-pending"
@@ -245,6 +233,7 @@ main() {
     case "$MODE" in
     system-update) system_update; return ;;
     finish-update) finish_update; return ;;
+    login-update) login_update; return ;;
     esac
     [[ $EUID -ne 0 ]] || die "run install.sh as your normal user; it asks for sudo when needed"
     update_checkout
@@ -252,6 +241,7 @@ main() {
     build
     install_files
     install_versioned_plugin
+    record_fingerprint
     register_updates
     remove_previous_plugin_files
     configure_kwin
@@ -261,9 +251,9 @@ main() {
     printf 'widgets=%s\n' "$WIDGETS" >"$OPTIONS_FILE"
     if $WIDGETS; then
         "$SOURCE_DIR/widgets/install.sh"
-        say "Settings: press Meta+K and open Settings in the Kontrol Panel"
+        say "Settings: press Meta+K and open Settings in the Kontrol Panel, or open System Settings > Window Management > Konveyor"
     else
-        say "Settings live in the Kontrol Panel, which comes with the widgets; without them, edit ~/.config/konveyor/config.kdl"
+        say "Settings: open System Settings > Window Management > Konveyor"
     fi
     say "Config file: ~/.config/konveyor/config.kdl (created on first start)"
 }

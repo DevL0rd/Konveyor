@@ -5,6 +5,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
+import org.kde.plasma.plasma5support as P5Support
 import QtCore
 import "lib"
 
@@ -108,10 +109,19 @@ PlasmoidItem {
 
     readonly property bool shellReady: Plasmoid.containment !== null && Plasmoid.containment.isUiReady
     onShellReadyChanged: {
-        const page = Plasmoid.configuration.openPageOnStart
-        if (shellReady && page !== "") {
-            Plasmoid.configuration.openPageOnStart = ""
-            root.handleRequest(page)
+        if (shellReady && Plasmoid.configuration.openPageOnStart !== "")
+            konveyorRunning.connectSource("busctl --user status org.kde.Konveyor")
+    }
+    P5Support.DataSource {
+        id: konveyorRunning
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            const page = Plasmoid.configuration.openPageOnStart
+            if (result["exit code"] === 0 && page !== "") {
+                Plasmoid.configuration.openPageOnStart = ""
+                root.handleRequest(page)
+            }
         }
     }
 

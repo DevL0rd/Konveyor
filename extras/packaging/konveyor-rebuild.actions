@@ -1,0 +1,1 @@
+post_transaction:::enabled=host-only raise_error=0:/usr/lib/konveyor/konveyor-rebuild
