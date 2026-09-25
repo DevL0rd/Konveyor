@@ -6,6 +6,8 @@
 #include <QHash>
 #include <QObject>
 
+#include <xkbcommon/xkbcommon.h>
+
 #include <functional>
 
 class QAction;
@@ -27,6 +29,7 @@ public:
     const QList<Config::Bind> &binds() const;
     bool triggerPointerBind(
         Config::BindTrigger trigger, Qt::KeyboardModifiers modifiers, Config::MouseButton button, Config::ScrollDirection direction);
+    bool triggerKeyPosition(quint32 keycode, Qt::KeyboardModifiers modifiers, bool repeat, xkb_keymap *keymap, xkb_layout_index_t layout);
 
 private:
     static QString actionName(const Config::Bind &bind);

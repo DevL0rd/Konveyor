@@ -1,5 +1,6 @@
 #include "input/shortcutmanager.h"
 
+#include "config/keypositions.h"
 #include "config/loader.h"
 
 #include <KGlobalAccel>
@@ -107,6 +108,22 @@ bool ShortcutManager::triggerPointerBind(
             invoke(bind);
             return true;
         }
+    }
+    return false;
+}
+
+bool ShortcutManager::triggerKeyPosition(
+    quint32 keycode, Qt::KeyboardModifiers modifiers, bool repeat, xkb_keymap *keymap, xkb_layout_index_t layout)
+{
+    for (const Config::Bind &bind : m_binds) {
+        if (bind.trigger != Config::BindTrigger::Key || toQtModifiers(bind.resolvedModifiers) != modifiers
+            || Config::usKeycode(bind.keysym) != keycode || Config::layoutTypesKeysym(keymap, layout, bind.keysym)) {
+            continue;
+        }
+        if (!repeat || bind.repeat) {
+            invoke(bind);
+        }
+        return true;
     }
     return false;
 }

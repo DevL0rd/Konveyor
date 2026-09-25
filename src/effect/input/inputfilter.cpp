@@ -86,4 +86,20 @@ bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
     return false;
 }
 
+bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
+{
+    if (event->state == KWin::KeyboardKeyState::Released) {
+        return m_swallowedKeys.remove(event->nativeScanCode);
+    }
+    if (event->modifiersRelevantForGlobalShortcuts == Qt::NoModifier) {
+        return false;
+    }
+    const bool repeat = event->state == KWin::KeyboardKeyState::Repeated;
+    if (!m_handlers.keyPositionBind(event->nativeScanCode + 8, event->modifiersRelevantForGlobalShortcuts, repeat)) {
+        return false;
+    }
+    m_swallowedKeys.insert(event->nativeScanCode);
+    return true;
+}
+
 }
