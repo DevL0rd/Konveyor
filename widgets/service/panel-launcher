@@ -4,10 +4,14 @@ import sys
 
 LAUNCHER = "org.devl0rd.portal.launcher"
 MENUS = ("org.kde.plasma.kickoff", "org.kde.plasma.kicker", "org.kde.plasma.kickerdash")
+TASKBARS = ("org.kde.plasma.taskmanager", "org.kde.plasma.icontasks")
 MARK = "konveyorReplaced"
+ADDED = "konveyorAdded"
+ORDER = "AppletOrder"
 OPEN_PAGE = "openPageOnStart"
 APPLET = re.compile(r"^\[Containments\]\[(\d+)\]\[Applets\]\[(\d+)\]$")
 CONTAINMENT = re.compile(r"^\[Containments\]\[(\d+)\]$")
+GENERAL = re.compile(r"^\[Containments\]\[(\d+)\]\[General\]$")
 
 
 def read_groups(path):
@@ -61,39 +65,87 @@ def panel_applets(groups):
             yield index, header, lines
 
 
-def install(groups):
-    applets = list(panel_applets(groups))
-    if any(value(lines, "plugin") == LAUNCHER for _, _, lines in applets):
-        return groups, False
-    menus = [(i, h) for i, h, lines in applets if value(lines, "plugin") in MENUS]
-    if not menus:
-        return groups, False
-    stale = {h for _, h in menus}
+def taskbar_panel(groups):
+    panels = panel_ids(groups)
+    for header, lines in groups:
+        match = APPLET.match(header or "")
+        if match and match.group(1) in panels and value(lines, "plugin") in TASKBARS:
+            return match.group(1)
+    return min(panels, key=int)
+
+
+def drop_from_order(groups, headers):
+    dropped = {}
+    for header in headers:
+        match = APPLET.match(header)
+        dropped.setdefault(match.group(1), set()).add(match.group(2))
     result = []
     for header, lines in groups:
-        if header in stale:
-            original = value(lines, "plugin")
-            lines = set_value(set_value(lines, "plugin", LAUNCHER), MARK, original)
-        elif header and any(header.startswith(h + "[") for h in stale):
+        match = GENERAL.match(header or "")
+        order = value(lines, ORDER)
+        if match and match.group(1) in dropped and order is not None:
+            lines = set_value(lines, ORDER, ";".join(i for i in order.split(";") if i and i not in dropped[match.group(1)]))
+        result.append((header, lines))
+    return result
+
+
+def add_launcher(groups):
+    panel = taskbar_panel(groups)
+    applet = max((int(n) for header, _ in groups if header for n in re.findall(r"\[(\d+)\]", header)), default=0) + 1
+    general = f"[Containments][{panel}][General]"
+    existing = [match.group(2) for match in (APPLET.match(header or "") for header, _ in groups) if match and match.group(1) == panel]
+    result = []
+    found_general = False
+    for header, lines in groups:
+        if header == general:
+            found_general = True
+            order = [i for i in (value(lines, ORDER) or ";".join(sorted(existing, key=int))).split(";") if i]
+            lines = set_value(lines, ORDER, ";".join([str(applet)] + order))
+        result.append((header, lines))
+    if not found_general:
+        result.append((general, [f"{ORDER}=" + ";".join([str(applet)] + sorted(existing, key=int)), ""]))
+    result.append((f"[Containments][{panel}][Applets][{applet}]", ["immutability=1", f"plugin={LAUNCHER}", f"{ADDED}=true", ""]))
+    return result
+
+
+def install(groups):
+    applets = list(panel_applets(groups))
+    has_launcher = any(value(lines, "plugin") == LAUNCHER for _, _, lines in applets)
+    menus = [header for _, header, lines in applets if value(lines, "plugin") in MENUS]
+    replaced = menus[0] if menus and not has_launcher else None
+    removed = [header for header in menus if header != replaced]
+    result = []
+    for header, lines in groups:
+        if replaced and header == replaced:
+            lines = set_value(set_value(lines, "plugin", LAUNCHER), MARK, value(lines, "plugin"))
+        elif header in removed or (header and any(header.startswith(h + "[") for h in menus)):
             continue
         result.append((header, lines))
-    return result, True
+    result = drop_from_order(result, removed)
+    if not has_launcher and not menus:
+        result = add_launcher(result)
+    return result, bool(menus) or not has_launcher
 
 
 def uninstall(groups):
     changed = False
     result = []
     restored = set()
+    removed = set()
     for header, lines in groups:
         original = value(lines, MARK)
+        if APPLET.match(header or "") and value(lines, "plugin") == LAUNCHER and value(lines, ADDED):
+            removed.add(header)
+            changed = True
+            continue
         if APPLET.match(header or "") and value(lines, "plugin") == LAUNCHER and original:
             lines = set_value(set_value(lines, "plugin", original), MARK, None)
             restored.add(header)
             changed = True
-        elif header and any(header.startswith(h + "[") for h in restored):
+        elif header and any(header.startswith(h + "[") for h in restored | removed):
             continue
         result.append((header, lines))
-    return result, changed
+    return drop_from_order(result, removed), changed
 
 
 def open_page(groups, page):
@@ -123,12 +175,15 @@ def main():
         groups = read_groups(path)
     except FileNotFoundError:
         return 0
+    if arguments[0] == "install" and not panel_ids(groups):
+        sys.stderr.write("panel-launcher: no Plasma panel was found\n")
+        return 1
     groups, changed = (install if arguments[0] == "install" else uninstall)(groups)
     if changed:
         if page:
             groups, _ = open_page(groups, page)
         write_groups(path, groups)
-        print("Portal Launcher placed where the application launcher was" if arguments[0] == "install"
+        print("Kontrol Panel set up in the panel" if arguments[0] == "install"
               else "Restored the original application launcher")
     return 0
 
