@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import importlib.machinery
 import importlib.util
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -80,6 +82,27 @@ plugin=org.devl0rd.portal.launcher
         self.assertIn("icon=start-here", general)
         self.assertIn("openPageOnStart=shortcuts", general)
         self.assertNotIn("openPageOnStart=home", text)
+
+    def run_script(self, *arguments):
+        return subprocess.run([sys.executable, str(SCRIPT), *arguments, str(self.path)], capture_output=True, text=True, check=True)
+
+    def test_install_opens_the_page_when_it_places_the_launcher(self):
+        self.run_script("install", "--open-page", "shortcuts")
+        text = self.path.read_text()
+        self.assertIn("plugin=org.devl0rd.portal.launcher", text.split("[Containments][1][Applets][2]", 1)[1])
+        self.assertIn("openPageOnStart=shortcuts", self.general(text, 2))
+
+    def test_install_leaves_an_existing_panel_launcher_alone(self):
+        self.run_script("install")
+        before = self.path.read_text()
+        result = self.run_script("install", "--open-page", "shortcuts")
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(self.path.read_text(), before)
+
+    def test_install_opens_no_page_without_a_menu_to_replace(self):
+        self.path.write_text(self.path.read_text().replace("org.kde.plasma.kickoff", "org.kde.plasma.pager"))
+        self.run_script("install", "--open-page", "shortcuts")
+        self.assertNotIn("openPageOnStart", self.path.read_text())
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ SERVICE="konveyor-widgets.service"
 LEGACY_NAMES=(linux-system-monitor linux-process-mon linux-router-monitor linux-log-monitor linux-plasma-portals)
 LEGACY_SERVICES=(linux-system-monitor.service linux-process-mon.service linux-router-monitor.service linux-log-monitor.service portal-friends.service)
 GAMES_DESKTOP_ID="org.devl0rd.portal.launcher.games.desktop"
+LAUNCHER_SET_UP="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/launcher-set-up"
 
 link_command() {
     chmod +x "$WIDGETS_DIR/$1"
@@ -202,8 +203,11 @@ take_over_launcher_and_restart() {
     say "Restarting Plasma"
     systemctl --user stop "$PLASMA_SERVICE"
     python3 "$WIDGETS_DIR/service/overlay-hosts" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
-    python3 "$WIDGETS_DIR/service/panel-launcher" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
-    python3 "$WIDGETS_DIR/service/panel-launcher" open-page shortcuts "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
+    if [[ ! -e $LAUNCHER_SET_UP ]]; then
+        python3 "$WIDGETS_DIR/service/panel-launcher" install --open-page shortcuts "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
+        mkdir -p "$(dirname "$LAUNCHER_SET_UP")"
+        touch "$LAUNCHER_SET_UP"
+    fi
     systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
     systemctl --user start "$PLASMA_SERVICE"
 }

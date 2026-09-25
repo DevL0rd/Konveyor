@@ -112,21 +112,21 @@ def open_page(groups, page):
 
 def main():
     arguments = sys.argv[1:]
-    if arguments[:1] not in (["install"], ["uninstall"], ["open-page"]) or len(arguments) != (3 if arguments[0] == "open-page" else 2):
-        sys.stderr.write("usage: portal-panel-launcher install|uninstall|open-page PAGE <plasma-org.kde.plasma.desktop-appletsrc>\n")
+    page = None
+    if arguments[:2] == ["install", "--open-page"] and len(arguments) == 4:
+        page = arguments[2]
+    elif arguments[:1] not in (["install"], ["uninstall"]) or len(arguments) != 2:
+        sys.stderr.write("usage: portal-panel-launcher install [--open-page PAGE]|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n")
         return 2
     path = arguments[-1]
     try:
         groups = read_groups(path)
     except FileNotFoundError:
         return 0
-    if arguments[0] == "open-page":
-        groups, changed = open_page(groups, arguments[1])
-        if changed:
-            write_groups(path, groups)
-        return 0
     groups, changed = (install if arguments[0] == "install" else uninstall)(groups)
     if changed:
+        if page:
+            groups, _ = open_page(groups, page)
         write_groups(path, groups)
         print("Portal Launcher placed where the application launcher was" if arguments[0] == "install"
               else "Restored the original application launcher")
