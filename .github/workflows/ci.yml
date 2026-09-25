@@ -51,6 +51,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: Arch Linux
+            image: archlinux:latest
+            plasma: pacman -Syu --noconfirm git plasma-desktop
+          - name: SteamOS 3.9
+            image: archlinux:latest
+            plasma: |
+              repos="jupiter-3.9 holo-3.9 core-3.9 extra-3.9 multilib-3.9"
+              conf() {
+                printf '[options]\nArchitecture = auto\nSigLevel = %s\nLocalFileSigLevel = Optional\n' "$1"
+                for repo in $repos; do printf '[%s]\nServer = https://steamdeck-packages.steamos.cloud/archlinux-mirror/$repo/os/$arch\n' "$repo"; done
+              }
+              conf Never > /etc/pacman-bootstrap.conf
+              pacman -Sy --noconfirm --config /etc/pacman-bootstrap.conf holo-keyring
+              pacman-key --init
+              pacman-key --populate archlinux holo
+              conf "Required DatabaseOptional" > /etc/pacman.conf
+              pacman -Syuu --noconfirm --ignore filesystem
+              pacman -S --noconfirm --needed git plasma-desktop
           - name: Fedora 44
             image: fedora:44
             plasma: dnf install -y git plasma-desktop
