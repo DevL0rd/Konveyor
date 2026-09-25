@@ -17,11 +17,8 @@ jobs:
     container:
       image: archlinux:base-devel
     steps:
-      - name: Install dependencies
-        run: |
-          pacman -Syu --noconfirm --needed git cmake ninja clang extra-cmake-modules \
-            qt6-base qt6-declarative kwin kglobalaccel kconfig kcolorscheme knotifications \
-            kcoreaddons ki18n kdecoration kcmutils kservice wayland-protocols vulkan-headers libxkbcommon llvm typos nodejs npm python-dbus
+      - name: Install the check tools
+        run: pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols typos nodejs npm
 
       - name: Build xunused
         run: |
@@ -41,6 +38,9 @@ jobs:
       - name: Mark checkout as safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Install Konveyor's dependencies
+        run: extras/packaging/dependencies.sh
+
       - name: Run the full check suite
         run: ./tools/check.sh
 
@@ -51,9 +51,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Arch Linux
-            image: archlinux:latest
-            plasma: pacman -Syu --noconfirm git plasma-desktop
           - name: SteamOS 3.9
             image: archlinux:latest
             plasma: |
@@ -100,6 +97,17 @@ jobs:
           DESTDIR="$PWD/staging" cmake --install build
           find staging -path '*/kwin/effects/plugins/konveyor_effect.so' | grep .
           find staging -path '*/plasma/kcms/systemsettings/kcm_konveyor.so' | grep .
+
+  install:
+    name: Install, check and uninstall on Arch Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install, check and uninstall Konveyor in a Plasma session
+        run: tests/install/run.sh
 
   release:
     name: Release
