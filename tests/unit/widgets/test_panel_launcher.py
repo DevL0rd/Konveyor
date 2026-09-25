@@ -99,10 +99,38 @@ plugin=org.devl0rd.portal.launcher
         self.assertEqual(result.stdout, "")
         self.assertEqual(self.path.read_text(), before)
 
-    def test_install_opens_no_page_without_a_menu_to_replace(self):
+    def test_install_adds_the_launcher_first_without_a_menu_to_replace(self):
         self.path.write_text(self.path.read_text().replace("org.kde.plasma.kickoff", "org.kde.plasma.pager"))
         self.run_script("install", "--open-page", "shortcuts")
-        self.assertNotIn("openPageOnStart", self.path.read_text())
+        text = self.path.read_text()
+        self.assertIn("plugin=org.devl0rd.portal.launcher\nkonveyorAdded=true", text.split("[Containments][1][Applets][7]", 1)[1])
+        self.assertIn("AppletOrder=7;2;3", text)
+        self.assertIn("openPageOnStart=shortcuts", self.general(text, 7))
+        self.assertIn("plugin=org.kde.plasma.pager", text)
+
+    def test_install_removes_every_other_menu(self):
+        self.path.write_text(self.path.read_text() + "\n[Containments][1][Applets][4]\nplugin=org.kde.plasma.kicker\n\n"
+                             "[Containments][1][Applets][4][Configuration]\nfavorites=a\n\n[Containments][1][General]\nAppletOrder=2;4;3\n")
+        self.run_script("install")
+        text = self.path.read_text()
+        self.assertNotIn("org.kde.plasma.kicker", text)
+        self.assertNotIn("[Containments][1][Applets][4]", text)
+        self.assertIn("AppletOrder=2;3", text)
+        self.assertIn("konveyorReplaced=org.kde.plasma.kickoff", text)
+
+    def test_uninstall_removes_an_added_launcher(self):
+        self.path.write_text(self.path.read_text().replace("org.kde.plasma.kickoff", "org.kde.plasma.pager")
+                             + "\n[Containments][1][General]\nAppletOrder=2;3\n")
+        before = self.path.read_text()
+        self.run_script("install", "--open-page", "shortcuts")
+        self.run_script("uninstall")
+        self.assertEqual(self.path.read_text(), before)
+
+    def test_install_fails_without_a_panel(self):
+        self.path.write_text("[Containments][5]\nplugin=org.kde.desktopcontainment\n")
+        result = subprocess.run([sys.executable, str(SCRIPT), "install", str(self.path)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no Plasma panel", result.stderr)
 
 
 if __name__ == "__main__":
