@@ -35,10 +35,56 @@ copy_updater() {
     "$@" install -Dm755 "$SOURCE_DIR/extras/packaging/konveyor-rebuild" "$directory/konveyor-rebuild"
 }
 
+update_source_path() {
+    as_owner sh -c 'printf "%s/.local/share/konveyor/source\n" "$HOME"'
+}
+
+update_source_url() {
+    local url rest
+    url=$(source_git remote get-url origin 2>/dev/null) || return 1
+    case $url in
+    git@*:*)
+        rest=${url#git@}
+        url="https://${rest/://}"
+        ;;
+    ssh://git@*) url="https://${url#ssh://git@}" ;;
+    esac
+    printf '%s\n' "$url"
+}
+
+prepare_update_source() {
+    UPDATE_SOURCE_DIR=$(update_source_path)
+    [[ $SOURCE_DIR -ef $UPDATE_SOURCE_DIR ]] && return 0
+    local url branch
+    url=$(update_source_url) || die "$SOURCE_DIR has no origin remote to keep an update copy of Konveyor from"
+    say "Keeping a copy of Konveyor in $UPDATE_SOURCE_DIR for updates"
+    if ! as_owner git -C "$UPDATE_SOURCE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+        as_owner rm -rf "$UPDATE_SOURCE_DIR"
+        as_owner mkdir -p "$(dirname "$UPDATE_SOURCE_DIR")"
+        as_owner env "${KONVEYOR_GIT_ENV[@]}" git clone --quiet --recurse-submodules "$url" "$UPDATE_SOURCE_DIR" \
+            || die "could not clone $url into $UPDATE_SOURCE_DIR"
+        return 0
+    fi
+    as_owner git -C "$UPDATE_SOURCE_DIR" remote set-url origin "$url"
+    branch=$(as_owner git -C "$UPDATE_SOURCE_DIR" symbolic-ref --short HEAD)
+    as_owner env "${KONVEYOR_GIT_ENV[@]}" git -C "$UPDATE_SOURCE_DIR" fetch --quiet origin \
+        || die "could not fetch $url into $UPDATE_SOURCE_DIR"
+    as_owner git -C "$UPDATE_SOURCE_DIR" checkout --quiet --force -B "$branch" "origin/$branch"
+    as_owner env "${KONVEYOR_GIT_ENV[@]}" git -C "$UPDATE_SOURCE_DIR" submodule update --init --recursive --quiet
+}
+
+remove_update_source() {
+    local directory
+    directory=$(update_source_path)
+    [[ -d $directory ]] || return 0
+    as_owner rm -rf "$directory"
+    as_owner rmdir --ignore-fail-on-non-empty "$(dirname "$directory")"
+}
+
 enable_user_unit() {
     local units="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
     mkdir -p "$units"
-    sed "s|@SOURCE_DIR@|$SOURCE_DIR|g" "$SOURCE_DIR/extras/packaging/$1.in" >"$units/$1"
+    sed "s|@SOURCE_DIR@|$UPDATE_SOURCE_DIR|g" "$SOURCE_DIR/extras/packaging/$1.in" >"$units/$1"
     systemctl --user daemon-reload
     systemctl --user enable "$1" >/dev/null 2>&1
 }
@@ -55,8 +101,9 @@ register_updates() {
         unregister_updates
         return 0
     fi
+    prepare_update_source
     say "Registering Konveyor with system updates"
-    printf '%s\n%s\n' "$SOURCE_DIR" "${KONVEYOR_OWNER:-$(id -un)}" | run_prefix tee "$KONVEYOR_STATE_DIR/source" >/dev/null
+    printf '%s\n%s\n' "$UPDATE_SOURCE_DIR" "${KONVEYOR_OWNER:-$(id -un)}" | run_prefix tee "$KONVEYOR_STATE_DIR/source" >/dev/null
     if $KONVEYOR_ATOMIC; then
         copy_updater "$KONVEYOR_USER_UPDATER_DIR"
         enable_user_unit "$KONVEYOR_LOGIN_UNIT"
@@ -86,6 +133,7 @@ unregister_updates() {
     rm -rf "$KONVEYOR_USER_UPDATER_DIR"
     disable_user_unit "$KONVEYOR_UPDATE_UNIT"
     disable_user_unit "$KONVEYOR_LOGIN_UNIT"
+    remove_update_source
     return 0
 }
 
