@@ -75,6 +75,24 @@ build() {
     as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake --build "$BUILD_DIR" "${clean[@]}"
 }
 
+reclaim_files() {
+    local paths=("$BUILD_DIR") manifest existing=() path foreign
+    if $KONVEYOR_ATOMIC; then
+        paths+=("$KONVEYOR_STATE_DIR")
+        for manifest in "$BUILD_DIR/install_manifest.txt" "$KONVEYOR_STATE_DIR/install_manifest.txt"; do
+            [[ -r $manifest ]] && mapfile -t -O "${#paths[@]}" paths <"$manifest"
+        done
+    fi
+    for path in "${paths[@]}"; do
+        [[ -e $path || -L $path ]] && existing+=("$path")
+    done
+    ((${#existing[@]})) || return 0
+    foreign=$(find "${existing[@]}" ! -user "$(id -u)" -print -quit)
+    [[ -n $foreign ]] || return 0
+    say "Taking back files an earlier install left owned by another user, like $foreign"
+    run_root chown -R "$(id -u):$(id -g)" "${existing[@]}"
+}
+
 remove_stale_files() {
     local previous="$KONVEYOR_STATE_DIR/install_manifest.txt" current="$BUILD_DIR/install_manifest.txt" file
     [[ -f $previous ]] || return 0
@@ -236,6 +254,7 @@ main() {
     [[ $EUID -ne 0 ]] || die "run install.sh as your normal user; it asks for sudo when needed"
     update_checkout
     install_dependencies
+    reclaim_files
     build
     install_files
     install_versioned_plugin
