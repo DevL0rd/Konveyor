@@ -52,6 +52,7 @@ disable_in_kwin() {
         [[ -n $KONVEYOR_PLUGIN_DIR ]] && run_prefix rm -f "$KONVEYOR_PLUGIN_DIR/${plugin}.so"
     done
     kwinrc_delete Plugins konveyor_effectEnabled
+    restore_conflicting_scripts
     if $WIDGETS; then
         for plugin in $(process_monitor_telemetry_plugin_ids | sort -u); do
             kwinrc_delete Plugins "${plugin}Enabled"
@@ -81,8 +82,21 @@ remove_files() {
     run_prefix rm -rf "$KONVEYOR_STATE_DIR"
 }
 
+package_owns() {
+    case "$(package_manager)" in
+    pacman) pacman -Qoq "$1" >/dev/null 2>&1 ;;
+    dnf | zypper) rpm -qf "$1" >/dev/null 2>&1 ;;
+    apt-get) dpkg -S "$1" >/dev/null 2>&1 ;;
+    *) return 0 ;;
+    esac
+}
+
 removable_directory() {
-    [[ $1/ == */konveyor/* ]] || { $KONVEYOR_ATOMIC && [[ $1 == "$KONVEYOR_PREFIX"/*/* ]]; }
+    if $KONVEYOR_ATOMIC; then
+        [[ $1/ == */konveyor/* || $1 == "$KONVEYOR_PREFIX"/*/* ]]
+    else
+        [[ $1 == "$KONVEYOR_PREFIX"/*/* ]] && ! package_owns "$1"
+    fi
 }
 
 remove_empty_directories() {
@@ -95,10 +109,27 @@ remove_empty_directories() {
     done < <(sed 's|/[^/]*$||' "$1" | sort -ru)
 }
 
+remove_session_path() {
+    local current rest
+    current=$(systemctl --user show-environment | sed -n "s/^$1=//p")
+    [[ ":$current:" == *":$2:"* ]] || return 0
+    rest=$(printf '%s' ":$current:" | sed "s|:$2:|:|; s|^:||; s|:$||")
+    if [[ -n $rest ]]; then
+        systemctl --user set-environment "$1=$rest"
+    else
+        systemctl --user unset-environment "$1"
+    fi
+}
+
 remove_atomic_setup() {
     rm -f "$KONVEYOR_SESSION_ENV"
     $KONVEYOR_ATOMIC || return 0
-    local name
+    local name qml
+    if [[ -n $KONVEYOR_PLUGIN_DIR ]]; then
+        remove_session_path QT_PLUGIN_PATH "${KONVEYOR_PLUGIN_DIR%/kwin/effects/plugins}"
+        qml=$(manifest_entry "$KONVEYOR_STATE_DIR/install_manifest.txt" '/org/kde/konveyor/settings/qmldir$')
+        remove_session_path QML_IMPORT_PATH "${qml%/org/kde/konveyor/settings/qmldir}"
+    fi
     for name in $(podman ps --all --format '{{.Names}}' | grep -E '^konveyor-(fedora-[0-9]+|steamos)$' || true); do
         say "Removing the $name build container"
         podman rm --force --volumes "$name" >/dev/null
@@ -113,6 +144,11 @@ remove_update_unit() {
 
 remove_state() {
     rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/konveyor" "${XDG_STATE_HOME:-$HOME/.local/state}/konveyorstaterc"
+    local directory
+    for directory in "$(dirname "$KONVEYOR_SESSION_ENV")" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd" "$HOME/.local/bin"; do
+        [[ -d $directory ]] && rmdir --ignore-fail-on-non-empty "$directory"
+    done
+    return 0
 }
 
 purge_config() {

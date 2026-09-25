@@ -84,6 +84,10 @@ main() {
     systemctl --user start "$PLASMA_SERVICE" 2>/dev/null || true
 
     rm -rf "$WIDGETS_RUNTIME_DIR"
+    systemctl --user unset-environment QML_XHR_ALLOW_FILE_READ
+    for item in "$(dirname "$WIDGETS_RUNTIME_DIR")" "$BIN_DIR" "${XDG_DATA_HOME:-$HOME/.local/share}/applications" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma/plasmoids" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma"; do
+        [[ -d $item ]] && rmdir --ignore-fail-on-non-empty "$item"
+    done
     say "Widget configs in ~/.config (router and Steam credentials) were kept"
 }
 

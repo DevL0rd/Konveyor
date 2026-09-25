@@ -53,8 +53,17 @@ install_containment() {
     note "Desktop widgets can now hide while windows cover the desktop"
 }
 
+remove_hide_setting() {
+    local applets="$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc" id
+    [[ -f $applets ]] || return 0
+    for id in $(sed -n 's/^\[Containments\]\[\([0-9]*\)\]\[General\]$/\1/p' "$applets"); do
+        kwriteconfig6 --file "$applets" --group Containments --group "$id" --group General --key hideDesktopWidgets --delete
+    done
+}
+
 uninstall_containment() {
     remove_legacy_hider
+    remove_hide_setting
     managed && rm -rf "$TARGET"
     return 0
 }

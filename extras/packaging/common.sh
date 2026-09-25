@@ -24,6 +24,7 @@ KONVEYOR_SESSION_ENV="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d/konveyor.c
 KONVEYOR_UPDATE_UNIT="konveyor-update.service"
 KONVEYOR_GIT_ENV=(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS= GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=15")
 KONVEYOR_CONFLICTING_SCRIPTS=(karousel krohnkite kzones polonium bismuth devl0rd-hide-desktop-widgets)
+KONVEYOR_DISABLED_SCRIPTS="$HOME/.local/state/konveyor/disabled-scripts"
 
 say() {
     printf '\033[1;34m==>\033[0m %s\n' "$*"
@@ -158,6 +159,46 @@ kwinrc_write() {
 
 kwinrc_delete() {
     as_owner kwriteconfig6 --file kwinrc --group "$1" --key "$2" --delete
+}
+
+kwin_script_installed() {
+    local directory
+    for directory in "${XDG_DATA_HOME:-$HOME/.local/share}" /usr/local/share /usr/share; do
+        [[ -d $directory/kwin/scripts/$1 || -d $directory/kwin-wayland/scripts/$1 ]] && return 0
+    done
+    return 1
+}
+
+disable_conflicting_scripts() {
+    local script
+    mkdir -p "$(dirname "$KONVEYOR_DISABLED_SCRIPTS")"
+    for script in "${KONVEYOR_CONFLICTING_SCRIPTS[@]}"; do
+        if ! kwin_script_installed "$script"; then
+            grep -q "^$script " "$KONVEYOR_DISABLED_SCRIPTS" 2>/dev/null || kwinrc_delete Plugins "${script}Enabled"
+            continue
+        fi
+        if ! grep -q "^$script " "$KONVEYOR_DISABLED_SCRIPTS" 2>/dev/null; then
+            printf '%s %s\n' "$script" "$(as_owner kreadconfig6 --file kwinrc --group Plugins --key "${script}Enabled")" >>"$KONVEYOR_DISABLED_SCRIPTS"
+        fi
+        kwinrc_write Plugins "${script}Enabled" false
+    done
+}
+
+restore_conflicting_scripts() {
+    local script previous
+    if [[ -f $KONVEYOR_DISABLED_SCRIPTS ]]; then
+        while read -r script previous; do
+            if [[ -n $previous ]]; then
+                kwinrc_write Plugins "${script}Enabled" "$previous"
+            else
+                kwinrc_delete Plugins "${script}Enabled"
+            fi
+        done <"$KONVEYOR_DISABLED_SCRIPTS"
+        rm -f "$KONVEYOR_DISABLED_SCRIPTS"
+    fi
+    for script in "${KONVEYOR_CONFLICTING_SCRIPTS[@]}"; do
+        kwin_script_installed "$script" || kwinrc_delete Plugins "${script}Enabled"
+    done
 }
 
 plugin_ids() {

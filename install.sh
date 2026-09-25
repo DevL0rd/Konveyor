@@ -122,9 +122,7 @@ configure_kwin() {
         [[ $previous == "$PLUGIN_ID" ]] || konveyor_disable_plugin_id "$previous"
     done
     say "Enabling Konveyor in KWin"
-    for script in "${KONVEYOR_CONFLICTING_SCRIPTS[@]}"; do
-        kwinrc_write Plugins "${script}Enabled" false
-    done
+    disable_conflicting_scripts
     kwinrc_write Plugins konveyor_effectEnabled false
     kwinrc_write Plugins "${PLUGIN_ID}Enabled" true
     if $WIDGETS; then
