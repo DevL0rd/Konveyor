@@ -124,6 +124,21 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void namedWorkspacesKeepConfigOrder()
+    {
+        Config::Config config = instantConfig();
+        for (const QString &name : {QStringLiteral("browser"), QStringLiteral("notes"), QStringLiteral("chat")}) {
+            Config::NamedWorkspace named;
+            named.name = name;
+            config.workspaces.append(named);
+        }
+        Fixture fixture(config);
+        QCOMPARE(workspaceAt(fixture.engine(), 1).name, QStringLiteral("browser"));
+        QCOMPARE(workspaceAt(fixture.engine(), 2).name, QStringLiteral("notes"));
+        QCOMPARE(workspaceAt(fixture.engine(), 3).name, QStringLiteral("chat"));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void namedWorkspaceSurvivesCleanup()
     {
         Config::Config config = instantConfig();

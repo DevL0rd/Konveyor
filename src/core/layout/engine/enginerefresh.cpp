@@ -78,29 +78,56 @@ bool Engine::Private::resolveWorkspaceRules(Workspace &workspace, std::vector<Wi
     return force;
 }
 
+namespace
+{
+
+std::optional<std::size_t> namedWorkspaceIndex(const std::vector<Workspace> &workspaces, const QString &name)
+{
+    for (std::size_t idx = 0; idx < workspaces.size(); ++idx) {
+        if (workspaces[idx].name().compare(name, Qt::CaseInsensitive) == 0) {
+            return idx;
+        }
+    }
+    return std::nullopt;
+}
+
+}
+
 void Engine::Private::ensureNamedWorkspaces()
 {
+    // A missing named workspace goes right below the named workspace listed
+    // before it, so the workspaces keep the order of the config.
+    std::vector<std::size_t> nextIndex(monitors.size(), 0);
+    std::size_t nextOrphanIndex = 0;
     for (const Config::NamedWorkspace &named : config.workspaces) {
         bool exists = false;
-        for (Workspace *workspace : allWorkspaces()) {
-            if (workspace->name().compare(named.name, Qt::CaseInsensitive) == 0) {
+        for (std::size_t idx = 0; idx < monitors.size(); ++idx) {
+            if (const auto found = namedWorkspaceIndex(monitors[idx].workspaces(), named.name)) {
+                nextIndex[idx] = *found + 1;
                 exists = true;
-                break;
             }
+        }
+        if (const auto found = namedWorkspaceIndex(orphanWorkspaces, named.name)) {
+            nextOrphanIndex = *found + 1;
+            exists = true;
         }
         if (exists) {
             continue;
         }
         if (monitors.empty()) {
-            orphanWorkspaces.insert(orphanWorkspaces.begin(), Workspace(OutputArea(), clock, options, named));
+            orphanWorkspaces.insert(orphanWorkspaces.begin() + static_cast<std::ptrdiff_t>(nextOrphanIndex),
+                Workspace(OutputArea(), clock, options, named));
+            nextOrphanIndex += 1;
             continue;
         }
         std::size_t monitorIndex = activeMonitorIndex;
         if (named.openOnOutput) {
             monitorIndex = monitorIndexByName(*named.openOnOutput).value_or(0);
         }
-        Monitor &monitor = monitors[std::min(monitorIndex, monitors.size() - 1)];
-        monitor.insertWorkspace(Workspace(monitor.area(), clock, options, named), 0, false);
+        monitorIndex = std::min(monitorIndex, monitors.size() - 1);
+        Monitor &monitor = monitors[monitorIndex];
+        monitor.insertWorkspace(Workspace(monitor.area(), clock, options, named), nextIndex[monitorIndex], false);
+        nextIndex[monitorIndex] = namedWorkspaceIndex(monitor.workspaces(), named.name).value_or(0) + 1;
     }
 }
 
