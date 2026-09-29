@@ -115,8 +115,8 @@ void Engine::Private::ensureNamedWorkspaces()
             continue;
         }
         if (monitors.empty()) {
-            orphanWorkspaces.insert(orphanWorkspaces.begin() + static_cast<std::ptrdiff_t>(nextOrphanIndex),
-                Workspace(OutputArea(), clock, options, named));
+            orphanWorkspaces.insert(
+                orphanWorkspaces.begin() + static_cast<std::ptrdiff_t>(nextOrphanIndex), Workspace(OutputArea(), clock, options, named));
             nextOrphanIndex += 1;
             continue;
         }
