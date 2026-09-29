@@ -16,6 +16,25 @@ int workspaceCount(Layout::Engine &engine, const QString &output)
     return count;
 }
 
+Config::NamedWorkspace namedWorkspace(const QString &name, std::optional<QString> output = std::nullopt)
+{
+    Config::NamedWorkspace named;
+    named.name = name;
+    named.openOnOutput = std::move(output);
+    return named;
+}
+
+QStringList workspaceNames(Layout::Engine &engine, const QString &output)
+{
+    QStringList names;
+    for (const Layout::WorkspaceState &state : engine.workspaceStates()) {
+        if (state.output == output) {
+            names.append(state.name);
+        }
+    }
+    return names;
+}
+
 Layout::WorkspaceState workspaceAt(Layout::Engine &engine, int index)
 {
     for (const Layout::WorkspaceState &state : engine.workspaceStates()) {
@@ -136,6 +155,62 @@ private Q_SLOTS:
         QCOMPARE(workspaceAt(fixture.engine(), 1).name, QStringLiteral("browser"));
         QCOMPARE(workspaceAt(fixture.engine(), 2).name, QStringLiteral("notes"));
         QCOMPARE(workspaceAt(fixture.engine(), 3).name, QStringLiteral("chat"));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void namedWorkspacesKeepConfigOrderOnAConnectedOutput()
+    {
+        Fixture fixture;
+        Config::Config config = instantConfig();
+        config.workspaces
+            = {namedWorkspace(QStringLiteral("browser")), namedWorkspace(QStringLiteral("notes")), namedWorkspace(QStringLiteral("chat"))};
+        fixture.setConfig(config);
+        QCOMPARE(workspaceNames(fixture.engine(), QStringLiteral("DP-1")),
+            QStringList({QStringLiteral("browser"), QStringLiteral("notes"), QStringLiteral("chat"), QString()}));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void namedWorkspaceAddedToTheConfigLandsInItsPlace()
+    {
+        Fixture fixture;
+        Config::Config config = instantConfig();
+        config.workspaces = {namedWorkspace(QStringLiteral("browser")), namedWorkspace(QStringLiteral("chat"))};
+        fixture.setConfig(config);
+        fixture.add();
+        config.workspaces
+            = {namedWorkspace(QStringLiteral("browser")), namedWorkspace(QStringLiteral("notes")), namedWorkspace(QStringLiteral("chat"))};
+        fixture.setConfig(config);
+        const QStringList names = workspaceNames(fixture.engine(), QStringLiteral("DP-1"));
+        QCOMPARE(names.mid(0, 3), QStringList({QStringLiteral("browser"), QStringLiteral("notes"), QStringLiteral("chat")}));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void namedWorkspacesKeepConfigOrderBelowTheEmptyFirstWorkspace()
+    {
+        Fixture fixture;
+        Config::Config config = instantConfig();
+        config.layout.emptyWorkspaceAboveFirst = true;
+        config.workspaces
+            = {namedWorkspace(QStringLiteral("browser")), namedWorkspace(QStringLiteral("notes")), namedWorkspace(QStringLiteral("chat"))};
+        fixture.setConfig(config);
+        QCOMPARE(workspaceNames(fixture.engine(), QStringLiteral("DP-1")),
+            QStringList({QString(), QStringLiteral("browser"), QStringLiteral("notes"), QStringLiteral("chat"), QString()}));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void namedWorkspacesKeepConfigOrderOnEachOutput()
+    {
+        Fixture fixture;
+        fixture.engine().addOutput(makeOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080)));
+        Config::Config config = instantConfig();
+        config.workspaces
+            = {namedWorkspace(QStringLiteral("a"), QStringLiteral("DP-2")), namedWorkspace(QStringLiteral("b"), QStringLiteral("DP-1")),
+                namedWorkspace(QStringLiteral("c"), QStringLiteral("DP-2")), namedWorkspace(QStringLiteral("d"), QStringLiteral("DP-1"))};
+        fixture.setConfig(config);
+        QCOMPARE(
+            workspaceNames(fixture.engine(), QStringLiteral("DP-1")), QStringList({QStringLiteral("b"), QStringLiteral("d"), QString()}));
+        QCOMPARE(
+            workspaceNames(fixture.engine(), QStringLiteral("DP-2")), QStringList({QStringLiteral("a"), QStringLiteral("c"), QString()}));
         VERIFY_INVARIANTS(fixture);
     }
 
