@@ -1,105 +1,50 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Window
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasma5support as P5Support
-import QtCore
-import "lib"
 
 PlasmoidItem {
     id: root
 
-    property bool open: false
-    property bool openedByKey: false
-    property bool created: false
-    property string openScreen
-    property string panelScreen
-    property var pendingPins: []
-    signal pinsRequested()
-    property string requestedPage: ""
-    property string currentPage: ""
-    signal pageRequested(string page)
+    readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property string buttonIcon: Plasmoid.configuration.icon || "start-here-kde-plasma-symbolic"
+    property string failure: ""
 
-    readonly property real startedAt: Date.now()
-    readonly property string requestPath: String(StandardPaths.writableLocation(StandardPaths.RuntimeLocation)).replace(/^file:\/\//, "") + "/Plasma-App-Portal/launcher-request.json"
-    property string lastRequest: ""
-    function readRequest() {
-        const xhr = new XMLHttpRequest()
-        xhr.open("GET", "file://" + requestPath)
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || !xhr.responseText)
-                return
-            let request = null
-            try {
-                request = JSON.parse(xhr.responseText)
-            } catch (error) {
-                return
-            }
-            const id = String(request.id || "")
-            if (id === "" || id === root.lastRequest)
-                return
-            root.lastRequest = id
-            if (Number(request.id) / 1000000 < root.startedAt)
-                return
-            root.handleRequest(String(request.page || "home"))
-        }
-        xhr.send()
+    function shq(text) {
+        return "'" + String(text).replace(/'/g, "'\\''") + "'"
     }
-    function handleRequest(page) {
-        if (page === "toggle") {
-            toggle(true, "")
-        } else if (open && currentPage === page) {
-            hide()
-        } else if (open) {
-            pageRequested(page)
-        } else {
-            requestedPage = page
-            show(true, "")
-        }
+    function call(method, argumentsText) {
+        panel.connectSource("busctl --user call org.devl0rd.KontrolPanel /KontrolPanel org.devl0rd.KontrolPanel " + method + (argumentsText ? " " + argumentsText : "") + " # " + Date.now())
     }
-    FileWatcher {
-        path: root.requestPath
-        onChanged: root.readRequest()
+    function toggle() {
+        call("Toggle")
     }
-
     function pinFiles(urls) {
         const files = urls.map(url => decodeURIComponent(String(url).replace(/^file:\/\//, ""))).filter(path => path.endsWith(".desktop"))
         if (files.length === 0)
             return false
-        pendingPins = pendingPins.concat(files)
-        created = true
-        pinsRequested()
+        call("Pin", "as " + files.length + " " + files.map(shq).join(" "))
         return true
     }
 
-    readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
-    readonly property string buttonIcon: Plasmoid.configuration.icon || "start-here-kde-plasma-symbolic"
+    P5Support.DataSource {
+        id: panel
+        engine: "executable"
+        onNewData: function(source, result) {
+            disconnectSource(source)
+            root.failure = result["exit code"] === 0 ? "" : (result.stderr || "").trim() || i18n("The Kontrol Panel service did not answer")
+        }
+    }
 
-    Plasmoid.icon: buttonIcon
+    Plasmoid.icon: failure ? "dialog-error" : buttonIcon
     Plasmoid.title: i18n("Kontrol Panel")
     preferredRepresentation: compactRepresentation
     activationTogglesExpanded: false
     toolTipMainText: i18n("Kontrol Panel")
-    toolTipSubText: i18n("Apps, games, files and friends · Meta opens it · drop an app here to pin it")
-
-    function show(byKey, screen) {
-        openedByKey = byKey
-        openScreen = screen || panelScreen
-        created = true
-        open = true
-    }
-    function hide() {
-        open = false
-    }
-    function toggle(byKey, screen) {
-        if (open)
-            hide()
-        else
-            show(byKey, screen)
-    }
+    toolTipSubText: failure ? i18n("Could not open the Kontrol Panel: %1", failure) : i18n("Apps, games, files and friends · Meta opens it · drop an app here to pin it")
 
     onExpandedChanged: function() {
         if (root.expanded)
@@ -107,28 +52,10 @@ PlasmoidItem {
     }
     Component.onCompleted: root.expanded = false
 
-    readonly property bool shellReady: Plasmoid.containment !== null && Plasmoid.containment.isUiReady
-    onShellReadyChanged: {
-        if (shellReady && Plasmoid.configuration.openPageOnStart !== "")
-            konveyorRunning.connectSource("busctl --user status org.kde.Konveyor")
-    }
-    P5Support.DataSource {
-        id: konveyorRunning
-        engine: "executable"
-        onNewData: function(source, result) {
-            disconnectSource(source)
-            const page = Plasmoid.configuration.openPageOnStart
-            if (result["exit code"] === 0 && page !== "") {
-                Plasmoid.configuration.openPageOnStart = ""
-                root.handleRequest(page)
-            }
-        }
-    }
-
     Connections {
         target: Plasmoid
         function onActivated() {
-            root.toggle(true, "")
+            root.toggle()
         }
     }
 
@@ -136,19 +63,9 @@ PlasmoidItem {
         id: button
 
         readonly property bool showLabel: Plasmoid.configuration.showLabel && Plasmoid.configuration.label !== "" && !root.vertical
-        readonly property string screenName: Window.window && Window.window.screen ? Window.window.screen.name : ""
-        property bool wasOpen: false
-        onScreenNameChanged: root.panelScreen = screenName
-        Component.onCompleted: root.panelScreen = screenName
 
         hoverEnabled: true
-        onPressed: wasOpen = root.open
-        onClicked: {
-            if (wasOpen)
-                root.hide()
-            else
-                root.show(false, button.screenName)
-        }
+        onClicked: root.toggle()
 
         Layout.minimumWidth: root.vertical ? 0 : (showLabel ? buttonRow.implicitWidth + Kirigami.Units.smallSpacing * 2 : height)
         Layout.maximumWidth: root.vertical ? Infinity : Layout.minimumWidth
@@ -175,8 +92,8 @@ PlasmoidItem {
             Kirigami.Icon {
                 Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                 Layout.preferredHeight: Layout.preferredWidth
-                source: root.buttonIcon
-                active: button.containsMouse || root.open || dropArea.containsDrag
+                source: Plasmoid.icon
+                active: button.containsMouse || dropArea.containsDrag
             }
             PlasmaComponents.Label {
                 visible: button.showLabel
@@ -186,9 +103,4 @@ PlasmoidItem {
     }
 
     fullRepresentation: Item {}
-
-    Loader {
-        active: root.created
-        sourceComponent: Overlay {}
-    }
 }

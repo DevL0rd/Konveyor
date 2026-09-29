@@ -10,8 +10,6 @@ Kirigami.FormLayout {
     id: form
 
     property string cfg_icon
-    property alias cfg_label: labelField.text
-    property alias cfg_showLabel: showLabel.checked
     property alias cfg_cardWidth: widthBox.value
     property alias cfg_cardHeight: heightBox.value
     property alias cfg_dimStrength: dimSlider.value
@@ -62,8 +60,8 @@ Kirigami.FormLayout {
     property alias cfg_popupWidth: popupWidthBox.value
     property alias cfg_popupHeight: popupHeightBox.value
     property alias cfg_showFriendsBadge: friendsBadge.checked
-    readonly property bool portal: Plasmoid.metaData.pluginId === "org.devl0rd.portal"
-    readonly property string defaultIcon: portal ? "view-app-grid-symbolic" : "start-here-kde-plasma-symbolic"
+    property bool portal: Plasmoid.metaData.pluginId === "org.devl0rd.portal"
+    readonly property string defaultIcon: "view-app-grid-symbolic"
     property string cfg_searchOrder
 
     readonly property var groupLabels: ({
@@ -97,6 +95,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.Button {
+        visible: form.portal
         Kirigami.FormData.label: i18n("Icon:")
         implicitWidth: Kirigami.Units.iconSizes.large + Kirigami.Units.largeSpacing * 2
         implicitHeight: implicitWidth
@@ -110,7 +109,8 @@ Kirigami.FormLayout {
         }
     }
     QQC2.Button {
-        text: form.portal ? i18n("Use the default icon") : i18n("Use the default Plasma icon")
+        visible: form.portal
+        text: i18n("Use the default icon")
         enabled: form.cfg_icon !== form.defaultIcon
         onClicked: form.cfg_icon = form.defaultIcon
     }
@@ -119,14 +119,10 @@ Kirigami.FormLayout {
         visible: form.portal
         text: i18n("Show how many friends are in game on the panel icon")
     }
-    RowLayout {
-        visible: !form.portal
-        Kirigami.FormData.label: i18n("Label:")
-        QQC2.CheckBox { id: showLabel; text: i18n("Show") }
-        QQC2.TextField { id: labelField; enabled: showLabel.checked; placeholderText: i18n("Start") }
+    Item {
+        visible: form.portal
+        Kirigami.FormData.isSection: true
     }
-
-    Item { Kirigami.FormData.isSection: true }
 
     RowLayout {
         visible: form.portal

@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import QtQml.Models
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import "../lib"
 import "../lib/Highlight.js" as Highlight
@@ -21,7 +20,7 @@ PopScroll {
 
     readonly property var order: {
         const known = ["answer", "apps", "games", "windows", "settings", "files", "friends", "commands", "other"]
-        const wanted = String(Plasmoid.configuration.searchOrder || "").split(",").map(key => key.trim()).filter(key => known.indexOf(key) >= 0)
+        const wanted = String(launcherData.config.searchOrder || "").split(",").map(key => key.trim()).filter(key => known.indexOf(key) >= 0)
         for (const key of known) {
             if (wanted.indexOf(key) < 0)
                 wanted.push(key)

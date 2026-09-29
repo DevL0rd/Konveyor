@@ -2,35 +2,111 @@
 """
 Plasma-App-Portal :: launcher requests.
 
-Asks the running Kontrol Panel to open a page. The launcher watches the request
-file, so this returns immediately and nothing polls.
+Asks the Kontrol Panel service (org.devl0rd.KontrolPanel on the session bus) to open a page.
+D-Bus starts the service if it is not running yet.
 
 Usage:
-  portal-launcher PAGE     open the Kontrol Panel on PAGE (home, apps, games, files, friends, system, shortcuts, settings);
-                           if it is already open on PAGE it closes
-  portal-launcher toggle   open the Kontrol Panel like Meta does, or close it if it is open
+  portal-launcher PAGE          open the Kontrol Panel on PAGE (home, apps, games, files, friends, system, shortcuts, settings);
+                                if it is already open on PAGE it closes
+  portal-launcher toggle        open the Kontrol Panel like Meta does, or close it if it is open
+  portal-launcher pin FILE...   pin the .desktop FILEs to the Kontrol Panel's home page
+  portal-launcher add-to panel|desktop APP
+                                add a launcher for APP (a .desktop name or path) to the panel or the desktop
 """
 import json
 import os
+import subprocess
 import sys
-import time
 
-PAGES = ("home", "apps", "games", "files", "friends", "system", "shortcuts", "settings", "toggle")
+PAGES = ("home", "apps", "games", "files", "friends", "system", "shortcuts", "settings")
+SERVICE = ("org.devl0rd.KontrolPanel", "/KontrolPanel", "org.devl0rd.KontrolPanel")
+
+
+def request(arguments):
+    if arguments == ["toggle"]:
+        return ["Toggle"]
+    if len(arguments) == 1 and arguments[0] in PAGES:
+        return ["Open", "s", arguments[0]]
+    if len(arguments) > 1 and arguments[0] == "pin":
+        return ["Pin", "as", str(len(arguments) - 1), *arguments[1:]]
+    return None
+
+
+PLACE_SCRIPT = """
+var wanted = ["org.devl0rd.portal.launcher", "org.kde.plasma.icontasks", "org.kde.plasma.taskmanager"];
+var target = null;
+if (%(place)s === "desktop") {
+    target = desktopForScreen(0);
+} else {
+    var all = panels();
+    for (var i = 0; i < all.length && !target; ++i) {
+        var widgets = all[i].widgets();
+        for (var j = 0; j < widgets.length; ++j) {
+            if (wanted.indexOf(widgets[j].type) >= 0) {
+                target = all[i];
+                break;
+            }
+        }
+    }
+    if (!target && all.length > 0)
+        target = all[0];
+}
+if (!target)
+    throw new Error("there is no " + %(place)s + " to add the launcher to");
+var widget = target.addWidget("org.kde.plasma.icon");
+widget.currentConfigGroup = ["General"];
+widget.writeConfig("url", %(url)s);
+widget.reloadConfig();
+"""
+
+
+def desktop_file(app):
+    name = app.split(":", 1)[1] if app.startswith("applications:") else app
+    if os.path.isabs(name):
+        return name if os.path.isfile(name) else None
+    data_home = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    data_dirs = (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":")
+    for directory in [data_home] + data_dirs:
+        path = os.path.join(directory, "applications", name)
+        if directory and os.path.isfile(path):
+            return path
+    return None
+
+
+def add_to(place, app):
+    path = desktop_file(app)
+    if path is None:
+        return 1, "no application named %s was found" % app
+    script = PLACE_SCRIPT % {"place": json.dumps(place), "url": json.dumps("file://" + path)}
+    result = subprocess.run(["busctl", "--user", "call", "org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
+                             "evaluateScript", "s", script], capture_output=True, text=True, check=False)
+    return result.returncode, result.stderr.strip()
+
+
+def notify(summary, message):
+    subprocess.run(["gdbus", "call", "--session", "--dest", "org.freedesktop.Notifications",
+                    "--object-path", "/org/freedesktop/Notifications", "--method", "org.freedesktop.Notifications.Notify",
+                    "Kontrol Panel", "0", "dialog-error", summary, message, "[]", "{}", "10000"],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
 
 def main():
-    if len(sys.argv) != 2 or sys.argv[1] not in PAGES:
+    if len(sys.argv) == 4 and sys.argv[1] == "add-to" and sys.argv[2] in ("panel", "desktop"):
+        code, message = add_to(sys.argv[2], sys.argv[3])
+        if code != 0:
+            sys.stderr.write("portal-launcher: %s\n" % message)
+            notify("Could not add the launcher", message)
+        return code
+    call = request(sys.argv[1:])
+    if call is None:
         sys.stderr.write(__doc__)
         return 2
-    runtime = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
-    folder = os.path.join(runtime, "Plasma-App-Portal")
-    os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, "launcher-request.json")
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump({"page": sys.argv[1], "id": time.time_ns()}, f)
-    os.replace(tmp, path)
-    return 0
+    result = subprocess.run(["busctl", "--user", "call", *SERVICE, *call], capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        message = result.stderr.strip() or "busctl exited with %d" % result.returncode
+        sys.stderr.write("portal-launcher: %s\n" % message)
+        notify("Could not open the Kontrol Panel", message)
+    return result.returncode
 
 
 if __name__ == "__main__":

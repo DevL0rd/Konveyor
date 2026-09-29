@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import QtQml.Models
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import ".."
 
@@ -11,17 +10,17 @@ ColumnLayout {
     id: page
 
     readonly property var sections: [grid]
-    readonly property int tileSize: Plasmoid.configuration.tileSize
-    readonly property string sort: Plasmoid.configuration.appsSort
-    readonly property bool listView: Plasmoid.configuration.appsView === "list"
+    readonly property int tileSize: launcherData.config.tileSize
+    readonly property string sort: launcherData.config.appsSort
+    readonly property bool listView: launcherData.config.appsView === "list"
     property int categoryRow: 0
     onCategoryRowChanged: {
         const label = launcherData.rootModel.labelForRow(categoryRow)
-        if (label !== "" && label !== Plasmoid.configuration.appsCategory)
-            Plasmoid.configuration.appsCategory = label
+        if (label !== "" && label !== launcherData.config.appsCategory)
+            launcherData.config.appsCategory = label
     }
     function restoreCategory() {
-        const wanted = Plasmoid.configuration.appsCategory
+        const wanted = launcherData.config.appsCategory
         if (wanted === "")
             return
         for (let row = 0; row < launcherData.rootModel.count; ++row) {
@@ -69,7 +68,7 @@ ColumnLayout {
         launcher.select(currentView(), row)
     }
     function zoom(steps) {
-        Plasmoid.configuration.tileSize = Math.max(32, Math.min(112, Plasmoid.configuration.tileSize + steps * 8))
+        launcherData.config.tileSize = Math.max(32, Math.min(112, launcherData.config.tileSize + steps * 8))
     }
 
     function rankOf(entry) {
@@ -289,7 +288,7 @@ ColumnLayout {
                         checkable: true
                         checked: page.sort === modelData.key
                         onTriggered: {
-                            Plasmoid.configuration.appsSort = modelData.key
+                            launcherData.config.appsSort = modelData.key
                             Qt.callLater(launcher.resetSelection)
                         }
                     }
@@ -322,7 +321,7 @@ ColumnLayout {
                 text: i18n("Grid")
                 current: !page.listView
                 onClicked: {
-                    Plasmoid.configuration.appsView = "grid"
+                    launcherData.config.appsView = "grid"
                     Qt.callLater(launcher.resetSelection)
                 }
             }
@@ -332,7 +331,7 @@ ColumnLayout {
                 text: i18n("List")
                 current: page.listView
                 onClicked: {
-                    Plasmoid.configuration.appsView = "list"
+                    launcherData.config.appsView = "list"
                     Qt.callLater(launcher.resetSelection)
                 }
             }

@@ -25,6 +25,7 @@ add_subdirectory(src/components)
 add_subdirectory(src/settings)
 add_subdirectory(src/kcm)
 add_subdirectory(src/cheatsheet)
+add_subdirectory(src/kontrolpanel)
 
 if(KONVEYOR_BUILD_EFFECT)
     add_subdirectory(src/effect)

@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.plasmoid
 import QtQuick.Controls as QQC2
 import org.kde.plasma.components as PlasmaComponents
 import "../lib"
@@ -11,7 +10,7 @@ PopScroll {
     id: page
 
     readonly property var sections: [pinned, folderGrid, recentApps, friendsPlaying, playing, recentFiles]
-    readonly property int tileSize: Plasmoid.configuration.tileSize
+    readonly property int tileSize: launcherData.config.tileSize
     readonly property string greeting: {
         launcher.shown
         const hour = new Date().getHours()
@@ -197,7 +196,7 @@ PopScroll {
     }
     TileGrid {
         id: recentApps
-        visible: Plasmoid.configuration.showRecentApps && count > 0
+        visible: launcherData.config.showRecentApps && count > 0
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.round(page.tileSize + Kirigami.Units.gridUnit * 3.6)
@@ -217,7 +216,7 @@ PopScroll {
     }
     TileGrid {
         id: friendsPlaying
-        visible: Plasmoid.configuration.showFriends && launcherData.playingNow.length > 0
+        visible: launcherData.config.showFriends && launcherData.playingNow.length > 0
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
@@ -235,7 +234,7 @@ PopScroll {
     }
     TileGrid {
         id: playing
-        visible: Plasmoid.configuration.showGames && launcherData.recentGames.length > 0
+        visible: launcherData.config.showGames && launcherData.recentGames.length > 0
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
@@ -255,7 +254,7 @@ PopScroll {
     }
     TileGrid {
         id: recentFiles
-        visible: Plasmoid.configuration.showRecentFiles && count > 0
+        visible: launcherData.config.showRecentFiles && count > 0
         Layout.fillWidth: true
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 16))))

@@ -4,7 +4,6 @@ import QtQuick.Window
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.kirigamiaddons.components as Components
-import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
 import "lib"
@@ -119,10 +118,10 @@ FocusScope {
             { key: "home", label: i18n("Home"), hint: i18n("Pins, friends and recent"), icon: "go-home-symbolic" },
             { key: "apps", label: i18n("Apps"), hint: i18n("Every application"), icon: "view-app-grid-symbolic" }
         ]
-        if (Plasmoid.configuration.showGames)
+        if (launcherData.config.showGames)
             defs.push({ key: "games", label: i18n("Games"), hint: i18n("Your library"), icon: "input-gamepad-symbolic" })
         defs.push({ key: "files", label: i18n("Files"), hint: i18n("Places and recent documents"), icon: "folder-documents-symbolic" })
-        if (Plasmoid.configuration.showFriends)
+        if (launcherData.config.showFriends)
             defs.push({ key: "friends", label: i18n("Friends"), hint: i18n("Who is online and playing"), icon: "system-users-symbolic" })
         defs.push({ key: "system", label: i18n("System"), hint: i18n("Session and settings"), icon: "system-shutdown-symbolic" })
         defs.push({ key: "shortcuts", label: i18n("Shortcuts"), hint: i18n("Every keyboard shortcut, shown"), icon: "input-keyboard-symbolic" })
@@ -214,7 +213,7 @@ FocusScope {
 
     function openNow() {
         closeAnimation.stop()
-        const wantedPage = root.requestedPage || Plasmoid.configuration.defaultPage
+        const wantedPage = root.requestedPage || launcherData.config.defaultPage
         root.requestedPage = ""
         page = pageDefs.some(def => def.key === wantedPage) ? wantedPage : "home"
         markVisited(page)
@@ -654,6 +653,10 @@ FocusScope {
             }
             if (favoriteId.indexOf(".desktop") >= 0)
                 entries.push({ text: i18n("Hide from launcher"), icon: "view-hidden", run: () => launcherData.setHidden(favoriteId, true) })
+            if (!launcherData.applet.kickerApplet && favoriteId.indexOf(".desktop") >= 0) {
+                entries.push({ text: i18n("Add to Panel (Widget)"), icon: "list-add", run: () => launcher.closeAndRun(() => launcherData.addLauncher("panel", favoriteId)) })
+                entries.push({ text: i18n("Add to Desktop"), icon: "list-add", run: () => launcher.closeAndRun(() => launcherData.addLauncher("desktop", favoriteId)) })
+            }
         }
         const list = actions || []
         if (list.length > 0)

@@ -17,6 +17,13 @@ PlasmoidItem {
     property var pendingPins: []
     property string requestedPage: ""
     signal pinsRequested()
+    readonly property var launcherConfig: Plasmoid.configuration
+    readonly property string favoritesClient: "org.kde.plasma.kicker.favorites.instance-" + Plasmoid.id
+    readonly property var kickerApplet: root
+
+    function configure() {
+        Plasmoid.internalAction("configure").trigger()
+    }
 
     Plasmoid.icon: panelIcon
     Plasmoid.title: i18n("App Portal")

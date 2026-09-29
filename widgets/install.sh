@@ -64,7 +64,7 @@ done
 
 check_commands() {
     local missing=()
-    for command_name in python3 kpackagetool6 systemctl journalctl busctl gdbus kscreen-doctor jq ssh curl; do
+    for command_name in python3 kpackagetool6 kwriteconfig6 systemctl journalctl busctl gdbus kscreen-doctor jq ssh curl; do
         command -v "$command_name" >/dev/null || missing+=("$command_name")
     done
     if ((${#missing[@]})); then
@@ -112,6 +112,9 @@ main() {
     install_plasmoids
     install_games_shortcut
     "$WIDGETS_DIR/desktop-hider/desktop-containment" install
+    python3 "$WIDGETS_DIR/service/panel-launcher" migrate "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc" "$KONTROL_PANEL_CONFIG"
+    take_launcher_keys
+    install_kontrol_panel_service
     if $RESTART_PLASMA; then
         take_over_launcher_and_restart
     else

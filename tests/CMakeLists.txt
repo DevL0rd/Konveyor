@@ -52,8 +52,26 @@ set_tests_properties(test_overlay_hosts PROPERTIES LABELS "unit;widgets")
 add_test(NAME test_panel_launcher COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_panel_launcher.py)
 set_tests_properties(test_panel_launcher PROPERTIES LABELS "unit;widgets")
 
+foreach(name test_kontrolpanel_service test_kontrolpanel_main_qml)
+    add_executable(${name} unit/kontrolpanel/${name}.cpp)
+    target_link_libraries(${name} PRIVATE konveyor_kontrolpanel Qt6::Qml Qt6::Test)
+    target_compile_options(${name} PRIVATE -Wall -Wextra -Werror)
+    target_compile_definitions(${name} PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name} PROPERTIES LABELS "unit;kontrolpanel" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+endforeach()
+
+add_test(NAME test_portal_launcher COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_portal_launcher.py)
+set_tests_properties(test_portal_launcher PROPERTIES LABELS "unit;widgets")
+
 add_test(NAME test_update_source COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/install/test_update_source.py)
 set_tests_properties(test_update_source PROPERTIES LABELS "unit;install")
+
+add_test(NAME test_kontrol_panel_install COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/install/test_kontrol_panel_install.py)
+set_tests_properties(test_kontrol_panel_install PROPERTIES LABELS "unit;install")
+
+add_test(NAME test_cheatsheet_entries COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_cheatsheet_entries.py)
+set_tests_properties(test_cheatsheet_entries PROPERTIES LABELS "unit;widgets")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)

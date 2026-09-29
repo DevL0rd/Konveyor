@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import "../lib"
@@ -11,8 +10,8 @@ import ".."
 ColumnLayout {
     id: page
 
-    readonly property string view: Plasmoid.configuration.gamesView
-    readonly property string sort: Plasmoid.configuration.gamesSort
+    readonly property string view: launcherData.config.gamesView
+    readonly property string sort: launcherData.config.gamesSort
     readonly property bool carousel: view === "carousel" || view === "coverflow"
     readonly property var sections: carousel ? [flow] : view === "list" ? [list] : [grid]
     property string filter: "all"
@@ -59,11 +58,11 @@ ColumnLayout {
         Qt.callLater(launcher.resetSelection)
     }
     function setView(key) {
-        Plasmoid.configuration.gamesView = key
+        launcherData.config.gamesView = key
         Qt.callLater(launcher.resetSelection)
     }
     function zoom(steps) {
-        Plasmoid.configuration.gameCardSize = Math.max(6, Math.min(18, Plasmoid.configuration.gameCardSize + steps))
+        launcherData.config.gameCardSize = Math.max(6, Math.min(18, launcherData.config.gameCardSize + steps))
     }
 
     RowLayout {
@@ -111,7 +110,7 @@ ColumnLayout {
                         checkable: true
                         checked: page.sort === modelData.key
                         onTriggered: {
-                            Plasmoid.configuration.gamesSort = modelData.key
+                            launcherData.config.gamesSort = modelData.key
                             Qt.callLater(launcher.resetSelection)
                         }
                     }
@@ -171,7 +170,7 @@ ColumnLayout {
             wideCards: page.view === "banner"
             showTitles: page.view === "grid"
             cardSpacing: Kirigami.Units.largeSpacing * 0.8
-            readonly property real target: Kirigami.Units.gridUnit * Plasmoid.configuration.gameCardSize * (wideCards ? 2.1 : 1)
+            readonly property real target: Kirigami.Units.gridUnit * launcherData.config.gameCardSize * (wideCards ? 2.1 : 1)
             cellWidth: Math.floor(width / Math.max(1, Math.round(width / target)))
             cellHeight: Math.round((cellWidth - cardSpacing * 2) * (wideCards ? 0.4667 : 1.5) + cardSpacing * 2)
             model: visible ? page.shown : []
@@ -346,7 +345,7 @@ ColumnLayout {
                 friendsByAppid: launcherData.friendsByAppid
                 tilt: page.view === "coverflow"
                 shrink: page.view === "coverflow"
-                cardWidth: Kirigami.Units.gridUnit * Plasmoid.configuration.gameCardSize * 1.2
+                cardWidth: Kirigami.Units.gridUnit * launcherData.config.gameCardSize * 1.2
                 showTitles: false
                 highlightCenter: flow.sectionActive
                 launchOnCenterClick: true

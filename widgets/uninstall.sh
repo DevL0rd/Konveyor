@@ -59,6 +59,8 @@ main() {
 
     remove_router_collector
     remove_games_shortcut
+    remove_kontrol_panel_service
+    restore_launcher_keys
 
     say "Removing widget commands and snapshots"
     local item

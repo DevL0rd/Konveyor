@@ -1,7 +1,6 @@
 import QtQuick
 import QtCore
 import QtQuick.Dialogs
-import org.kde.plasma.plasmoid
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.private.kicker as Kicker
 import org.kde.coreaddons as KCoreAddons
@@ -11,13 +10,14 @@ Item {
     id: data
 
     required property var applet
+    readonly property var config: applet.launcherConfig
     property bool live: false
     property string query: ""
     property string searchMode: "all"
 
     readonly property string portalBin: "$HOME/.local/bin/portal-games"
-    readonly property bool gamesEnabled: Plasmoid.configuration.showGames
-    readonly property bool friendsEnabled: Plasmoid.configuration.showFriends
+    readonly property bool gamesEnabled: data.config.showGames
+    readonly property bool friendsEnabled: data.config.showFriends
 
     readonly property alias rootModel: rootModel
     readonly property alias favorites: rootModel.favoritesModel
@@ -48,7 +48,7 @@ Item {
     property string packagesQuery: ""
     property bool packagesBusy: false
     property int packagesRequest: 0
-    readonly property bool packagesEnabled: Plasmoid.configuration.searchPackages
+    readonly property bool packagesEnabled: data.config.searchPackages
 
     Timer {
         running: data.live
@@ -69,7 +69,7 @@ Item {
     Kicker.RootModel {
         id: rootModel
         autoPopulate: true
-        appletInterface: data.applet
+        appletInterface: data.applet.kickerApplet
         flat: true
         sorted: true
         showSeparators: false
@@ -79,23 +79,23 @@ Item {
         showRecentDocs: false
         showPowerSession: false
         highlightNewlyInstalledApps: true
-        Component.onCompleted: favoritesModel.initForClient("org.kde.plasma.kicker.favorites.instance-" + Plasmoid.id)
+        Component.onCompleted: favoritesModel.initForClient(data.applet.favoritesClient)
     }
 
     readonly property var allRunners: {
         const list = ["krunner_services"]
-        if (Plasmoid.configuration.searchSettings)
+        if (data.config.searchSettings)
             list.push("krunner_systemsettings")
-        if (Plasmoid.configuration.searchCalculator)
+        if (data.config.searchCalculator)
             list.push("calculator", "unitconverter")
-        if (Plasmoid.configuration.searchCommands)
+        if (data.config.searchCommands)
             list.push("krunner_shell")
-        if (Plasmoid.configuration.searchFiles)
+        if (data.config.searchFiles)
             list.push("krunner_placesrunner", "krunner_recentdocuments", "baloosearch", "locations")
         list.push("krunner_sessions", "krunner_powerdevil")
-        if (Plasmoid.configuration.searchWindows)
+        if (data.config.searchWindows)
             list.push("windows")
-        if (Plasmoid.configuration.searchWeb)
+        if (data.config.searchWeb)
             list.push("krunner_webshortcuts")
         return list
     }
@@ -111,7 +111,7 @@ Item {
 
     Kicker.RunnerModel {
         id: runnerModel
-        appletInterface: data.applet
+        appletInterface: data.applet.kickerApplet
         favoritesModel: rootModel.favoritesModel
         mergeResults: false
         runners: data.modeRunners[data.searchMode] || data.allRunners
@@ -128,7 +128,7 @@ Item {
     }
     property var recentRank: ({})
     property var popularRank: ({})
-    readonly property bool popularWanted: live && Plasmoid.configuration.appsSort === "popular"
+    readonly property bool popularWanted: live && data.config.appsSort === "popular"
     Loader {
         active: data.popularWanted
         sourceComponent: Item {
@@ -193,7 +193,7 @@ Item {
 
     Kicker.ComputerModel {
         id: placesModel
-        appletInterface: data.applet
+        appletInterface: data.applet.kickerApplet
         systemApplications: []
     }
 
@@ -206,6 +206,9 @@ Item {
     }
     function run(command) {
         runner.connectSource(command)
+    }
+    function addLauncher(place, app) {
+        run("$HOME/.local/bin/portal-launcher add-to " + place + " " + shq(app))
     }
 
     property var shortcuts: []
@@ -710,7 +713,7 @@ Item {
 
     property var learned: {
         try {
-            return JSON.parse(Plasmoid.configuration.learnedRanking || "{}")
+            return JSON.parse(data.config.learnedRanking || "{}")
         } catch (error) {
             return {}
         }
@@ -727,7 +730,7 @@ Item {
             next[prefix] = counts
         }
         learned = next
-        Plasmoid.configuration.learnedRanking = JSON.stringify(next)
+        data.config.learnedRanking = JSON.stringify(next)
     }
     function learnedFor(query) {
         const term = String(query || "").trim().toLowerCase()

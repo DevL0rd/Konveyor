@@ -467,7 +467,7 @@ No. A single background service collects everything they show, and the dashboard
 <details>
 <summary><b>Can I keep my old application launcher?</b></summary>
 <br>
-Yes. Install with <code>./install.sh --no-widgets</code>, or put the launcher back from your panel's Add Widgets menu. Uninstalling the widgets restores the launcher you had.
+Yes. Install with <code>./install.sh --no-widgets</code>, or put the launcher back from your panel's Add Widgets menu. The Kontrol Panel keeps <kbd>Meta</kbd> and <kbd>Alt</kbd> + <kbd>F1</kbd> either way; to hand them back, clear them for <b>Kontrol Panel</b> in System Settings → Keyboard → Shortcuts and set them on <b>Activate Application Launcher</b>. Uninstalling the widgets restores the launcher and its shortcuts.
 </details>
 
 <details>

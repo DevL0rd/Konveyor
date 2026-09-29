@@ -11,6 +11,15 @@ LEGACY_NAMES=(linux-system-monitor linux-process-mon linux-router-monitor linux-
 LEGACY_SERVICES=(linux-system-monitor.service linux-process-mon.service linux-router-monitor.service linux-log-monitor.service portal-friends.service)
 GAMES_DESKTOP_ID="org.devl0rd.portal.launcher.games.desktop"
 LAUNCHER_SET_UP="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/launcher-set-up"
+KONTROL_PANEL_DIR="$WIDGETS_DIR/portals/kontrol-panel"
+KONTROL_PANEL_UNIT="konveyor-kontrol-panel.service"
+KONTROL_PANEL_BUS="org.devl0rd.KontrolPanel"
+KONTROL_PANEL_DBUS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/dbus-1/services"
+KONTROL_PANEL_CONFIG="$CONFIG_HOME/konveyor/kontrolpanelrc"
+KONTROL_PANEL_DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$KONTROL_PANEL_BUS.desktop"
+PLASMA_LAUNCHER_ACTION=(plasmashell "activate application launcher" plasmashell "Activate Application Launcher")
+KONTROL_PANEL_KEYS=(16777250 150994992)
+LAUNCHER_KEYS_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/launcher-keys"
 
 link_command() {
     chmod +x "$WIDGETS_DIR/$1"
@@ -91,17 +100,112 @@ EOF
     systemctl --user restart "$SERVICE"
 }
 
+stage_lib_into() {
+    local lib="$1"
+    shift
+    rm -rf "${lib:?}"
+    mkdir -p "$lib"
+    cp "$SHARED_DIR/"*.qml "$SHARED_DIR/"*.js "$lib/"
+    cp "$WIDGETS_DIR/shared/MonitorOverlay.qml" "$lib/"
+    local extra
+    for extra in "$@"; do
+        cp -r "$extra/." "$lib/"
+    done
+}
+
 stage_lib() {
     local plasmoid="$1"
     shift
-    rm -rf "$plasmoid/contents/ui/lib"
-    mkdir -p "$plasmoid/contents/ui/lib"
-    cp "$SHARED_DIR/"*.qml "$SHARED_DIR/"*.js "$plasmoid/contents/ui/lib/"
-    cp "$WIDGETS_DIR/shared/MonitorOverlay.qml" "$plasmoid/contents/ui/lib/"
-    local extra
-    for extra in "$@"; do
-        cp -r "$extra/." "$plasmoid/contents/ui/lib/"
+    stage_lib_into "$plasmoid/contents/ui/lib" "$@"
+}
+
+stage_kontrol_panel() {
+    cp -r "$WIDGETS_DIR/portals/shared/launcher/." "$KONTROL_PANEL_DIR/"
+    stage_lib_into "$KONTROL_PANEL_DIR/lib" "$WIDGETS_DIR/portals/shared/lib"
+}
+
+install_kontrol_panel_service() {
+    local binary
+    binary=$(PATH="$HOME/.local/bin:$PATH" command -v konveyor-kontrol-panel) \
+        || die "konveyor-kontrol-panel is missing; install Konveyor with ./install.sh first"
+    say "Installing the Kontrol Panel service"
+    stage_kontrol_panel
+    mkdir -p "$USER_UNITS" "$KONTROL_PANEL_DBUS_DIR"
+    cat >"$USER_UNITS/$KONTROL_PANEL_UNIT" <<EOF
+[Unit]
+Description=Konveyor Kontrol Panel
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=$KONTROL_PANEL_BUS
+ExecStart=$binary $KONTROL_PANEL_DIR
+Environment=QML_XHR_ALLOW_FILE_READ=1
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target
+EOF
+    cat >"$KONTROL_PANEL_DBUS_DIR/$KONTROL_PANEL_BUS.service" <<EOF
+[D-BUS Service]
+Name=$KONTROL_PANEL_BUS
+Exec=$binary $KONTROL_PANEL_DIR
+SystemdService=$KONTROL_PANEL_UNIT
+EOF
+    mkdir -p "$(dirname "$KONTROL_PANEL_DESKTOP")"
+    cat >"$KONTROL_PANEL_DESKTOP" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Kontrol Panel
+Comment=Apps, games, files, friends and system actions
+Exec=$BIN_DIR/portal-launcher toggle
+Icon=start-here-kde-plasma-symbolic
+NoDisplay=true
+StartupNotify=false
+EOF
+    kbuildsycoca6 >/dev/null 2>&1 || true
+    busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig >/dev/null
+    systemctl --user daemon-reload
+    systemctl --user enable "$KONTROL_PANEL_UNIT" >/dev/null 2>&1
+    systemctl --user restart "$KONTROL_PANEL_UNIT"
+}
+
+remove_kontrol_panel_service() {
+    systemctl --user disable --now "$KONTROL_PANEL_UNIT" >/dev/null 2>&1 || true
+    rm -f "${USER_UNITS:?}/${KONTROL_PANEL_UNIT:?}" "${KONTROL_PANEL_DBUS_DIR:?}/${KONTROL_PANEL_BUS:?}.service" "${KONTROL_PANEL_DESKTOP:?}"
+    rmdir --ignore-fail-on-non-empty "$KONTROL_PANEL_DBUS_DIR" "$(dirname "$KONTROL_PANEL_DBUS_DIR")" 2>/dev/null || true
+    kbuildsycoca6 >/dev/null 2>&1 || true
+    busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig >/dev/null 2>&1 || true
+    systemctl --user daemon-reload
+}
+
+kglobalaccel() {
+    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel "$@"
+}
+
+take_launcher_keys() {
+    [[ -e $LAUNCHER_KEYS_STATE ]] && return 0
+    local reply codes kept=() code
+    reply=$(kglobalaccel shortcut as 4 "${PLASMA_LAUNCHER_ACTION[@]}")
+    mkdir -p "$(dirname "$LAUNCHER_KEYS_STATE")"
+    printf '%s\n' "$reply" >"$LAUNCHER_KEYS_STATE"
+    read -r -a codes <<<"${reply#ai }"
+    for code in "${codes[@]:1}"; do
+        [[ " ${KONTROL_PANEL_KEYS[*]} " == *" $code "* ]] || kept+=("$code")
     done
+    kglobalaccel setForeignShortcut asai 4 "${PLASMA_LAUNCHER_ACTION[@]}" "${#kept[@]}" "${kept[@]}" >/dev/null
+    say "Meta and Alt+F1 open the Kontrol Panel"
+}
+
+restore_launcher_keys() {
+    kglobalaccel unregister ss konveyor-kontrol-panel toggle >/dev/null 2>&1 || true
+    [[ -f $LAUNCHER_KEYS_STATE ]] || return 0
+    local codes
+    read -r -a codes <<<"$(sed 's/^ai //' "$LAUNCHER_KEYS_STATE")"
+    kglobalaccel setForeignShortcut asai 4 "${PLASMA_LAUNCHER_ACTION[@]}" "${codes[@]}" >/dev/null 2>&1 || true
+    rm -f "${LAUNCHER_KEYS_STATE:?}"
 }
 
 install_plasmoid() {
@@ -153,11 +257,17 @@ install_plasmoids() {
         install_plasmoid "$plasmoid"
     done
     for plasmoid in "$root"/portals/plasmoids/org.devl0rd.portal*; do
-        stage_lib "$plasmoid" "$root/portals/shared/lib"
         case "$(basename "$plasmoid")" in
-        org.devl0rd.portal | org.devl0rd.portal.launcher)
+        org.devl0rd.portal)
+            stage_lib "$plasmoid" "$root/portals/shared/lib"
             rm -rf "$plasmoid/contents/ui/pages" "$plasmoid/contents/ui/shortcuts" "$plasmoid/contents/ui/settings"
             cp -r "$root/portals/shared/launcher/." "$plasmoid/contents/ui/"
+            ;;
+        org.devl0rd.portal.launcher)
+            find "$plasmoid/contents/ui" -mindepth 1 -maxdepth 1 ! -name main.qml ! -name configButton.qml -exec rm -rf {} +
+            ;;
+        *)
+            stage_lib "$plasmoid" "$root/portals/shared/lib"
             ;;
         esac
         install_plasmoid "$plasmoid"
@@ -204,9 +314,11 @@ take_over_launcher_and_restart() {
     systemctl --user stop "$PLASMA_SERVICE"
     python3 "$WIDGETS_DIR/service/overlay-hosts" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     if [[ ! -e $LAUNCHER_SET_UP ]]; then
-        python3 "$WIDGETS_DIR/service/panel-launcher" install --open-page shortcuts "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
+        python3 "$WIDGETS_DIR/service/panel-launcher" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
         mkdir -p "$(dirname "$LAUNCHER_SET_UP")"
         touch "$LAUNCHER_SET_UP"
+        kwriteconfig6 --file "$KONTROL_PANEL_CONFIG" --group General --key openPageOnStart shortcuts
+        systemctl --user restart "$KONTROL_PANEL_UNIT"
     fi
     systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
     systemctl --user start "$PLASMA_SERVICE"

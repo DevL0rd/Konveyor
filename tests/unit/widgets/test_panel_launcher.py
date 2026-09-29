@@ -47,65 +47,74 @@ plugin=org.devl0rd.portal.launcher
     def tearDown(self):
         self.temporary.cleanup()
 
-    def run_command(self, command, *arguments):
-        groups = self.module.read_groups(self.path)
-        if command == "open-page":
-            result, changed = self.module.open_page(groups, *arguments)
-        else:
-            result, changed = getattr(self.module, command)(groups)
-        self.module.write_groups(self.path, result)
-        return changed, self.path.read_text()
-
     def general(self, text, applet):
         header = f"[Containments][1][Applets][{applet}][Configuration][General]"
         return text.split(header, 1)[1].split("\n[", 1)[0] if header in text else None
 
-    def test_open_page_needs_a_panel_launcher(self):
-        changed, text = self.run_command("open-page", "shortcuts")
-        self.assertFalse(changed)
-        self.assertNotIn("openPageOnStart", text)
+    def migrate(self, target):
+        return subprocess.run([sys.executable, str(SCRIPT), "migrate", str(self.path), str(target)],
+                              capture_output=True, text=True, check=True)
 
-    def test_open_page_marks_the_panel_launcher_that_replaced_the_menu(self):
-        self.run_command("install")
-        changed, text = self.run_command("open-page", "shortcuts")
-        self.assertTrue(changed)
-        self.assertIn("openPageOnStart=shortcuts", self.general(text, 2))
-        self.assertEqual(text.count("openPageOnStart="), 1)
-        self.assertNotIn("favoritesPortedToKAstats", text)
+    def test_migrate_moves_the_launcher_settings_and_pins(self):
+        self.run_script("install")
+        self.path.write_text(self.path.read_text() + "\n[Containments][1][Applets][2][Configuration][General]\nicon=start-here\n"
+                             "label=Start\nshowLabel=true\nopenPageOnStart=shortcuts\ncardWidth=70\ndefaultPage=apps\n"
+                             "learnedRanking={\"a,b\":2}\n")
+        target = Path(self.temporary.name) / "konveyor" / "kontrolpanelrc"
+        result = self.migrate(target)
+        self.assertIn("kontrolpanelrc", result.stdout)
+        self.assertEqual(target.read_text(), "[General]\nfavoritesClient=org.kde.plasma.kicker.favorites.instance-2\n"
+                         "cardWidth=70\ndefaultPage=apps\nlearnedRanking={\"a,b\":2}\n")
 
-    def test_open_page_updates_existing_launcher_settings(self):
-        self.run_command("install")
-        self.path.write_text(self.path.read_text() + "\n[Containments][1][Applets][2][Configuration][General]\nicon=start-here\nopenPageOnStart=home\n")
-        changed, text = self.run_command("open-page", "shortcuts")
-        self.assertTrue(changed)
-        general = self.general(text, 2)
-        self.assertIn("icon=start-here", general)
-        self.assertIn("openPageOnStart=shortcuts", general)
-        self.assertNotIn("openPageOnStart=home", text)
+    def test_migrate_keeps_pins_of_a_launcher_without_settings(self):
+        self.run_script("install")
+        target = Path(self.temporary.name) / "kontrolpanelrc"
+        self.migrate(target)
+        self.assertEqual(target.read_text(), "[General]\nfavoritesClient=org.kde.plasma.kicker.favorites.instance-2\n")
+
+    def test_migrate_never_overwrites_the_kontrol_panel_settings(self):
+        self.run_script("install")
+        target = Path(self.temporary.name) / "kontrolpanelrc"
+        target.write_text("[General]\ncardWidth=40\n")
+        result = self.migrate(target)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(target.read_text(), "[General]\ncardWidth=40\n")
+
+    def test_migrate_takes_a_launcher_on_the_desktop(self):
+        target = Path(self.temporary.name) / "kontrolpanelrc"
+        self.migrate(target)
+        self.assertEqual(target.read_text(), "[General]\nfavoritesClient=org.kde.plasma.kicker.favorites.instance-6\n")
+
+    def test_migrate_without_a_launcher_leaves_the_defaults(self):
+        self.path.write_text("[Containments][1]\nplugin=org.kde.panel\n\n[Containments][1][Applets][2]\nplugin=org.kde.plasma.kickoff\n")
+        target = Path(self.temporary.name) / "kontrolpanelrc"
+        result = self.migrate(target)
+        self.assertEqual(result.stdout, "")
+        self.assertFalse(target.exists())
 
     def run_script(self, *arguments):
         return subprocess.run([sys.executable, str(SCRIPT), *arguments, str(self.path)], capture_output=True, text=True, check=True)
 
-    def test_install_opens_the_page_when_it_places_the_launcher(self):
-        self.run_script("install", "--open-page", "shortcuts")
+    def test_install_replaces_the_menu_with_the_launcher(self):
+        self.run_script("install")
         text = self.path.read_text()
         self.assertIn("plugin=org.devl0rd.portal.launcher", text.split("[Containments][1][Applets][2]", 1)[1])
-        self.assertIn("openPageOnStart=shortcuts", self.general(text, 2))
+        self.assertIn("konveyorReplaced=org.kde.plasma.kickoff", text)
+        self.assertNotIn("openPageOnStart", text)
 
     def test_install_leaves_an_existing_panel_launcher_alone(self):
         self.run_script("install")
         before = self.path.read_text()
-        result = self.run_script("install", "--open-page", "shortcuts")
+        result = self.run_script("install")
         self.assertEqual(result.stdout, "")
         self.assertEqual(self.path.read_text(), before)
 
     def test_install_adds_the_launcher_first_without_a_menu_to_replace(self):
         self.path.write_text(self.path.read_text().replace("org.kde.plasma.kickoff", "org.kde.plasma.pager"))
-        self.run_script("install", "--open-page", "shortcuts")
+        self.run_script("install")
         text = self.path.read_text()
         self.assertIn("plugin=org.devl0rd.portal.launcher\nkonveyorAdded=true", text.split("[Containments][1][Applets][7]", 1)[1])
         self.assertIn("AppletOrder=7;2;3", text)
-        self.assertIn("openPageOnStart=shortcuts", self.general(text, 7))
         self.assertIn("plugin=org.kde.plasma.pager", text)
 
     def test_install_removes_every_other_menu(self):
@@ -122,7 +131,7 @@ plugin=org.devl0rd.portal.launcher
         self.path.write_text(self.path.read_text().replace("org.kde.plasma.kickoff", "org.kde.plasma.pager")
                              + "\n[Containments][1][General]\nAppletOrder=2;3\n")
         before = self.path.read_text()
-        self.run_script("install", "--open-page", "shortcuts")
+        self.run_script("install")
         self.run_script("uninstall")
         self.assertEqual(self.path.read_text(), before)
 

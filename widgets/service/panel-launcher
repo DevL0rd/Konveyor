@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import re
 import sys
 
@@ -8,7 +9,8 @@ TASKBARS = ("org.kde.plasma.taskmanager", "org.kde.plasma.icontasks")
 MARK = "konveyorReplaced"
 ADDED = "konveyorAdded"
 ORDER = "AppletOrder"
-OPEN_PAGE = "openPageOnStart"
+BUTTON_KEYS = ("icon", "label", "showLabel", "openPageOnStart")
+FAVORITES = "org.kde.plasma.kicker.favorites.instance-"
 APPLET = re.compile(r"^\[Containments\]\[(\d+)\]\[Applets\]\[(\d+)\]$")
 CONTAINMENT = re.compile(r"^\[Containments\]\[(\d+)\]$")
 GENERAL = re.compile(r"^\[Containments\]\[(\d+)\]\[General\]$")
@@ -148,27 +150,42 @@ def uninstall(groups):
     return drop_from_order(result, removed), changed
 
 
-def open_page(groups, page):
-    wanted = {header + "[Configuration][General]" for _, header, lines in panel_applets(groups) if value(lines, "plugin") == LAUNCHER}
-    if not wanted:
-        return groups, False
-    result = []
+def launcher_settings(groups):
+    lines_by_header = {header: lines for header, lines in groups if header}
     for header, lines in groups:
-        if header in wanted:
-            lines = set_value(lines, OPEN_PAGE, page)
-            wanted.discard(header)
-        result.append((header, lines))
-    result.extend((header, [f"{OPEN_PAGE}={page}", ""]) for header in sorted(wanted))
-    return result, True
+        match = APPLET.match(header or "")
+        if not match or value(lines, "plugin") != LAUNCHER:
+            continue
+        general = lines_by_header.get(header + "[Configuration][General]", [])
+        kept = [line for line in general if "=" in line and line.split("=", 1)[0] not in BUTTON_KEYS]
+        return [f"favoritesClient={FAVORITES}{match.group(2)}"] + kept
+    return None
+
+
+def migrate(appletsrc, target):
+    if os.path.exists(target):
+        return False
+    try:
+        settings = launcher_settings(read_groups(appletsrc))
+    except FileNotFoundError:
+        return False
+    if settings is None:
+        return False
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target, "w") as handle:
+        handle.write("[General]\n" + "\n".join(settings) + "\n")
+    return True
 
 
 def main():
     arguments = sys.argv[1:]
-    page = None
-    if arguments[:2] == ["install", "--open-page"] and len(arguments) == 4:
-        page = arguments[2]
-    elif arguments[:1] not in (["install"], ["uninstall"]) or len(arguments) != 2:
-        sys.stderr.write("usage: portal-panel-launcher install [--open-page PAGE]|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n")
+    if arguments[:1] == ["migrate"] and len(arguments) == 3:
+        if migrate(arguments[1], arguments[2]):
+            print("Moved the Kontrol Panel settings and pinned apps to " + arguments[2])
+        return 0
+    if arguments[:1] not in (["install"], ["uninstall"]) or len(arguments) != 2:
+        sys.stderr.write("usage: panel-launcher install|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n"
+                         "       panel-launcher migrate <plasma-org.kde.plasma.desktop-appletsrc> <kontrolpanelrc>\n")
         return 2
     path = arguments[-1]
     try:
@@ -180,8 +197,6 @@ def main():
         return 1
     groups, changed = (install if arguments[0] == "install" else uninstall)(groups)
     if changed:
-        if page:
-            groups, _ = open_page(groups, page)
         write_groups(path, groups)
         print("Kontrol Panel set up in the panel" if arguments[0] == "install"
               else "Restored the original application launcher")

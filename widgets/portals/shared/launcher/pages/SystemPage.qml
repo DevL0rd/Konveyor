@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import "../lib"
 import ".."
@@ -149,7 +148,7 @@ PopScroll {
                 }
                 launcher.hide()
                 if (modelData.command === "")
-                    Plasmoid.internalAction("configure").trigger()
+                    launcherData.applet.configure()
                 else
                     launcherData.run(modelData.command)
             }
