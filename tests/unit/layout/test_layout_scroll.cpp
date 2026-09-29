@@ -124,6 +124,24 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void alwaysCenterCentersTheFirstAndLastColumns()
+    {
+        Fixture fixture(widthConfig(Config::CenterFocusedColumn::Always));
+        QList<Layout::WindowId> row;
+        for (int i = 0; i < 4; ++i) {
+            row.append(fixture.add(QStringLiteral("column")));
+        }
+        const double centered = (1920.0 - 600.0) / 2.0;
+        QCOMPARE(fixture.frame(row.last()).x(), centered);
+        fixture.perform(QStringLiteral("focus-column-first"));
+        QCOMPARE(fixture.frame(row.first()).x(), centered);
+        fixture.perform(QStringLiteral("focus-column-right"));
+        QCOMPARE(fixture.frame(row.at(1)).x(), centered);
+        fixture.perform(QStringLiteral("focus-column-last"));
+        QCOMPARE(fixture.frame(row.last()).x(), centered);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void alwaysCenterSingleColumnOnlyWhileItIsAlone()
     {
         Config::Config config = widthConfig(Config::CenterFocusedColumn::Never);

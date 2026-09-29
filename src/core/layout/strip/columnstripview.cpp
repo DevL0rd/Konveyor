@@ -69,6 +69,9 @@ std::optional<double> ColumnStrip::overlayViewOffset() const
 
 double ColumnStrip::constrainScrollPosition(double scrollPosition) const
 {
+    if (centersActiveColumn()) {
+        return scrollPosition;
+    }
     const double gaps = m_options->layout.gaps;
     const QRectF &view = m_area.workingArea;
     const std::size_t last = m_columns.size() - 1;
@@ -77,7 +80,7 @@ double ColumnStrip::constrainScrollPosition(double scrollPosition) const
     if (rowWidth > view.width()) {
         return std::clamp(scrollPosition, alignedStart, alignedStart + rowWidth - view.width());
     }
-    return centersActiveColumn() ? scrollPosition : alignedStart;
+    return alignedStart;
 }
 
 bool ColumnStrip::centersActiveColumn() const
