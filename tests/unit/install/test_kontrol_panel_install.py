@@ -27,6 +27,7 @@ with open(os.environ["STUB_LOG"], "a") as log:
 if os.path.basename(sys.argv[0]) == "busctl" and "shortcut" in sys.argv:
     print(os.environ.get("STUB_SHORTCUT", "ai 0"))
 """
+TOOLS = ("bash", "cat", "cp", "dirname", "find", "mkdir", "python3", "rm", "rmdir", "sed")
 LAUNCHER = ["plasmashell", "activate application launcher", "plasmashell", "Activate Application Launcher"]
 KGLOBALACCEL = ["busctl", "--user", "call", "org.kde.kglobalaccel", "/kglobalaccel", "org.kde.KGlobalAccel"]
 
@@ -44,9 +45,13 @@ class TestKontrolPanelInstall(unittest.TestCase):
         for tool in ("busctl", "systemctl", "kbuildsycoca6", "konveyor-kontrol-panel"):
             (self.stubs / tool).write_text(STUB)
             (self.stubs / tool).chmod(0o755)
+        tools = root / "tools"
+        tools.mkdir()
+        for tool in TOOLS:
+            (tools / tool).symlink_to(shutil.which(tool))
         self.log = root / "calls"
         self.environment = {
-            "PATH": f"{self.stubs}:/usr/bin:/bin",
+            "PATH": f"{self.stubs}:{tools}",
             "HOME": str(self.home),
             "XDG_CONFIG_HOME": str(self.home / ".config"),
             "XDG_DATA_HOME": str(self.home / ".local" / "share"),
