@@ -9,6 +9,7 @@ Config::Config animatedConfig()
 {
     Config::Config config;
     config.animations.enabled = true;
+    config.layout.alwaysExpandSingleColumn = false;
     return config;
 }
 

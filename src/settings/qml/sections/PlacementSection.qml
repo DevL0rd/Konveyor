@@ -193,6 +193,19 @@ ColumnLayout {
 
         ScopedRow {
             scope: root
+            key: "always-expand-single-column"
+            label: "Expand a lone window"
+            description: "When a workspace has only one column, stretch it to fill the screen. It goes back to its own width once another column opens."
+            iconName: "zoom-fit-width"
+
+            ScopedSwitch {
+                isOn: root.values["always-expand-single-column"] === true
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "always-expand-single-column", on)
+            }
+        }
+
+        ScopedRow {
+            scope: root
             key: "remember-window-sizes"
             visible: !root.overrideMode
             label: "Remember window sizes"

@@ -67,6 +67,8 @@ void addLayoutSizingHandlers(NodeTable &table, LayoutPart &part)
     });
     table.insert(QStringLiteral("always-center-single-column"),
         [&part](const Kdl::Node &node) { part.alwaysCenterSingleColumn = flagArgument(node); });
+    table.insert(QStringLiteral("always-expand-single-column"),
+        [&part](const Kdl::Node &node) { part.alwaysExpandSingleColumn = flagArgument(node); });
     table.insert(
         QStringLiteral("remember-window-sizes"), [&part](const Kdl::Node &node) { part.rememberWindowSizes = flagArgument(node); });
     table.insert(

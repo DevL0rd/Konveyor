@@ -34,6 +34,7 @@ void TestConfigDefaults::defaultLayoutValues()
     QCOMPARE(layout.gaps, 16.0);
     QCOMPARE(layout.centerFocusedColumn, CenterFocusedColumn::Never);
     QCOMPARE(layout.alwaysCenterSingleColumn, false);
+    QCOMPARE(layout.alwaysExpandSingleColumn, true);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, false);
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Normal);
     QCOMPARE(layout.presetColumnWidths.size(), 4);
@@ -133,14 +134,17 @@ void TestConfigDefaults::mergedLayoutUnsetsWithFalseFlag()
 {
     Layout base = defaultConfig().layout;
     base.alwaysCenterSingleColumn = true;
+    base.alwaysExpandSingleColumn = true;
     base.emptyWorkspaceAboveFirst = true;
 
     LayoutPart part;
     part.alwaysCenterSingleColumn = false;
+    part.alwaysExpandSingleColumn = false;
     part.emptyWorkspaceAboveFirst = false;
 
     const Layout merged = mergedLayout(base, part);
     QCOMPARE(merged.alwaysCenterSingleColumn, false);
+    QCOMPARE(merged.alwaysExpandSingleColumn, false);
     QCOMPARE(merged.emptyWorkspaceAboveFirst, false);
 }
 

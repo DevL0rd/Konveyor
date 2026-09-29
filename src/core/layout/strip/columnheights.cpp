@@ -123,7 +123,7 @@ double Column::columnTileWidth() const
         }
     }
     maxWidth = std::max(maxWidth, minWidth);
-    const ColumnWidth width = fillsWidth ? ColumnWidth::proportion(1.0) : widthSetting;
+    const ColumnWidth width = (fillsWidth || expandedAlone) ? ColumnWidth::proportion(1.0) : widthSetting;
     return std::max(std::min(widthInPixels(width), maxWidth), minWidth);
 }
 

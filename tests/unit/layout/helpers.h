@@ -43,6 +43,7 @@ inline Config::Config instantConfig()
     config.layout.defaultColumnWidth = Config::Proportion {0.5};
     config.layout.presetColumnWidths = {Config::Proportion {1.0 / 3.0}, Config::Proportion {0.5}, Config::Proportion {2.0 / 3.0}};
     config.layout.rememberWindowSizes = false;
+    config.layout.alwaysExpandSingleColumn = false;
     return config;
 }
 

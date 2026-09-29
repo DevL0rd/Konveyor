@@ -33,6 +33,8 @@ You get gaps, borders, a focus ring, tab indicators, preset widths, centering mo
 
 The default config ships a `portrait` monitor profile for screens taller than they are wide: columns fill the width and stack two windows, so Mod+Left/Right flips between full-width pages and Mod+Up/Down moves between the rows, then on to the workspace above or below.
 
+A column stretches to the full width while it is the only one on its workspace, like `expand-column-to-available-width` without the keypress, and goes back to its own width as soon as another column opens. Apps that can't be resized keep their own size. `always-expand-single-column false` in `layout` turns this off. It combines with `always-center-single-column` and works globally and inside `monitor-profile` and `output` layout blocks.
+
 Tiled windows respect application size limits by default. Add `force-resizable true` to a window rule when a specific app should ignore those limits and fill its grid cell. <kbd>Meta</kbd> + <kbd>Alt</kbd> + <kbd>R</kbd> toggles this for the focused app and stores the override in `~/.config/konveyor/force-resizable.kdl`. When force resizing is off, Konveyor never resizes a window that the application marks non-resizable. The app remains free to change its own resolution, and Konveyor updates the grid around its new size.
 
 ```kdl

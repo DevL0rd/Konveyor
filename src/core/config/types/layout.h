@@ -16,6 +16,7 @@ struct Layout
     CenterFocusedColumn centerFocusedColumn = CenterFocusedColumn::Never;
     NewColumnPosition newColumnPosition = NewColumnPosition::Right;
     bool alwaysCenterSingleColumn = false;
+    bool alwaysExpandSingleColumn = true;
     bool emptyWorkspaceAboveFirst = false;
     ColumnDisplay defaultColumnDisplay = ColumnDisplay::Normal;
     QList<PresetSize> presetColumnWidths;
@@ -42,6 +43,7 @@ struct LayoutPart
     std::optional<CenterFocusedColumn> centerFocusedColumn;
     std::optional<NewColumnPosition> newColumnPosition;
     std::optional<bool> alwaysCenterSingleColumn;
+    std::optional<bool> alwaysExpandSingleColumn;
     std::optional<bool> emptyWorkspaceAboveFirst;
     std::optional<ColumnDisplay> defaultColumnDisplay;
     std::optional<QList<PresetSize>> presetColumnWidths;

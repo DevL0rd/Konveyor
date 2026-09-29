@@ -16,6 +16,11 @@ layout {
     // column. A column pinned with column-position sends it to the other side.
     new-column-position "right"
 
+    // Stretch a column to the full width while it is the only one on its
+    // workspace; it goes back to its own width once another column opens.
+    // Apps that can't be resized keep their own size.
+    always-expand-single-column true
+
     preset-column-widths {
         proportion 0.25
         proportion 0.5

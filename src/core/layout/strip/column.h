@@ -104,6 +104,7 @@ public:
     ColumnWidth widthSetting;
     std::optional<std::size_t> presetWidthIndex;
     bool fillsWidth = false;
+    bool expandedAlone = false;
     bool stackedByPlacement = false;
     bool fullscreenPending = false;
     bool maximizePending = false;

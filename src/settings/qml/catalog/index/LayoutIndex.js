@@ -10,5 +10,6 @@ const entries = [
     { page: "layout", section: "New windows", label: "Starting width", keywords: "default column width new window size" },
     { page: "layout", section: "New windows", label: "How a column shows several windows", keywords: "default column display tabbed stacked tabs" },
     { page: "layout", section: "Scrolling and centering", label: "Keep the focused column centered", keywords: "center focused column scroll never always overflow" },
-    { page: "layout", section: "Scrolling and centering", label: "Center a lone window", keywords: "always center single column one window middle" }
+    { page: "layout", section: "Scrolling and centering", label: "Center a lone window", keywords: "always center single column one window middle" },
+    { page: "layout", section: "Scrolling and centering", label: "Expand a lone window", keywords: "always expand single column one window fill width maximize alone" }
 ];

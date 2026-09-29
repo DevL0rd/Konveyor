@@ -137,6 +137,72 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void alwaysExpandSingleColumnOnlyWhileItIsAlone()
+    {
+        Config::Config config = widthConfig(Config::CenterFocusedColumn::Never);
+        config.layout.alwaysExpandSingleColumn = true;
+        Fixture fixture(config);
+        const auto id = fixture.add();
+        QCOMPARE(fixture.frame(id), QRectF(16.0, 16.0, 1888.0, 1048.0));
+        const auto second = fixture.add(QStringLiteral("b"));
+        QCOMPARE(fixture.frame(id).x(), 16.0);
+        QCOMPARE(fixture.frame(id).width(), 600.0);
+        QCOMPARE(fixture.frame(second).x(), 632.0);
+        QCOMPARE(fixture.frame(second).width(), 600.0);
+        fixture.engine().removeWindow(second);
+        fixture.settle();
+        QCOMPARE(fixture.frame(id), QRectF(16.0, 16.0, 1888.0, 1048.0));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void alwaysExpandSingleColumnKeepsTheColumnsOwnWidth()
+    {
+        Config::Config config = widthConfig(Config::CenterFocusedColumn::Never);
+        config.layout.alwaysExpandSingleColumn = true;
+        Fixture fixture(config);
+        const auto id = fixture.add();
+        QVERIFY(fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("800")}).ok);
+        QCOMPARE(fixture.frame(id).width(), 1888.0);
+        fixture.add(QStringLiteral("b"));
+        QCOMPARE(fixture.frame(id).width(), 800.0);
+        config.layout.alwaysExpandSingleColumn = false;
+        fixture.setConfig(config);
+        fixture.engine().removeWindow(fixture.focused().value());
+        fixture.settle();
+        QCOMPARE(fixture.frame(id).width(), 800.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void alwaysExpandSingleColumnLeavesFixedSizeAppsAlone()
+    {
+        Config::Config config = widthConfig(Config::CenterFocusedColumn::Never);
+        config.layout.alwaysExpandSingleColumn = true;
+        Fixture fixture(config);
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(300, 200));
+        properties.isResizable = false;
+        const auto id = fixture.addWith(properties);
+        QCOMPARE(fixture.frame(id).size(), QSizeF(300, 200));
+        QVERIFY(!fixture.state(id).isForceResizable);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void alwaysExpandSingleColumnFollowsTheSetting()
+    {
+        Config::Config config = widthConfig(Config::CenterFocusedColumn::Never);
+        Fixture fixture(config);
+        const auto id = fixture.add();
+        QCOMPARE(fixture.frame(id).width(), 600.0);
+        config.layout.alwaysExpandSingleColumn = true;
+        fixture.setConfig(config);
+        fixture.settle();
+        QCOMPARE(fixture.frame(id).width(), 1888.0);
+        config.layout.alwaysExpandSingleColumn = false;
+        fixture.setConfig(config);
+        fixture.settle();
+        QCOMPARE(fixture.frame(id).width(), 600.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void columnsScrollIntoView()
     {
         Fixture fixture(widthConfig(Config::CenterFocusedColumn::Never, 900));

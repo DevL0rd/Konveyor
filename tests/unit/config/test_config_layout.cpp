@@ -32,6 +32,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
             center-focused-column "on-overflow"
             new-column-position "left"
             always-center-single-column
+            always-expand-single-column
             empty-workspace-above-first true
             remember-window-sizes
             remember-window-positions
@@ -49,6 +50,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
     QCOMPARE(layout.centerFocusedColumn, CenterFocusedColumn::OnOverflow);
     QCOMPARE(layout.newColumnPosition, NewColumnPosition::Left);
     QCOMPARE(layout.alwaysCenterSingleColumn, true);
+    QCOMPARE(layout.alwaysExpandSingleColumn, true);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, true);
     QCOMPARE(layout.rememberWindowSizes, true);
     QCOMPARE(layout.rememberWindowPositions, true);

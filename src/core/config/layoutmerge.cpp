@@ -88,6 +88,9 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     if (part.alwaysCenterSingleColumn) {
         base.alwaysCenterSingleColumn = *part.alwaysCenterSingleColumn;
     }
+    if (part.alwaysExpandSingleColumn) {
+        base.alwaysExpandSingleColumn = *part.alwaysExpandSingleColumn;
+    }
     if (part.rememberWindowSizes) {
         base.rememberWindowSizes = *part.rememberWindowSizes;
     }

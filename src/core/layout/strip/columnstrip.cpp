@@ -65,6 +65,13 @@ void ColumnStrip::applyDefaultColumnWidths()
 
 void ColumnStrip::refresh(bool isActive)
 {
+    const bool expandAlone = m_options->layout.alwaysExpandSingleColumn && m_columns.size() == 1;
+    for (Column &column : m_columns) {
+        if (column.expandedAlone != expandAlone) {
+            column.expandedAlone = expandAlone;
+            column.layoutTiles(true);
+        }
+    }
     for (std::size_t c = 0; c < m_columns.size(); ++c) {
         Column &column = m_columns[c];
         std::optional<quint8> resizeData;
