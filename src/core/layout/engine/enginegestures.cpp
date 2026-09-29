@@ -138,10 +138,10 @@ bool Engine::beginWindowDrag(WindowId id, const QPointF &pointer)
     WindowDrag move;
     move.window = id;
     move.output = monitor->outputName();
-    move.pointerPos = pointer;
+    move.pointerPos = pointer - d->originOf(move.output);
     move.lastPointer = pointer;
     move.isFloating = workspace->isFloating(id);
-    const QPointF within = pointer - *tilePos - tile->windowOffset();
+    const QPointF within = move.pointerPos - *tilePos - tile->windowOffset();
     const QSizeF size = tile->windowSize();
     move.pointerRatio = QPointF(
         std::clamp(within.x() / std::max(size.width(), 1.0), 0.0, 1.0), std::clamp(within.y() / std::max(size.height(), 1.0), 0.0, 1.0));
@@ -227,7 +227,6 @@ void Engine::updateWindowDrag(const QPointF &pointer, const QString &output)
     WindowDrag &move = *d->windowDrag;
     const QPointF delta = pointer - move.lastPointer;
     move.lastPointer = pointer;
-    move.pointerPos = pointer;
 
     if (!move.moving) {
         move.pointerDelta += delta;
@@ -247,6 +246,7 @@ void Engine::updateWindowDrag(const QPointF &pointer, const QString &output)
             d->activeMonitorIndex = *idx;
         }
     }
+    move.pointerPos = pointer - d->originOf(move.output);
     d->updateDropHint();
 }
 
