@@ -24,7 +24,9 @@ for collector in Linux-System-Monitor Linux-Process-Mon Linux-Log-Monitor; do
     check "$collector writes fresh snapshots" "find $XDG_RUNTIME_DIR/$collector -type f -newermt '-30 seconds' | grep -q ."
 done
 check "the Kontrol Panel replaced the app menu" "grep -q plugin=org.devl0rd.portal.launcher ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
-check "the Kontrol Panel opened on Shortcuts" "! grep -q openPageOnStart=shortcuts ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+check "the Kontrol Panel service runs" "systemctl --user is-active konveyor-kontrol-panel.service"
+check "the Kontrol Panel answers on the session bus" "busctl --user call org.devl0rd.KontrolPanel /KontrolPanel org.devl0rd.KontrolPanel IsOpen"
+check "the Kontrol Panel opened on Shortcuts" "test -f ~/.config/konveyor/kontrolpanelrc && ! grep -q openPageOnStart=shortcuts ~/.config/konveyor/kontrolpanelrc"
 check "System Settings lists the Konveyor module" "kcmshell6 --list | grep -q kcm_konveyor"
 errors=$(journalctl --user -u plasma-plasmashell --no-pager -o cat | grep -E 'org/kde/konveyor|org\.devl0rd' | grep -iE 'error|not installed|not a type|unavailable' | sort -u)
 check "Plasma logged no Konveyor QML errors" "[[ -z \"\$errors\" ]]"
