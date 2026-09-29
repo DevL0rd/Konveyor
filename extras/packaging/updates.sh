@@ -10,6 +10,8 @@ declare -A KONVEYOR_UPDATE_HOOKS=(
     [apt-get]="konveyor-rebuild.apt /etc/apt/apt.conf.d/99konveyor-rebuild 644"
 )
 KONVEYOR_LEGACY_HOOK="/etc/pacman.d/hooks/konveyor-rebuild.hook"
+KONVEYOR_SOURCE_STATE="$KONVEYOR_STATE_DIR/update-source"
+KONVEYOR_LEGACY_SOURCE_STATE="$KONVEYOR_STATE_DIR/source"
 
 package_manager() {
     local manager
@@ -103,7 +105,8 @@ register_updates() {
     fi
     prepare_update_source
     say "Registering Konveyor with system updates"
-    printf '%s\n%s\n' "$UPDATE_SOURCE_DIR" "${KONVEYOR_OWNER:-$(id -un)}" | run_prefix tee "$KONVEYOR_STATE_DIR/source" >/dev/null
+    printf '%s\n%s\n' "$UPDATE_SOURCE_DIR" "${KONVEYOR_OWNER:-$(id -un)}" | run_prefix tee "$KONVEYOR_SOURCE_STATE" >/dev/null
+    [[ -f $KONVEYOR_LEGACY_SOURCE_STATE ]] && run_prefix rm -f "$KONVEYOR_LEGACY_SOURCE_STATE"
     if $KONVEYOR_ATOMIC; then
         copy_updater "$KONVEYOR_USER_UPDATER_DIR"
         enable_user_unit "$KONVEYOR_LOGIN_UNIT"
@@ -129,7 +132,8 @@ unregister_updates() {
         [[ -e $target ]] && run_root rm -f "$target"
     done
     [[ -d $KONVEYOR_UPDATER_DIR ]] && run_root rm -rf "$KONVEYOR_UPDATER_DIR"
-    [[ -e $KONVEYOR_STATE_DIR/source ]] && run_prefix rm -f "$KONVEYOR_STATE_DIR/source"
+    [[ -e $KONVEYOR_SOURCE_STATE ]] && run_prefix rm -f "$KONVEYOR_SOURCE_STATE"
+    [[ -f $KONVEYOR_LEGACY_SOURCE_STATE ]] && run_prefix rm -f "$KONVEYOR_LEGACY_SOURCE_STATE"
     rm -rf "$KONVEYOR_USER_UPDATER_DIR"
     disable_user_unit "$KONVEYOR_UPDATE_UNIT"
     disable_user_unit "$KONVEYOR_LOGIN_UNIT"

@@ -6,7 +6,8 @@ export HOME="${HOME:-/root}"
 export PATH="${PATH:-/usr/local/sbin:/usr/local/bin:/usr/bin:/bin}"
 SUPPORT=${KONVEYOR_INSTALL_SUPPORT:-/usr/lib/konveyor}
 source "$SUPPORT/common.sh"
-STATE_FILE=${KONVEYOR_SOURCE_STATE:-$KONVEYOR_STATE_DIR/source}
+source "$SUPPORT/updates.sh"
+STATE_FILE=$KONVEYOR_SOURCE_STATE
 
 log() {
     printf 'konveyor: %s\n' "$*"

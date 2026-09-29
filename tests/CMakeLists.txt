@@ -52,6 +52,9 @@ set_tests_properties(test_overlay_hosts PROPERTIES LABELS "unit;widgets")
 add_test(NAME test_panel_launcher COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_panel_launcher.py)
 set_tests_properties(test_panel_launcher PROPERTIES LABELS "unit;widgets")
 
+add_test(NAME test_update_source COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/install/test_update_source.py)
+set_tests_properties(test_update_source PROPERTIES LABELS "unit;install")
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
 find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
