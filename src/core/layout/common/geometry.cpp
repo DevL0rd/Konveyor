@@ -231,7 +231,10 @@ QRectF parkedFrame(QRectF frame, QRectF home, const QList<QRectF> &outputs)
     }
     const QSizeF size = frame.size();
     const QPointF center = home.center();
-    const std::array<QRectF, 4> candidates {
+    const double depth = std::clamp(frame.y() - home.y(), 0.0, home.height());
+    const std::array<QRectF, 6> candidates {
+        QRectF(QPointF(frame.x(), bounds.bottom() + gap + depth), size),
+        QRectF(QPointF(frame.x(), bounds.top() - gap - home.height() - size.height() + depth), size),
         QRectF(QPointF(center.x() - size.width() / 2.0, bounds.bottom() + gap), size),
         QRectF(QPointF(center.x() - size.width() / 2.0, bounds.top() - gap - size.height()), size),
         QRectF(QPointF(bounds.right() + gap, center.y() - size.height() / 2.0), size),

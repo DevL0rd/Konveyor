@@ -18,6 +18,23 @@ bool parksAtHome(QRectF frame, QRectF home, const QList<QRectF> &outputs)
     return parked.size() == frame.size() && offEveryOutput && nearestOutputIndex(parked.center(), outputs) == outputs.indexOf(home);
 }
 
+QRectF placedLikeTheApplier(QRectF frame, QRectF home, const QList<QRectF> &outputs)
+{
+    return frame.intersects(home) ? frame : parkedFrame(frame, home, outputs);
+}
+
+bool keepsTaskManagerOrder(const QList<QRectF> &row, QRectF home, const QList<QRectF> &outputs)
+{
+    for (qsizetype idx = 1; idx < row.size(); ++idx) {
+        const QRect before = placedLikeTheApplier(row[idx - 1], home, outputs).toRect();
+        const QRect after = placedLikeTheApplier(row[idx], home, outputs).toRect();
+        if (!parksAtHome(row[idx], home, outputs) || before.x() > after.x() || (before.x() == after.x() && before.y() >= after.y())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 }
 
 class TestLayoutGeometry : public QObject
@@ -246,6 +263,40 @@ private Q_SLOTS:
         for (const QRectF &home : outputs) {
             QVERIFY(parksAtHome(QRectF(-900, 0, 800, 1000), home, outputs));
         }
+    }
+
+    void parkedFramesKeepTheColumnOrder_data()
+    {
+        QTest::addColumn<QList<QRectF>>("outputs");
+        QTest::newRow("one output") << QList<QRectF> {QRectF(0, 0, 1920, 1080)};
+        QTest::newRow("output below") << QList<QRectF> {QRectF(0, 0, 1920, 1080), QRectF(0, 1080, 1920, 1080)};
+        QTest::newRow("output above") << QList<QRectF> {QRectF(0, 0, 1920, 1080), QRectF(0, -1080, 1920, 1080)};
+    }
+
+    void parkedFramesKeepTheColumnOrder()
+    {
+        QFETCH(QList<QRectF>, outputs);
+        const QRectF home = outputs.front();
+        QList<QRectF> row;
+        double x = -4200;
+        for (const double width : {1260.0, 620.0, 940.0, 1260.0, 620.0, 940.0, 1260.0, 620.0, 940.0}) {
+            row.append(QRectF(x, 16, width, 1048));
+            x += width + 16;
+        }
+        for (double scroll = 0; scroll <= 6000; scroll += 700) {
+            QList<QRectF> scrolled;
+            for (const QRectF &frame : row) {
+                scrolled.append(frame.translated(-scroll + 3000, 0));
+            }
+            QVERIFY2(keepsTaskManagerOrder(scrolled, home, outputs), qPrintable(QString::number(scroll)));
+        }
+    }
+
+    void parkedFramesKeepTheTileOrderInAColumn()
+    {
+        const QList<QRectF> outputs {QRectF(0, 0, 1920, 1080)};
+        const QList<QRectF> column {QRectF(2400, 16, 900, 340), QRectF(2400, 372, 900, 340), QRectF(2400, 728, 900, 340)};
+        QVERIFY(keepsTaskManagerOrder(column, outputs.front(), outputs));
     }
 
     void parkedFrameKeepsHomeInAColumn()
