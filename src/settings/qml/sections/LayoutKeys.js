@@ -71,8 +71,8 @@ function write(store, scopePath, key, value) {
     return store.setNode(scopePath + "/" + key, nodeFor(key, value));
 }
 
-function writeFlag(store, scopePath, overrideMode, key, on) {
-    if (on || overrideMode) {
+function writeFlag(store, scopePath, overrideMode, key, on, defaultOn) {
+    if (overrideMode || on !== (defaultOn === true)) {
         return store.setValue(scopePath + "/" + key, on ? [] : [false]);
     }
     return store.remove(scopePath + "/" + key);

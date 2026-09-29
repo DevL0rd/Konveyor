@@ -1,4 +1,5 @@
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -32,16 +33,9 @@ private Q_SLOTS:
     void appliesChangesLive()
     {
         QQmlEngine engine;
-        engine.addImportPath(QDir(m_home.path()).filePath(QStringLiteral("qml")));
-        QQmlComponent component(&engine);
-        component.setData("import QtQuick\nimport org.kde.konveyor.settings\nSettingsView { active: false; width: 900; height: 600 }",
-            QUrl(QStringLiteral("inline:view.qml")));
-        QTRY_VERIFY_WITH_TIMEOUT(component.isReady() || component.isError(), 5000);
-        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-        std::unique_ptr<QObject> view(component.create());
-        QVERIFY2(view, qPrintable(component.errorString()));
-
-        auto *store = engine.singletonInstance<QObject *>(QStringLiteral("org.kde.konveyor.settings"), QStringLiteral("SettingsStore"));
+        const std::unique_ptr<QObject> view = createView(engine, "SettingsView { active: false; width: 900; height: 600 }");
+        QVERIFY2(view, qPrintable(m_error));
+        QObject *store = settingsStore(engine);
         QVERIFY(store);
         QCOMPARE(store->property("autoSave").toBool(), true);
 
@@ -50,11 +44,59 @@ private Q_SLOTS:
             Q_ARG(QVariantList, QVariantList {27}), Q_ARG(QVariantMap, QVariantMap {})));
         QVERIFY(changed);
 
-        const QString config = QDir(m_home.path()).filePath(QStringLiteral("config/konveyor/config.kdl"));
-        QTRY_VERIFY_WITH_TIMEOUT(readText(config).contains(QStringLiteral("gaps 27")), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(readText(configPath()).contains(QStringLiteral("gaps 27")), 5000);
+    }
+
+    void switchesOffAFlagThatDefaultsToOn()
+    {
+        QQmlEngine engine;
+        const std::unique_ptr<QObject> view = createView(engine,
+            "import \"file://" KONVEYOR_SOURCE_DIR "/src/settings/qml/sections/LayoutKeys.js\" as LayoutKeys\n"
+            "SettingsView {\n"
+            "    active: false\n"
+            "    function expandAlone(on) { return LayoutKeys.writeFlag(SettingsStore, \"layout\", false, "
+            "\"always-expand-single-column\", on, true) }\n"
+            "}");
+        QVERIFY2(view, qPrintable(m_error));
+        QObject *store = settingsStore(engine);
+        QVERIFY(store);
+        const QString config = configPath();
+
+        QVERIFY(QMetaObject::invokeMethod(view.get(), "expandAlone", Q_ARG(QVariant, false)));
+        QTRY_VERIFY_WITH_TIMEOUT(readText(config).contains(QStringLiteral("always-expand-single-column false")), 5000);
+        QVariantMap layout;
+        QVERIFY(QMetaObject::invokeMethod(store, "scope", Q_RETURN_ARG(QVariantMap, layout), Q_ARG(QString, QStringLiteral("layout"))));
+        QCOMPARE(layout.value(QStringLiteral("always-expand-single-column")).toBool(), false);
+
+        QVERIFY(QMetaObject::invokeMethod(view.get(), "expandAlone", Q_ARG(QVariant, true)));
+        QTRY_VERIFY_WITH_TIMEOUT(!readText(config).contains(QStringLiteral("always-expand-single-column false")), 5000);
+        QVERIFY(QMetaObject::invokeMethod(store, "scope", Q_RETURN_ARG(QVariantMap, layout), Q_ARG(QString, QStringLiteral("layout"))));
+        QCOMPARE(layout.value(QStringLiteral("always-expand-single-column")).toBool(), true);
     }
 
 private:
+    std::unique_ptr<QObject> createView(QQmlEngine &engine, const QByteArray &body)
+    {
+        engine.addImportPath(QDir(m_home.path()).filePath(QStringLiteral("qml")));
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nimport org.kde.konveyor.settings\n" + body, QUrl(QStringLiteral("inline:view.qml")));
+        QElapsedTimer waited;
+        waited.start();
+        while (component.isLoading() && waited.elapsed() < 5000) {
+            QTest::qWait(10);
+        }
+        std::unique_ptr<QObject> view(component.isReady() ? component.create() : nullptr);
+        m_error = component.errorString();
+        return view;
+    }
+
+    static QObject *settingsStore(QQmlEngine &engine)
+    {
+        return engine.singletonInstance<QObject *>(QStringLiteral("org.kde.konveyor.settings"), QStringLiteral("SettingsStore"));
+    }
+
+    QString configPath() const { return QDir(m_home.path()).filePath(QStringLiteral("config/konveyor/config.kdl")); }
+
     static QString readText(const QString &path)
     {
         QFile file(path);
@@ -62,6 +104,7 @@ private:
     }
 
     QTemporaryDir m_home;
+    QString m_error;
 };
 
 QTEST_MAIN(TestSettingsViewQml)

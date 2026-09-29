@@ -200,7 +200,7 @@ ColumnLayout {
 
             ScopedSwitch {
                 isOn: root.values["always-expand-single-column"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "always-expand-single-column", on)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "always-expand-single-column", on, true)
             }
         }
 
