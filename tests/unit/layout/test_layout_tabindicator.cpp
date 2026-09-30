@@ -1,57 +1,11 @@
-#include "helpers.h"
+#include "tabhelpers.h"
 
 using namespace LayoutTest;
-
-Q_DECLARE_METATYPE(Config::TabIndicatorPosition)
 
 namespace
 {
 
 const QRectF Screen(0, 0, 1920, 1080);
-
-Config::Config tabbedConfig(Config::TabIndicatorPosition position, double width, double gap)
-{
-    Config::Config config = instantConfig();
-    config.layout.defaultColumnDisplay = Config::ColumnDisplay::Tabbed;
-    config.layout.tabIndicator.position = position;
-    config.layout.tabIndicator.width = width;
-    config.layout.tabIndicator.gap = gap;
-    return config;
-}
-
-QList<Layout::WindowId> addTabs(Fixture &fixture, int count)
-{
-    QList<Layout::WindowId> ids {fixture.add(QStringLiteral("tab"))};
-    for (int i = 1; i < count; ++i) {
-        ids.append(fixture.add(QStringLiteral("tab")));
-        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
-    }
-    return ids;
-}
-
-int topmostTab(Fixture &fixture, const QList<Layout::WindowId> &tabs)
-{
-    int top = 0;
-    for (int i = 1; i < tabs.size(); ++i) {
-        if (fixture.state(tabs[i]).stackingIndex > fixture.state(tabs[top]).stackingIndex) {
-            top = i;
-        }
-    }
-    return top;
-}
-
-double distance(const QRectF &a, const QRectF &b)
-{
-    const double dx = std::max({0.0, b.left() - a.right(), a.left() - b.right()});
-    const double dy = std::max({0.0, b.top() - a.bottom(), a.top() - b.bottom()});
-    return std::max(dx, dy);
-}
-
-bool beside(const QRectF &a, const QRectF &b, Config::TabIndicatorPosition position)
-{
-    const bool vertical = position == Config::TabIndicatorPosition::Left || position == Config::TabIndicatorPosition::Right;
-    return vertical ? a.top() < b.bottom() && b.top() < a.bottom() : a.left() < b.right() && b.left() < a.right();
-}
 
 }
 
@@ -72,6 +26,22 @@ private Q_SLOTS:
         QVERIFY(fixture.state(tabs[0]).visible);
         fixture.perform(QStringLiteral("focus-window-bottom"));
         QCOMPARE(topmostTab(fixture, tabs), 2);
+    }
+
+    void onlyTheShownTabOfAFullscreenColumnStacksAsFullscreen()
+    {
+        Fixture fixture(tabbedConfig(Config::TabIndicatorPosition::Left, 4, 5));
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 3);
+        const auto other = addPlainColumn(fixture, QStringLiteral("other"));
+        fixture.perform(QStringLiteral("focus-column-left"));
+        fixture.perform(QStringLiteral("fullscreen-window"));
+        QCOMPARE(topmostTab(fixture, tabs), 2);
+        QVERIFY(fixture.state(tabs[2]).stackingIndex > fixture.state(other).stackingIndex);
+        QVERIFY(fixture.state(tabs[0]).stackingIndex < fixture.state(other).stackingIndex);
+        fixture.perform(QStringLiteral("focus-window-up"));
+        QCOMPARE(topmostTab(fixture, tabs), 1);
+        QVERIFY(fixture.state(tabs[1]).stackingIndex > fixture.state(other).stackingIndex);
+        QVERIFY(fixture.state(tabs[2]).stackingIndex < fixture.state(other).stackingIndex);
     }
 
     void clickingATabRaisesIt()

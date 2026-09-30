@@ -264,7 +264,7 @@ void applyStackingState(WindowState &state, const Tile &tile, const TileIndex &i
 {
     const bool fullscreen = tile.sizingMode() == WindowMode::Fullscreen;
     const int ownIndex = fullscreen ? BackgroundFullscreenStackingIndex : index.stacking;
-    state.stackingIndex = fullscreen && state.isActive ? FullscreenStackingIndex : ownIndex;
+    state.stackingIndex = fullscreen && state.isActive && state.visible ? FullscreenStackingIndex : ownIndex;
 }
 
 }

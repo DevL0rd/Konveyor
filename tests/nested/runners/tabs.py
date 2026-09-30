@@ -97,6 +97,17 @@ def clicking_a_tab_shows_its_window(checks):
                   "a click on the window still reaches it")
 
 
+def fullscreen_tabs_switch_too(checks):
+    konveyor_action("fullscreen-window")
+    checks.expect(wait_for(lambda: frame("B") == (0.0, 0.0, 1920.0, 1080.0) and shown("B"), 30, 0.3), "the fullscreen column shows B")
+    konveyor_action("focus-window-up")
+    checks.expect(wait_for(lambda: active_title() == "A" and shown("A"), 30, 0.3), "switching tabs while fullscreen shows A")
+    konveyor_action("focus-window-down")
+    checks.expect(wait_for(lambda: active_title() == "B" and shown("B"), 30, 0.3), "switching back while fullscreen shows B")
+    konveyor_action("fullscreen-window")
+    checks.expect(wait_for(lambda: frame("B")[2] < 1920, 30), "B leaves fullscreen")
+
+
 def room_beside(title, position):
     x, y, w, h = frame(title)
     rooms = {"left": x, "right": frame("C")[0] - (x + w), "top": y, "bottom": 1080 - (y + h)}
@@ -134,7 +145,7 @@ def roundness_rounds_the_tabs(checks):
 
 
 def main():
-    Checks().run(switching_tabs_changes_the_shown_window, clicking_a_tab_shows_its_window, thick_tabs_get_room, roundness_rounds_the_tabs)
+    Checks().run(switching_tabs_changes_the_shown_window, clicking_a_tab_shows_its_window, fullscreen_tabs_switch_too, thick_tabs_get_room, roundness_rounds_the_tabs)
 
 
 if __name__ == "__main__":
