@@ -266,6 +266,21 @@ private Q_SLOTS:
         QVERIFY(namesOn(fixture, QStringLiteral("DP-3")).contains(QStringLiteral("chat")));
         VERIFY_INVARIANTS(fixture);
     }
+
+    void droppingOpenOnOutputMakesTheCurrentMonitorHome()
+    {
+        Config::Config config = namedOnSecondary();
+        OnSecondary s(config);
+        QVERIFY(s.fixture.perform(QStringLiteral("focus-workspace"), {QStringLiteral("mail")}).ok);
+        QVERIFY(s.fixture.perform(QStringLiteral("move-workspace-to-monitor"), {Primary}).ok);
+        config.workspaces[1].openOnOutput.reset();
+        s.fixture.setConfig(config);
+        QVERIFY(namesOn(s.fixture, Primary).contains(QStringLiteral("mail")));
+        s.replug();
+        QVERIFY(namesOn(s.fixture, Primary).contains(QStringLiteral("mail")));
+        QVERIFY(namesOn(s.fixture, Secondary).contains(QStringLiteral("chat")));
+        VERIFY_INVARIANTS(s.fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutHomeOutputs)

@@ -136,6 +136,7 @@ void ColumnStrip::addColumn(std::optional<std::size_t> idx, Column column, bool 
 void ColumnStrip::addTile(std::optional<std::size_t> colIndex, Tile tile, bool activate, ColumnWidth width, bool fillsWidth,
     std::optional<Config::AnimationParams> anim)
 {
+    tile.updateConfig(m_area.viewSize, m_area.scale, m_options);
     Column column(std::move(tile), m_area, width, fillsWidth);
     addColumn(colIndex, std::move(column), activate, anim);
 }

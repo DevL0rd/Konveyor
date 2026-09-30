@@ -173,6 +173,30 @@ private Q_SLOTS:
         QCOMPARE(s.height(s.top), s.height(s.single));
         VERIFY_INVARIANTS(s.fixture);
     }
+
+    void presetMissingOnTheNewMonitorKeepsThePixelHeight()
+    {
+        Config::Config config = instantConfig();
+        config.layout.presetWindowHeights = {Config::PresetSize(Config::Fixed {250}), Config::PresetSize(Config::Fixed {400})};
+        Config::OutputConfig small;
+        small.name = QStringLiteral("DP-2");
+        small.layout = Config::LayoutPart {};
+        small.layout->presetWindowHeights = QList<Config::PresetSize> {Config::PresetSize(Config::Fixed {600})};
+        config.outputs.append(small);
+        StackBesideSingle s(config);
+        s.fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
+        s.fixture.engine().activateWindow(s.top);
+        s.fixture.settle();
+        QVERIFY(s.fixture.perform(QStringLiteral("switch-preset-window-height")).ok);
+        QVERIFY(s.fixture.perform(QStringLiteral("switch-preset-window-height")).ok);
+        QCOMPARE(s.height(s.top), 400.0);
+        QVERIFY(s.fixture.perform(QStringLiteral("move-window-to-monitor"), {QStringLiteral("DP-2")}).ok);
+        QCOMPARE(s.fixture.state(s.top).output, QStringLiteral("DP-2"));
+        QCOMPARE(s.height(s.top), 400.0);
+        QVERIFY(s.fixture.perform(QStringLiteral("switch-preset-window-height")).ok);
+        QCOMPARE(s.height(s.top), 600.0);
+        VERIFY_INVARIANTS(s.fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutCarriedHeights)
