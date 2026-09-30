@@ -69,13 +69,18 @@ QString TelemetryEffect::Frames() const
 
 void TelemetryEffect::Watch(const QString &pidsJson)
 {
-    const QJsonDocument document = QJsonDocument::fromJson(pidsJson.toUtf8());
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(pidsJson.toUtf8(), &error);
+    const QJsonArray pids = document.array();
+    const bool valid = error.error == QJsonParseError::NoError && document.isArray()
+        && std::ranges::all_of(pids, [](const QJsonValue &value) { return value.isDouble() && value.toInteger() > 0; });
+    if (!valid) {
+        sendErrorReply(QDBusError::InvalidArgs, QStringLiteral("Watch expects a JSON array of process ids, got: %1").arg(pidsJson));
+        return;
+    }
     QSet<qint64> watched;
-    for (const auto value : document.array()) {
-        const qint64 pid = value.toInteger();
-        if (pid > 0) {
-            watched.insert(pid);
-        }
+    for (const auto value : pids) {
+        watched.insert(value.toInteger());
     }
     m_watchedPids = std::move(watched);
 }

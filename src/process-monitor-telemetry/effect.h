@@ -4,6 +4,7 @@
 
 #include <effect/effect.h>
 
+#include <QDBusContext>
 #include <QElapsedTimer>
 #include <QHash>
 #include <QSet>
@@ -16,7 +17,7 @@ class EffectWindow;
 namespace ProcessMonitor
 {
 
-class TelemetryEffect : public KWin::Effect
+class TelemetryEffect : public KWin::Effect, protected QDBusContext
 {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.devl0rd.ProcessMonitor.FrameTelemetry")
