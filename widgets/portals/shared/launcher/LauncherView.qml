@@ -128,6 +128,10 @@ FocusScope {
         defs.push({ key: "settings", label: i18n("Settings"), hint: i18n("Konveyor settings"), icon: "configure-symbolic" })
         return defs
     }
+    readonly property var sidebarKeys: ({ friends: "showSidebarFriends", system: "showSidebarSystem", settings: "showSidebarSettings" })
+    function onSidebar(key) {
+        return !(key in sidebarKeys) || launcherData.config[sidebarKeys[key]]
+    }
     readonly property int pageIndex: Math.max(0, pageDefs.findIndex(def => def.key === page))
     property bool altHeld: false
     property string openFolder: ""
@@ -1000,11 +1004,13 @@ FocusScope {
                     spacing: Kirigami.Units.smallSpacing
 
                     FriendsPill {
+                        id: friendsPill
                         Layout.rightMargin: launcher.compact ? 0 : Kirigami.Units.largeSpacing
                     }
 
                     ColumnLayout {
-                        visible: !launcher.compact
+                        id: clock
+                        visible: !launcher.compact && launcherData.config.showTopBarClock
                         spacing: 0
                         Layout.rightMargin: Kirigami.Units.largeSpacing
                         PlasmaComponents.Label {
@@ -1021,6 +1027,8 @@ FocusScope {
                         }
                     }
                     PlasmaComponents.ToolButton {
+                        id: settingsButton
+                        visible: launcherData.config.showTopBarSettings
                         icon.name: "configure-symbolic"
                         display: PlasmaComponents.AbstractButton.IconOnly
                         text: i18n("Settings (Ctrl+,)")
@@ -1030,7 +1038,7 @@ FocusScope {
                     }
                     PlasmaComponents.ToolButton {
                         id: powerButton
-                        visible: !launcher.compact
+                        visible: !launcher.compact && launcherData.config.showTopBarPower
                         icon.name: "system-shutdown-symbolic"
                         display: PlasmaComponents.AbstractButton.IconOnly
                         text: i18n("Power and session")
@@ -1196,7 +1204,7 @@ FocusScope {
                         }
                     }
                     Repeater {
-                        model: launcher.pageDefs.filter(def => def.key !== "settings")
+                        model: launcher.pageDefs.filter(def => def.key !== "settings" && launcher.onSidebar(def.key))
                         delegate: railButton
                     }
                     Rectangle {
@@ -1244,7 +1252,7 @@ FocusScope {
                         }
                     }
                     Repeater {
-                        model: launcher.pageDefs.filter(def => def.key === "settings")
+                        model: launcher.pageDefs.filter(def => def.key === "settings" && launcher.onSidebar(def.key))
                         delegate: railButton
                     }
                 }

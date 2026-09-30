@@ -38,7 +38,7 @@ PopScroll {
             Layout.fillWidth: true
         }
         PlasmaComponents.Label {
-            visible: !launcher.compact
+            visible: !launcher.compact && launcherData.config.showHomeDate
             text: page.today
             opacity: 0.6
         }

@@ -16,6 +16,14 @@
         <entry name="showRecentFiles" type="Bool"><default>true</default></entry>
         <entry name="showGames" type="Bool"><default>true</default></entry>
         <entry name="showFriends" type="Bool"><default>true</default></entry>
+        <entry name="showTopBarFriends" type="Bool"><default>false</default></entry>
+        <entry name="showTopBarClock" type="Bool"><default>true</default></entry>
+        <entry name="showTopBarSettings" type="Bool"><default>false</default></entry>
+        <entry name="showTopBarPower" type="Bool"><default>false</default></entry>
+        <entry name="showSidebarFriends" type="Bool"><default>true</default></entry>
+        <entry name="showSidebarSystem" type="Bool"><default>true</default></entry>
+        <entry name="showSidebarSettings" type="Bool"><default>true</default></entry>
+        <entry name="showHomeDate" type="Bool"><default>false</default></entry>
         <entry name="gamesView" type="String"><default>grid</default></entry>
         <entry name="gamesSort" type="String"><default>recent</default></entry>
         <entry name="gameCardSize" type="Int"><default>10</default></entry>

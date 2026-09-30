@@ -19,6 +19,14 @@ Kirigami.FormLayout {
     property alias cfg_showRecentFiles: showRecentFiles.checked
     property alias cfg_showGames: showGames.checked
     property alias cfg_showFriends: showFriends.checked
+    property alias cfg_showHomeDate: showHomeDate.checked
+    property alias cfg_showTopBarFriends: showTopBarFriends.checked
+    property alias cfg_showTopBarClock: showTopBarClock.checked
+    property alias cfg_showTopBarSettings: showTopBarSettings.checked
+    property alias cfg_showTopBarPower: showTopBarPower.checked
+    property alias cfg_showSidebarFriends: showSidebarFriends.checked
+    property alias cfg_showSidebarSystem: showSidebarSystem.checked
+    property alias cfg_showSidebarSettings: showSidebarSettings.checked
     property alias cfg_searchFiles: searchFiles.checked
     property alias cfg_searchSettings: searchSettings.checked
     property alias cfg_searchCalculator: searchCalculator.checked
@@ -180,8 +188,23 @@ Kirigami.FormLayout {
 
     QQC2.CheckBox { id: showRecentApps; Kirigami.FormData.label: i18n("Home shows:"); text: i18n("Recently used apps") }
     QQC2.CheckBox { id: showRecentFiles; text: i18n("Recent files") }
+    QQC2.CheckBox { id: showHomeDate; visible: !form.portal; text: i18n("Today's date") }
     QQC2.CheckBox { id: showGames; Kirigami.FormData.label: i18n("Steam:"); text: i18n("Games page and Continue playing") }
     QQC2.CheckBox { id: showFriends; text: i18n("Friends page and friend presence") }
+
+    Item { Kirigami.FormData.isSection: true }
+
+    QQC2.CheckBox { id: showTopBarFriends; Kirigami.FormData.label: i18n("Top bar shows:"); text: i18n("Friends online"); enabled: showFriends.checked }
+    QQC2.CheckBox { id: showTopBarClock; visible: !form.portal; text: i18n("Clock") }
+    QQC2.CheckBox { id: showTopBarSettings; text: i18n("Settings button") }
+    QQC2.CheckBox { id: showTopBarPower; visible: !form.portal; text: i18n("Power and session button") }
+    QQC2.CheckBox { id: showSidebarFriends; Kirigami.FormData.label: i18n("Sidebar shows:"); text: i18n("Friends"); enabled: showFriends.checked }
+    QQC2.CheckBox { id: showSidebarSystem; text: i18n("System") }
+    QQC2.CheckBox { id: showSidebarSettings; text: i18n("Settings") }
+    QQC2.Label {
+        text: i18n("Each button shows once by default. A page whose button is hidden still opens with Alt and its number.")
+        opacity: 0.6
+    }
 
     Item { Kirigami.FormData.isSection: true }
 

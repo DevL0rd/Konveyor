@@ -52,7 +52,7 @@ cd Konveyor
 That's it. The installer grabs what it needs, builds Konveyor for your exact KWin and switches it on, usually without even logging out. It also installs the [Konveyor widgets](#widgets), swaps your application launcher for the Kontrol Panel and opens it on **Shortcuts** so you can see everything Konveyor does.
 
 > [!TIP]
-> Press <kbd>Meta</kbd> + <kbd>K</kbd> any time to open the Kontrol Panel on **Shortcuts**: every shortcut, searchable, with a live diagram of what each Konveyor action does. Its gear, or <kbd>Ctrl</kbd> + <kbd>,</kbd>, jumps straight to Konveyor's settings.
+> Press <kbd>Meta</kbd> + <kbd>K</kbd> any time to open the Kontrol Panel on **Shortcuts**: every shortcut, searchable, with a live diagram of what each Konveyor action does. Its **Settings** button, or <kbd>Ctrl</kbd> + <kbd>,</kbd>, jumps straight to Konveyor's settings.
 
 <table>
   <tr>

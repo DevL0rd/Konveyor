@@ -16,7 +16,7 @@ MouseArea {
     readonly property int inGame: launcherData.friendsInGame
     readonly property int online: Math.max(0, launcherData.friendsOnline - launcherData.friendsInGame)
 
-    visible: launcherData.friendsEnabled && launcherData.friends.length > 0
+    visible: launcherData.config.showTopBarFriends && launcherData.friendsEnabled && launcherData.friends.length > 0
     implicitWidth: row.implicitWidth + Kirigami.Units.largeSpacing * 2
     implicitHeight: Kirigami.Units.gridUnit * 2.1
     hoverEnabled: true

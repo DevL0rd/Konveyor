@@ -139,6 +139,49 @@ private Q_SLOTS:
         QCOMPARE(root->property("cfg_dimStrength").toDouble(), 0.3);
     }
 
+    void buttonCheckboxesWriteTheirSettings_data()
+    {
+        QTest::addColumn<QString>("key");
+        for (const char *key : {"showTopBarFriends", "showTopBarClock", "showTopBarSettings", "showTopBarPower", "showSidebarFriends",
+                 "showSidebarSystem", "showSidebarSettings", "showHomeDate"}) {
+            QTest::newRow(key) << QString::fromLatin1(key);
+        }
+    }
+
+    void buttonCheckboxesWriteTheirSettings()
+    {
+        QFETCH(QString, key);
+        QObject *root = general({{QStringLiteral("portal"), false}, {QStringLiteral("cfg_showFriends"), true}});
+        QVERIFY(root);
+        const bool before = root->property(qPrintable(QStringLiteral("cfg_") + key)).toBool();
+        QVERIFY(form(key + QStringLiteral(".visible && ") + key + QStringLiteral(".enabled")).toBool());
+        form(key + QStringLiteral(".toggle()"));
+        QCOMPARE(root->property(qPrintable(QStringLiteral("cfg_") + key)).toBool(), !before);
+    }
+
+    void friendsButtonsNeedFriends()
+    {
+        QObject *root = general({{QStringLiteral("portal"), false}, {QStringLiteral("cfg_showFriends"), true}});
+        QVERIFY(root);
+        QVERIFY(form(QStringLiteral("showTopBarFriends.enabled && showSidebarFriends.enabled")).toBool());
+        form(QStringLiteral("showFriends.toggle()"));
+        QVERIFY(!form(QStringLiteral("showTopBarFriends.enabled || showSidebarFriends.enabled")).toBool());
+        QVERIFY(form(QStringLiteral("showSidebarSystem.enabled && showTopBarPower.enabled")).toBool());
+    }
+
+    void theAppPortalOnlyOffersButtonsItShows()
+    {
+        QObject *root = general({{QStringLiteral("portal"), true}});
+        QVERIFY(root);
+        for (const char *shown :
+            {"showTopBarFriends", "showTopBarSettings", "showSidebarFriends", "showSidebarSystem", "showSidebarSettings"}) {
+            QVERIFY2(form(QLatin1String(shown) + QStringLiteral(".visible")).toBool(), shown);
+        }
+        for (const char *hidden : {"showTopBarClock", "showTopBarPower", "showHomeDate"}) {
+            QVERIFY2(!form(QLatin1String(hidden) + QStringLiteral(".visible")).toBool(), hidden);
+        }
+    }
+
     void resultOrderMovesGroups()
     {
         QObject *root = general({{QStringLiteral("cfg_searchOrder"), QStringLiteral("apps,bogus,games")}});
