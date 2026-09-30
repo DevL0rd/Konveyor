@@ -15,6 +15,7 @@ AUR=false
 [[ ${KONVEYOR_AUR:-} == @(1|true|yes) ]] && AUR=true
 MODE=install
 OPTIONS_FILE="$KONVEYOR_OPTIONS_FILE"
+WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
 UPDATE_PENDING="$HOME/.local/state/konveyor/update-pending"
 
 usage() {
@@ -27,7 +28,7 @@ updates rebuild it. Run it again at any time to update.
 
   --skip-deps   Do not install build and widget dependencies with the system package manager
   --no-pull     Do not update the source checkout with git pull
-  --no-widgets  Install only the window manager, without the Konveyor widgets
+  --no-widgets  Install only the window manager; removes the Konveyor widgets if installed
   --aur         Installed by a package (also KONVEYOR_AUR=true); the package manager handles
                 updates, so no update hook is registered
 EOF
@@ -247,6 +248,14 @@ system_update() {
     fi
 }
 
+remove_widgets() {
+    [[ -d $WIDGETS_RUNTIME_DIR ]] || return 0
+    say "Removing the Konveyor widgets because of --no-widgets"
+    local widget_uninstaller="$WIDGETS_RUNTIME_DIR/uninstall.sh"
+    [[ -x $widget_uninstaller ]] || widget_uninstaller="$SOURCE_DIR/widgets/uninstall.sh"
+    "$widget_uninstaller"
+}
+
 main() {
     parse_arguments "$@"
     SYSTEM_UPDATE_ROOT=false
@@ -275,6 +284,7 @@ main() {
         PATH="$KONVEYOR_PREFIX/bin:$PATH" "$SOURCE_DIR/widgets/install.sh"
         say "Settings: press Meta+K and open Settings in the Kontrol Panel, or open System Settings > Window Management > Konveyor"
     else
+        remove_widgets
         say "Settings: open System Settings > Window Management > Konveyor"
     fi
     say "Config file: ~/.config/konveyor/config.kdl (created on first start)"

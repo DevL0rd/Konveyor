@@ -69,7 +69,7 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
   </tr>
   <tr>
     <td>🧩 <b>Just the tiling</b></td>
-    <td>Run <code>./install.sh --no-widgets</code> to skip the widgets, or <code>./uninstall.sh --keep-widgets</code> to remove only the window manager.</td>
+    <td>Run <code>./install.sh --no-widgets</code> to skip the widgets or remove them from an earlier install, or <code>./uninstall.sh --keep-widgets</code> to remove only the window manager.</td>
   </tr>
   <tr>
     <td>📁 <b>Another location</b></td>
