@@ -121,17 +121,15 @@ std::vector<Workspace> Monitor::takeWorkspacesForOutput(const OutputArea &target
     bool stoppedSwitch = false;
     for (std::size_t i = m_workspaces.size(); i > 0; --i) {
         const std::size_t idx = i - 1;
-        if (!outputMatches(target, m_workspaces[idx].homeOutput())) {
+        if (!outputMatches(target, m_workspaces[idx].homeOutput()) || !m_workspaces[idx].isOccupiedOrNamed()) {
             continue;
         }
         Workspace workspace = std::move(m_workspaces[idx]);
         m_workspaces.erase(m_workspaces.begin() + static_cast<std::ptrdiff_t>(idx));
         stoppedSwitch = stoppedSwitch || m_transition.has_value();
         m_transition.reset();
-        if (workspace.isOccupiedOrNamed()) {
-            workspace.clearOutput();
-            taken.push_back(std::move(workspace));
-        }
+        workspace.clearOutput();
+        taken.push_back(std::move(workspace));
         const bool keepFirstNamed = m_options->layout.emptyWorkspaceAboveFirst && m_activeWorkspaceIndex == 1;
         if (idx <= m_activeWorkspaceIndex && m_activeWorkspaceIndex > 0 && !keepFirstNamed) {
             m_activeWorkspaceIndex -= 1;
