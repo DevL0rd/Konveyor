@@ -36,6 +36,7 @@ class PlasmoidDouble : public QObject
     Q_PROPERTY(int formFactor MEMBER formFactor NOTIFY formFactorChanged)
     Q_PROPERTY(int location MEMBER location NOTIFY locationChanged)
     Q_PROPERTY(QString pluginName MEMBER pluginName CONSTANT)
+    Q_PROPERTY(int id MEMBER id CONSTANT)
     Q_PROPERTY(QVariantMap metaData MEMBER metaData CONSTANT)
     Q_PROPERTY(QString icon MEMBER icon NOTIFY iconChanged)
     Q_PROPERTY(QString title MEMBER title NOTIFY titleChanged)
@@ -51,6 +52,7 @@ public:
     int formFactor = 0;
     int location = 0;
     QString pluginName;
+    int id = 7;
     QVariantMap metaData;
     QString icon;
     QString title;

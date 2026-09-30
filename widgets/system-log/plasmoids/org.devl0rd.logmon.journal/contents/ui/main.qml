@@ -253,12 +253,12 @@ PlasmoidItem {
                 recs.sort((a, b) => a.t - b.t)
                 let added = 0
                 for (const rec of recs) {
-                    if (rec.t > root.lastT) {
-                        root.lastT = rec.t
-                        if (!root.isMuted(rec)) {
-                            logModel.append(root.rowFor(rec))
-                            added++
-                        }
+                    if (root.shownCursors[rec.cursor])
+                        continue
+                    root.shownCursors[rec.cursor] = true
+                    if (!root.isMuted(rec)) {
+                        logModel.append(root.rowFor(rec))
+                        added++
                     }
                 }
                 root.rowsAppended(added)
@@ -274,27 +274,40 @@ PlasmoidItem {
 
     readonly property string journalJson: "journalctl -o json --all --output-fields=MESSAGE,PRIORITY,SYSLOG_IDENTIFIER,_COMM,_SYSTEMD_UNIT,UNIT,_TRANSPORT,_PID,SYSLOG_PID --no-pager"
 
+    property int searchGeneration: 0
+    property var shownCursors: ({})
+    readonly property string cursorPrefix: "\"$XDG_RUNTIME_DIR\"/konveyor-logmon-search-" + Plasmoid.id + "-"
+
+    function afterCursor(part) {
+        const file = root.cursorPrefix + root.searchGeneration + "-" + part + ".cursor"
+        return " $(test -e " + file + " || printf -- '-n %s' " + Plasmoid.configuration.searchLimit + ") --cursor-file=" + file
+    }
+
     function runSearch(reset) {
         if (!root.searchMode || !root.popupAlive)
             return
+        if (reset) {
+            root.searchGeneration++
+            root.shownCursors = {}
+        }
         const lv = root.levelMax[root.level]
         const prio = lv < 7 ? " -p " + lv : ""
-        const range = (reset || root.lastT === 0)
-            ? " -n " + Plasmoid.configuration.searchLimit
-            : " --since @" + Math.floor(root.lastT / 1000000)
         let cmd
         if (root.search === "") {
-            cmd = journalJson + prio + range
+            cmd = journalJson + prio + afterCursor("level")
         } else {
             const reArg = shq(escapeRegex(root.search))
             const fxArg = shq(root.search)
             cmd = "TIDS=$(journalctl -F SYSLOG_IDENTIFIER --no-pager 2>/dev/null"
                 + " | grep -iF -- " + fxArg + " | sed 's/.*/-t &/' | tr '\\n' ' '); "
-                + "{ " + journalJson + " --grep " + reArg + prio + range + " 2>/dev/null; "
-                + "[ -n \"$TIDS\" ] && " + journalJson + " $TIDS" + prio + range + " 2>/dev/null; }"
+                + "{ " + journalJson + " --grep " + reArg + prio + afterCursor("grep") + " 2>/dev/null; "
+                + "[ -n \"$TIDS\" ] && " + journalJson + " $TIDS" + prio + afterCursor("ids") + " 2>/dev/null; }"
         }
-        if (reset)
+        if (reset) {
             root.querying = true
+            cmd += "; find \"$XDG_RUNTIME_DIR\" -maxdepth 1 -name 'konveyor-logmon-search-" + Plasmoid.id + "-*'"
+                + " ! -name 'konveyor-logmon-search-" + Plasmoid.id + "-" + root.searchGeneration + "-*' -delete"
+        }
         journalQuery.connectSource(cmd)
     }
     Timer { id: searchDebounce; interval: 300; onTriggered: root.applyMode() }
@@ -365,7 +378,7 @@ PlasmoidItem {
         if (!id)
             id = (j._TRANSPORT === "kernel") ? "kernel"
                : (unit.indexOf(".service") >= 0 ? unit.replace(".service", "") : (unit || "?"))
-        return { t: parseInt(j.__REALTIME_TIMESTAMP || 0),
+        return { cursor: String(j.__CURSOR), t: parseInt(j.__REALTIME_TIMESTAMP || 0),
                  p: parseInt(j.PRIORITY !== undefined ? j.PRIORITY : 6),
                  id: String(id).slice(0, 40),
                  u: unit, pid: String(j._PID || j.SYSLOG_PID || ""), m: String(m || "") }

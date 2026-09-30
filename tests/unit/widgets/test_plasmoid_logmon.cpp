@@ -1,5 +1,6 @@
 #include "logmonfixture.h"
 
+#include <QRegularExpression>
 #include <QTest>
 
 using Logmon::feed;
@@ -12,6 +13,17 @@ namespace
 {
 
 const QString journalPrefix = QStringLiteral("journalctl -o json");
+
+QString cursorFile(const QString &command)
+{
+    return QRegularExpression(QStringLiteral("--cursor-file=([^\\s;]+)")).match(command).captured(1);
+}
+
+QString record(qint64 micros, const QString &cursor, const QString &message)
+{
+    return QStringLiteral("{\"__CURSOR\": \"%1\", \"__REALTIME_TIMESTAMP\": \"%2\", \"PRIORITY\": \"3\", \"MESSAGE\": \"%3\"}\n")
+        .arg(cursor, QString::number(micros), message);
+}
 
 }
 
@@ -115,14 +127,18 @@ private Q_SLOTS:
         QVERIFY(harness);
         QVERIFY(feed(*harness));
         harness->root()->setProperty("level", 3);
-        QTRY_VERIFY(harness->command(journalPrefix).endsWith(QLatin1String(" -p 3 -n 5000")));
+        QTRY_VERIFY(harness->command(journalPrefix).contains(QLatin1String(" -p 3 $(test -e ")));
+        QVERIFY(harness->command(journalPrefix).contains(QLatin1String("printf -- '-n %s' 5000)")));
         QVERIFY(harness->root()->property("querying").toBool());
-        const QString records = QStringLiteral(
-            "{\"__REALTIME_TIMESTAMP\": \"2000000\", \"PRIORITY\": \"3\", \"SYSLOG_IDENTIFIER\": \"sshd\", \"MESSAGE\": \"bad\", \"_PID\": "
-            "\"7\"}\n"
-            "{\"__REALTIME_TIMESTAMP\": \"1000000\", \"PRIORITY\": \"2\", \"_TRANSPORT\": \"kernel\", \"MESSAGE\": [104, 105]}\n"
-            "{\"__REALTIME_TIMESTAMP\": \"3000000\", \"_SYSTEMD_UNIT\": \"foo.service\", \"MESSAGE\": \"unit\"}\n"
-            "{\"__REALTIME_TIMESTAMP\": \"4000000\", \"MESSAGE\": \"nobody\"}\nnot json\n");
+        const QString records
+            = QStringLiteral("{\"__CURSOR\": \"c2000000\", \"__REALTIME_TIMESTAMP\": \"2000000\", \"PRIORITY\": \"3\", "
+                             "\"SYSLOG_IDENTIFIER\": \"sshd\", \"MESSAGE\": \"bad\", \"_PID\": "
+                             "\"7\"}\n"
+                             "{\"__CURSOR\": \"c1000000\", \"__REALTIME_TIMESTAMP\": \"1000000\", \"PRIORITY\": \"2\", \"_TRANSPORT\": "
+                             "\"kernel\", \"MESSAGE\": [104, 105]}\n"
+                             "{\"__CURSOR\": \"c3000000\", \"__REALTIME_TIMESTAMP\": \"3000000\", \"_SYSTEMD_UNIT\": \"foo.service\", "
+                             "\"MESSAGE\": \"unit\"}\n"
+                             "{\"__CURSOR\": \"c4000000\", \"__REALTIME_TIMESTAMP\": \"4000000\", \"MESSAGE\": \"nobody\"}\nnot json\n");
         QVERIFY(harness->reply(journalPrefix, records));
         QCOMPARE(rowField(*harness, "app"),
             (QStringList {QStringLiteral("kernel"), QStringLiteral("sshd"), QStringLiteral("foo"), QStringLiteral("?")}));
@@ -132,12 +148,36 @@ private Q_SLOTS:
         QCOMPARE(rowField(*harness, "time").first(), QStringLiteral("00:00:01"));
         QVERIFY(!harness->root()->property("querying").toBool());
         harness->root()->setProperty("level", 2);
-        QTRY_VERIFY(harness->command(journalPrefix).endsWith(QLatin1String(" -p 4 -n 5000")));
+        QTRY_VERIFY(harness->command(journalPrefix).contains(QLatin1String(" -p 4 ")));
         const QString encoded
-            = QStringLiteral("{\"__REALTIME_TIMESTAMP\": \"5000000\", \"PRIORITY\": \"3\", \"MESSAGE\": "
+            = QStringLiteral("{\"__CURSOR\": \"c5000000\", \"__REALTIME_TIMESTAMP\": \"5000000\", \"PRIORITY\": \"3\", \"MESSAGE\": "
                              "[226, 156, 147, 32, 111, 108, 195, 169, 32, 27, 91, 49, 109, 98, 27, 91, 48, 109, 32, 255, 33]}\n");
         QVERIFY(harness->reply(journalPrefix, encoded));
         QCOMPARE(rowField(*harness, "msg").constLast(), QStringLiteral("\u2713 ol\u00e9 b \ufffd!"));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
+    void searchKeepsShowingNewEntriesAfterTheClockIsSetBack()
+    {
+        auto harness = started(Form::Planar);
+        QVERIFY(harness);
+        QVERIFY(feed(*harness));
+        harness->root()->setProperty("level", 3);
+        QTRY_VERIFY(!harness->command(journalPrefix).isEmpty());
+        const QString first = harness->command(journalPrefix);
+        QVERIFY(!cursorFile(first).isEmpty());
+        QVERIFY(harness->reply(journalPrefix, record(9000000000000000, QStringLiteral("s=1;i=1"), QStringLiteral("before"))));
+        harness->eval(QStringLiteral("runSearch(false)"));
+        const QString refresh = harness->command(journalPrefix);
+        QVERIFY(!refresh.contains(QLatin1String("--since")));
+        QCOMPARE(cursorFile(refresh), cursorFile(first));
+        QVERIFY(harness->reply(journalPrefix,
+            record(1000000, QStringLiteral("s=1;i=2"), QStringLiteral("after"))
+                + record(1000000, QStringLiteral("s=1;i=2"), QStringLiteral("after"))));
+        QCOMPARE(rowField(*harness, "msg"), (QStringList {QStringLiteral("before"), QStringLiteral("after")}));
+        harness->root()->setProperty("level", 2);
+        QTRY_VERIFY(harness->command(journalPrefix).contains(QLatin1String(" -p 4 ")));
+        QVERIFY(cursorFile(harness->command(journalPrefix)) != cursorFile(first));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
@@ -147,7 +187,7 @@ private Q_SLOTS:
         QVERIFY(harness);
         QVERIFY(feed(*harness));
         harness->root()->setProperty("search", QStringLiteral("it's a.b"));
-        QTRY_VERIFY(harness->command(QStringLiteral("TIDS=")).contains(QLatin1String("--grep 'it'\\''s a\\.b' -n 5000")));
+        QTRY_VERIFY(harness->command(QStringLiteral("TIDS=")).contains(QLatin1String("--grep 'it'\\''s a\\.b' $(test -e ")));
         QVERIFY(harness->command(QStringLiteral("TIDS=")).contains(QLatin1String("grep -iF -- 'it'\\''s a.b'")));
         QVERIFY(harness->reply(QStringLiteral("TIDS="), QString()));
         QCOMPARE(harness->eval(QStringLiteral("rows.count")).toInt(), 0);
