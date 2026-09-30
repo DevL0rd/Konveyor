@@ -106,6 +106,27 @@ private Q_SLOTS:
         QVERIFY(!t.dropHint().has_value());
     }
 
+    void newColumnHintAtAnEdgeStaysHalfOnScreen_data()
+    {
+        QTest::addColumn<bool>("leftEdge");
+        QTest::newRow("left") << true;
+        QTest::newRow("right") << false;
+    }
+
+    void newColumnHintAtAnEdgeStaysHalfOnScreen()
+    {
+        QFETCH(bool, leftEdge);
+        Three t;
+        t.fixture.engine().activateWindow(leftEdge ? t.a : t.c);
+        const Layout::WindowId dragged = leftEdge ? t.c : t.a;
+        QVERIFY(startMove(t.fixture, dragged, QPointF(leftEdge ? 1 : 1919, 540)));
+        const std::optional<QRectF> hint = t.dropHint();
+        QVERIFY(hint.has_value());
+        QVERIFY2(hint->left() >= -hint->width() / 2.0, qPrintable(QString::number(hint->left())));
+        QVERIFY2(hint->right() <= 1920 + hint->width() / 2.0, qPrintable(QString::number(hint->right())));
+        t.fixture.engine().endWindowDrag();
+    }
+
     void theDraggedWindowFadesWhileItIsHeldStill()
     {
         Three t(linearAnimationConfig());

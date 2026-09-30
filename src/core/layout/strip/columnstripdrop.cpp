@@ -107,6 +107,10 @@ std::optional<QRectF> ColumnStrip::dropSlotRect(DropSlot position) const
     } else {
         area->moveLeft(area->x() - scrollPosition());
     }
+    if (position.kind == DropSlot::Kind::NewColumn) {
+        const double half = area->width() / 2.0;
+        area->moveLeft(std::clamp(area->x(), -half, m_area.viewSize.width() - half));
+    }
     return area;
 }
 
