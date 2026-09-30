@@ -6,7 +6,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "harness"))
 
-CHROME = "google-chrome-stable"
+BROWSERS = ("google-chrome-stable", "chromium")
 
 PORTRAIT_WITH_PANEL = """
 output "Virtual-0" {
@@ -24,12 +24,13 @@ output "Virtual-0" {
 def main():
     from nested import run_script
 
-    if shutil.which(CHROME) is None:
-        print(f"SKIP: {CHROME} is not installed")
+    chrome = next((browser for browser in BROWSERS if shutil.which(browser)), None)
+    if chrome is None:
+        print(f"SKIP: none of {', '.join(BROWSERS)} is installed")
         return 77
     launches = "\n".join(
         f'mkdir -p "$KONVEYOR_CLIENT_LOGS/chrome-{label}"\n'
-        f'WAYLAND_DEBUG=client {CHROME} --ozone-platform=wayland --no-first-run --no-default-browser-check --disable-sync --password-store=basic '
+        f'WAYLAND_DEBUG=client {chrome} --ozone-platform=wayland --no-first-run --no-default-browser-check --disable-sync --password-store=basic '
         f'--user-data-dir="$KONVEYOR_CLIENT_LOGS/chrome-{label}" "data:text/html,<title>{label}</title>{label}" > /dev/null 2> "$KONVEYOR_CLIENT_LOGS/{label}.log" &\n'
         f"sleep 6"
         for label in "abcdef"

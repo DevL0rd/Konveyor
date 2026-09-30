@@ -103,6 +103,40 @@ jobs:
             build-coverage/coverage/cpp.json
             build-coverage/coverage/python.json
 
+  nested:
+    name: Nested KWin tests
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install the nested session tools
+        run: >-
+          pacman -Syu --noconfirm --needed git cmake ninja wayland-protocols dbus mesa xorg-xwayland qt6-wayland qt6-declarative
+          python python-dbus python-gobject python-pillow python-xlib plasma-workspace plasma-keyboard breeze libkscreen kcmutils chromium
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Mark checkout as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install Konveyor's dependencies
+        run: extras/packaging/dependencies.sh
+
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --build build
+
+      - name: Run the nested KWin tests as a normal user
+        run: |
+          useradd -m tester
+          chown -R tester: "$GITHUB_WORKSPACE"
+          install -d -m 700 -o tester /tmp/runtime-tester
+          runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester \
+            ctest --test-dir build -L nested --output-on-failure -j2
+
   distros:
     name: Install dependencies and build on ${{ matrix.name }}
     runs-on: ubuntu-latest
