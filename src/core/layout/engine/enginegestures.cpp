@@ -256,12 +256,18 @@ void Engine::updateWindowDrag(const QPointF &pointer, const QString &output)
         }
     }
     move.pointerPos = pointer - d->originOf(move.output);
-    if (move.moving && !move.isFloating) {
-        if (Monitor *monitor = d->monitorByName(move.output)) {
-            d->edgeScrollAt(*monitor, move.pointerPos);
-        }
-    }
+    d->scrollDragEdges();
     d->updateDropHint();
+}
+
+void Engine::Private::scrollDragEdges()
+{
+    if (!windowDrag->moving || windowDrag->isFloating) {
+        return;
+    }
+    if (Monitor *monitor = monitorByName(windowDrag->output)) {
+        edgeScrollAt(*monitor, windowDrag->pointerPos);
+    }
 }
 
 void Engine::Private::moveDragToActiveOutput()

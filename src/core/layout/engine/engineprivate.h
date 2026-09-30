@@ -149,6 +149,7 @@ struct Engine::Private
     void stopEdgeScroll();
     void finishResize();
     void edgeScrollAt(Monitor &monitor, QPointF local);
+    void scrollDragEdges();
     void moveDragToActiveOutput();
     void updateDropHint();
     void interactiveMoveFinish();

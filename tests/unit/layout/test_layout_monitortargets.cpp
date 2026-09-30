@@ -139,10 +139,19 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(t.fixture);
     }
 
-    void workspaceMovedToAnotherMonitorReturnsThereAfterThatMonitorIsReplugged()
+    void movedToAnotherMonitorReturnsThereAfterThatMonitorIsReplugged_data()
     {
+        QTest::addColumn<QString>("action");
+        QTest::newRow("workspace") << QStringLiteral("move-workspace-to-monitor");
+        QTest::newRow("window") << QStringLiteral("move-window-to-monitor");
+        QTest::newRow("column") << QStringLiteral("move-column-to-monitor");
+    }
+
+    void movedToAnotherMonitorReturnsThereAfterThatMonitorIsReplugged()
+    {
+        QFETCH(QString, action);
         ThreeOutputs t;
-        QVERIFY(t.fixture.perform(QStringLiteral("move-workspace-to-monitor"), {Right}).ok);
+        QVERIFY(t.fixture.perform(action, {Right}).ok);
         QCOMPARE(t.fixture.state(t.window).output, Right);
         t.replug(Right, 2);
         QCOMPARE(t.fixture.state(t.window).output, Right);
@@ -199,16 +208,6 @@ private Q_SLOTS:
         QCOMPARE(t.fixture.state(t.window).output, Middle);
         t.fixture.addOutput(Left, outputGeometry(0));
         QCOMPARE(t.fixture.state(t.window).output, Left);
-        VERIFY_INVARIANTS(t.fixture);
-    }
-
-    void movedWindowTakesItsWorkspaceHomeWithIt()
-    {
-        ThreeOutputs t;
-        QVERIFY(t.fixture.perform(QStringLiteral("move-window-to-monitor"), {Right}).ok);
-        QCOMPARE(t.fixture.state(t.window).output, Right);
-        t.replug(Right, 2);
-        QCOMPARE(t.fixture.state(t.window).output, Right);
         VERIFY_INVARIANTS(t.fixture);
     }
 };

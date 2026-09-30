@@ -208,6 +208,70 @@ private Q_SLOTS:
         QVERIFY(!f.fixture.state(f.third).isFloating);
     }
 
+    void floatingActionsWithIdLeaveTheFocusedWindowAlone()
+    {
+        TargetFixture f;
+        const QRectF focusedBefore = f.fixture.frame(f.third);
+        QVERIFY(f.fixture.perform(QStringLiteral("move-window-to-floating"), {}, idProperty(f.first)).ok);
+        f.fixture.advance(1000);
+        const QRectF before = f.fixture.frame(f.first);
+        QList<std::pair<QString, QString>> nudge = idProperty(f.first);
+        nudge.append({QStringLiteral("x"), QStringLiteral("+50")});
+        nudge.append({QStringLiteral("y"), QStringLiteral("-20")});
+        QVERIFY(f.fixture.perform(QStringLiteral("move-floating-window"), {}, nudge).ok);
+        QCOMPARE(f.fixture.frame(f.first).topLeft(), before.topLeft() + QPointF(50, -20));
+        QVERIFY(f.fixture.perform(QStringLiteral("center-window"), {}, idProperty(f.first)).ok);
+        QCOMPARE(f.fixture.frame(f.first).center().x(), 960.0);
+        QVERIFY(f.fixture.perform(QStringLiteral("move-window-to-tiling"), {}, idProperty(f.first)).ok);
+        QVERIFY(!f.fixture.state(f.first).isFloating);
+        QCOMPARE(f.fixture.focused(), std::optional(f.third));
+        QCOMPARE(f.fixture.frame(f.third).size(), focusedBefore.size());
+        VERIFY_INVARIANTS(f.fixture);
+    }
+
+    void stackingActionsWithIdLeaveTheFocusedColumnAlone()
+    {
+        TargetFixture f;
+        const QSizeF focusedBefore = f.fixture.frame(f.third).size();
+        QVERIFY(f.fixture.perform(QStringLiteral("consume-or-expel-window-left"), {}, idProperty(f.second)).ok);
+        QCOMPARE(f.fixture.state(f.second).columnIndex, f.fixture.state(f.first).columnIndex);
+        QVERIFY(f.fixture.perform(QStringLiteral("set-window-height"), {QStringLiteral("300")}, idProperty(f.first)).ok);
+        QCOMPARE(f.fixture.frame(f.first).height(), 300.0);
+        QVERIFY(f.fixture.perform(QStringLiteral("reset-window-height"), {}, idProperty(f.first)).ok);
+        QCOMPARE(f.fixture.frame(f.first).height(), f.fixture.frame(f.second).height());
+        const double even = f.fixture.frame(f.first).height();
+        QVERIFY(f.fixture.perform(QStringLiteral("switch-preset-window-height"), {}, idProperty(f.first)).ok);
+        QVERIFY(f.fixture.frame(f.first).height() != even);
+        QVERIFY(f.fixture.perform(QStringLiteral("switch-preset-window-height-back"), {}, idProperty(f.first)).ok);
+        QVERIFY(f.fixture.perform(QStringLiteral("consume-or-expel-window-right"), {}, idProperty(f.second)).ok);
+        QVERIFY(f.fixture.state(f.second).columnIndex != f.fixture.state(f.first).columnIndex);
+        QCOMPARE(f.fixture.focused(), std::optional(f.third));
+        QCOMPARE(f.fixture.frame(f.third).size(), focusedBefore);
+        VERIFY_INVARIANTS(f.fixture);
+    }
+
+    void ruleOpacityAndUrgencyWithId()
+    {
+        Config::Config config = instantConfig();
+        Config::WindowRule rule = ruleFor(QStringLiteral("a"));
+        rule.opacity = 0.5;
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        const auto first = fixture.add(QStringLiteral("a"));
+        fixture.add(QStringLiteral("b"));
+        QCOMPARE(fixture.state(first).ruleOpacity, 0.5);
+        QVERIFY(fixture.perform(QStringLiteral("toggle-window-rule-opacity"), {}, idProperty(first)).ok);
+        QCOMPARE(fixture.state(first).ruleOpacity, 1.0);
+        QVERIFY(fixture.perform(QStringLiteral("toggle-window-rule-opacity"), {}, idProperty(first)).ok);
+        QCOMPARE(fixture.state(first).ruleOpacity, 0.5);
+        QVERIFY(fixture.perform(QStringLiteral("set-window-urgent"), {}, idProperty(first)).ok);
+        QVERIFY(fixture.state(first).isUrgent);
+        QVERIFY(fixture.perform(QStringLiteral("unset-window-urgent"), {}, idProperty(first)).ok);
+        QVERIFY(!fixture.state(first).isUrgent);
+        QVERIFY(fixture.perform(QStringLiteral("toggle-window-urgent"), {}, idProperty(first)).ok);
+        QVERIFY(fixture.state(first).isUrgent);
+    }
+
     void idPropertyWinsOverTheTargetArgument()
     {
         TargetFixture f;
