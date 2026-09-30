@@ -47,6 +47,8 @@ private:
     qsizetype entryEnd(qsizetype position) const;
     qsizetype attachedCommentStart(qsizetype start, qsizetype lineEnd) const;
     qsizetype commentBlockStart(qsizetype start) const;
+    qsizetype nextLineStart(qsizetype position) const;
+    qsizetype previousLineStart(qsizetype start) const;
     std::pair<qsizetype, qsizetype> ownedRange(const Kdl::Span &span) const;
     QString indentAt(qsizetype position) const;
     QString indentFor(const NodePath &path) const;

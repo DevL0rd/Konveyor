@@ -7,6 +7,15 @@
 #include <QTest>
 
 using namespace Konveyor::Settings;
+using namespace std::chrono_literals;
+
+namespace
+{
+
+constexpr std::chrono::milliseconds NoBurst = 0ms;
+constexpr std::chrono::milliseconds LongBurst = std::chrono::hours(24);
+
+}
 
 class TestSettingsHistory : public QObject
 {
@@ -16,6 +25,7 @@ private Q_SLOTS:
     void undoReturnsSnapshotsNewestFirst();
     void burstKeepsFirstSnapshot();
     void skipsRepeatedSnapshot();
+    void keepsAtMostHundred();
     void clearForgetsEverything();
     void undoEndsBurst();
     void fileRoundTripKeepsBytes();
@@ -26,11 +36,10 @@ private Q_SLOTS:
 
 void TestSettingsHistory::undoReturnsSnapshotsNewestFirst()
 {
-    EditHistory history;
+    EditHistory history(NoBurst);
     QVERIFY(!history.canUndo());
     QVERIFY(!history.undo().has_value());
     history.record(QStringLiteral("a"));
-    QTest::qWait(750);
     history.record(QStringLiteral("b"));
     QVERIFY(history.canUndo());
     QCOMPARE(history.undo().value(), QStringLiteral("b"));
@@ -40,7 +49,7 @@ void TestSettingsHistory::undoReturnsSnapshotsNewestFirst()
 
 void TestSettingsHistory::burstKeepsFirstSnapshot()
 {
-    EditHistory history;
+    EditHistory history(LongBurst);
     history.record(QStringLiteral("a"));
     history.record(QStringLiteral("b"));
     history.record(QStringLiteral("c"));
@@ -50,17 +59,31 @@ void TestSettingsHistory::burstKeepsFirstSnapshot()
 
 void TestSettingsHistory::skipsRepeatedSnapshot()
 {
-    EditHistory history;
+    EditHistory history(NoBurst);
     history.record(QStringLiteral("a"));
-    QTest::qWait(750);
     history.record(QStringLiteral("a"));
     QCOMPARE(history.undo().value(), QStringLiteral("a"));
     QVERIFY(!history.canUndo());
 }
 
+void TestSettingsHistory::keepsAtMostHundred()
+{
+    EditHistory history(NoBurst);
+    for (int index = 0; index < 105; ++index) {
+        history.record(QString::number(index));
+    }
+    QStringList undone;
+    while (const std::optional<QString> snapshot = history.undo()) {
+        undone.append(*snapshot);
+    }
+    QCOMPARE(undone.size(), 100);
+    QCOMPARE(undone.first(), QStringLiteral("104"));
+    QCOMPARE(undone.last(), QStringLiteral("5"));
+}
+
 void TestSettingsHistory::clearForgetsEverything()
 {
-    EditHistory history;
+    EditHistory history(LongBurst);
     history.record(QStringLiteral("a"));
     history.clear();
     QVERIFY(!history.canUndo());
@@ -70,7 +93,7 @@ void TestSettingsHistory::clearForgetsEverything()
 
 void TestSettingsHistory::undoEndsBurst()
 {
-    EditHistory history;
+    EditHistory history(LongBurst);
     history.record(QStringLiteral("a"));
     history.record(QStringLiteral("b"));
     QCOMPARE(history.undo().value(), QStringLiteral("a"));

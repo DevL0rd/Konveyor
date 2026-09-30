@@ -13,6 +13,8 @@ add_library(konveyor_settings_model STATIC
     store/configfile.h
     store/edithistory.cpp
     store/edithistory.h
+    store/includeoverrides.cpp
+    store/includeoverrides.h
     values/configvalues.h
     values/globalvalues.cpp
     values/layoutvalues.cpp

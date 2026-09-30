@@ -46,7 +46,7 @@ void TestSettingsDocumentFormat::removeTakesCommentsAboveLastEntry()
         QStringLiteral("layout {\n    gaps 4\n}\n"));
     QCOMPARE(edited(QStringLiteral("// header\nlayout {\n}\n\n// widgets\nhide-desktop-widgets\n\nfill-panels-on-maximize\n"),
                  [](ConfigDocument &d) { return d.remove(QStringLiteral("hide-desktop-widgets")); }),
-        QStringLiteral("// header\nlayout {\n}\n\n\nfill-panels-on-maximize\n"));
+        QStringLiteral("// header\nlayout {\n}\n\nfill-panels-on-maximize\n"));
 }
 
 void TestSettingsDocumentFormat::removeKeepsCommentsAboveWhenMoreFollow()
@@ -66,7 +66,19 @@ void TestSettingsDocumentFormat::removeKeepsBlockComment()
 void TestSettingsDocumentFormat::removeKeepsBlankLinesAround()
 {
     QCOMPARE(edited(QStringLiteral("a\n\nb\n\nc\n"), [](ConfigDocument &d) { return d.remove(QStringLiteral("b")); }),
-        QStringLiteral("a\n\n\nc\n"));
+        QStringLiteral("a\n\nc\n"));
+    QCOMPARE(
+        edited(QStringLiteral("a\n\nb\nc\n"), [](ConfigDocument &d) { return d.remove(QStringLiteral("b")); }), QStringLiteral("a\n\nc\n"));
+    QCOMPARE(
+        edited(QStringLiteral("a\nb\n\nc\n"), [](ConfigDocument &d) { return d.remove(QStringLiteral("b")); }), QStringLiteral("a\n\nc\n"));
+    QCOMPARE(
+        edited(QStringLiteral("a\n\nb\n\n"), [](ConfigDocument &d) { return d.remove(QStringLiteral("a")); }), QStringLiteral("b\n\n"));
+    QCOMPARE(edited(QStringLiteral("x {\n\n    a\n\n    b\n}\n"), [](ConfigDocument &d) { return d.remove(QStringLiteral("x/a")); }),
+        QStringLiteral("x {\n\n    b\n}\n"));
+    QCOMPARE(edited(QStringLiteral("x {\n    a\n\n    b\n}\n"), [](ConfigDocument &d) { return d.remove(QStringLiteral("x/a")); }),
+        QStringLiteral("x {\n    b\n}\n"));
+    QCOMPARE(edited(QStringLiteral("a\r\n\r\nb\r\n\r\nc\r\n"), [](ConfigDocument &d) { return d.remove(QStringLiteral("b")); }),
+        QStringLiteral("a\r\n\r\nc\r\n"));
     QCOMPARE(edited(QStringLiteral("a\nb"), [](ConfigDocument &d) { return d.remove(QStringLiteral("b")); }), QStringLiteral("a\n"));
 }
 

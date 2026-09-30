@@ -1,5 +1,6 @@
 #include "document/configdocument.h"
 
+#include "config/forceresizable.h"
 #include "document/nodecodec.h"
 #include "kdl/characters.h"
 
@@ -114,9 +115,27 @@ EditResult ConfigDocument::remove(const QString &path)
         replace(text, span.start, end, QString());
         return commit(std::move(text), QString());
     }
-    const qsizetype lineEnd = std::min(end + ((end + 1 < size() && at(end) == U'\r' && at(end + 1) == U'\n') ? 2 : 1), size());
-    replace(text, attachedCommentStart(start, lineEnd), lineEnd, QString());
+    const qsizetype lineEnd = nextLineStart(end);
+    const qsizetype from = attachedCommentStart(start, lineEnd);
+    const qsizetype following = nextLineStart(lineEnd);
+    const QString above = from > 0 ? slice(previousLineStart(from), from).trimmed() : QString();
+    const bool blankAround
+        = lineEnd < size() && slice(lineEnd, following).trimmed().isEmpty() && (above.isEmpty() || above.endsWith(QLatin1Char('{')));
+    replace(text, from, blankAround ? following : lineEnd, QString());
     return commit(std::move(text), QString());
+}
+
+qsizetype ConfigDocument::nextLineStart(qsizetype position) const
+{
+    while (position < size() && !Kdl::isNewline(at(position))) {
+        ++position;
+    }
+    return std::min(position + ((position + 1 < size() && at(position) == U'\r' && at(position + 1) == U'\n') ? 2 : 1), size());
+}
+
+qsizetype ConfigDocument::previousLineStart(qsizetype start) const
+{
+    return lineStart(start - ((start > 1 && at(start - 1) == U'\n' && at(start - 2) == U'\r') ? 2 : 1));
 }
 
 qsizetype ConfigDocument::size() const
@@ -151,11 +170,7 @@ qsizetype ConfigDocument::entryEnd(qsizetype position) const
 
 qsizetype ConfigDocument::attachedCommentStart(qsizetype start, qsizetype lineEnd) const
 {
-    qsizetype nextLineEnd = lineEnd;
-    while (nextLineEnd < size() && !Kdl::isNewline(at(nextLineEnd))) {
-        ++nextLineEnd;
-    }
-    const QString nextLine = slice(lineEnd, nextLineEnd).trimmed();
+    const QString nextLine = slice(lineEnd, nextLineStart(lineEnd)).trimmed();
     if (!nextLine.isEmpty() && !nextLine.startsWith(QLatin1Char('}'))) {
         return start;
     }
@@ -165,7 +180,7 @@ qsizetype ConfigDocument::attachedCommentStart(qsizetype start, qsizetype lineEn
 qsizetype ConfigDocument::commentBlockStart(qsizetype start) const
 {
     while (start > 0) {
-        const qsizetype previous = lineStart(start - ((start > 1 && at(start - 1) == U'\n' && at(start - 2) == U'\r') ? 2 : 1));
+        const qsizetype previous = previousLineStart(start);
         if (!slice(previous, start).trimmed().startsWith(QLatin1String("//"))) {
             break;
         }
@@ -262,6 +277,14 @@ EditResult ConfigDocument::insertChild(const NodePath &parentPath, const QVarian
     NodePath resultPath = parentPath;
     resultPath.append(PathSegment {name, countNamed(childrenOf(m_document, parent), name)});
     std::u32string text = m_text;
+    if (!parent && !m_document.nodes.isEmpty() && Config::isForceResizableInclude(m_document.nodes.last())) {
+        const qsizetype includeStart = m_document.nodes.last().span.start;
+        const qsizetype line = lineStart(includeStart);
+        const bool ownsLine = slice(line, includeStart).trimmed().isEmpty();
+        const qsizetype position = ownsLine ? line : includeStart;
+        replace(text, position, position, writeNode(node, QString()) + (ownsLine ? QStringLiteral("\n\n") : QStringLiteral("\n")));
+        return commit(std::move(text), formatPath(resultPath));
+    }
     if (!parent) {
         QString prefix;
         if (!m_text.empty()) {

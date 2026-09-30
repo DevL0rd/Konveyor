@@ -79,6 +79,7 @@ private:
     void refresh();
     void watch();
     void fileChanged();
+    void warnIfOverridden(const QString &name, const QStringList &paths);
 
     ConfigDocument m_document;
     ConfigDocument m_defaults;

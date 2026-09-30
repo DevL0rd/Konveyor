@@ -6,14 +6,17 @@ namespace Konveyor::Settings
 namespace
 {
 
-constexpr qint64 BurstMs = 700;
 constexpr qsizetype MaxSnapshots = 100;
 
 }
 
+EditHistory::EditHistory(std::chrono::milliseconds burst)
+    : m_burst(burst)
+{ }
+
 void EditHistory::record(const QString &before)
 {
-    const bool inBurst = m_lastRecord.isValid() && m_lastRecord.elapsed() < BurstMs;
+    const bool inBurst = m_lastRecord.isValid() && m_lastRecord.durationElapsed() < m_burst;
     m_lastRecord.restart();
     if (inBurst && !m_snapshots.isEmpty()) {
         return;
