@@ -39,6 +39,71 @@ double totalAutoWeight(const std::vector<WindowHeight> &heights)
     return total;
 }
 
+struct AutoBounds
+{
+    double lower = 0;
+    double upper = 0;
+};
+
+double fillLevel(const std::vector<WindowHeight> &heights, const std::vector<AutoBounds> &bounds, double available)
+{
+    const auto filled = [&](double level) {
+        double total = 0.0;
+        for (std::size_t i = 0; i < heights.size(); ++i) {
+            if (heights[i].isAuto()) {
+                total += std::clamp(level * heights[i].value, bounds[i].lower, bounds[i].upper);
+            }
+        }
+        return total;
+    };
+    double low = 0.0;
+    double high = 0.0;
+    for (std::size_t i = 0; i < heights.size(); ++i) {
+        if (heights[i].isAuto() && heights[i].value > 0.0) {
+            high = std::max(high, bounds[i].upper / heights[i].value);
+        }
+    }
+    if (filled(high) < available) {
+        return high * 2.0;
+    }
+    for (int step = 0; step < 64; ++step) {
+        const double middle = (low + high) / 2.0;
+        if (filled(middle) < available) {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    return high;
+}
+
+double spaceLeft(const std::vector<WindowHeight> &heights, double available)
+{
+    for (const WindowHeight &height : heights) {
+        available -= height.isAuto() ? 0.0 : height.value;
+    }
+    return available;
+}
+
+void holdAtBounds(
+    std::vector<WindowHeight> &heights, const std::vector<QSizeF> &minSizes, const std::vector<QSizeF> &maxSizes, double available)
+{
+    std::vector<AutoBounds> bounds;
+    bounds.reserve(heights.size());
+    for (std::size_t i = 0; i < heights.size(); ++i) {
+        const double lower = minSizes[i].height();
+        bounds.push_back({lower, std::max(lower, maxSizes[i].height() > 0.0 ? maxSizes[i].height() : MaxPixelSize)});
+    }
+    const double level = fillLevel(heights, bounds, available);
+    for (std::size_t i = 0; i < heights.size(); ++i) {
+        const double share = level * heights[i].value;
+        if (!heights[i].isAuto() || (share > bounds[i].lower && share < bounds[i].upper)) {
+            continue;
+        }
+        heights[i] = WindowHeight::fixed(share <= bounds[i].lower ? bounds[i].lower : bounds[i].upper);
+    }
+}
+
 void applyExactConstraints(std::vector<WindowHeight> &heights, const std::vector<QSizeF> &minSizes, const std::vector<QSizeF> &maxSizes)
 {
     for (std::size_t i = 0; i < heights.size(); ++i) {
@@ -54,40 +119,6 @@ void applyExactConstraints(std::vector<WindowHeight> &heights, const std::vector
         }
         heights[i].value = std::max(h, minSizes[i].height());
     }
-}
-
-struct HeightLimits
-{
-    const std::vector<QSizeF> &minSizes;
-    const std::vector<QSizeF> &maxSizes;
-};
-
-std::optional<double> limitedHeight(const HeightLimits &limits, std::size_t i, double autoHeight)
-{
-    if (limits.minSizes[i].height() > autoHeight) {
-        return limits.minSizes[i].height();
-    }
-    if (limits.maxSizes[i].height() > 0.0 && limits.maxSizes[i].height() < autoHeight) {
-        return limits.maxSizes[i].height();
-    }
-    return std::nullopt;
-}
-
-std::optional<std::pair<std::size_t, double>> firstUnsatisfiedHeight(
-    const std::vector<Tile> &tiles, const std::vector<WindowHeight> &heights, const HeightLimits &limits, double left, double weightLeft)
-{
-    for (std::size_t i = 0; i < heights.size(); ++i) {
-        if (!heights[i].isAuto()) {
-            continue;
-        }
-        const double autoHeight = left * (heights[i].value / weightLeft);
-        if (const std::optional<double> limited = limitedHeight(limits, i, autoHeight)) {
-            return std::pair(i, *limited);
-        }
-        left -= autoHeightFor(tiles[i], autoHeight);
-        weightLeft -= heights[i].value;
-    }
-    return std::nullopt;
 }
 
 }
@@ -214,20 +245,11 @@ void Column::distributeHeights(
 {
     applyExactConstraints(heights, minSizes, maxSizes);
     const double gaps = m_options->layout.gaps;
-    double heightLeft = m_area.workingArea.height() - gaps * static_cast<double>(tiles.size() + 1);
-    for (const WindowHeight &h : heights) {
-        heightLeft -= h.isAuto() ? 0.0 : h.value;
-    }
+    const double available = m_area.workingArea.height() - gaps * static_cast<double>(tiles.size() + 1);
+    holdAtBounds(heights, minSizes, maxSizes, spaceLeft(heights, available));
+
+    double heightLeft = spaceLeft(heights, available);
     double totalWeight = totalAutoWeight(heights);
-
-    const HeightLimits limits {minSizes, maxSizes};
-    while (const auto unsatisfied = firstUnsatisfiedHeight(tiles, heights, limits, heightLeft, totalWeight)) {
-        const auto [i, height] = *unsatisfied;
-        totalWeight -= heights[i].value;
-        heights[i] = WindowHeight::fixed(height);
-        heightLeft -= height;
-    }
-
     for (std::size_t i = 0; i < heights.size(); ++i) {
         if (!heights[i].isAuto()) {
             continue;

@@ -250,6 +250,49 @@ private Q_SLOTS:
         QVERIFY(fixture.frame(id).width() > 300.0);
         VERIFY_INVARIANTS(fixture);
     }
+
+    void spaceLeftByAMaximumGoesToAWindowHeldAtItsMinimum()
+    {
+        Fixture fixture;
+        Layout::WindowProperties tall = makeWindow(QStringLiteral("tall"));
+        tall.minSize = QSizeF(0, 600);
+        const auto first = fixture.addWith(tall);
+        Layout::WindowProperties small = makeWindow(QStringLiteral("small"));
+        small.maxSize = QSizeF(0, 200);
+        const auto second = fixture.addWith(small);
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        QCOMPARE(fixture.frame(second).height(), 200.0);
+        QCOMPARE(fixture.frame(first).height(), 1080.0 - 3 * 16.0 - 200.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void windowsAllAtTheirMaximumLeaveTheRestEmpty()
+    {
+        Fixture fixture;
+        Layout::WindowProperties small = makeWindow(QStringLiteral("small"));
+        small.maxSize = QSizeF(0, 300);
+        const auto first = fixture.addWith(small);
+        const auto second = fixture.addWith(small);
+        const auto third = fixture.addWith(small);
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        fixture.perform(QStringLiteral("focus-column-left"));
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        for (const auto id : {first, second, third}) {
+            QCOMPARE(fixture.frame(id).height(), 300.0);
+        }
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void minimumHeightWinsOverASmallerMaximum()
+    {
+        Fixture fixture;
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("odd"));
+        properties.minSize = QSizeF(0, 600);
+        properties.maxSize = QSizeF(0, 400);
+        const auto id = fixture.addWith(properties);
+        QCOMPARE(fixture.frame(id).height(), 600.0);
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutColumns)
