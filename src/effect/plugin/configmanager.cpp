@@ -87,7 +87,7 @@ QString ConfigManager::load(const QString &path)
         const QString message = result.error().toString();
         notifyFailure(message);
         if (target == m_path) {
-            watch({target});
+            watch(result.error().files);
         }
         if (!m_loadedOnce) {
             Q_EMIT configChanged(m_config);

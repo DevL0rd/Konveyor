@@ -1,5 +1,6 @@
 #include "plugin/configmanager.h"
 
+#include <QDir>
 #include <QFile>
 #include <QSaveFile>
 #include <QSignalSpy>
@@ -45,6 +46,8 @@ private Q_SLOTS:
     void reloadsForAnEditNotYetReportedWhenALoadFinishes();
     void keepsWatchingAConfigReplacedByRename();
     void watchesAnIncludeAddedLater();
+    void reloadsWhenABrokenIncludeIsFixed_data();
+    void reloadsWhenABrokenIncludeIsFixed();
 
 private:
     QString filePath(const QString &name) const;
@@ -105,6 +108,30 @@ void TestConfigManager::watchesAnIncludeAddedLater()
     QTRY_COMPARE(manager.config().layout.gaps, 5.0);
     QVERIFY(writeInPlace(filePath(QStringLiteral("extra.kdl")), gapsConfig(6)));
     QTRY_COMPARE(manager.config().layout.gaps, 6.0);
+}
+
+void TestConfigManager::reloadsWhenABrokenIncludeIsFixed_data()
+{
+    QTest::addColumn<QString>("include");
+    QTest::newRow("same folder") << QStringLiteral("extra.kdl");
+    QTest::newRow("sub folder") << QStringLiteral("parts/extra.kdl");
+}
+
+void TestConfigManager::reloadsWhenABrokenIncludeIsFixed()
+{
+    QFETCH(QString, include);
+    QVERIFY(QDir(m_dir->path()).mkpath(QStringLiteral("parts")));
+    QVERIFY(writeInPlace(filePath(include), gapsConfig(5)));
+    QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), gapsConfig(1) + QStringLiteral("include \"%1\"\n").arg(include)));
+    ConfigManager manager;
+    manager.start();
+    QCOMPARE(manager.config().layout.gaps, 5.0);
+    QSignalSpy loaded(&manager, &ConfigManager::configLoaded);
+    QVERIFY(writeInPlace(filePath(include), QStringLiteral("layout {\n")));
+    QVERIFY(loaded.wait());
+    QCOMPARE(loaded.last().first().toBool(), true);
+    QVERIFY(writeInPlace(filePath(include), gapsConfig(7)));
+    QTRY_COMPARE(manager.config().layout.gaps, 7.0);
 }
 
 QTEST_GUILESS_MAIN(TestConfigManager)
