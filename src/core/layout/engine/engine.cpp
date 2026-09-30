@@ -219,12 +219,16 @@ void Engine::tickAnimations()
     for (Workspace &workspace : d->orphanWorkspaces) {
         workspace.tickAnimations();
     }
+    if (d->windowDrag && d->windowDrag->tile) {
+        d->windowDrag->tile->tickAnimations();
+    }
     d->refresh();
 }
 
 bool Engine::isAnimating() const
 {
-    return d->edgeScrolling || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
+    const bool dragAnimating = d->windowDrag && d->windowDrag->tile && d->windowDrag->tile->isAnimating();
+    return d->edgeScrolling || dragAnimating || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
 }
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area)

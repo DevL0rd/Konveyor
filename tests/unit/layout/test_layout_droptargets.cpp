@@ -106,6 +106,24 @@ private Q_SLOTS:
         QVERIFY(!t.dropHint().has_value());
     }
 
+    void theDraggedWindowFadesWhileItIsHeldStill()
+    {
+        Three t(linearAnimationConfig());
+        QVERIFY(startMove(t.fixture, t.c, QPointF(700, 500)));
+        t.fixture.advance(1000);
+        QVERIFY(!t.fixture.engine().isAnimating());
+        QCOMPARE(t.fixture.state(t.c).renderAlpha, 0.75);
+        t.fixture.engine().toggleWindowDragFloating();
+        QVERIFY(t.fixture.engine().isAnimating());
+        t.fixture.advance(100);
+        QVERIFY(t.fixture.engine().isAnimating());
+        QVERIFY(t.fixture.state(t.c).renderAlpha > 0.75 && t.fixture.state(t.c).renderAlpha < 1.0);
+        t.fixture.advance(1000);
+        QVERIFY(!t.fixture.engine().isAnimating());
+        QCOMPARE(t.fixture.state(t.c).renderAlpha, 1.0);
+        t.fixture.engine().endWindowDrag();
+    }
+
     void noDropHintWhenTheInsertHintIsOff()
     {
         Three t(withoutInsertHint());
