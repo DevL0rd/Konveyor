@@ -10,7 +10,7 @@ sys.path.insert(0, str(HERE / "harness"))
 def main():
     from nested import run_runner
 
-    return run_runner(HERE / "runners" / "dbus.py", timeout=300, notifications=True)
+    return run_runner(HERE / "runners" / "dbus_api.py", timeout=300, notifications=True)
 
 
 if __name__ == "__main__":
