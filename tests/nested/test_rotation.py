@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Rotate the output to portrait and back, then change its scale, and check the row follows the new logical size."""
 import sys
 from pathlib import Path
 

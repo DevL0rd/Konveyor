@@ -35,6 +35,31 @@ def rotate(orientation, settled):
     return output_logical()
 
 
+def rescale(scale, settled):
+    output = json.loads(dbus("Outputs"))[0]["name"]
+    subprocess.run(["kscreen-doctor", f"output.{output}.scale.{scale}"], capture_output=True, text=True)
+    wait_for(lambda: settled(output_logical()), 60)
+    return output_logical()
+
+
+def frame_heights():
+    return {window["title"]: round(window["layout"]["tile_size"][1]) for window in json.loads(dbus("Windows"))}
+
+
+def check_rescale(problems, widths):
+    logical = rescale("1.5", lambda screen: screen["scale"] == 1.5)
+    wait_for(lambda: all(height == logical["height"] - 32 for height in frame_heights().values()), 30)
+    print(f"scale 1.5 {logical}: heights {frame_heights()}")
+    if (logical["width"], logical["height"]) != (1280, 720):
+        problems.append(f"Outputs does not report the 1280x720 logical size at scale 1.5: {logical}")
+    if any(height != logical["height"] - 32 for height in frame_heights().values()):
+        problems.append(f"tiles do not fill the new logical height after rescaling: {frame_heights()}")
+    rescale("1", lambda screen: screen["scale"] == 1)
+    wait_for(lambda: sorted(width for _, _, width, _ in tiles().values()) == widths, 30)
+    if sorted(width for _, _, width, _ in tiles().values()) != widths:
+        problems.append(f"column widths did not return after scaling back: {tiles()}")
+
+
 def columns(current):
     return len({x for x, _, _, _ in current.values()})
 
@@ -64,6 +89,7 @@ def main():
         problems.append(f"expected {len(before)} columns after rotating back, got {columns(after)}")
     if sorted(width for _, _, width, _ in after.values()) != widths:
         problems.append("column widths did not return to the landscape widths")
+    check_rescale(problems, widths)
     for problem in problems:
         print("  PROBLEM " + problem)
     print("RESULT:", "FAIL" if problems else "PASS")
