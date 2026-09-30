@@ -25,6 +25,8 @@ public:
     explicit ConfigDouble(QObject *parent)
         : QQmlPropertyMap(this, parent)
     { }
+    Q_INVOKABLE void writeConfig() { ++writes; }
+    int writes = 0;
 };
 
 class PlasmoidDouble : public QObject
@@ -42,7 +44,7 @@ class PlasmoidDouble : public QObject
 
 public:
     explicit PlasmoidDouble(const QString &pluginId, const QString &iconName, QObject *parent = nullptr);
-    QQmlPropertyMap *configuration() const { return m_configuration; }
+    ConfigDouble *configuration() const { return m_configuration; }
     Q_INVOKABLE QObject *internalAction(const QString &name);
     ActionDouble *action(const QString &name) const { return m_actions.value(name); }
 

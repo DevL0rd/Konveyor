@@ -108,6 +108,7 @@ void PlasmoidHarness::prepareEnvironment()
     qputenv("QML_IMPORT_PATH", doubles.toUtf8());
     qputenv("XDG_CONFIG_DIRS", QString(root + QStringLiteral("/etc")).toUtf8());
     qputenv("QML_XHR_ALLOW_FILE_READ", "1");
+    qputenv("TZ", "UTC");
     qputenv("QT_QPA_PLATFORM", "offscreen");
     KLocalizedString::setApplicationDomain("konveyor-widget-tests");
 }
