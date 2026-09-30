@@ -25,21 +25,16 @@ CONFIG = textwrap.dedent("""\
 
 SESSION = textwrap.dedent("""\
     export QT_QPA_PLATFORM=wayland
-    qml6 {client} -- alpha 600 400 &
-    sleep 3
-    qml6 {client} -- beta 600 400 &
-    sleep 4
-    python3 {report} > "$KONVEYOR_REPORT"
+    python3 {clients} client.qml alpha beta && python3 {report} > "$KONVEYOR_REPORT"
 """)
 
 
 def main():
     session = NestedSession(config_kdl=CONFIG)
     report = session.root / "report.json"
-    client = Path(__file__).resolve().parent / "clients" / "client.qml"
-    reporter = Path(__file__).resolve().parent / "harness" / "report.py"
-    script = SESSION.format(client=client, report=reporter)
-    session.start(f'export KONVEYOR_REPORT="{report}"\n' + script)
+    harness = Path(__file__).resolve().parent / "harness"
+    script = SESSION.format(clients=harness / "clients.py", report=harness / "report.py")
+    session.start(f'export KONVEYOR_REPORT="{report}"\nexport KONVEYOR_KWIN_LOG="{session.log_path}"\n' + script)
     try:
         session.wait(timeout=120)
     finally:

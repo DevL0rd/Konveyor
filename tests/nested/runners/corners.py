@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
+from kwinsession import wait_for
 from screenshot import capture_workspace
 
 
@@ -16,7 +17,7 @@ def windows():
     return json.loads(output)
 
 
-def main():
+def corner_problems():
     image = capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
     problems = []
     checked = 0
@@ -36,6 +37,12 @@ def main():
             problems.append(f"{window.get('title')}: window content is missing")
     if checked == 0:
         problems.append("no window was fully on screen")
+    return problems
+
+
+def main():
+    wait_for(lambda: not corner_problems(), 60)
+    problems = corner_problems()
     for problem in problems:
         print("  PROBLEM " + problem)
     print("RESULT:", "FAIL" if problems else "PASS")

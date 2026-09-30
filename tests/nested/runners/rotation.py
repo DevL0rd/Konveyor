@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 import json
 import subprocess
-import time
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
+
+from kwinsession import wait_for
 
 
 def dbus(method, *args):
@@ -19,11 +24,15 @@ def tiles():
     return out
 
 
-def rotate(orientation):
+def output_logical():
+    return json.loads(dbus("Outputs"))[0]["logical"]
+
+
+def rotate(orientation, settled):
     output = json.loads(dbus("Outputs"))[0]["name"]
     subprocess.run(["kscreen-doctor", f"output.{output}.rotation.{orientation}"], capture_output=True, text=True)
-    time.sleep(3)
-    return json.loads(dbus("Outputs"))[0]["logical"]
+    wait_for(lambda: settled(output_logical(), tiles()), 60)
+    return output_logical()
 
 
 def columns(current):
@@ -35,7 +44,8 @@ def main():
     before = tiles()
     focused = [title for title, tile in before.items() if tile[3]]
     print(f"landscape: {before}")
-    logical = rotate("left")
+    logical = rotate("left", lambda screen, current: screen["width"] < screen["height"]
+                     and all(width >= screen["width"] * 0.9 for _, _, width, _ in current.values()))
     portrait = tiles()
     print(f"portrait {logical['width']}x{logical['height']}: {portrait}")
     if logical["width"] >= logical["height"]:
@@ -46,12 +56,13 @@ def main():
         problems.append("portrait columns are not full width")
     if [title for title, tile in portrait.items() if tile[3]] != focused:
         problems.append("focus moved while rotating to portrait")
-    rotate("normal")
+    widths = sorted(width for _, _, width, _ in before.values())
+    rotate("normal", lambda screen, current: sorted(width for _, _, width, _ in current.values()) == widths)
     after = tiles()
     print(f"landscape again: {after}")
     if columns(after) != len(before):
         problems.append(f"expected {len(before)} columns after rotating back, got {columns(after)}")
-    if sorted(width for _, _, width, _ in after.values()) != sorted(width for _, _, width, _ in before.values()):
+    if sorted(width for _, _, width, _ in after.values()) != widths:
         problems.append("column widths did not return to the landscape widths")
     for problem in problems:
         print("  PROBLEM " + problem)

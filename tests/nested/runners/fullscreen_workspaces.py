@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import json
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from kwinsession import activate, active_title, konveyor_action, qdbus, run_script, window_state
+from kwinsession import activate, active_title, konveyor_action, managed_titles, qdbus, run_script, wait_for, window_state
 
 GAME = sys.argv[1]
 MAKE_FULLSCREEN = "--make-fullscreen" in sys.argv[2:]
@@ -23,7 +22,7 @@ def switch_desktop(index):
 
 
 def expect(step, index, title, problems):
-    time.sleep(2)
+    wait_for(lambda: focused_workspace() == index and active_title() == title, 60)
     workspace, active = focused_workspace(), active_title()
     print(f"{step}: workspace {workspace}, active {active}")
     if workspace != index or active != title:
@@ -32,12 +31,11 @@ def expect(step, index, title, problems):
 
 def main():
     problems = []
-    time.sleep(4)
+    wait_for(lambda: GAME in managed_titles(), 60)
     activate(GAME)
-    time.sleep(2)
     if MAKE_FULLSCREEN:
         konveyor_action("fullscreen-window")
-        time.sleep(2)
+    wait_for(lambda: (window_state(GAME) or "").startswith("true|"), 60)
     konveyor_action("move-window-to-workspace", "2")
     expect("moved to workspace 2", 2, GAME, problems)
     state = window_state(GAME)

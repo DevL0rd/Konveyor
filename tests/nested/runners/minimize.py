@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from kwinsession import activate, for_window, konveyor_action, konveyor_windows, run_script
+from kwinsession import activate, for_window, konveyor_action, konveyor_windows, run_script, wait_for
 
 
 def layout():
@@ -15,7 +14,7 @@ def layout():
 def set_minimized(title, minimized):
     statement = "w.minimized = true;" if minimized else "w.minimized = false; workspace.activeWindow = w;"
     run_script(for_window(title, statement))
-    time.sleep(1.5)
+    wait_for(lambda: (title in layout()) != minimized, 60)
 
 
 def check_round_trip(title, problems):
@@ -35,16 +34,14 @@ def check_round_trip(title, problems):
 def main():
     problems = []
     activate("B")
-    time.sleep(1.0)
     minimizable = run_script(for_window("B", 'print("MARK|" + w.minimizable);'))
     if minimizable != ["true"]:
         problems.append(f"windows are not minimizable by default ({minimizable})")
     print("start:", layout())
     check_round_trip("B", problems)
     activate("C")
-    time.sleep(1.0)
     konveyor_action("consume-or-expel-window-left")
-    time.sleep(1.5)
+    wait_for(lambda: layout()["C"][0] == layout()["B"][0], 60)
     print("C stacked under B:", layout())
     check_round_trip("C", problems)
     for problem in problems:

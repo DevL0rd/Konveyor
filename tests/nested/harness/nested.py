@@ -100,7 +100,6 @@ class NestedSession:
         env["KWIN_WAYLAND_NO_PERMISSION_CHECKS"] = "1"
         env["QT_LOGGING_RULES"] = "kwin_*.debug=false"
         env["QT_FORCE_STDERR_LOGGING"] = "1"
-        env["KSCREEN_BACKEND"] = "KWayland"
         env["KSCREEN_BACKEND_INPROCESS"] = "1"
         return env
 

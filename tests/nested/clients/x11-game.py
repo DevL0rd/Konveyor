@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import sys
-import time
 
 from Xlib import X, Xatom, Xutil, display
 from Xlib.protocol import event
@@ -37,11 +36,13 @@ def main():
         use_take_focus(conn, window)
     window.map()
     conn.flush()
-    time.sleep(1.5)
-    request_fullscreen(conn, root, window, state, fullscreen)
+    mapped = False
     while True:
         event_ = conn.next_event()
-        if event_.type == X.PropertyNotify and event_.atom == state:
+        if event_.type == X.MapNotify and not mapped:
+            mapped = True
+            request_fullscreen(conn, root, window, state, fullscreen)
+        elif event_.type == X.PropertyNotify and event_.atom == state:
             current = window.get_full_property(state, Xatom.ATOM)
             if current is None or fullscreen not in current.value:
                 request_fullscreen(conn, root, window, state, fullscreen)

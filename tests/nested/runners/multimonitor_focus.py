@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+import json
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from kwinsession import activate, active_title, konveyor_action, konveyor_windows, run_script
+from fakepointer import move
+from kwinsession import activate, active_title, for_window, konveyor, konveyor_action, konveyor_windows, open_client, run_script, wait_for
 
 
 def outputs():
@@ -35,17 +36,33 @@ def engine_focus():
     return next((window.get("title") for window in konveyor_windows() if window.get("is_focused")), None)
 
 
+def placed(title):
+    window = next((window for window in konveyor_windows() if window["title"] == title), None)
+    frame = run_script(for_window(title, 'print("MARK|" + w.frameGeometry.x + "|" + w.frameGeometry.width);'))
+    if not window or not frame:
+        return False
+    x, width = (float(value) for value in frame[0].split("|"))
+    return abs(x - window["layout"]["tile_pos_in_workspace_view"][0]) < 1 and abs(width - window["layout"]["tile_size"][0]) < 1
+
+
 def perform(name, *arguments):
     konveyor_action(name, *arguments)
-    time.sleep(1.2)
+    wait_for(lambda: placed(engine_focus()), 60)
+
+
+def engine_output():
+    focused = json.loads(konveyor("FocusedOutput"))
+    return focused[0]["name"] if focused else None
 
 
 def focus(title):
     activate(title)
-    time.sleep(1.2)
+    if not wait_for(lambda: engine_focus() == title and placed(title) and engine_output() == output_at(frame_center(title)), 60):
+        print(f"{title} activated, but the layout focused {engine_focus()} on {engine_output()}")
 
 
 def check_focus(step, expected, expected_output, problems):
+    wait_for(lambda: active_title() == engine_focus() == expected and active_output() == expected_output, 60)
     kwin, engine, screen = active_title(), engine_focus(), active_output()
     print(f"{step}: kwin={kwin} engine={engine} active output={screen}")
     if kwin != expected or engine != expected:
@@ -64,8 +81,8 @@ def cross_edge(problems, secondary, primary, far, near, direction, back):
         return
     perform(f"focus-column-{direction}")
     check_focus(f"focus-column-{direction} from {far}", near, primary, problems)
-    time.sleep(1.5)
-    check_focus(f"{near} a moment later", near, primary, problems)
+    wait_for(lambda: placed(near), 60)
+    check_focus(f"{near} once it settled", near, primary, problems)
     perform(f"focus-column-{back}")
     check_focus(f"focus-column-{back} back to {far}", far, primary, problems)
 
@@ -78,6 +95,12 @@ def main():
         print("RESULT: FAIL")
         return
     left, right = names[0], names[1]
+    move(outputs()[left][0] + 400, 540, settle=False)
+    for title in ("A", "B", "C"):
+        open_client(title)
+        wait_for(lambda: placed(title) and active_title() == title, 60)
+        if output_at(frame_center(title)) != left:
+            problems.append(f"setup: {title} opened on {output_at(frame_center(title))} with the pointer on {left}")
     for title in ("B", "C"):
         focus(title)
         perform("move-column-to-monitor-right")

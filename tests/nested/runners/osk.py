@@ -2,13 +2,12 @@
 import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from fakepointer import click
-from kwinsession import active_title, konveyor_action, konveyor_windows, run_script
+from kwinsession import active_title, konveyor_action, konveyor_windows, run_script, wait_for
 from screenshot import capture_workspace
 
 
@@ -26,6 +25,20 @@ def frames():
     return placed
 
 
+def at_targets():
+    placed = frames()
+    for window in konveyor_windows():
+        target = (*window["layout"]["tile_pos_in_workspace_view"], *window["layout"]["tile_size"])
+        if window["title"] not in placed or any(abs(a - b) > 1 for a, b in zip(placed[window["title"]], target)):
+            return False
+    return True
+
+
+def typed_lines():
+    with open(os.environ["KONVEYOR_KWIN_LOG"], errors="replace") as log:
+        return [line.strip() for line in log if "konveyor-test-typed:" in line]
+
+
 def panel_top():
     printed = run_script('for (const w of workspace.stackingOrder) { if (w.inputMethod) { print("MARK|" + w.frameGeometry.y + "|" + w.frameGeometry.height); } }')
     return tuple(float(v) for v in printed[0].split("|")) if printed else None
@@ -35,13 +48,13 @@ def main():
     problems = []
     konveyor_action("focus-column-last")
     konveyor_action("consume-or-expel-window-left")
-    time.sleep(1.5)
+    wait_for(lambda: at_targets() and frames()["C"][1] > frames()["B"][1], 60)
     before = frames()
     print("two rows:", before)
     x, y, width, height = before["C"]
-    click(x + width / 2, y + height - 35)
+    click(x + width / 2, y + height - 35, settle=False)
     keyboard("call", "forceActivate")
-    time.sleep(3)
+    wait_for(lambda: panel_top() is not None and at_targets() and frames()["C"][1] + frames()["C"][3] <= panel_top()[0] + 1, 60)
     panel = panel_top()
     shown = frames()
     capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
@@ -57,16 +70,16 @@ def main():
         if shown["C"][1] < shown["B"][1] + shown["B"][3]:
             problems.append(f"C overlaps B in the column ({shown})")
     if panel is not None:
-        click(98, panel[0] + panel[1] * 0.13)
-        with open(os.environ["KONVEYOR_KWIN_LOG"], errors="replace") as log:
-            typed = [line.strip() for line in log if "konveyor-test-typed:" in line]
+        click(98, panel[0] + panel[1] * 0.13, settle=False)
+        wait_for(typed_lines, 60)
+        typed = typed_lines()
         print("typed:", typed)
         if not any(line.endswith("C:q") or line.endswith("C:Q") for line in typed):
             problems.append(f"tapping Q on the keyboard did not type into C ({typed})")
     if active_title() != "C":
         problems.append(f"C lost focus while the keyboard opened (active: {active_title()})")
     keyboard("set-property", "active", "b", "false")
-    time.sleep(2.5)
+    wait_for(lambda: at_targets() and frames() == before, 60)
     after = frames()
     print("keyboard closed:", after)
     for title in ("B", "C"):

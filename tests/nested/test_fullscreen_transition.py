@@ -7,7 +7,8 @@ sys.path.insert(0, str(HERE / "harness"))
 
 SCRIPT = """
 export QT_QPA_PLATFORM=wayland
-qml6 {client} &
+export KONVEYOR_TRANSITION_RELEASE="$KONVEYOR_TEST_ROOT/transition-release"
+QML_XHR_ALLOW_FILE_READ=1 qml6 {client} -- "$KONVEYOR_TRANSITION_RELEASE" &
 python3 {runner} > "$KONVEYOR_REPORT" 2>&1
 """
 
@@ -16,7 +17,7 @@ def main():
     from nested import run_script
 
     return run_script(SCRIPT.format(client=HERE / "clients" / "transition-fullscreen-client.qml",
-                                    runner=HERE / "runners" / "fullscreen_transition.py"), timeout=60)
+                                    runner=HERE / "runners" / "fullscreen_transition.py"), timeout=120)
 
 
 if __name__ == "__main__":

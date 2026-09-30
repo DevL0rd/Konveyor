@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 import json
 import subprocess
-import time
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
+
+from kwinsession import for_window, run_script, wait_for
 
 
 def dbus(method, *args):
@@ -11,7 +16,15 @@ def dbus(method, *args):
 
 def action(name, *arguments):
     dbus("Action", json.dumps({"name": name, "arguments": list(arguments), "properties": {}}))
-    time.sleep(1.3)
+    wait_for(focused_width_committed, 60)
+
+
+def focused_width_committed():
+    focused = next((window for window in json.loads(dbus("Windows")) if window.get("is_focused")), None)
+    if not focused:
+        return False
+    printed = run_script(for_window(focused["title"], 'print("MARK|" + w.frameGeometry.width);'))
+    return bool(printed) and abs(float(printed[0]) - focused["layout"]["tile_size"][0]) < 1
 
 
 def rows():

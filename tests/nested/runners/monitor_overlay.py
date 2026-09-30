@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import json
 import math
+import os
+import subprocess
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from kwinsession import activate, konveyor_action, konveyor_windows, run_script
+from kwinsession import CLIENTS, activate, konveyor_action, konveyor_windows, open_client, run_script, wait_for
 
 
 TARGET = "Target"
@@ -35,14 +36,26 @@ print("MARK|" + JSON.stringify(out));
     return json.loads(printed[0]) if printed else {}
 
 
-def wait_for_windows():
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        state = snapshot()
-        if all(name in state.get("windows", {}) for name in WANTED):
-            return state
-        time.sleep(0.1)
+def open_windows():
+    open_client(TARGET, 1000, 700)
+    open_client(COVER, 700, 500)
+    with open(os.environ["KONVEYOR_KWIN_LOG"], "a") as log:
+        for name, width, height in ((CARDS[0], 180, 32), (CARDS[1], 260, 32), (CARDS[2], 220, 32), (PANEL, 500, 360)):
+            subprocess.Popen(["qml6", str(CLIENTS / "overlay-client.qml"), "--", name, str(width), str(height)], stdout=log, stderr=subprocess.STDOUT)
+    wait_for(lambda: all(name in snapshot().get("windows", {}) for name in WANTED), 60)
     return snapshot()
+
+
+def settled(label, *checks):
+    def found():
+        state = snapshot()
+        problems = []
+        for check in checks:
+            check(state, problems, label)
+        return problems
+
+    wait_for(lambda: not found(), 60)
+    return found()
 
 
 def rounded(value):
@@ -82,9 +95,19 @@ def check_owner_stack(state, problems, label):
             problems.append(f"{label}: {name} is not above its owner")
 
 
+def check_cover_on_top(state, problems, label):
+    if any(state["windows"][name]["index"] >= state["windows"][COVER]["index"] for name in [TARGET, *CARDS, PANEL]):
+        problems.append(f"{label}: owner overlay group remained above the focused cover")
+
+
+def check_fullscreen(state, problems, label):
+    if not state["windows"][TARGET]["fullscreen"]:
+        problems.append(f"{label}: target did not enter fullscreen")
+
+
 def main():
     problems = []
-    state = wait_for_windows()
+    state = open_windows()
     if not all(name in state.get("windows", {}) for name in WANTED):
         missing = [name for name in WANTED if name not in state.get("windows", {})]
         problems.append(f"windows did not appear: {missing}")
@@ -92,41 +115,23 @@ def main():
         managed = {window["title"] for window in konveyor_windows()}
         if managed != {TARGET, COVER}:
             problems.append(f"overlay windows entered the layout: {sorted(managed)}")
-        check_geometry(state, problems, "initial")
-        check_ownership(state, problems, "initial")
+        problems += settled("initial", check_geometry, check_ownership)
 
         activate(COVER)
-        time.sleep(0.5)
-        state = snapshot()
-        check_owner_stack(state, problems, "cover focused")
-        if any(state["windows"][name]["index"] >= state["windows"][COVER]["index"] for name in [TARGET, *CARDS, PANEL]):
-            problems.append("cover focused: owner overlay group remained above the focused cover")
+        problems += settled("cover focused", check_owner_stack, check_cover_on_top)
 
         activate(TARGET)
-        time.sleep(0.5)
-        state = snapshot()
-        check_owner_stack(state, problems, "owner refocused")
+        problems += settled("owner refocused", check_owner_stack)
 
         konveyor_action("set-column-width", "75%")
-        time.sleep(1.0)
-        state = snapshot()
-        check_geometry(state, problems, "resized")
+        problems += settled("resized", check_geometry)
 
         konveyor_action("fullscreen-window")
-        time.sleep(1.0)
-        state = snapshot()
-        if not state["windows"][TARGET]["fullscreen"]:
-            problems.append("fullscreen: target did not enter fullscreen")
-        check_geometry(state, problems, "fullscreen")
-        check_owner_stack(state, problems, "fullscreen")
+        problems += settled("fullscreen", check_fullscreen, check_geometry, check_owner_stack)
 
         activate(COVER)
-        time.sleep(0.5)
         activate(TARGET)
-        time.sleep(0.5)
-        state = snapshot()
-        check_geometry(state, problems, "fullscreen focus round trip")
-        check_owner_stack(state, problems, "fullscreen focus round trip")
+        problems += settled("fullscreen focus round trip", check_geometry, check_owner_stack)
 
     for problem in problems:
         print("  PROBLEM " + problem)

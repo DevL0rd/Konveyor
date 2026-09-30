@@ -7,9 +7,10 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import run_runner
+    from nested import run_script
 
-    return run_runner(HERE / "runners" / "multimonitor_focus.py", timeout=180, output_count=2)
+    script = f'export QT_QPA_PLATFORM=wayland\npython3 {HERE / "runners" / "multimonitor_focus.py"} > "$KONVEYOR_REPORT" 2>&1\n'
+    return run_script(script, timeout=240, output_count=2)
 
 
 if __name__ == "__main__":

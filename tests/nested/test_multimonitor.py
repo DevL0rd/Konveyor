@@ -13,9 +13,11 @@ window-rule {
 
 
 def main():
-    from nested import run_runner
+    from nested import run_script
 
-    return run_runner(HERE / "runners" / "multimonitor.py", timeout=180, extra_config=HALF_WIDTH_COLUMNS, output_count=2)
+    report = '> "$KONVEYOR_REPORT" 2>&1'
+    return run_script(f'export QT_QPA_PLATFORM=wayland\npython3 {HERE / "runners" / "multimonitor.py"} {report}\n', timeout=240,
+                      extra_config=HALF_WIDTH_COLUMNS, output_count=2)
 
 
 if __name__ == "__main__":
