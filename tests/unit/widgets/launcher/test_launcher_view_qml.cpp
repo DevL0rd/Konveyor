@@ -19,6 +19,10 @@ private Q_SLOTS:
         QFETCH(bool, portal);
         QVERIFY(m_harness.openHost(portal));
         QCOMPARE(eval(QStringLiteral("launcher.compact")).toBool(), portal);
+        QCOMPARE(eval(QStringLiteral("launcherData.favorites.client")).toString(),
+            portal ? QStringLiteral("org.kde.plasma.kicker.favorites.instance-7") : QStringLiteral("org.devl0rd.kontrolpanel.favorites"));
+        QCOMPARE(eval(QStringLiteral("launcherData.rootModel.appletInterface === (launcherData.applet.kickerApplet)")).toBool(), true);
+        QCOMPARE(eval(QStringLiteral("launcherData.applet.kickerApplet === null")).toBool(), !portal);
         QVERIFY(eval(QStringLiteral("launcher.shown")).toBool());
     }
 

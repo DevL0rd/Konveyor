@@ -196,6 +196,54 @@ private Q_SLOTS:
         QVERIFY(m_harness.commands().contains(QStringLiteral("konsole --hold -e shelly install aur 'it'\\''s'")));
         QCOMPARE(host->property("hideCount").toInt(), 1);
     }
+
+    void sidebarPinMenus_data()
+    {
+        QTest::addColumn<QString>("pins");
+        QTest::addColumn<int>("index");
+        QTest::addColumn<QStringList>("expected");
+        const QString pins = QStringLiteral(
+            "[{ kind: 'app', id: 'firefox', name: 'Firefox' }, { kind: 'path', id: 'file:///home/user/notes.txt', name: 'notes' },"
+            " { kind: 'path', id: 'file:///gone', name: 'gone', missing: true }]");
+        QTest::newRow("app") << pins << 0
+                             << QStringList({QStringLiteral("Open"), QStringLiteral("Unpin from sidebar"), QStringLiteral("-"),
+                                    QStringLiteral("Move up"), QStringLiteral("Move down")});
+        QTest::newRow("file") << pins << 1
+                              << QStringList({QStringLiteral("Open"), QStringLiteral("Open containing folder"),
+                                     QStringLiteral("Unpin from sidebar"), QStringLiteral("-"), QStringLiteral("Move up"),
+                                     QStringLiteral("Move down")});
+        QTest::newRow("missing") << pins << 2
+                                 << QStringList({QStringLiteral("“gone” no longer exists"), QStringLiteral("Remove from sidebar"),
+                                        QStringLiteral("-"), QStringLiteral("Move up"), QStringLiteral("Move down")});
+    }
+
+    void sidebarPinMenus()
+    {
+        QFETCH(QString, pins);
+        QFETCH(int, index);
+        QFETCH(QStringList, expected);
+        QVERIFY(m_harness.host(false));
+        eval(QStringLiteral("launcherData.sidebarPins = %1").arg(pins));
+        const QString entries = QStringLiteral("launcher.sidebarEntries(launcherData.sidebarPins[%1], %1)").arg(index);
+        QCOMPARE(eval(texts(entries)).toStringList(), expected);
+        QCOMPARE(eval(entries + QStringLiteral(".find(e => e.text === 'Move up').disabled")).toBool(), index == 0);
+        QCOMPARE(eval(entries + QStringLiteral(".find(e => e.text === 'Move down').disabled")).toBool(), index == 2);
+    }
+
+    void sidebarPinsOpenAndShowTheirFolder()
+    {
+        QObject *host = m_harness.host(false);
+        QVERIFY(host);
+        eval(QStringLiteral("launcherData.sidebarPins = [{ kind: 'path', id: 'file:///home/user/notes.txt', name: 'notes' }]"));
+        eval(run(QStringLiteral("launcher.sidebarEntries(launcherData.sidebarPins[0], 0)"), QStringLiteral("Open containing folder")));
+        QCOMPARE(host->property("hideCount").toInt(), 1);
+        QVERIFY(m_harness.commands().last().contains(
+            QStringLiteral("org.freedesktop.FileManager1.ShowItems array:string:'file:///home/user/notes.txt'")));
+        eval(QStringLiteral("launcher.openPin(launcherData.sidebarPins[0])"));
+        QCOMPARE(LauncherTest::urls().opened, QList<QUrl> {QUrl(QStringLiteral("file:///home/user/notes.txt"))});
+        eval(QStringLiteral("launcher.openPin({ kind: 'path', id: 'file:///gone', missing: true })"));
+        QCOMPARE(host->property("hideCount").toInt(), 2);
+    }
 };
 
 LAUNCHER_TEST_MAIN(TestLauncherMenusQml)

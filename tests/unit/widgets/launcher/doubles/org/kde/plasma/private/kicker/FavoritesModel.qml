@@ -8,7 +8,6 @@ KickerModel {
 
     function initForClient(id) {
         client = id
-        KickerFixture.favoriteClients = KickerFixture.favoriteClients.concat([id])
         fill(KickerFixture.appRows(KickerFixture.favorites))
     }
     function rowOf(id) {

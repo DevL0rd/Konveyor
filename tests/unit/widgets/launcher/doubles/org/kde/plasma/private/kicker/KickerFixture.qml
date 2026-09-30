@@ -2,8 +2,6 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    property var triggered: []
-    property var favoriteClients: []
     property var categories: [
         { display: "All Applications", apps: ["org.kde.konsole.desktop", "org.kde.dolphin.desktop", "firefox.desktop", "steam_app_620.desktop"] },
         { display: "Utilities", apps: ["org.kde.konsole.desktop"] }
