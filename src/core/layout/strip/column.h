@@ -67,6 +67,7 @@ public:
     std::optional<std::size_t> presetIndexOf(ColumnWidth width) const;
     void layoutTiles(bool animate);
     double width() const;
+    double tileAreaWidth() const;
 
     void focusTileAt(std::size_t index);
     bool focusUp();
