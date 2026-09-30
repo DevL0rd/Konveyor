@@ -37,6 +37,14 @@ OUTPUT_FIELDS = "MESSAGE,PRIORITY,SYSLOG_IDENTIFIER,_COMM,_SYSTEMD_UNIT,UNIT,_TR
 HEARTBEAT = 5.0                     # refresh `ts` even when idle (liveness)
 
 
+def text(value, separator=", "):
+    if isinstance(value, list):
+        if all(isinstance(item, int) for item in value):
+            return bytes(value).decode("utf-8", "replace")
+        return separator.join(text(item, separator) for item in value)
+    return str(value)
+
+
 def parse(raw):
     """One journal JSON record -> compact dict, or None to skip."""
     raw = raw.strip()
@@ -47,30 +55,28 @@ def parse(raw):
     except ValueError:
         return None
 
-    msg = j.get("MESSAGE", "")
-    if isinstance(msg, list):          # binary message -> bytes
-        try:
-            msg = bytes(msg).decode("utf-8", "replace")
-        except Exception:
-            msg = str(msg)
+    msg = text(j.get("MESSAGE", ""), "\n")
 
     try:
         t = int(j.get("__REALTIME_TIMESTAMP", 0))      # microseconds, unique key
     except (TypeError, ValueError):
         t = 0
+    priority = j.get("PRIORITY", 6)
+    if isinstance(priority, list):
+        priority = priority[0] if priority else 6
     try:
-        p = int(j.get("PRIORITY", 6))                  # 0 emerg .. 7 debug
+        p = int(priority)                               # 0 emerg .. 7 debug
     except (TypeError, ValueError):
         p = 6
 
-    unit = j.get("_SYSTEMD_UNIT") or j.get("UNIT") or ""
-    ident = j.get("SYSLOG_IDENTIFIER") or j.get("_COMM")
+    unit = text(j.get("_SYSTEMD_UNIT") or j.get("UNIT") or "")
+    ident = text(j.get("SYSLOG_IDENTIFIER") or j.get("_COMM") or "")
     if not ident:
         if j.get("_TRANSPORT") == "kernel":
             ident = "kernel"
         else:
             ident = unit[:-8] if unit.endswith(".service") else (unit or "?")
-    pid = j.get("_PID") or j.get("SYSLOG_PID") or ""
+    pid = text(j.get("_PID") or j.get("SYSLOG_PID") or "")
 
     return {"t": t, "p": p, "id": str(ident)[:40], "u": unit, "pid": str(pid), "m": msg}
 

@@ -40,6 +40,12 @@ class TestLogmonParse(unittest.TestCase):
     def test_decodes_binary_messages(self):
         self.assertEqual(self.parse(record(MESSAGE=list(b"ol\xc3\xa9 \xff")))["m"], "ol\u00e9 \ufffd")
 
+    def test_a_field_the_entry_repeats_shows_every_value(self):
+        entry = self.parse(record(MESSAGE=["first", list(b"sec\xc3\xb6nd")], SYSLOG_IDENTIFIER=["app", "helper"], PRIORITY=["3", "6"],
+                                  _SYSTEMD_UNIT=["a.service", "b.service"], _PID=["7", "8"]))
+        self.assertEqual((entry["m"], entry["id"], entry["p"], entry["u"], entry["pid"]),
+                         ("first\nsec\u00f6nd", "app, helper", 3, "a.service, b.service", "7, 8"))
+
     def test_defaults_bad_numbers(self):
         entry = self.parse(record(__REALTIME_TIMESTAMP="soon", PRIORITY="loud", MESSAGE="x"))
         self.assertEqual((entry["t"], entry["p"]), (0, 6))

@@ -154,6 +154,16 @@ private Q_SLOTS:
                              "[226, 156, 147, 32, 111, 108, 195, 169, 32, 27, 91, 49, 109, 98, 27, 91, 48, 109, 32, 255, 33]}\n");
         QVERIFY(harness->reply(journalPrefix, encoded));
         QCOMPARE(rowField(*harness, "msg").constLast(), QStringLiteral("\u2713 ol\u00e9 b \ufffd!"));
+        harness->root()->setProperty("level", 3);
+        QTRY_VERIFY(harness->command(journalPrefix).contains(QLatin1String(" -p 3 ")));
+        QVERIFY(harness->reply(journalPrefix,
+            QStringLiteral("{\"__CURSOR\": \"c6\", \"__REALTIME_TIMESTAMP\": \"6000000\", \"PRIORITY\": [\"3\", \"6\"], "
+                           "\"SYSLOG_IDENTIFIER\": [\"app\", \"helper\"], \"_PID\": [\"7\", \"8\"], "
+                           "\"MESSAGE\": [\"first\", [115, 195, 182]]}\n")));
+        QCOMPARE(rowField(*harness, "msg").constLast(), QStringLiteral("first\ns\u00f6"));
+        QCOMPARE(rowField(*harness, "app").constLast(), QStringLiteral("app, helper"));
+        QCOMPARE(rowField(*harness, "pid").constLast(), QStringLiteral("7, 8"));
+        QCOMPARE(rowField(*harness, "prio").constLast(), QStringLiteral("3"));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 

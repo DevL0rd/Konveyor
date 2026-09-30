@@ -367,21 +367,27 @@ PlasmoidItem {
         return out
     }
 
+    function journalText(value, separator) {
+        if (!Array.isArray(value))
+            return String(value)
+        if (value.every(item => typeof item === "number"))
+            return decodeUtf8(value)
+        return value.map(item => journalText(item, separator)).join(separator)
+    }
+
     function parseRec(line) {
         let j
         try { j = JSON.parse(line) } catch (e) { return null }
-        let m = j.MESSAGE
-        if (Array.isArray(m))
-            m = decodeUtf8(m)
-        const unit = j._SYSTEMD_UNIT || j.UNIT || ""
-        let id = j.SYSLOG_IDENTIFIER || j._COMM
+        const unit = journalText(j._SYSTEMD_UNIT || j.UNIT || "", ", ")
+        let id = journalText(j.SYSLOG_IDENTIFIER || j._COMM || "", ", ")
         if (!id)
             id = (j._TRANSPORT === "kernel") ? "kernel"
                : (unit.indexOf(".service") >= 0 ? unit.replace(".service", "") : (unit || "?"))
+        const priority = Array.isArray(j.PRIORITY) ? j.PRIORITY[0] : j.PRIORITY
         return { cursor: String(j.__CURSOR), t: parseInt(j.__REALTIME_TIMESTAMP || 0),
-                 p: parseInt(j.PRIORITY !== undefined ? j.PRIORITY : 6),
-                 id: String(id).slice(0, 40),
-                 u: unit, pid: String(j._PID || j.SYSLOG_PID || ""), m: String(m || "") }
+                 p: parseInt(priority !== undefined ? priority : 6),
+                 id: id.slice(0, 40),
+                 u: unit, pid: journalText(j._PID || j.SYSLOG_PID || "", ", "), m: journalText(j.MESSAGE || "", "\n") }
     }
 
     signal rowsAppended(int added)
