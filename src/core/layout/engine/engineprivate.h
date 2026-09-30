@@ -77,7 +77,7 @@ struct Engine::Private
     std::optional<WindowId> announcedFocus;
     bool layoutFocused = true;
     std::optional<WindowDrag> windowDrag;
-    QString viewGestureOutput;
+    std::optional<WorkspaceId> viewGestureWorkspace;
     QString switchGestureOutput;
     std::optional<WindowId> resizeWindow;
     bool overviewOpen = false;
@@ -147,6 +147,7 @@ struct Engine::Private
 
     void beginInteractiveMoving(const QString &output);
     void stopEdgeScroll();
+    void finishResize();
     void edgeScrollAt(Monitor &monitor, QPointF local);
     void moveDragToActiveOutput();
     void updateDropHint();

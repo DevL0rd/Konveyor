@@ -215,6 +215,37 @@ inline bool startMove(Fixture &fixture, Layout::WindowId id, QPointF to, const Q
     return true;
 }
 
+struct WideRow
+{
+    Fixture fixture {wideColumns()};
+    QString output;
+    Layout::WindowId first = 0;
+    Layout::WindowId second = 0;
+    Layout::WindowId third = 0;
+    Layout::WindowId last = 0;
+
+    explicit WideRow(const QString &on = QStringLiteral("DP-1"))
+        : output(on)
+    {
+        if (on != QLatin1String("DP-1")) {
+            fixture.addOutput(on, QRectF(1920, 0, 1920, 1080));
+            fixture.engine().focusOutput(on);
+        }
+        first = fixture.add(QStringLiteral("a"));
+        second = fixture.add(QStringLiteral("b"));
+        third = fixture.add(QStringLiteral("c"));
+        last = fixture.add(QStringLiteral("d"));
+        fixture.advance(1000);
+    }
+
+    bool inView(Layout::WindowId id)
+    {
+        const QRectF frame = fixture.frame(id);
+        const double left = output == QLatin1String("DP-1") ? 0.0 : 1920.0;
+        return frame.left() >= left && frame.right() <= left + 1920.0;
+    }
+};
+
 inline Config::Config nativeWidthCycleConfig(bool floating)
 {
     Config::Config config = instantConfig();

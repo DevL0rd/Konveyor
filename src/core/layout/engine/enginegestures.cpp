@@ -39,23 +39,23 @@ void Engine::beginSwipe(const QString &output, bool isTouchpad)
     if (!monitor) {
         return;
     }
-    d->viewGestureOutput = output;
+    d->viewGestureWorkspace = monitor->activeWorkspace().id();
     monitor->activeWorkspace().beginSwipe(isTouchpad);
 }
 
 void Engine::updateSwipe(double delta, qint64 timestampMs, bool isTouchpad)
 {
-    if (Monitor *monitor = d->monitorByName(d->viewGestureOutput)) {
-        monitor->activeWorkspace().updateSwipe(delta, timestampOf(timestampMs), isTouchpad);
+    if (Workspace *workspace = d->viewGestureWorkspace ? d->workspaceById(*d->viewGestureWorkspace) : nullptr) {
+        workspace->updateSwipe(delta, timestampOf(timestampMs), isTouchpad);
     }
 }
 
 void Engine::endSwipe(std::optional<bool> isTouchpad, std::optional<WindowId> keepActive)
 {
-    if (Monitor *monitor = d->monitorByName(d->viewGestureOutput)) {
-        monitor->activeWorkspace().endSwipe(isTouchpad, keepActive);
+    if (Workspace *workspace = d->viewGestureWorkspace ? d->workspaceById(*d->viewGestureWorkspace) : nullptr) {
+        workspace->endSwipe(isTouchpad, keepActive);
     }
-    d->viewGestureOutput.clear();
+    d->viewGestureWorkspace.reset();
     d->refresh();
 }
 
@@ -380,7 +380,11 @@ void Engine::endWindowDrag()
 bool Engine::beginResize(WindowId id, quint8 edges)
 {
     Workspace *workspace = d->workspaceOf(id);
-    if (!workspace || !workspace->beginResize(id, edges)) {
+    if (!workspace) {
+        return false;
+    }
+    d->finishResize();
+    if (!workspace->beginResize(id, edges)) {
         return false;
     }
     d->resizeWindow = id;
@@ -398,15 +402,23 @@ void Engine::updateResize(const QPointF &delta)
     d->refresh();
 }
 
+void Engine::Private::finishResize()
+{
+    if (!resizeWindow) {
+        return;
+    }
+    if (Workspace *workspace = workspaceOf(*resizeWindow)) {
+        workspace->endResize(resizeWindow);
+    }
+    resizeWindow.reset();
+}
+
 void Engine::endResize()
 {
     if (!d->resizeWindow) {
         return;
     }
-    if (Workspace *workspace = d->workspaceOf(*d->resizeWindow)) {
-        workspace->endResize(d->resizeWindow);
-    }
-    d->resizeWindow.reset();
+    d->finishResize();
     d->refresh();
 }
 

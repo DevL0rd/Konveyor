@@ -8,28 +8,9 @@ namespace
 const QString Primary = QStringLiteral("DP-1");
 const QString Secondary = QStringLiteral("DP-2");
 
-struct Row
+struct Row : WideRow
 {
-    Fixture fixture {wideColumns()};
-    QString output;
-    Layout::WindowId first = 0;
-    Layout::WindowId second = 0;
-    Layout::WindowId third = 0;
-    Layout::WindowId last = 0;
-
-    explicit Row(const QString &on = Primary)
-        : output(on)
-    {
-        if (on != Primary) {
-            fixture.addOutput(on, QRectF(1920, 0, 1920, 1080));
-            fixture.engine().focusOutput(on);
-        }
-        first = fixture.add(QStringLiteral("a"));
-        second = fixture.add(QStringLiteral("b"));
-        third = fixture.add(QStringLiteral("c"));
-        last = fixture.add(QStringLiteral("d"));
-        fixture.advance(1000);
-    }
+    using WideRow::WideRow;
 
     bool hasDropHint()
     {
