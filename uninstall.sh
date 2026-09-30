@@ -31,7 +31,7 @@ parse_arguments() {
     done
 }
 
-restore_plasma_panels() {
+restore_plasma_shell() {
     gdbus call --session --dest org.kde.plasmashell --object-path /PlasmaShell --method org.kde.PlasmaShell.evaluateScript '
 for (const panel of panels()) {
     panel.currentConfigGroup = ["Konveyor"];
@@ -39,11 +39,16 @@ for (const panel of panels()) {
     if (saved === "") { continue; }
     if (panel.lengthMode === "fill") { panel.lengthMode = saved; }
     panel.writeConfig("savedLengthMode", "");
-}' >/dev/null 2>&1 || true
+}
+for (const desktop of desktops()) {
+    desktop.currentConfigGroup = ["General"];
+    desktop.writeConfig("hideDesktopWidgets", false);
+}' >/dev/null 2>&1 \
+        || say "Plasma is not running, so panels Konveyor filled and desktop widgets it hid stay that way until Konveyor runs again"
 }
 
 disable_in_kwin() {
-    restore_plasma_panels
+    restore_plasma_shell
 
     say "Disabling Konveyor in KWin"
     local plugin
@@ -76,7 +81,7 @@ remove_files() {
         return
     fi
     say "Removing installed files"
-    while IFS= read -r file; do
+    while IFS= read -r file || [[ -n $file ]]; do
         [[ -n $file ]] && run_prefix rm -f "$file"
     done <"$manifest"
     remove_empty_directories "$manifest"
@@ -153,6 +158,7 @@ remove_state() {
         rm -f "$state/konveyor/install-options" "$state/konveyor/update-pending" "$state/konveyor/window-memory.json" "$KONVEYOR_DISABLED_SCRIPTS"
     fi
     directories=("$state/konveyor" "$(dirname "$KONVEYOR_SESSION_ENV")" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd" "$HOME/.local/bin")
+    $KONVEYOR_ATOMIC && directories+=("$(dirname "$KONVEYOR_USER_UPDATER_DIR")")
     for directory in "${directories[@]}"; do
         [[ -d $directory ]] && rmdir --ignore-fail-on-non-empty "$directory"
     done
