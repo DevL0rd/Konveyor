@@ -150,8 +150,7 @@ private Q_SLOTS:
         QVERIFY(QMetaObject::invokeMethod(m_view, "activateRequested"));
         QVERIFY(windowTitled(QStringLiteral("Kontrol Panel backdrop"))->isVisible());
         QVERIFY(!windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());
-        QCoreApplication::processEvents();
-        QVERIFY(windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());
+        QTRY_VERIFY(windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());
         QVERIFY(QMetaObject::invokeMethod(m_view, "closeFinished"));
         QVERIFY(!windowTitled(QStringLiteral("Kontrol Panel backdrop"))->isVisible());
         QVERIFY(!windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());

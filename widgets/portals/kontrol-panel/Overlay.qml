@@ -8,7 +8,9 @@ Item {
     id: overlay
 
     readonly property var targetScreen: dim.screen
-    readonly property size screenSize: targetScreen ? Qt.size(targetScreen.width, targetScreen.height) : Qt.size(1920, 1080)
+    readonly property size screenSize: dim.width > 0 && dim.height > 0 ? Qt.size(dim.width, dim.height)
+        : targetScreen ? Qt.size(targetScreen.width, targetScreen.height) : Qt.size(1920, 1080)
+    property bool cardPending: false
     readonly property int cardWidth: Math.round(Math.min(screenSize.width - Kirigami.Units.gridUnit * 6, Kirigami.Units.gridUnit * root.config.cardWidth))
     readonly property int cardHeight: Math.round(Math.min(screenSize.height - Kirigami.Units.gridUnit * 5, Kirigami.Units.gridUnit * root.config.cardHeight))
 
@@ -34,6 +36,14 @@ Item {
         LayerShell.Window.exclusionZone: -1
         LayerShell.Window.keyboardInteractivity: LayerShell.Window.KeyboardInteractivityNone
         LayerShell.Window.wantsToBeOnActiveScreen: true
+
+        onFrameSwapped: {
+            if (!overlay.cardPending)
+                return
+            overlay.cardPending = false
+            card.visible = true
+            card.requestActivate()
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -93,14 +103,17 @@ Item {
             height: overlay.cardHeight
             onActivateRequested: {
                 dim.visible = true
-                Qt.callLater(function() {
-                    card.visible = true
+                if (card.visible) {
                     card.requestActivate()
-                })
+                    return
+                }
+                overlay.cardPending = true
+                dim.update()
             }
             onPageChanged: root.currentPage = page
             Component.onCompleted: root.currentPage = page
             onCloseFinished: {
+                overlay.cardPending = false
                 card.visible = false
                 dim.visible = false
             }

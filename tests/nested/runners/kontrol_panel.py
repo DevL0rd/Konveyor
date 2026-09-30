@@ -2,6 +2,8 @@
 import os
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
@@ -10,7 +12,7 @@ import dbus
 from checks import Checks
 from fakepointer import binary, click, keys, move, tap
 from keycodes import KEY_CODES, MODIFIER_CODES
-from kwinsession import active_title, for_window, open_client, run_script, wait_for, window_minimized
+from kwinsession import active_title, for_window, marked_lines, open_client, qdbus, run_script, wait_for, window_minimized
 from nested import build_dir
 
 PROBE = "notes.txt"
@@ -52,19 +54,34 @@ def outputs():
 
 def panel_windows():
     printed = run_script('for (const w of workspace.windowList()) { if (!w.deleted && w.resourceClass == "konveyor-kontrol-panel") { const g = w.frameGeometry; '
-                         'print("MARK|" + w.output.name + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); } }')
-    shown = [(name, tuple(float(v) for v in values)) for name, *values in (line.split("|") for line in printed)]
-    return sorted(shown, key=lambda window: window[1][2] * window[1][3])
+                         'print("MARK|" + (w.wantsInput ? "card" : "backdrop") + "|" + w.output.name + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); } }')
+    return {role: (name, tuple(float(v) for v in values)) for role, name, *values in (line.split("|") for line in printed)}
 
 
 def card():
-    shown = panel_windows()
-    return shown[0] if len(shown) == 2 else None
+    return panel_windows().get("card")
 
 
 def backdrop():
-    shown = panel_windows()
-    return shown[1] if len(shown) == 2 else None
+    return panel_windows().get("backdrop")
+
+
+def first_card_geometry(action):
+    marker = f"FIRST{time.monotonic_ns()}"
+    body = ('workspace.windowAdded.connect(w => { if (w.resourceClass == "konveyor-kontrol-panel" && w.wantsInput) { const g = w.frameGeometry; '
+            f'print("{marker}|" + w.output.name + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); }} }});')
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as script:
+        script.write(body)
+    script_id = qdbus("org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadScript", script.name, marker)
+    qdbus("org.kde.KWin", f"/Scripting/Script{script_id}", "org.kde.kwin.Script.run")
+    action()
+    shown = wait_for(lambda: marked_lines(marker), 30)
+    qdbus("org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.unloadScript", marker)
+    os.unlink(script.name)
+    if not shown:
+        return None
+    name, *values = shown[0].split("|")
+    return name, tuple(float(v) for v in values)
 
 
 def inside(rect, area):
@@ -127,10 +144,10 @@ def it_opens_on_the_output_under_the_pointer_and_fits_it(checks):
     checks.expect(wait_for(lambda: outputs().get("Virtual-1", (0, 0, 0, 0))[2] == 960, 30), "Virtual-1 is 960 logical pixels wide")
     for name, area in sorted(outputs().items(), reverse=True):
         move(area[0] + area[2] / 2, area[1] + area[3] / 2)
-        press(META)
+        first = first_card_geometry(lambda: press(META))
         checks.expect(opened_and_focused(), f"Meta opens the Kontrol Panel with the pointer on {name}")
-        placed = wait_for(lambda: (lambda shown: shown if shown and shown[0] == name and inside(shown[1], area) else None)(card()), 30)
-        checks.expect(placed is not None, f"the card sits inside {name} {area}, it is at {card()}")
+        checks.expect(first is not None and first[0] == name and inside(first[1], area) and first[1][2] > area[2] * 0.6,
+                      f"the card appears on {name} {area} already sized for it, it appeared at {first}")
         checks.equal(backdrop(), (name, area), f"the backdrop covers {name}")
         press(META)
         checks.expect(closed(), f"Meta closes it on {name}")
