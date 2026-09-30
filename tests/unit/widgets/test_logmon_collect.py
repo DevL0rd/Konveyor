@@ -98,6 +98,20 @@ class TestLogmonServe(CollectorTest):
         self.assertIn("journalctl exited with status 1", result.stderr)
         self.assertEqual(self.cache(), {**self.cache(), "alive": False, "lines": []})
 
+    def test_a_missing_journalctl_is_written_to_the_snapshot_and_the_collector_waits(self):
+        (self.stubs / "journalctl").unlink()
+        server = subprocess.Popen([sys.executable, str(SCRIPT), "--serve"], env={**self.environment, "PATH": str(self.stubs)},
+                                  stderr=subprocess.PIPE, text=True)
+        self.addCleanup(server.kill)
+        cache = self.runtime / "Linux-Log-Monitor" / "log.json"
+        with self.assertRaises(subprocess.TimeoutExpired):
+            server.wait(timeout=2)
+        self.assertEqual({key: value for key, value in self.cache().items() if key != "ts"},
+                         {"alive": False, "lines": [], "error": "journalctl is not installed"})
+        self.assertTrue(cache.exists())
+        server.terminate()
+        self.assertEqual(server.wait(timeout=5), 0)
+
     def test_a_second_server_leaves_the_first_alone(self):
         import fcntl
         (self.runtime / "Linux-Log-Monitor").mkdir()

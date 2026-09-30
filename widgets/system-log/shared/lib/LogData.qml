@@ -11,6 +11,7 @@ Item {
     property var lines: []
     property double ts: 0
     property bool online: false
+    property string error: ""
     property bool ready: false
     signal updated()
 
@@ -42,6 +43,7 @@ Item {
             try {
                 var parsed = JSON.parse(xhr.responseText)
                 root.ts = parsed.ts || 0
+                root.error = parsed.error || ""
                 var age = Date.now() / 1000 - root.ts
                 root.online = parsed.alive !== false && age < root.staleSeconds
                 if (root.online) {

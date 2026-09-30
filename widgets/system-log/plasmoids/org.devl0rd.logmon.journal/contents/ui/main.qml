@@ -73,6 +73,8 @@ PlasmoidItem {
     }
 
     readonly property bool collectorOnline: logData.online
+    readonly property string collectorError: logData.error
+    readonly property string offlineText: collectorError !== "" ? collectorError : i18n("Collector not running")
     readonly property string stateKey: !logData.online && !root.searchMode ? "offline" : root.paused ? "paused" : "live"
     readonly property color stateColor: stateKey === "live" ? Kirigami.Theme.positiveTextColor
                                       : stateKey === "paused" ? Kirigami.Theme.neutralTextColor
@@ -83,7 +85,7 @@ PlasmoidItem {
     toolTipMainText: i18n("System Log")
     toolTipSubText: {
         if (!logData.online)
-            return i18n("Collector not running")
+            return root.offlineText
         if (root.newErrors === 0 && root.newWarnings === 0)
             return i18n("No new errors or warnings since you last looked")
         return i18n("Since you last looked: %1, %2",

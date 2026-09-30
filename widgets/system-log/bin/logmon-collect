@@ -81,8 +81,10 @@ def parse(raw):
     return {"t": t, "p": p, "id": str(ident)[:40], "u": unit, "pid": str(pid), "m": msg}
 
 
-def write_cache(lines, alive=True):
+def write_cache(lines, alive=True, error=None):
     payload = {"ts": time.time(), "alive": alive, "lines": lines}
+    if error:
+        payload["error"] = error
     tmp = CACHE + ".tmp"
     with open(tmp, "w") as f:
         f.write(json.dumps(payload, separators=(",", ":")))
@@ -105,7 +107,14 @@ def serve():
     if extra:
         cmd += extra
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, bufsize=1)
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, bufsize=1)
+    except FileNotFoundError:
+        write_cache([], alive=False, error="journalctl is not installed")
+        sys.stderr.write("logmon-collect: journalctl is not installed\n")
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+        while True:
+            signal.pause()
 
     ring = deque(maxlen=MAX_LINES)
     state = {"dead": False}

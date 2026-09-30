@@ -7,6 +7,7 @@ Rectangle {
     id: overlay
 
     property bool online: true
+    property string error: ""
 
     z: 100
     visible: !online
@@ -39,7 +40,7 @@ Rectangle {
             wrapMode: Text.WordWrap
             opacity: 0.7
             font: Kirigami.Theme.smallFont
-            text: i18n("systemctl --user start linux-log-monitor")
+            text: overlay.error !== "" ? overlay.error : i18n("systemctl --user restart konveyor-widgets.service")
         }
     }
 }

@@ -112,13 +112,13 @@ Item {
             subtitle: {
                 const lines = i18np("%1 line", "%1 lines", root.rows.count)
                 if (root.stateKey === "offline")
-                    return i18n("Collector not running")
+                    return root.offlineText
                 if (root.searchMode)
                     return root.querying ? i18n("Searching the whole journal…") : i18n("Whole journal · %1", lines)
                 return root.paused ? i18n("Paused · %1", lines) : i18n("Live · %1", lines)
             }
             statusColor: root.stateColor
-            statusText: root.stateKey === "live" ? i18n("Following the journal") : root.stateKey === "paused" ? i18n("Paused") : i18n("Collector not running")
+            statusText: root.stateKey === "live" ? i18n("Following the journal") : root.stateKey === "paused" ? i18n("Paused") : root.offlineText
             searchPlaceholder: i18n("Search messages and apps in the whole journal…")
             matchCount: root.search === "" || root.querying ? -1 : root.rows.count
             tabs: full.tabItems
@@ -346,6 +346,7 @@ Item {
                     StatusOverlay {
                         anchors.fill: parent
                         online: root.collectorOnline || root.searchMode
+                        error: root.collectorError
                         radius: parent.radius
                     }
 

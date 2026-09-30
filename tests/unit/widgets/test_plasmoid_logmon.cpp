@@ -226,6 +226,23 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
+    void showsWhyTheCollectorStopped()
+    {
+        auto harness = started(Form::Planar);
+        QVERIFY(harness);
+        QByteArray json = Logmon::journalOf({}, 0, false);
+        json.insert(json.size() - 1, ",\"error\":\"journalctl is not installed\"");
+        QVERIFY(feed(*harness, json));
+        QObject *root = harness->root();
+        QCOMPARE(root->property("stateKey").toString(), QStringLiteral("offline"));
+        QCOMPARE(root->property("toolTipSubText").toString(), QStringLiteral("journalctl is not installed"));
+        QCOMPARE(harness->eval(QStringLiteral("collectorError")).toString(), QStringLiteral("journalctl is not installed"));
+        QVERIFY(feed(*harness, Logmon::journalOf({}, 0, false)));
+        QCOMPARE(harness->eval(QStringLiteral("collectorError")).toString(), QString());
+        QCOMPARE(root->property("toolTipSubText").toString(), QStringLiteral("Collector not running"));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
     void noticesWhenHeartbeatsStop()
     {
         auto harness = started(Form::Horizontal);
