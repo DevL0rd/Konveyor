@@ -69,13 +69,13 @@ install_containment() {
 remove_konveyor_settings() {
     local applets="$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc" id
     [[ -f $applets ]] || return 0
-    for id in $(sed -n 's/^\[Containments\]\[\([0-9]*\)\]\[General\]$/\1/p' "$applets"); do
+    while read -r id; do
         kwriteconfig6 --file "$applets" --group Containments --group "$id" --group General --key hideDesktopWidgets --delete
-    done
-    for id in $(sed -n 's/^\[Containments\]\[\([0-9]*\)\]\[Konveyor\]$/\1/p' "$applets"); do
+    done < <(sed -n 's/^\[Containments\]\[\([0-9]*\)\]\[General\]$/\1/p' "$applets")
+    while read -r id; do
         [[ -n $(kreadconfig6 --file "$applets" --group Containments --group "$id" --group Konveyor --key savedLengthMode) ]] \
             || kwriteconfig6 --file "$applets" --group Containments --group "$id" --group Konveyor --key savedLengthMode --delete
-    done
+    done < <(sed -n 's/^\[Containments\]\[\([0-9]*\)\]\[Konveyor\]$/\1/p' "$applets")
 }
 
 uninstall_containment() {

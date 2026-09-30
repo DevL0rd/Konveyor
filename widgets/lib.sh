@@ -250,9 +250,9 @@ copy_panel_ui() {
     shift 2
     mkdir -p "$target/contents/ui" "$target/contents/config"
     cp "$source/contents/ui/"*.qml "$target/contents/ui/"
-    local pattern
-    for pattern in "$@"; do
-        cp -r "$source/contents/ui/"$pattern "$target/contents/ui/"
+    local name
+    for name in "$@"; do
+        cp -r "$source/contents/ui/$name" "$target/contents/ui/"
     done
     cp "$source/contents/config/main.xml" "$source/contents/config/config.qml" "$target/contents/config/"
 }
@@ -266,7 +266,7 @@ install_plasmoids() {
         install_plasmoid "$plasmoid"
     done
     for plasmoid in "$root"/process-monitor/plasmoids/org.devl0rd.procmon*; do
-        [[ $plasmoid == */org.devl0rd.procmon.panel ]] || copy_panel_ui "$root/process-monitor/plasmoids/org.devl0rd.procmon.panel" "$plasmoid" "*.mjs"
+        [[ $plasmoid == */org.devl0rd.procmon.panel ]] || copy_panel_ui "$root/process-monitor/plasmoids/org.devl0rd.procmon.panel" "$plasmoid" proc.worker.mjs
         stage_lib "$plasmoid"
         install_plasmoid "$plasmoid"
     done

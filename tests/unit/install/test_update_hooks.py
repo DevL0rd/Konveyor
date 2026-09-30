@@ -146,7 +146,7 @@ class TestHooks(HarnessTest):
 
     def test_unregister_removes_every_hook_and_the_update_copy(self):
         self.assertSucceeded(self.harness.functions("register_updates"))
-        for source, target, mode in HOOKS.values():
+        for _, target, _ in HOOKS.values():
             self.harness.write(self.harness.system / target, "")
         legacy = self.harness.system / "etc" / "pacman.d" / "hooks" / "konveyor-rebuild.hook"
         self.harness.write(legacy, "")
@@ -157,7 +157,7 @@ class TestHooks(HarnessTest):
         self.harness.calls()
         self.assertSucceeded(self.harness.functions("unregister_updates"))
         removed = {tuple(call[1:]) for call in self.harness.calls("sudo")}
-        for source, target, mode in HOOKS.values():
+        for _, target, _ in HOOKS.values():
             self.assertIn(("rm", "-f", str(self.harness.system / target)), removed)
         self.assertIn(("rm", "-f", str(legacy)), removed)
         self.assertIn(("rm", "-rf", str(self.harness.system / "usr" / "lib" / "konveyor")), removed)

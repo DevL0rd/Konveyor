@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-cd /opt/install-test/snapshots
+cd /opt/install-test/snapshots || exit 1
 KEPT='\./\.config/(konveyor|Linux-System-Monitor|Linux-Process-Mon|Linux-Router-Monitor|Plasma-App-Portal)(/|$)'
 NOISE='\./\.local/state/(UserFeedback\.|kglobalshortcutsstaterc)|\./\.local/share/flatpak(/|$)'
 failed=0

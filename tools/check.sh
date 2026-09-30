@@ -28,6 +28,38 @@ if [[ -n $too_long ]]; then
     exit 1
 fi
 
+scripts() {
+    local file first
+    while IFS= read -r file; do
+        [[ -f $file && ! -L $file ]] || continue
+        case $file in
+        *.sh) [[ $1 == shell ]] && printf '%s\n' "$file" ;;
+        *.py) [[ $1 == python ]] && printf '%s\n' "$file" ;;
+        *)
+            IFS= read -r first <"$file" || true
+            case $first in
+            '#!'*python*) [[ $1 == python ]] && printf '%s\n' "$file" ;;
+            '#!'*sh*) [[ $1 == shell ]] && printf '%s\n' "$file" ;;
+            esac
+            ;;
+        esac
+    done < <(git ls-files --cached --others --exclude-standard)
+    return 0
+}
+
+step "shellcheck"
+SHARED_STATE=(install.sh uninstall.sh extras/packaging/common.sh extras/packaging/updates.sh extras/packaging/konveyor-rebuild
+    extras/packaging/dependencies.sh widgets/lib.sh widgets/install.sh widgets/uninstall.sh)
+EVAL_CHECKS=(tests/install/verify.sh)
+mapfile -t shell_files < <(scripts shell | grep -vxF -f <(printf '%s\n' "${SHARED_STATE[@]}" "${EVAL_CHECKS[@]}"))
+shellcheck "${shell_files[@]}"
+shellcheck --exclude=SC2034 "${SHARED_STATE[@]}"
+shellcheck --exclude=SC2329 "${EVAL_CHECKS[@]}"
+
+step "ruff"
+mapfile -t python_files < <(scripts python | grep -E '^(widgets|tools|tests)/')
+ruff check --no-cache "${python_files[@]}"
+
 step "configure"
 cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null
 

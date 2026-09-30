@@ -171,7 +171,7 @@ def fetch_remote(cfg, do_ping=True, do_slow=True, do_static=False):
     try:
         out = _session_request(cfg, args)
     except (OSError, ValueError, RuntimeError) as e:
-        raise RuntimeError(f"remote collect failed: {e}")
+        raise RuntimeError(f"remote collect failed: {e}") from e
     if "END=1" not in out:
         _close_session()
         raise RuntimeError("remote collect failed: incomplete output")

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import json
-import os
 import shutil
 import subprocess
 import tempfile

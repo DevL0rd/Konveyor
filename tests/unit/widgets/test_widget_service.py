@@ -7,7 +7,7 @@ import sys
 import unittest
 from unittest import mock
 
-from collectorharness import RECORDING_STUB, WIDGETS, CollectorTest, load_script, write_stub
+from collectorharness import RECORDING_STUB, WIDGETS, CollectorTest, write_stub
 
 SUPERVISOR = WIDGETS / "service" / "konveyor-widgets"
 ECORES = WIDGETS / "service" / "konveyor-widgets-ecores"

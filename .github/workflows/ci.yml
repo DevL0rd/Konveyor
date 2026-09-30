@@ -18,7 +18,7 @@ jobs:
       image: archlinux:base-devel
     steps:
       - name: Install the check tools
-        run: pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols typos nodejs npm
+        run: pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols typos nodejs npm shellcheck ruff
 
       - name: Build xunused
         run: |

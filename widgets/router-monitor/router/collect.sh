@@ -33,7 +33,7 @@ wlidx_of() {
 echo "TS=$(date +%s)"
 
 ############ FAST: system ############
-read L1 L5 L15 PROCS REST < /proc/loadavg
+read -r L1 L5 L15 PROCS REST < /proc/loadavg
 echo "load1=$L1"; echo "load5=$L5"; echo "load15=$L15"; echo "procs=$PROCS"
 echo "uptime=$(awk '{print $1}' /proc/uptime)"
 echo "cores=$(grep -c '^processor' /proc/cpuinfo)"
@@ -106,7 +106,7 @@ if [ "$DO_SLOW" = "1" ]; then
 	done
 
 	if [ -f /var/lib/misc/dnsmasq.leases ]; then
-		while read -r exp mac ip name rest; do
+		while read -r _ mac ip name rest; do
 			echo "LEASE mac=$mac ip=$ip name=$name"
 		done < /var/lib/misc/dnsmasq.leases
 	fi
@@ -128,7 +128,7 @@ if [ "$DO_STATIC" = "1" ]; then
 	done
 	for ifc in $WLIFACES; do
 		band=$(band_of "$ifc"); idx=$(wlidx_of "$ifc")
-		echo "RSTATIC band=$band ssid=$(nvram get wl${idx}_ssid) radio=$(nvram get wl${idx}_radio) txpower=$(nvram get wl${idx}_txpower)"
+		echo "RSTATIC band=$band ssid=$(nvram get "wl${idx}_ssid") radio=$(nvram get "wl${idx}_radio") txpower=$(nvram get "wl${idx}_txpower")"
 	done
 	echo "STATIC=1"
 fi
