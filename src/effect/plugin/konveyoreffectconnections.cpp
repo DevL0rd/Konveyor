@@ -162,6 +162,9 @@ void KonveyorEffect::connectWindowLifecycle()
     }
     connect(&d->windows, &WindowRegistry::windowAdded, this, &KonveyorEffect::onWindowAdded);
     connect(&d->windows, &WindowRegistry::windowRemoved, this, [this](Layout::WindowId id) {
+        if (d->quickTiling && d->quickTiling->window == id) {
+            releaseQuickTiling();
+        }
         changeEngine().removeWindow(id);
         d->decorations.remove(id);
         d->fullscreenShade.remove(id);

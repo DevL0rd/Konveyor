@@ -95,7 +95,9 @@ private:
     void placeMonitorOverlays(Layout::WindowId id);
     void placeMonitorPanels(Layout::WindowId id);
     void onInteractive(Layout::WindowId id, bool isMove, int phase);
-    void trackWindowedMove(Layout::WindowId id, int phase);
+    void trackMove(Layout::WindowId id, int phase);
+    void holdQuickTiling(Layout::WindowId id);
+    void releaseQuickTiling();
     void endMoveIntoFullscreen(const QList<Layout::WindowState> &states);
     void flush();
     void stepAnimations();

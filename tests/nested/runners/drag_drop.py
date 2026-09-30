@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, config_path
-from dragging import LEFT_BUTTON, META, center, dragging, grab_point, placement, settled, window_json
+from dragging import LEFT_BUTTON, META, center, dragging, grab_point, placement, quick_tiling, settled, window_json
 from drophint import MAGENTA, hint_area
 from fakepointer import Held, move
 from kwinsession import activate, frame, konveyor, konveyor_action, open_client, wait_for
@@ -131,6 +131,7 @@ def close_mid_drag(checks):
         clients.pop("D").kill()
         checks.expect(wait_for(lambda: "D" not in [window["title"] for window in json.loads(konveyor("Windows"))], 10), "D goes away mid-drag")
         checks.expect(wait_for(lambda: hint_area() is None, 10, 0.5), "its drop hint goes with it")
+        checks.equal(quick_tiling(), "true|true", "KWin's quick tiling comes back once the dragged window is gone")
     activate("B")
     column = placement("B")[0]
     with dragging("C", top_of("B")):

@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 
 from fakepointer import Held, move
-from kwinsession import frame, konveyor_windows, wait_for
+from kwinsession import frame, konveyor_windows, run_script, wait_for
 from nested import REPO
 
 META = 125
@@ -39,6 +39,10 @@ def grab_point(title, output_left=0, output_width=1920):
     x, y, width, height = frame(title)
     left, right = max(x, output_left) + 40, min(x + width, output_left + output_width) - 40
     return round((left + right) / 2), round(y + min(height / 2, 540))
+
+
+def quick_tiling():
+    return run_script('print("MARK|" + options.electricBorderTiling + "|" + options.electricBorderMaximize);')[0]
 
 
 def window_json(title):

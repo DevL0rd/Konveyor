@@ -31,6 +31,7 @@
 #include <core/output.h>
 #include <effect/effecthandler.h>
 #include <input.h>
+#include <options.h>
 #include <wayland/seat.h>
 #include <wayland_server.h>
 #include <window.h>
@@ -91,6 +92,13 @@ inline const Config::HotCorners &hotCornersOn(const Config::Config &config, cons
     return entry == config.outputs.end() ? config.gestures.hotCorners : *entry->hotCorners;
 }
 
+struct HeldQuickTiling
+{
+    Layout::WindowId window = 0;
+    bool tiling = false;
+    bool maximize = false;
+};
+
 struct KonveyorEffect::Private
 {
     Anim::Clock clock;
@@ -130,6 +138,7 @@ struct KonveyorEffect::Private
     std::optional<Layout::WindowId> titlebarDrag;
     std::optional<Layout::WindowId> windowedMove;
     std::optional<Layout::WindowId> cancelledMove;
+    std::optional<HeldQuickTiling> quickTiling;
     std::optional<std::pair<Layout::WindowId, double>> draggedOpacity;
     std::optional<Layout::WindowId> touchLift;
     std::optional<Layout::WindowId> touchMovePending;

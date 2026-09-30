@@ -71,6 +71,7 @@ KonveyorEffect::~KonveyorEffect()
     if (d->draggedOpacity) {
         setContentOpacity(d->windows.windowOf(d->draggedOpacity->first), 1.0);
     }
+    releaseQuickTiling();
     MinimizeRule::apply(false);
     for (const KWin::ElectricBorder border : std::as_const(d->reservedCorners)) {
         KWin::effects->unreserveElectricBorder(border, this);

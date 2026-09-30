@@ -72,7 +72,7 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
         return;
     }
     if (isMove) {
-        trackWindowedMove(id, phase);
+        trackMove(id, phase);
     }
     if (isFloatingWindow(id)) {
         if (phase == interactivePhaseEnd || (isMove && phase == interactivePhaseStep)) {
@@ -97,14 +97,35 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
     }
 }
 
-void KonveyorEffect::trackWindowedMove(Layout::WindowId id, int phase)
+void KonveyorEffect::trackMove(Layout::WindowId id, int phase)
 {
     if (phase == interactivePhaseStart) {
         d->cancelledMove.reset();
         const std::optional<Layout::WindowState> state = readEngine().windowState(id);
         d->windowedMove = state && !isFullscreenLike(*state) ? std::optional(id) : std::nullopt;
-    } else if (phase == interactivePhaseEnd && d->windowedMove == id) {
-        d->windowedMove.reset();
+        holdQuickTiling(id);
+    } else if (phase == interactivePhaseEnd) {
+        if (d->windowedMove == id) {
+            d->windowedMove.reset();
+        }
+        releaseQuickTiling();
+    }
+}
+
+void KonveyorEffect::holdQuickTiling(Layout::WindowId id)
+{
+    if (!d->quickTiling) {
+        d->quickTiling = {id, KWin::options->electricBorderTiling(), KWin::options->electricBorderMaximize()};
+        KWin::options->setElectricBorderTiling(false);
+        KWin::options->setElectricBorderMaximize(false);
+    }
+}
+
+void KonveyorEffect::releaseQuickTiling()
+{
+    if (const auto held = std::exchange(d->quickTiling, std::nullopt)) {
+        KWin::options->setElectricBorderTiling(held->tiling);
+        KWin::options->setElectricBorderMaximize(held->maximize);
     }
 }
 

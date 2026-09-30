@@ -6,9 +6,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, config_path
-from dragging import dragging, placement, settled, window_json
+from dragging import dragging, placement, quick_tiling, settled, window_json
 from drophint import DRAGGED_OPACITY, MAGENTA, WINDOW, blend, close, hint_area, screenshot
-from kwinsession import activate, frame, konveyor, konveyor_action, wait_for
+from kwinsession import activate, frame, frames, konveyor, konveyor_action, wait_for
 
 GREEN = (0, 255, 0)
 HINT_WIDTH = 300
@@ -112,10 +112,14 @@ def hint_off(checks):
 def hint_at_left_edge(checks):
     activate("A")
     settled("A")
-    half_shown = lambda area: area and area[0] <= 4 and area[2] - area[0] >= HINT_WIDTH / 2 - 8
+    half_shown = lambda area: area and area[2] - area[0] >= HINT_WIDTH / 2 - 8
     with dragging("B", (2, 540)):
         checks.expect(wait_for(lambda: half_shown(hint_area()), 10, 0.5), f"a hint for a new first column shows at least half on screen ({hint_area()})")
+        checks.expect(all(half_shown(hint_area()) for _ in range(4)), f"it stays at least half on screen while the row scrolls ({hint_area()})")
+        checks.equal(sorted(frames()), ["A", "B", "C"], "KWin shows no quick tiling outline at the screen edge")
+        checks.equal(quick_tiling(), "false|false", "KWin's quick tiling is held off while a window is dragged")
     checks.equal(placement("B"), [1, 1], "B becomes the first column")
+    checks.equal(quick_tiling(), "true|true", "KWin's quick tiling comes back after the drop")
 
 
 def floating_drag_has_no_hint(checks):
