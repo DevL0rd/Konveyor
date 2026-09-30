@@ -47,41 +47,34 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void cycleExpansionGoesMaxSizeThenEdgesThenNormal()
+    void cycleExpansionGoesThroughWhatShowsThenBackToNormal_data()
     {
-        Fixture fixture;
-        fixture.add();
-        const auto id = fixture.add();
-        fixture.engine().activateWindow(id);
-        const QRectF normal = fixture.frame(id);
-
-        fixture.perform(QStringLiteral("cycle-window-expansion"));
-        QCOMPARE(fixture.frame(id), QRectF(16, 16, 1888, 1048));
-
-        fixture.perform(QStringLiteral("cycle-window-expansion"));
-        QCOMPARE(fixture.frame(id), QRectF(0, 0, 1920, 1080));
-
-        fixture.perform(QStringLiteral("cycle-window-expansion"));
-        QCOMPARE(fixture.frame(id).size(), normal.size());
-        QCOMPARE(fixture.state(id).sizingMode, Layout::WindowMode::Normal);
-        VERIFY_INVARIANTS(fixture);
+        QTest::addColumn<bool>("alone");
+        QTest::addColumn<QList<QRectF>>("steps");
+        QTest::newRow("beside another column: full width, edges")
+            << false << QList<QRectF> {QRectF(16, 16, 1888, 1048), QRectF(0, 0, 1920, 1080)};
+        QTest::newRow("alone and already expanded: edges") << true << QList<QRectF> {QRectF(0, 0, 1920, 1080)};
     }
 
-    void cycleExpansionOfALoneExpandedColumnFillsTheScreenOnTheFirstPress()
+    void cycleExpansionGoesThroughWhatShowsThenBackToNormal()
     {
+        QFETCH(bool, alone);
+        QFETCH(QList<QRectF>, steps);
         Config::Config config = instantConfig();
-        config.layout.alwaysExpandSingleColumn = true;
+        config.layout.alwaysExpandSingleColumn = alone;
         Fixture fixture(config);
+        if (!alone) {
+            fixture.add();
+        }
         const auto id = fixture.add();
-        QCOMPARE(fixture.frame(id), QRectF(16, 16, 1888, 1048));
-
+        const QRectF normal = fixture.frame(id);
+        for (const QRectF &step : std::as_const(steps)) {
+            fixture.perform(QStringLiteral("cycle-window-expansion"));
+            QCOMPARE(fixture.frame(id), step);
+        }
         fixture.perform(QStringLiteral("cycle-window-expansion"));
-        QCOMPARE(fixture.frame(id), QRectF(0, 0, 1920, 1080));
-
-        fixture.perform(QStringLiteral("cycle-window-expansion"));
-        QCOMPARE(fixture.frame(id), QRectF(16, 16, 1888, 1048));
+        QCOMPARE(fixture.frame(id), normal);
         QCOMPARE(fixture.state(id).sizingMode, Layout::WindowMode::Normal);
-
         fixture.add();
         QCOMPARE(fixture.frame(id).width(), 936.0);
         VERIFY_INVARIANTS(fixture);

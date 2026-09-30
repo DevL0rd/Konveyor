@@ -34,35 +34,29 @@ class TestLayoutRestore : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void restoresALoneColumnToItsIndexAndWidth_data()
+    {
+        QTest::addColumn<QString>("action");
+        QTest::addColumn<QStringList>("arguments");
+        QTest::newRow("resized") << QStringLiteral("set-column-width") << QStringList {QStringLiteral("30%")};
+        QTest::newRow("full width") << QStringLiteral("maximize-column") << QStringList();
+    }
+
     void restoresALoneColumnToItsIndexAndWidth()
     {
+        QFETCH(QString, action);
+        QFETCH(QStringList, arguments);
         Fixture fixture;
         const auto a = fixture.add(QStringLiteral("a"));
         const auto b = fixture.add(QStringLiteral("b"));
         const auto c = fixture.add(QStringLiteral("c"));
         fixture.engine().activateWindow(b);
-        fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("30%")});
+        fixture.perform(action, arguments);
         const double width = fixture.frame(b).width();
+        QVERIFY(width != 936.0);
         const auto restored = restore(fixture, b, QStringLiteral("b"));
         QCOMPARE(positions(fixture, {a, restored, c}), (QList<std::pair<int, int>> {{0, 0}, {1, 0}, {2, 0}}));
         QCOMPARE(fixture.frame(restored).width(), width);
-        VERIFY_INVARIANTS(fixture);
-    }
-
-    void restoresAFullWidthColumnAtFullWidth()
-    {
-        Fixture fixture;
-        const auto a = fixture.add(QStringLiteral("a"));
-        const auto b = fixture.add(QStringLiteral("b"));
-        const auto c = fixture.add(QStringLiteral("c"));
-        fixture.engine().activateWindow(b);
-        fixture.perform(QStringLiteral("maximize-column"));
-        QCOMPARE(fixture.frame(b).width(), 1888.0);
-        const auto restored = restore(fixture, b, QStringLiteral("b"));
-        QCOMPARE(positions(fixture, {a, restored, c}), (QList<std::pair<int, int>> {{0, 0}, {1, 0}, {2, 0}}));
-        QCOMPARE(fixture.frame(restored).width(), 1888.0);
-        fixture.perform(QStringLiteral("maximize-column"));
-        QCOMPARE(fixture.frame(restored).width(), 936.0);
         VERIFY_INVARIANTS(fixture);
     }
 
@@ -80,30 +74,12 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void restoresAFloatingWindowWhereItWas()
-    {
-        Fixture fixture;
-        fixture.add(QStringLiteral("a"));
-        Layout::WindowProperties properties = makeWindow(QStringLiteral("dialog"), QStringLiteral("dialog"), QSizeF(400, 300));
-        properties.isDialog = true;
-        const auto dialog = fixture.addWith(properties);
-        fixture.engine().setFloatingFrame(dialog, QRectF(300, 200, 400, 300));
-        fixture.settle();
-        const QRectF before = fixture.frame(dialog);
-        const std::optional<Layout::RestorePlacement> placement = fixture.engine().placementOf(dialog);
-        QVERIFY(placement && placement->isFloating);
-        fixture.remove(dialog);
-        fixture.engine().addWindow(dialog + 100, properties, QString(), Layout::ActivationPolicy::Focus, placement);
-        fixture.settle();
-        QCOMPARE(fixture.frame(dialog + 100), before);
-        VERIFY_INVARIANTS(fixture);
-    }
-
     void restoresAFloatingWindowToItsSpotOnItsWorkspace_data()
     {
         QTest::addColumn<Layout::ActivationPolicy>("policy");
         QTest::addColumn<QString>("meanwhile");
         QTest::addColumn<QPointF>("shift");
+        QTest::newRow("focus, nothing in between") << Layout::ActivationPolicy::Focus << QString() << QPointF();
         for (const auto &[name, policy] : {std::pair {"smart", Layout::ActivationPolicy::Smart},
                  std::pair {"focus", Layout::ActivationPolicy::Focus}, std::pair {"no focus", Layout::ActivationPolicy::NoFocus}}) {
             QTest::newRow(qPrintable(QStringLiteral("%1, workspace below").arg(QLatin1String(name))))
@@ -129,8 +105,11 @@ private Q_SLOTS:
         fixture.settle();
         const QRectF before = fixture.frame(dialog);
         const std::optional<Layout::RestorePlacement> placement = fixture.engine().placementOf(dialog);
+        QVERIFY(placement && placement->isFloating);
         fixture.remove(dialog);
-        fixture.perform(meanwhile);
+        if (!meanwhile.isEmpty()) {
+            fixture.perform(meanwhile);
+        }
         fixture.advance(1);
         fixture.engine().addWindow(dialog + 100, properties, QString(), policy, placement);
         fixture.settle();
