@@ -71,7 +71,7 @@ class TestRoutermonParsing(CollectorTest):
         self.module = self.load(SCRIPT, "routermon_collect")
 
     def test_parses_every_record_kind(self):
-        parsed = self.module.parse_remote(REMOTE + STATIC)
+        parsed = self.module.remote.parse_remote(REMOTE + STATIC)
         self.assertEqual(parsed["_stat"]["cpu0"], [50, 0, 50, 350, 50, 0, 0])
         self.assertEqual(parsed["ifaces"]["ppp0"], {"rx": 1000000, "tx": 2000000})
         self.assertEqual(parsed["radios_static"][0]["ssid"], "Home Net")
@@ -81,14 +81,14 @@ class TestRoutermonParsing(CollectorTest):
         self.assertEqual((parsed["wan_proto"], parsed["END"]), ("pppoe", "1"))
 
     def test_helpers(self):
-        self.assertEqual(self.module._toplist([{"a.com": 5}, {}, "junk", {"b.com": 2}], 3), [{"name": "a.com", "count": 5}])
+        self.assertEqual(self.module.extras._toplist([{"a.com": 5}, {}, "junk", {"b.com": 2}], 3), [{"name": "a.com", "count": 5}])
         self.assertEqual(self.module._num("x", int, 7), 7)
         self.assertEqual(self.module.rate(10, 20, 1), 0.0)
         self.assertEqual(self.module.rate(30, 10, 2), 10.0)
         self.assertEqual(self.module.cpu_util({"cpu": [10, 0, 0, 10, 0]}, {"cpu": [0, 0, 0, 0, 0]}), {"cores": [], "total": 50.0})
 
     def test_ssh_uses_the_configured_login_and_shared_socket(self):
-        command = self.module.ssh_base({"host": "router", "user": "root", "ssh_key": "~/.ssh/router", "control_persist": "30"})
+        command = self.module.remote.ssh_base({"host": "router", "user": "root", "ssh_key": "~/.ssh/router", "control_persist": "30"})
         self.assertEqual(command[-1], "root@router")
         self.assertIn(str(self.home / ".ssh" / "router"), command)
         self.assertIn("ControlPath=%s" % (self.runtime / "Linux-Router-Monitor" / "cm.sock"), command)
@@ -115,8 +115,8 @@ class TestRoutermonSession(CollectorTest):
         super().setUp()
         write_stub(self.stubs, "ssh", SESSION)
         self.module = self.load(SCRIPT, "routermon_collect")
-        self.module.SESSION_TIMEOUT = 1
-        self.addCleanup(self.module._close_session)
+        self.module.remote.SESSION_TIMEOUT = 1
+        self.addCleanup(self.module.remote._close_session)
         self.cfg = {"host": "router"}
 
     def outcomes(self, replies, requests):
@@ -124,7 +124,7 @@ class TestRoutermonSession(CollectorTest):
         results = []
         for _ in range(requests):
             try:
-                results.append(self.module.fetch_remote(self.cfg).strip())
+                results.append(self.module.remote.fetch_remote(self.cfg).strip())
             except RuntimeError as error:
                 results.append(str(error))
         return results, len(self.calls())
@@ -157,13 +157,13 @@ class TestRoutermonBuild(CollectorTest):
         self.cfg = {"host": "router", "slow_every": 10, "adguard": {"url": "http://agh"}}
 
     def build(self, previous, remote=REMOTE):
-        with mock.patch.object(self.module, "fetch_remote", return_value=remote) as fetch:
+        with mock.patch.object(self.module.remote, "fetch_remote", return_value=remote) as fetch:
             snapshot, state = self.module.build(self.cfg, previous)
         return snapshot, state, fetch
 
     def test_the_first_poll_fetches_everything(self):
-        with mock.patch.object(self.module, "fetch_remote", return_value=STATIC):
-            previous = {"static_cache": self.module.compute_static(self.cfg)}
+        with mock.patch.object(self.module.remote, "fetch_remote", return_value=STATIC):
+            previous = {"static_cache": self.module.remote.compute_static(self.cfg)}
         snapshot, state, fetch = self.build(previous)
         self.assertEqual(fetch.call_args.args[1:], (2, True))
         self.assertEqual(snapshot["info"]["admin_url"], "http://192.168.1.1")
@@ -198,23 +198,23 @@ class TestRoutermonBuild(CollectorTest):
         self.assertEqual(state["tick"], 2)
 
     def test_a_router_ping_is_averaged(self):
-        self.assertEqual(self.module.compute_ping(self.cfg), {"rtt": 20.5, "loss": 0})
+        self.assertEqual(self.module.remote.compute_ping(self.cfg), {"rtt": 20.5, "loss": 0})
 
     def test_adguard_stats_become_the_dns_block(self):
         stats = {"num_dns_queries": 200, "num_blocked_filtering": 50, "avg_processing_time": 0.0123,
                  "top_clients": [{"192.168.1.10": 9}], "top_queried_domains": [{"a.com": 3}], "dns_queries": [1, 2]}
         agh = {"stats": stats, "status": {"protection_enabled": True}}
-        with mock.patch.object(self.module, "fetch_agh", return_value=agh):
-            dns, previous = self.module.compute_dns(self.cfg, {"q": 100, "ts": 90.0}, [{"ip": "192.168.1.10", "name": "laptop"}], 100.0)
+        with mock.patch.object(self.module.extras, "fetch_agh", return_value=agh):
+            dns, previous = self.module.extras.compute_dns(self.cfg, {"q": 100, "ts": 90.0}, [{"ip": "192.168.1.10", "name": "laptop"}], 100.0)
         self.assertEqual((dns["blocked_pct"], dns["qps"], dns["avg_ms"], dns["protection"]), (25.0, 10.0, 12.3, True))
         self.assertEqual(dns["top_clients"], [{"name": "laptop", "count": 9}])
         self.assertEqual(previous, {"q": 200, "ts": 100.0})
 
     def test_adguard_off_or_unreachable_keeps_the_previous_counters(self):
-        self.assertIsNone(self.module.fetch_agh({"adguard": {"enabled": False, "url": "http://agh"}}))
+        self.assertIsNone(self.module.extras.fetch_agh({"adguard": {"enabled": False, "url": "http://agh"}}))
         cfg = {"adguard": {"enabled": True, "url": "http://127.0.0.1:9", "username": "u", "password": "p"}}
-        self.assertEqual(self.module.fetch_agh(cfg), {"stats": None, "status": None})
-        self.assertEqual(self.module.compute_dns(cfg, {"q": 1}, [], 5.0), (None, {"q": 1}))
+        self.assertEqual(self.module.extras.fetch_agh(cfg), {"stats": None, "status": None})
+        self.assertEqual(self.module.extras.compute_dns(cfg, {"q": 1}, [], 5.0), (None, {"q": 1}))
         self.assertIn("AGH /control/stats failed", (self.home / ".local/state/Linux-Router-Monitor/monitor.log").read_text())
 
 
@@ -311,7 +311,8 @@ class TestRoutermonServe(CollectorTest):
                 on_sleep(len(caches))
             FakeClock.sleep(clock, seconds)
         clock.sleep = sleep
-        with clock.patch(self.module), mock.patch.object(self.module, "fetch_remote", side_effect=self.fetch_remote), \
+        with clock.patch(self.module), clock.patch(self.module.extras), \
+                mock.patch.object(self.module.remote, "fetch_remote", side_effect=self.fetch_remote), \
                 self.assertRaises(Stop):
             self.module.serve()
         return caches

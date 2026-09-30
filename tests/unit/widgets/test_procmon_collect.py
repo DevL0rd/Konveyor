@@ -74,9 +74,9 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
 
     def module(self, pynvml=None):
         module = self.load(SCRIPT, "procmon_collect", pynvml=pynvml)
-        module.DESKTOP_DIRS = [str(self.applications)]
-        module.CLK, module.PAGE, module.NCPU = 100, 4096, 2
-        module._frame_telemetry["retry"] = float("inf")
+        module.icons.DESKTOP_DIRS = [str(self.applications)]
+        module.CLK, module.proc.PAGE, module.NCPU = 100, 4096, 2
+        module.graphics._frame_telemetry["retry"] = float("inf")
         return module
 
     def build_at(self, module, when):
@@ -144,8 +144,8 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         if os.access(io, os.R_OK):
             self.skipTest("running as root, so the file stays readable")
         self.process(30, "secret", 1, ticks=10)
-        module._io_fds.clear()
-        module._io_cache.clear()
+        module.proc._io_fds.clear()
+        module.proc._io_cache.clear()
         row = self.rows(self.build_at(module, 101.0))[30]
         self.assertNotIn("disk", row)
         self.assertEqual(row["cpu"], 5.0)
@@ -158,7 +158,7 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
             path.unlink()
         (self.home / "root" / "proc" / "40").rmdir()
         self.assertNotIn(40, self.rows(self.build_at(module, 101.0)))
-        self.assertEqual(module._stat_fds, {})
+        self.assertEqual(module.proc._stat_fds, {})
 
     def test_the_focused_steam_game_takes_its_library_name_and_icon(self):
         (self.applications / "Portal 2.desktop").write_text("[Desktop Entry]\nName=Portal 2\nExec=steam steam://rungameid/620\nIcon=steam_icon_620\n")
@@ -197,7 +197,7 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         self.process(81, "game", 80)
         module = self.module()
         frames = {81: {"fps": 144, "frametime": 6.94, "fps_low": 120}}
-        with mock.patch.object(module, "frame_rates", return_value=frames):
+        with mock.patch.object(module.graphics, "frame_rates", return_value=frames):
             snapshot = self.build_at(module, 100.0)
         (self.runtime / "Linux-Process-Mon").mkdir()
         (self.runtime / "Linux-Process-Mon" / "focus").write_text("80\n")
@@ -207,9 +207,9 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
 
     def test_frame_telemetry_without_a_bus_reports_nothing_and_backs_off(self):
         module = self.module()
-        module._frame_telemetry["retry"] = 0.0
-        self.assertEqual(module.frame_rates(), {})
-        self.assertGreater(module._frame_telemetry["retry"], 0.0)
+        module.graphics._frame_telemetry["retry"] = 0.0
+        self.assertEqual(module.graphics.frame_rates(), {})
+        self.assertGreater(module.graphics._frame_telemetry["retry"], 0.0)
 
     def test_gpu_columns_show_each_processes_share_even_with_more_processes_than_the_buffers_hold(self):
         self.process(1, "init", 0)

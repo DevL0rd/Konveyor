@@ -34,15 +34,9 @@ RUNTIME_DIRS=(Linux-System-Monitor Linux-Process-Mon Linux-Router-Monitor Linux-
 
 remove_router_collector() {
     [[ -f $CONFIG_HOME/Linux-Router-Monitor/config.json ]] || return 0
-    local host user key remote
-    host=$(read_router_config host)
-    user=$(read_router_config user)
-    key=$(read_router_config ssh_key)
-    remote=$(read_router_config remote_script /jffs/lrm-collect.sh)
-    key="${key/#\~/$HOME}"
-    [[ -n $host && -n $key ]] || return 0
-    ssh -o BatchMode=yes -o ConnectTimeout=6 -i "$key" "$user@$host" "rm -f $remote" 2>/dev/null \
-        && say "Removed the Router Monitor collector from $host" || true
+    router_login || return 0
+    ssh -o BatchMode=yes -o ConnectTimeout=6 -i "$ROUTER_KEY" "$ROUTER_USER@$ROUTER_HOST" "rm -f $ROUTER_SCRIPT" 2>/dev/null \
+        && say "Removed the Router Monitor collector from $ROUTER_HOST" || true
 }
 
 main() {

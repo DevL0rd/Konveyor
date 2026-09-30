@@ -135,6 +135,19 @@ class TestWidgetInstallerOptions(HarnessTest):
             for name in ("ui/main.qml", "ui/FullView.qml", "ui/configGeneral.qml", "config/main.xml", "config/config.qml"):
                 self.assertEqual((overlay / name).read_text(), (panel / name).read_text(), f"{plugin}.overlay {name}")
 
+    def test_the_router_collector_is_pushed_on_install_and_removed_on_uninstall(self):
+        self.assertSucceeded(self.widgets("install.sh", "--no-restart"))
+        self.assertEqual(self.harness.calls("ssh"), [])
+        config = self.harness.home / ".config" / "Linux-Router-Monitor" / "config.json"
+        config.write_text('{"host": "router", "user": "root", "ssh_key": "~/.ssh/router", "remote_script": "/jffs/c.sh"}')
+        self.assertSucceeded(self.widgets("install.sh", "--no-restart"))
+        push = self.harness.calls("ssh")
+        self.assertEqual(len(push), 1)
+        self.assertEqual(push[0][-3:], [str(self.harness.home / ".ssh" / "router"), "root@router", "cat > /jffs/c.sh && chmod +x /jffs/c.sh"])
+        self.assertSucceeded(self.widgets("uninstall.sh"))
+        remove = self.harness.calls("ssh")
+        self.assertEqual(remove[0][-3:], [str(self.harness.home / ".ssh" / "router"), "root@router", "rm -f /jffs/c.sh"])
+
     def test_missing_commands_are_named(self):
         for name in ("kscreen-doctor", "jq"):
             (self.harness.stubs / name).unlink()

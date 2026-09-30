@@ -96,7 +96,7 @@ step "typos"
 typos
 
 step "duplicate code (jscpd)"
-npx --yes jscpd@5 src tests tools extras
+npx --yes jscpd@5 src tests tools extras widgets install.sh uninstall.sh
 
 if $NESTED; then
     step "nested KWin tests"

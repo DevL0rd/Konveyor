@@ -44,14 +44,18 @@ read_router_config() {
         "$CONFIG_HOME/Linux-Router-Monitor/config.json" "$1" "${2:-}"
 }
 
+router_login() {
+    ROUTER_HOST=$(read_router_config host)
+    ROUTER_USER=$(read_router_config user)
+    ROUTER_KEY=$(read_router_config ssh_key)
+    ROUTER_KEY="${ROUTER_KEY/#\~/$HOME}"
+    ROUTER_SCRIPT=$(read_router_config remote_script /jffs/lrm-collect.sh)
+    [[ -n $ROUTER_HOST && -n $ROUTER_KEY ]]
+}
+
 push_router_collector() {
-    local host user key remote
-    host=$(read_router_config host)
-    user=$(read_router_config user)
-    key=$(read_router_config ssh_key)
-    remote=$(read_router_config remote_script /jffs/lrm-collect.sh)
-    key="${key/#\~/$HOME}"
-    [[ -n $host && -n $key ]] || return 0
+    router_login || return 0
+    local host=$ROUTER_HOST user=$ROUTER_USER key=$ROUTER_KEY remote=$ROUTER_SCRIPT
     say "Pushing the Router Monitor collector to $user@$host:$remote"
     if ! ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new -i "$key" "$user@$host" \
         "cat > $remote && chmod +x $remote" <"$WIDGETS_DIR/router-monitor/router/collect.sh"; then

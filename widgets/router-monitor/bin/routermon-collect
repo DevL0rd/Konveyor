@@ -18,9 +18,16 @@ import fcntl
 import json
 import math
 import os
-import signal
 import sys
 import time
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+sys.path[:0] = [HERE, os.path.join(os.path.dirname(os.path.dirname(HERE)), "shared")]
+
+import collectors
+import routermon_extras as extras
+import routermon_remote as remote
+from routermon_extras import _num, cpu_util, local_network_fallback, log, rate
 # subprocess / urllib / base64 are imported lazily inside the refresh + AdGuard
 # paths only, so the common cache-read path starts a near-empty interpreter.
 
@@ -31,29 +38,10 @@ RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 CACHE = os.path.join(RUNDIR, "data.json")
 STATE = os.path.join(RUNDIR, "state.json")
 LOCK = os.path.join(RUNDIR, "refresh.lock")
-SOCK = os.path.join(RUNDIR, "cm.sock")
 PAUSE = os.path.join(RUNDIR, "paused")
 PIDFILE = os.path.join(RUNDIR, "serve.pid")
 NAME = "routermon-collect"
-SERVICE = "konveyor-widgets.service"
 NOT_SET_UP = "Router not set up yet"
-LOGDIR = os.path.expanduser(f"~/.local/state/{APP}")
-LOG = os.path.join(LOGDIR, "monitor.log")
-
-
-def log(msg):
-    try:
-        os.makedirs(LOGDIR, exist_ok=True)
-        # keep the log small (cap ~256 KiB)
-        if os.path.exists(LOG) and os.path.getsize(LOG) > 262144:
-            with open(LOG) as f:
-                tail = f.readlines()[-1000:]
-            with open(LOG, "w") as f:
-                f.writelines(tail)
-        with open(LOG, "a") as f:
-            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}  {msg}\n")
-    except OSError:
-        pass
 
 
 NUMBER_SETTINGS = (("poll_interval", 0.5, 0.25), ("slow_every", 10, 1), ("cache_ttl", 1.8, 0))
@@ -84,287 +72,6 @@ def config_stamp():
         return None
 
 
-def ssh_base(cfg):
-    key = os.path.expanduser(cfg.get("ssh_key", "~/.ssh/id_ed25519"))
-    return [
-        "ssh",
-        "-o", "BatchMode=yes",
-        "-o", "ConnectTimeout=6",
-        "-o", "ControlMaster=auto",
-        "-o", f"ControlPath={SOCK}",
-        "-o", f"ControlPersist={cfg.get('control_persist', '60')}",
-        "-o", "StrictHostKeyChecking=accept-new",
-        "-i", key,
-        f"{cfg.get('user', 'admin')}@{cfg['host']}",
-    ]
-
-
-SESSION_DONE = b"__LRM_DONE__"
-SESSION_TIMEOUT = 20
-_session = {"proc": None, "cmd": None}
-
-
-def _close_session():
-    proc = _session["proc"]
-    _session["proc"] = None
-    if proc is not None:
-        try:
-            proc.kill()
-            proc.wait(timeout=2)
-        except Exception:
-            pass
-
-
-def _session_for(cfg):
-    import subprocess
-    script = cfg.get("remote_script", "/jffs/lrm-collect.sh")
-    loop = (f"while read -r a b c d; do sh {script} \"$a\" \"$b\" \"$c\" \"$d\" </dev/null 2>/dev/null; "
-            f"echo {SESSION_DONE.decode()}; done")
-    cmd = ssh_base(cfg) + [loop]
-    proc = _session["proc"]
-    if proc is not None and (proc.poll() is not None or _session["cmd"] != cmd):
-        _close_session()
-        proc = None
-    if proc is None:
-        if not _session.get("cleanup"):
-            import atexit
-            atexit.register(_close_session)
-            _session["cleanup"] = True
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        _session["proc"], _session["cmd"] = proc, cmd
-    return proc
-
-
-def _session_request(cfg, args):
-    import select
-    proc = _session_for(cfg)
-    try:
-        proc.stdin.write(args.encode() + b"\n")
-        proc.stdin.flush()
-        fd = proc.stdout.fileno()
-        deadline = time.monotonic() + SESSION_TIMEOUT
-        chunks = []
-        tail = b""
-        marker = SESSION_DONE + b"\n"
-        while True:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0 or not select.select([fd], [], [], remaining)[0]:
-                raise RuntimeError("remote collect timed out")
-            data = os.read(fd, 65536)
-            if not data:
-                raise RuntimeError(f"remote session ended rc={proc.poll()}")
-            chunks.append(data)
-            tail = (tail + data)[-(len(marker) + 1):]
-            if tail.endswith(marker):
-                break
-    except (OSError, ValueError, RuntimeError):
-        _close_session()
-        raise
-    out = b"".join(chunks)[:-len(marker)]
-    return out.decode(errors="replace")
-
-
-def fetch_remote(cfg, do_ping=True, do_slow=True, do_static=False):
-    ping_mode = do_ping if do_ping in (2, 3) else (1 if do_ping else 0)
-    args = (f"{cfg.get('ping_target', '8.8.8.8')} {ping_mode} "
-            f"{1 if do_slow else 0} {1 if do_static else 0}")
-    try:
-        out = _session_request(cfg, args)
-    except (OSError, ValueError, RuntimeError) as e:
-        raise RuntimeError(f"remote collect failed: {e}") from e
-    if "END=1" not in out:
-        _close_session()
-        raise RuntimeError("remote collect failed: incomplete output")
-    return out
-
-
-def parse_remote(raw):
-    d = {"radios": [], "radios_static": [], "stations": [], "stations_slow": [],
-         "leases": [], "ifaces": {}, "ports": [], "arp": [], "blocked": [],
-         "rcount": [], "_stat": {}}
-    for line in raw.splitlines():
-        if not line:
-            continue
-        if line.startswith("STAT "):
-            parts = line.split()
-            d["_stat"][parts[1]] = [int(x) for x in parts[2:]]
-        elif line.startswith("IF "):
-            _, name, rx, tx = line.split()
-            d["ifaces"][name] = {"rx": int(rx), "tx": int(tx)}
-        elif line.startswith("PORT "):
-            p = line.split(maxsplit=2)
-            d["ports"].append({"port": p[1], "link": p[2]})
-        elif line.startswith("RADIO "):
-            d["radios"].append(_kv(line[6:]))
-        elif line.startswith("RSTATIC "):
-            d["radios_static"].append(_kv(line[8:]))
-        elif line.startswith("RCOUNT "):
-            d["rcount"].append(_kv(line[7:]))
-        elif line.startswith("STA "):
-            d["stations"].append(_kv(line[4:]))
-        elif line.startswith("STASLOW "):
-            d["stations_slow"].append(_kv(line[8:]))
-        elif line.startswith("LEASE "):
-            d["leases"].append(_kv(line[6:]))
-        elif line.startswith("ARP "):
-            parts = line.split()
-            d["arp"].append({"mac": parts[1], "flags": parts[2] if len(parts) > 2 else "0x0"})
-        elif line.startswith("BLOCKED "):
-            d["blocked"].append(line.split()[1])
-        elif "=" in line:
-            k, v = line.split("=", 1)
-            d[k] = v
-    return d
-
-
-def _kv(s):
-    out = {}
-    for tok in s.split():
-        if "=" in tok:
-            k, v = tok.split("=", 1)
-            out[k] = v
-        else:  # value contained spaces (e.g. ssid) -> append to last key
-            if out:
-                out[list(out)[-1]] += " " + tok
-    return out
-
-
-def _toplist(items, limit=6):
-    """AGH top lists are [{"name": count}, ...] -> [{"name":..,"count":..}]."""
-    out = []
-    for it in (items or [])[:limit]:
-        if isinstance(it, dict) and it:
-            k = next(iter(it))
-            out.append({"name": k, "count": it[k]})
-    return out
-
-
-def _num(v, cast=float, default=0):
-    try:
-        return cast(v)
-    except (TypeError, ValueError):
-        return default
-
-
-def cpu_util(stat, prev):
-    """Return {'total': pct, 'cores': [pct,...]} from successive /proc/stat."""
-    res = {"cores": []}
-
-    def pct(cur, old):
-        if not old:
-            return 0.0
-        dt = sum(cur) - sum(old)
-        di = (cur[3] + cur[4]) - (old[3] + old[4])  # idle + iowait
-        return round(100.0 * (dt - di) / dt, 1) if dt > 0 else 0.0
-
-    res["total"] = pct(stat.get("cpu", []), prev.get("cpu", []))
-    i = 0
-    while f"cpu{i}" in stat:
-        res["cores"].append(pct(stat[f"cpu{i}"], prev.get(f"cpu{i}", [])))
-        i += 1
-    return res
-
-
-def rate(cur, old, dt):
-    if old is None or dt <= 0 or cur < old:
-        return 0.0
-    return (cur - old) / dt
-
-
-def _default_interface():
-    try:
-        choices = []
-        with open("/proc/net/route") as routes:
-            next(routes, None)
-            for line in routes:
-                fields = line.split()
-                if len(fields) >= 8 and fields[1] == "00000000" and int(fields[3], 16) & 2:
-                    choices.append((int(fields[6]), fields[0]))
-        return min(choices)[1] if choices else ""
-    except (OSError, ValueError):
-        return ""
-
-
-def _interface_bytes(interface):
-    try:
-        with open("/proc/net/dev") as devices:
-            for line in devices:
-                if ":" not in line:
-                    continue
-                name, values = line.split(":", 1)
-                if name.strip() == interface:
-                    fields = values.split()
-                    return int(fields[0]), int(fields[8])
-    except (OSError, ValueError, IndexError):
-        pass
-    return 0, 0
-
-
-def local_network_fallback(cfg, state, error):
-    """Keep the compact widget useful while router SSH is not configured."""
-    import re
-    import subprocess
-
-    now = time.time()
-    previous = state.get("local_fallback") or {}
-    interface = _default_interface()
-    rx, tx = _interface_bytes(interface)
-    dt = now - previous.get("ts", now)
-    down = rate(rx, previous.get("rx") if previous.get("interface") == interface else None, dt)
-    up = rate(tx, previous.get("tx") if previous.get("interface") == interface else None, dt)
-    ping_rtt = previous.get("ping_rtt", 0)
-    ping_loss = previous.get("ping_loss", 100)
-    last_ping = previous.get("last_ping", 0)
-    if not 0 <= now - last_ping < 5:
-        try:
-            result = subprocess.run(
-                ["ping", "-n", "-c", "1", "-W", "1", str(cfg.get("ping_target", "8.8.8.8"))],
-                capture_output=True, text=True, timeout=3,
-            )
-            match = re.search(r"time[=<]([\d.]+)\s*ms", result.stdout)
-            ping_rtt = round(float(match.group(1)), 1) if match else 0
-            ping_loss = 0 if result.returncode == 0 else 100
-        except (OSError, subprocess.SubprocessError, ValueError):
-            ping_rtt, ping_loss = 0, 100
-        last_ping = now
-    state["local_fallback"] = {
-        "ts": now, "interface": interface, "rx": rx, "tx": tx,
-        "ping_rtt": ping_rtt, "ping_loss": ping_loss, "last_ping": last_ping,
-    }
-    return {
-        "ts": now, "online": False, "paused": False, "fallback": "local", "error": error,
-        "network": {
-            "down_mbps": round(down * 8 / 1e6, 2),
-            "up_mbps": round(up * 8 / 1e6, 2),
-            "ping_rtt": ping_rtt, "ping_loss": ping_loss,
-        },
-    }, state
-
-
-def fetch_agh(cfg):
-    import base64
-    import urllib.error
-    import urllib.request
-    a = cfg.get("adguard", {})
-    if not a.get("enabled") or not a.get("url"):
-        return None
-    base = a["url"].rstrip("/")
-    hdr = {}
-    if a.get("username"):
-        tok = base64.b64encode(f"{a['username']}:{a.get('password','')}".encode()).decode()
-        hdr["Authorization"] = f"Basic {tok}"
-    out = {}
-    for ep, key in (("/control/stats", "stats"), ("/control/status", "status")):
-        try:
-            req = urllib.request.Request(base + ep, headers=hdr)
-            with urllib.request.urlopen(req, timeout=5) as r:
-                out[key] = json.load(r)
-        except (urllib.error.URLError, ValueError, OSError) as e:
-            log(f"AGH {ep} failed: {e}")
-            out[key] = None
-    return out
-
-
 def build(cfg, prev):
     # Three cadences: FAST (every poll) = CPU/throughput/per-client signal+traffic;
     # SLOW (every slow_every) = nvram statics, per-radio meta, leases, firewall;
@@ -377,8 +84,8 @@ def build(cfg, prev):
     prev_ping = prev.get("ping") or {}
 
     ping_due = tick == 1 or tick % slow_every == 0
-    raw = fetch_remote(cfg, 2 if ping_due else 3, do_slow)
-    p = parse_remote(raw)
+    raw = remote.fetch_remote(cfg, 2 if ping_due else 3, do_slow)
+    p = remote.parse_remote(raw)
     now = _num(p.get("TS"), float, time.time())
     dt = now - prev.get("ts", now) if prev else 0
 
@@ -523,70 +230,6 @@ def build(cfg, prev):
     return snap, new_state
 
 
-def compute_static(cfg):
-    """Router identity + ssid/radio/txpower + wired ports. These change only on
-    reconfiguration (which drops the connection), so we refetch them only when the
-    router transitions offline -> online, not on a timer."""
-    p = parse_remote(fetch_remote(cfg, do_ping=False, do_slow=False, do_static=True))
-    return {
-        "info": {"model": p.get("model"), "fw": p.get("fw"), "lan_ip": p.get("lan_ip")},
-        "ports": [pt for pt in p["ports"] if "Up" in pt["link"]] or p["ports"],
-        "radios": {r.get("band"): {"ssid": r.get("ssid"), "on": r.get("radio") == "1",
-                                   "txpower": _num(r.get("txpower"), int)}
-                   for r in p.get("radios_static", [])},
-    }
-
-
-def compute_ping(cfg):
-    """WAN latency via the router (~2.6s). Separate from build() so it never
-    blocks the fast snapshot."""
-    import re
-    import subprocess
-    cmd = ssh_base(cfg) + [f"ping -c 3 -w 4 {cfg.get('ping_target', '8.8.8.8')}"]
-    try:
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=15).stdout
-    except (OSError, subprocess.SubprocessError):
-        return None
-    m = re.search(r"=\s*[\d.]+/([\d.]+)/", out)
-    if not m:
-        return None
-    loss = re.search(r"(\d+)% packet loss", out)
-    return {"rtt": round(float(m.group(1)), 1), "loss": int(loss.group(1)) if loss else 0}
-
-
-def compute_dns(cfg, agh_prev, leases, now):
-    """Fetch AdGuard stats and build the dns block. Separate from build() so its
-    ~0.6s latency runs on the medium tick without delaying the fast snapshot."""
-    agh = fetch_agh(cfg)
-    if not (agh and agh.get("stats")):
-        return None, agh_prev
-    s = agh["stats"]
-    q = _num(s.get("num_dns_queries"), int)
-    b = _num(s.get("num_blocked_filtering"), int)
-    adt = now - agh_prev.get("ts", now)
-    dns = {
-        "queries_total": q, "blocked_total": b,
-        "blocked_pct": round(100.0 * b / q, 1) if q else 0.0,
-        "qps": round(rate(q, agh_prev.get("q"), adt), 1),
-        "avg_ms": round(_num(s.get("avg_processing_time")) * 1000, 1),
-        "malware": _num(s.get("num_replaced_safebrowsing"), int),
-        "parental": _num(s.get("num_replaced_parental"), int),
-        "top_queried": _toplist(s.get("top_queried_domains")),
-        "top_blocked": _toplist(s.get("top_blocked_domains")),
-        "top_clients": _toplist(s.get("top_clients")),
-        "protection": (agh.get("status") or {}).get("protection_enabled"),
-        "url": cfg.get("adguard", {}).get("url", ""),
-        # AdGuard's own time-series (per time_unit) — plot it directly
-        "history": s.get("dns_queries") or [],
-        "history_blocked": s.get("blocked_filtering") or [],
-        "time_units": s.get("time_units"),
-    }
-    ip2name = {l.get("ip"): l.get("name") for l in leases}
-    for c in dns["top_clients"]:
-        c["name"] = ip2name.get(c["name"], c["name"])
-    return dns, {"q": q, "ts": now}
-
-
 def refresh(cfg):
     try:
         prev = json.load(open(STATE)) if os.path.exists(STATE) else {}
@@ -598,16 +241,16 @@ def refresh(cfg):
         _atomic_write(STATE, state)
         return snap
     try:
-        sc = compute_static(cfg)
+        sc = remote.compute_static(cfg)
         if sc:
             prev["static_cache"] = sc
         snap, state = build(cfg, prev)
-        dns, state["agh_prev"] = compute_dns(cfg, state.get("agh_prev") or {},
+        dns, state["agh_prev"] = extras.compute_dns(cfg, state.get("agh_prev") or {},
                                              snap["clients"]["leases"], snap["ts"])
         if dns is not None:
             snap["dns"] = dns
             state["dns_cache"] = dns
-        pg = compute_ping(cfg)
+        pg = remote.compute_ping(cfg)
         if pg is not None:
             state["ping"] = pg
             snap["network"]["ping_rtt"] = pg["rtt"]
@@ -620,19 +263,6 @@ def refresh(cfg):
     return snap
 
 
-def _merge_static(snap, sc, cfg):
-    """Fold a freshly-fetched static block into an already-built snapshot."""
-    info = dict(sc.get("info") or {})
-    info["admin_url"] = ("http://" + info["lan_ip"]) if info.get("lan_ip") else ""
-    info["agh_url"] = cfg.get("adguard", {}).get("url", "")
-    info["uptime"] = (snap.get("info") or {}).get("uptime", 0)
-    snap["info"] = info
-    snap.setdefault("network", {})["ports"] = sc.get("ports", [])
-    sr = sc.get("radios", {})
-    for r in (snap.get("wifi") or {}).get("radios", []):
-        r.update(sr.get(r.get("band"), {}))
-
-
 def _atomic_write(path, obj):
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
@@ -640,33 +270,8 @@ def _atomic_write(path, obj):
     os.replace(tmp, path)
 
 
-def write_pidfile():
-    tmp = PIDFILE + ".tmp"
-    with open(tmp, "w") as f:
-        f.write(str(os.getpid()))
-    os.replace(tmp, PIDFILE)
-
-
-def serving_pid():
-    try:
-        with open(PIDFILE) as f:
-            pid = int(f.read())
-        with open(f"/proc/{pid}/cmdline", "rb") as f:
-            arguments = f.read().split(b"\0")
-    except (OSError, ValueError):
-        return None
-    if b"--serve" in arguments and any(os.path.basename(argument) == NAME.encode() for argument in arguments):
-        return pid
-    return None
-
-
 def restart():
-    pid = serving_pid()
-    if pid is not None:
-        os.kill(pid, signal.SIGTERM)
-        return 0
-    import subprocess
-    return subprocess.run(["systemctl", "--user", "start", SERVICE], check=False).returncode
+    return collectors.restart(PIDFILE, NAME)
 
 
 def serve():
@@ -679,7 +284,7 @@ def serve():
         fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         return  # another server is already running
-    write_pidfile()
+    collectors.write_pidfile(PIDFILE)
     prev = {}
     was_online = False
     stamp = cfg = config_error = None
@@ -722,13 +327,13 @@ def serve():
             now_online = ok and snap.get("online") is not False
             if now_online and not was_online:
                 try:
-                    sc = compute_static(cfg)
+                    sc = remote.compute_static(cfg)
                 except Exception as e:
                     log(f"static fetch failed: {e}")
                     sc = None
                 if sc:
                     prev["static_cache"] = sc
-                    _merge_static(snap, sc, cfg)
+                    remote.merge_static(snap, sc, cfg)
                     _atomic_write(CACHE, snap)
             was_online = now_online
             # SLOW tick: AdGuard (~0.6s) + WAN ping (~2.6s), each fetched after the
@@ -737,7 +342,7 @@ def serve():
             tick = prev.get("tick", 0)
             slow_due = tick == 1 or tick % slow_every == 0
             if ok and (prev.get("dns_cache") is None or slow_due):
-                dns, prev["agh_prev"] = compute_dns(
+                dns, prev["agh_prev"] = extras.compute_dns(
                     cfg, prev.get("agh_prev") or {},
                     snap.get("clients", {}).get("leases", []), snap.get("ts", time.time()))
                 if dns is not None:

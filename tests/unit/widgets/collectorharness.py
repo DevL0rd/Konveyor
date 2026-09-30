@@ -153,6 +153,7 @@ class ServeLoopTests:
                 on_write(len(written))
         with contextlib.ExitStack() as stack:
             stack.enter_context(clock.patch(module))
+            stack.enter_context(clock.patch(module.collectors))
             stack.enter_context(mock.patch.object(module, "write_snapshot", side_effect=record))
             if hasattr(module, "panel_snapshot"):
                 stack.enter_context(mock.patch.object(module, "panel_snapshot"))
