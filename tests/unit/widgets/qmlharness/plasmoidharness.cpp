@@ -11,6 +11,7 @@
 #include <QQmlContext>
 #include <QQmlExpression>
 #include <QRegularExpression>
+#include <QTest>
 #include <QXmlStreamReader>
 
 #include <cstdio>
@@ -66,8 +67,7 @@ PlasmoidHarness::PlasmoidHarness(PlasmoidSpec spec)
 
 PlasmoidHarness::~PlasmoidHarness()
 {
-    qDeleteAll(m_shown);
-    m_root.reset();
+    unload();
     m_window.reset();
     m_engine.reset();
     m_plasmoid.reset();
@@ -282,6 +282,25 @@ void PlasmoidHarness::writeFile(const QString &path, const QByteArray &content) 
         file.close();
         std::rename(QFile::encodeName(file.fileName()).constData(), QFile::encodeName(path).constData());
     }
+}
+
+bool PlasmoidHarness::deliver(const QString &path, const QByteArray &content, const std::function<bool()> &arrived) const
+{
+    const QString directory = QFileInfo(path).absolutePath();
+    QDir().mkpath(directory);
+    if (!QTest::qWaitFor([&] { return watching(directory); })) {
+        qWarning("nothing watches %s", qPrintable(directory));
+        return false;
+    }
+    writeFile(path, content);
+    return QTest::qWaitFor(arrived);
+}
+
+void PlasmoidHarness::unload()
+{
+    qDeleteAll(m_shown);
+    m_shown.clear();
+    m_root.reset();
 }
 
 QString PlasmoidHarness::runtimePath(const QString &name) const

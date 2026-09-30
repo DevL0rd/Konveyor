@@ -42,6 +42,8 @@ public:
     bool reply(const QString &prefix, const QString &out, int exitCode = 0, const QString &err = QString());
     void resolveRuntime(const QString &prefix);
     void writeFile(const QString &path, const QByteArray &content) const;
+    bool deliver(const QString &path, const QByteArray &content, const std::function<bool()> &arrived) const;
+    void unload();
     QString runtimePath(const QString &name) const;
     QString stagedPath(const QString &relative) const;
     QList<QObject *> findAll(const char *type) const;

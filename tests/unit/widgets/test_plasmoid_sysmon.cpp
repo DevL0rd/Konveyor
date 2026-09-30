@@ -1,7 +1,5 @@
 #include "plasmoidharness.h"
 
-#include <QDir>
-#include <QFileInfo>
 #include <QTest>
 
 namespace
@@ -46,13 +44,7 @@ std::unique_ptr<PlasmoidHarness> started(int form, const QVariantMap &config = {
 bool feed(PlasmoidHarness &harness, const QByteArray &json)
 {
     const int tick = harness.root()->property("tick").toInt();
-    const QString directory = QFileInfo(dataPath()).absolutePath();
-    QDir().mkpath(directory);
-    if (!QTest::qWaitFor([&] { return harness.watching(directory); })) {
-        return false;
-    }
-    harness.writeFile(dataPath(), json);
-    return QTest::qWaitFor([&] { return harness.root()->property("tick").toInt() > tick; });
+    return harness.deliver(dataPath(), json, [&] { return harness.root()->property("tick").toInt() > tick; });
 }
 
 QObject *shell(PlasmoidHarness &harness)
@@ -338,13 +330,14 @@ private Q_SLOTS:
         QVERIFY(harness);
         QCOMPARE(harness->plasmoid()->status, 6);
         QVERIFY(!harness->root()->property("dataWanted").toBool());
-        harness->writeFile(harness->runtimePath(QStringLiteral("Konveyor-Monitor-Overlay/state.json")),
-            R"({"targets": [{"key": "app", "pid": 5, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}]})");
-        QTRY_VERIFY(harness->root()->property("overlayVisible").toBool());
-        QVERIFY(harness->root()->property("dataWanted").toBool());
+        const QString state = harness->runtimePath(QStringLiteral("Konveyor-Monitor-Overlay/state.json"));
+        QObject *root = harness->root();
+        QVERIFY(harness->deliver(state,
+            R"({"targets": [{"key": "app", "pid": 5, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}]})",
+            [&] { return root->property("overlayVisible").toBool(); }));
+        QVERIFY(root->property("dataWanted").toBool());
         QVERIFY(feed(*harness, snapshot));
-        harness->writeFile(harness->runtimePath(QStringLiteral("Konveyor-Monitor-Overlay/state.json")), R"({"targets": []})");
-        QTRY_VERIFY(!harness->root()->property("overlayVisible").toBool());
+        QVERIFY(harness->deliver(state, R"({"targets": []})", [&] { return !root->property("overlayVisible").toBool(); }));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 };
