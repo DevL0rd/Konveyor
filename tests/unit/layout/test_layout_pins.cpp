@@ -121,6 +121,25 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void swappingAPinnedWindowIntoAnotherColumnKeepsBothWindows()
+    {
+        Fixture fixture(pinnedConfig(instantConfig(), QStringLiteral("pinned"), Config::ColumnPosition::End));
+        const auto first = fixture.add(QStringLiteral("a"));
+        const auto second = fixture.add(QStringLiteral("b"));
+        const auto pinned = fixture.add(QStringLiteral("pinned"));
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        QCOMPARE(fixture.state(pinned).columnIndex, fixture.state(second).columnIndex);
+        QCOMPARE(fixture.focused(), std::optional(pinned));
+        fixture.perform(QStringLiteral("swap-window-left"));
+        QCOMPARE(fixture.focused(), std::optional(pinned));
+        QCOMPARE(fixture.state(pinned).columnIndex, 1);
+        QCOMPARE(fixture.state(pinned).tileIndex, 0);
+        QCOMPARE(fixture.state(second).columnIndex, 0);
+        QCOMPARE(fixture.state(first).columnIndex, 0);
+        QCOMPARE(fixture.state(first).tileIndex, 1);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void pinningOnReloadKeepsTheRowInView()
     {
         Fixture fixture(instantConfig());

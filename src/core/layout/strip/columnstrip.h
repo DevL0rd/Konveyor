@@ -197,7 +197,7 @@ private:
     void expelLeft(Location source, QPointF prevOff, bool sourceWasActive);
     void consumeRightIntoAdjacent(Location source, QPointF prevOff, bool sourceWasActive);
     void expelRight(Location source, QPointF prevOff, bool sourceWasActive);
-    void swapTiles(std::size_t sourceColumnIndex, std::size_t targetColumnIndex, ScrollDirection direction);
+    void swapTiles(std::size_t sourceColumnIndex, std::size_t targetColumnIndex);
     void updateActiveColumnViewAfterUpdate(
         std::size_t colIndex, std::optional<quint8> resizeEdges, double offset, bool wasNormal, bool ongoingResizeAnim);
     void moveOtherColumnsForResize(std::size_t colIndex, double offset, bool ongoingResizeAnim);

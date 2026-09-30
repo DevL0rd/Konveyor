@@ -158,41 +158,47 @@ void ColumnStrip::expelFromColumn()
     newColumn.tiles[0].slideFrom(offset);
 }
 
-void ColumnStrip::swapTiles(std::size_t sourceColumnIndex, std::size_t targetColumnIndex, ScrollDirection direction)
+void ColumnStrip::swapTiles(std::size_t sourceColumnIndex, std::size_t targetColumnIndex)
 {
-    const std::size_t sourceTileIndex = m_columns[sourceColumnIndex].activeTileIndex;
-    const std::size_t targetTileIndex = m_columns[targetColumnIndex].activeTileIndex;
-    const bool sourceDrained = m_columns[sourceColumnIndex].tiles.size() == 1;
+    const Column &source = m_columns[sourceColumnIndex];
+    const Column &target = m_columns[targetColumnIndex];
+    const std::size_t sourceTileIndex = source.activeTileIndex;
+    const std::size_t targetTileIndex = target.activeTileIndex;
+    const WindowId sourceWindow = source.tiles[sourceTileIndex].id();
+    const WindowId targetWindow = target.tiles[targetTileIndex].id();
+    const std::optional<WindowId> sourceNeighbour
+        = source.tiles.size() == 1 ? std::nullopt : std::optional(source.tiles[sourceTileIndex == 0 ? 1 : 0].id());
 
-    QPointF sourcePt = m_columns[sourceColumnIndex].animationOffset() + m_columns[sourceColumnIndex].tilePosition(sourceTileIndex);
-    QPointF targetPt = m_columns[targetColumnIndex].animationOffset() + m_columns[targetColumnIndex].tilePosition(targetTileIndex);
+    QPointF sourcePt = source.animationOffset() + source.tilePosition(sourceTileIndex);
+    QPointF targetPt = target.animationOffset() + target.tilePosition(targetTileIndex);
     sourcePt.rx() += columnOffset(sourceColumnIndex);
     targetPt.rx() += columnOffset(targetColumnIndex);
 
     DetachedTile sourceRemoved = detachTileAt(sourceColumnIndex, sourceTileIndex, std::nullopt);
-    const std::size_t adjustedTarget = direction == ScrollDirection::Right && sourceDrained ? targetColumnIndex - 1 : targetColumnIndex;
-    insertIntoColumn(adjustedTarget, targetTileIndex, std::move(sourceRemoved.tile), false);
-    DetachedTile targetRemoved = detachTileAt(adjustedTarget, targetTileIndex + 1, std::nullopt);
+    insertIntoColumn(columnIndexOf(targetWindow), targetTileIndex, std::move(sourceRemoved.tile), false);
+    DetachedTile targetRemoved = removeTile(targetWindow);
 
-    if (sourceDrained) {
-        addTile(sourceColumnIndex, std::move(targetRemoved.tile), true, sourceRemoved.width, sourceRemoved.fillsWidth, std::nullopt);
+    if (sourceNeighbour) {
+        insertIntoColumn(columnIndexOf(*sourceNeighbour), sourceTileIndex, std::move(targetRemoved.tile), false);
     } else {
-        insertIntoColumn(sourceColumnIndex, sourceTileIndex, std::move(targetRemoved.tile), false);
+        addTile(sourceColumnIndex, std::move(targetRemoved.tile), true, sourceRemoved.width, sourceRemoved.fillsWidth, std::nullopt);
     }
 
-    m_columns[sourceColumnIndex].activeTileIndex = sourceTileIndex;
-    m_columns[targetColumnIndex].activeTileIndex = targetTileIndex;
+    for (const WindowId window : {sourceWindow, targetWindow}) {
+        const Location location = *locate(window);
+        m_columns[location.column].activeTileIndex = location.tile;
+    }
 
-    Tile &targetTile = m_columns[targetColumnIndex].tiles[targetTileIndex];
-    targetTile.slideFrom(sourcePt - targetPt);
-    targetTile.ensureFadesToOpaque();
+    Tile &movedSource = *tileFor(sourceWindow);
+    movedSource.slideFrom(sourcePt - targetPt);
+    movedSource.ensureFadesToOpaque();
 
-    Tile &sourceTile = m_columns[sourceColumnIndex].tiles[sourceTileIndex];
-    sourceTile.stopSlides();
-    sourceTile.slideFrom(targetPt - sourcePt);
-    sourceTile.ensureFadesToOpaque();
+    Tile &movedTarget = *tileFor(targetWindow);
+    movedTarget.stopSlides();
+    movedTarget.slideFrom(targetPt - sourcePt);
+    movedTarget.ensureFadesToOpaque();
 
-    activateColumn(targetColumnIndex);
+    activateColumn(columnIndexOf(sourceWindow));
 }
 
 void ColumnStrip::swapWindowInDirection(ScrollDirection direction)
@@ -210,7 +216,7 @@ void ColumnStrip::swapWindowInDirection(ScrollDirection direction)
         moveColumnTo(target);
         return;
     }
-    swapTiles(source, target, direction);
+    swapTiles(source, target);
 }
 
 void ColumnStrip::toggleColumnTabbedDisplay()
