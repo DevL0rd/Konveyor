@@ -99,6 +99,7 @@ Item {
                 })
             }
             onPageChanged: root.currentPage = page
+            Component.onCompleted: root.currentPage = page
             onCloseFinished: {
                 card.visible = false
                 dim.visible = false

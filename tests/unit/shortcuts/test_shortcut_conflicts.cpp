@@ -52,7 +52,8 @@ private Q_SLOTS:
         QCOMPARE(released.first().componentFriendlyName, QStringLiteral("KWin"));
         QCOMPARE(released.first().actionFriendlyName, QStringLiteral("Toggle Overview"));
         QCOMPARE(released.first().keys, QList<QKeySequence> {metaW});
-        QTRY_VERIFY(!m_fake->keys(QStringLiteral("kwin"), QStringLiteral("Overview")).contains(metaW));
+        FakeKGlobalAccel::settle();
+        QVERIFY(!m_fake->keys(QStringLiteral("kwin"), QStringLiteral("Overview")).contains(metaW));
 
         QVERIFY(ShortcutConflicts::restore(released).isEmpty());
         QCOMPARE(m_fake->keys(QStringLiteral("kwin"), QStringLiteral("Overview")), QList<QKeySequence> {metaW});
@@ -60,9 +61,11 @@ private Q_SLOTS:
 
     void takeOverLeavesItsOwnAndFreeKeysAlone()
     {
+        FakeKGlobalAccel::settle();
         const auto before = m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size();
         const QList<ReleasedShortcut> released = ShortcutConflicts::takeOver(
             {QKeySequence(QStringLiteral("Meta+H")), QKeySequence(QStringLiteral("Meta+Y"))}, QStringLiteral("konveyor"));
+        FakeKGlobalAccel::settle();
         QVERIFY(released.isEmpty());
         QCOMPARE(m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size(), before);
         QCOMPARE(m_fake->keys(QStringLiteral("konveyor"), QStringLiteral("focus-column-left")),
@@ -79,7 +82,8 @@ private Q_SLOTS:
         QCOMPARE(released.size(), 1);
         QCOMPARE(released.first().action, QStringLiteral("Edit Tiles"));
         QCOMPARE(released.first().keys, QList<QKeySequence> {metaT});
-        QTRY_VERIFY(!m_fake->keys(QStringLiteral("kwin"), QStringLiteral("Edit Tiles")).contains(metaT));
+        FakeKGlobalAccel::settle();
+        QVERIFY(!m_fake->keys(QStringLiteral("kwin"), QStringLiteral("Edit Tiles")).contains(metaT));
         QVERIFY(ShortcutConflicts::restore(released).isEmpty());
         QCOMPARE(m_fake->keys(QStringLiteral("kwin"), QStringLiteral("Edit Tiles")), QList<QKeySequence> {metaT});
     }

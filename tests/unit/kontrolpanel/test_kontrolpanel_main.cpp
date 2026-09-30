@@ -119,8 +119,10 @@ private Q_SLOTS:
         const ProgramResult result = m_session->run(QStringLiteral(KONVEYOR_KONTROL_PANEL), {m_directory});
         QCOMPARE(result.exitCode, 1);
         QVERIFY2(result.err.contains(QStringLiteral("Main.qml")), qPrintable(result.err));
-        QTest::qWait(200);
+        QVERIFY(QDBusConnection::sessionBus().interface()->isServiceRegistered(QStringLiteral("org.freedesktop.DBus")));
+        QCoreApplication::processEvents();
         QCOMPARE(registered.count(), 0);
+        FakeKGlobalAccel::settle();
         QVERIFY(kglobalaccel.calls(QStringLiteral("doRegister")).isEmpty());
     }
 
@@ -131,17 +133,18 @@ private Q_SLOTS:
         start();
         const QStringList actionId {QStringLiteral("konveyor-kontrol-panel"), QStringLiteral("toggle"), QStringLiteral("Kontrol Panel"),
             QStringLiteral("Open or close the Kontrol Panel")};
-        QTRY_VERIFY(!kglobalaccel.calls(QStringLiteral("setShortcutKeys")).isEmpty());
+        QDBusInterface panel(busName, QStringLiteral("/KontrolPanel"), busName, QDBusConnection::sessionBus());
+        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), false);
+        FakeKGlobalAccel::settle();
+        QVERIFY(!kglobalaccel.calls(QStringLiteral("setShortcutKeys")).isEmpty());
         QCOMPARE(kglobalaccel.calls(QStringLiteral("doRegister")).first().arguments().value(0).toStringList(), actionId);
         const QDBusMessage set = kglobalaccel.calls(QStringLiteral("setShortcutKeys")).first();
         QCOMPARE(set.arguments().value(0).toStringList(), actionId);
         QCOMPARE(FakeKGlobalAccel::keysOf(set.arguments().value(1)),
             QList<QKeySequence>({QKeySequence(Qt::Key_Meta), QKeySequence(Qt::ALT | Qt::Key_F1)}));
 
-        QDBusInterface panel(busName, QStringLiteral("/KontrolPanel"), busName, QDBusConnection::sessionBus());
-        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), false);
         QVERIFY(panel.call(QStringLiteral("Toggle")).type() == QDBusMessage::ReplyMessage);
-        QTRY_COMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), true);
+        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), true);
         QCOMPARE(panel.call(QStringLiteral("Open"), QStringLiteral("games")).type(), QDBusMessage::ReplyMessage);
         QCOMPARE(panel.call(QStringLiteral("Hide")).type(), QDBusMessage::ReplyMessage);
         QCOMPARE(panel.call(QStringLiteral("Pin"), QStringList {QStringLiteral("/a.desktop")}).type(), QDBusMessage::ReplyMessage);
@@ -153,7 +156,7 @@ private Q_SLOTS:
     {
         start();
         const QString path = m_session->dir(QStringLiteral("config")) + QStringLiteral("/konveyor/kontrolpanelrc");
-        QTRY_VERIFY(QFile::exists(path));
+        QVERIFY(QFile::exists(path));
         const KConfig config(path, KConfig::SimpleConfig);
         QCOMPARE(config.group(QStringLiteral("General")).readEntry("tileSize", 0), 64);
     }

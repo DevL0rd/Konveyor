@@ -57,7 +57,7 @@ Item {
     objectName: "launcherView"
     signal activateRequested()
     signal closeFinished()
-    property string page: ""
+    property string page: "home"
     property real progress: 1
     property bool hadFocus: false
     property bool shown: true
@@ -149,7 +149,9 @@ private Q_SLOTS:
     {
         QVERIFY(QMetaObject::invokeMethod(m_view, "activateRequested"));
         QVERIFY(windowTitled(QStringLiteral("Kontrol Panel backdrop"))->isVisible());
-        QTRY_VERIFY(windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());
+        QVERIFY(!windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());
+        QCoreApplication::processEvents();
+        QVERIFY(windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());
         QVERIFY(QMetaObject::invokeMethod(m_view, "closeFinished"));
         QVERIFY(!windowTitled(QStringLiteral("Kontrol Panel backdrop"))->isVisible());
         QVERIFY(!windowTitled(QStringLiteral("Kontrol Panel"))->isVisible());
@@ -168,6 +170,7 @@ private Q_SLOTS:
 
     void pageRequestsReachTheViewAndPageChangesReachTheRoot()
     {
+        QCOMPARE(m_root->property("currentPage").toString(), QStringLiteral("home"));
         QVERIFY(QMetaObject::invokeMethod(m_root.get(), "pageRequested", Q_ARG(QString, QStringLiteral("games"))));
         QCOMPARE(m_view->property("page").toString(), QStringLiteral("games"));
         QCOMPARE(m_root->property("currentPage").toString(), QStringLiteral("games"));
@@ -277,10 +280,7 @@ private:
     {
         auto *component = m_root->property("settings").value<QQmlComponent *>();
         m_settings.reset(component->create(qmlContext(m_root.get())));
-        QObject *form = nullptr;
-        const bool found = QTest::qWaitFor(
-            [&] { return m_settings && (form = m_settings->findChild<QObject *>(QStringLiteral("configGeneral"))) != nullptr; }, 5000);
-        return found ? form : nullptr;
+        return m_settings ? m_settings->findChild<QObject *>(QStringLiteral("configGeneral")) : nullptr;
     }
 
     QtMessageHandler m_previousHandler = nullptr;

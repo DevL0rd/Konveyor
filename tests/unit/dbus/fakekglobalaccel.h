@@ -80,6 +80,12 @@ public:
 
     QList<QDBusMessage> calls(const QString &member) const { return m_service.calls(member); }
 
+    static void settle()
+    {
+        QDBusConnection::sessionBus().call(QDBusMessage::createMethodCall(QStringLiteral("org.kde.kglobalaccel"),
+            QStringLiteral("/kglobalaccel"), QStringLiteral("org.kde.KGlobalAccel"), QStringLiteral("shortcutKeys")));
+    }
+
     static QList<QKeySequence> keysOf(const QVariant &argument)
     {
         QList<QKeySequence> keys;
