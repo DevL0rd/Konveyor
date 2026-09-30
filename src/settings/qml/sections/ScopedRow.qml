@@ -45,7 +45,7 @@ SettingRow {
 
             QQC2.Label {
                 visible: row.scope.overrideMode && !row.overridden && row.inheritedSummary.length > 0
-                text: "Same as main layout: " + row.inheritedSummary
+                text: "Inherited: " + row.inheritedSummary
                 opacity: 0.7
                 wrapMode: Text.Wrap
                 Layout.fillWidth: row.wideControl

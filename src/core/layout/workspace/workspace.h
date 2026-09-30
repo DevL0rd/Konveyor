@@ -75,8 +75,7 @@ public:
 
     void updateConfig(OptionsPtr globalOptions);
     const OptionsPtr &options() const { return m_options; }
-    const std::optional<Config::Layout> &layoutOverride() const { return m_layoutOverride; }
-    void setLayoutOverride(std::optional<Config::Layout> layoutOverride);
+    void setLayoutOverride(std::optional<Config::LayoutPart> layoutOverride);
     const Anim::Clock &clock() const { return m_clock; }
 
     void tickAnimations();
@@ -223,7 +222,7 @@ private:
     OutputArea m_area;
     Anim::Clock m_clock;
     OptionsPtr m_globalOptions;
-    std::optional<Config::Layout> m_layoutOverride;
+    std::optional<Config::LayoutPart> m_layoutOverride;
     OptionsPtr m_options;
     ColumnStrip m_strip;
     FloatingLayer m_floating;

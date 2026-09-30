@@ -261,7 +261,8 @@ void TestConfigNodes::tabIndicatorMergesFieldByField()
         }
     )"));
     const TabIndicator &global = config.layout.tabIndicator;
-    const TabIndicator &scoped = config.outputs.first().layout->tabIndicator;
+    const Layout scopedLayout = mergedLayout(config.layout, *config.outputs.first().layout);
+    const TabIndicator &scoped = scopedLayout.tabIndicator;
     QCOMPARE(global.enabled, true);
     QCOMPARE(scoped.enabled, false);
     QCOMPARE(scoped.width, 9.0);

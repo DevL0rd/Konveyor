@@ -136,7 +136,7 @@ void TestConfigMonitors::keepsEveryMatchNode()
     QVERIFY(profile.matches.at(0).name.has_value());
     QCOMPARE(profile.matches.at(1).widthBelow, std::optional(1500.0));
     QCOMPARE(profile.matches.at(2), MonitorMatch {});
-    QCOMPARE(profile.layout->gaps, 3.0);
+    QCOMPARE(profile.layout->gaps, std::optional(3.0));
 }
 
 void TestConfigMonitors::rejectsBadMatches_data()

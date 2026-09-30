@@ -35,25 +35,6 @@ QString sourceLineOf(const LoadContext &context, const Kdl::Location &location)
     return line;
 }
 
-void resolveScopedLayouts(Config &config)
-{
-    for (OutputConfig &output : config.outputs) {
-        if (output.layoutPart) {
-            output.layout = mergedLayout(config.layout, *output.layoutPart);
-        }
-    }
-    for (MonitorProfile &profile : config.monitorProfiles) {
-        if (profile.layoutPart) {
-            profile.layout = mergedLayout(config.layout, *profile.layoutPart);
-        }
-    }
-    for (NamedWorkspace &workspace : config.workspaces) {
-        if (workspace.layoutPart) {
-            workspace.layout = mergedLayout(config.layout, *workspace.layoutPart);
-        }
-    }
-}
-
 std::expected<LoadResult, LoadError> runLoad(LoadContext &context, const QString &text, const QString &name, const QString &baseDir)
 {
     context.config = defaultConfig();
@@ -70,7 +51,6 @@ std::expected<LoadResult, LoadError> runLoad(LoadContext &context, const QString
     } catch (const DecodeError &error) {
         return std::unexpected(LoadError {error.message, error.location, sourceLineOf(context, error.location), context.files});
     }
-    resolveScopedLayouts(context.config);
     return LoadResult {context.config, context.files, context.warnings};
 }
 

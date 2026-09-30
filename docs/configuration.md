@@ -27,6 +27,19 @@ binds {
 
 You get gaps, borders, a focus ring, tab indicators, preset widths, centering modes, per-monitor and per-workspace overrides, window rules, animation springs and key binds. Two KDE-specific extras: `active-color "accent"` follows the KDE accent color, and `gestures { titlebar-drag "scroll-view" }` scrolls the row when you drag a window by its title bar.
 
+Layout settings come in four levels: `layout` for every monitor, the first `monitor-profile` a monitor matches, the monitor's own `output` block, and a named `workspace`. Each level changes only the settings it lists and takes everything else from the level before it. An `output` block that only sets `gaps` keeps its profile's column widths, and a workspace that only sets `gaps` keeps the struts and borders of the monitor it is on.
+
+```kdl
+monitor-profile "portrait" {
+    match aspect-ratio-below=1.0
+    layout { default-column-width { proportion 1.0; }; }
+}
+
+output "DP-2" {
+    layout { gaps 8; }
+}
+```
+
 ## Placing new windows
 
 `new-window-placement "column"` (the default) gives every new window its own column. `new-window-placement "stack"` adds it as a row to the focused column until the column holds `max-rows-per-column` windows, then opens a new column; rows share the height evenly. With `group-app-windows "beside"` a new window stacks into its app's last column instead of the focused one. `new-window-placement`, `group-app-windows` and `max-rows-per-column` work globally, inside `monitor-profile` and `output` layout blocks, and per app in window rules.

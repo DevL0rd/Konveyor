@@ -133,9 +133,8 @@ private Q_SLOTS:
         Config::Config config = rememberingConfig();
         Config::OutputConfig output;
         output.name = QStringLiteral("DP-1");
-        output.layout = config.layout;
-        output.layout->border.enabled = true;
-        output.layout->border.width = 4;
+        output.layout = Config::LayoutPart {};
+        output.layout->border = Config::BorderRule {true, 4.0, {}, {}, {}};
         config.outputs.append(output);
         Fixture fixture(config);
         const auto first = fixture.add(QStringLiteral("app"));
@@ -148,7 +147,9 @@ private Q_SLOTS:
         Config::Config config = instantConfig();
         Config::OutputConfig output;
         output.name = QStringLiteral("DP-2");
-        output.layout = rememberingConfig().layout;
+        output.layout = Config::LayoutPart {};
+        output.layout->rememberWindowSizes = rememberingConfig().layout.rememberWindowSizes;
+        output.layout->rememberWindowPositions = rememberingConfig().layout.rememberWindowPositions;
         config.outputs.append(output);
         Fixture fixture(config);
         fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));

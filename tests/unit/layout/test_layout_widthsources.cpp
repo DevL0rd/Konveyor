@@ -22,8 +22,8 @@ Config::Config withProfile(Config::Config config, double width)
 {
     Config::MonitorProfile profile;
     profile.name = QStringLiteral("any");
-    Config::Layout layout = config.layout;
-    layout.defaultColumnWidth = Config::Proportion {width};
+    Config::LayoutPart layout;
+    layout.defaultColumnWidth = std::optional<Config::PresetSize>(Config::Proportion {width});
     profile.layout = layout;
     config.monitorProfiles.append(profile);
     return config;
@@ -121,7 +121,8 @@ private Q_SLOTS:
     void presetListFromTheProfileReplacesTheGlobalOne()
     {
         Config::Config config = withProfile(instantConfig(), 0.5);
-        config.monitorProfiles[0].layout->presetColumnWidths = {Config::Proportion {0.25}, Config::Proportion {0.5}};
+        config.monitorProfiles[0].layout->presetColumnWidths
+            = QList<Config::PresetSize> {Config::Proportion {0.25}, Config::Proportion {0.5}};
         Fixture fixture(config);
         const auto id = fixture.add(QStringLiteral("app"));
         QCOMPARE(fixture.state(id).widthPresetCount, 2);
@@ -230,7 +231,7 @@ private Q_SLOTS:
         Config::MonitorMatch match;
         match.aspectRatioBelow = 1.0;
         portrait.matches.append(match);
-        portrait.layout = config.layout;
+        portrait.layout = Config::LayoutPart {};
         portrait.layout->newWindowPlacement = Config::NewWindowPlacement::Stack;
         portrait.layout->maxRowsPerColumn = 2;
         config.monitorProfiles.append(portrait);
@@ -254,8 +255,8 @@ private Q_SLOTS:
         Config::MonitorMatch match;
         match.aspectRatioBelow = 1.0;
         portrait.matches.append(match);
-        portrait.layout = config.layout;
-        portrait.layout->defaultColumnWidth = Config::Proportion {1.0};
+        portrait.layout = Config::LayoutPart {};
+        portrait.layout->defaultColumnWidth = std::optional<Config::PresetSize>(Config::Proportion {1.0});
         config.monitorProfiles.append(portrait);
         Fixture fixture(config);
         const auto landscape = fixture.add(QStringLiteral("a"));

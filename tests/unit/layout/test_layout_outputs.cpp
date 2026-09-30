@@ -196,9 +196,9 @@ private Q_SLOTS:
         Fixture fixture;
         const auto id = fixture.add(QStringLiteral("a"));
         Config::Config config = instantConfig();
-        Config::Layout layout = config.layout;
+        Config::LayoutPart layout;
         layout.emptyWorkspaceAboveFirst = true;
-        config.outputs.append(Config::OutputConfig {QStringLiteral("DP-1"), layout, std::nullopt, std::nullopt});
+        config.outputs.append(Config::OutputConfig {QStringLiteral("DP-1"), layout, std::nullopt});
         fixture.setConfig(config);
         QCOMPARE(workspacesOn(fixture, QStringLiteral("DP-1")).first().activeWindow, std::optional<Layout::WindowId>());
         QCOMPARE(fixture.state(id).workspaceIndex, 2);

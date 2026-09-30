@@ -14,9 +14,8 @@ namespace Konveyor::Config
 struct OutputConfig
 {
     QString name;
-    std::optional<Layout> layout;
+    std::optional<LayoutPart> layout;
     std::optional<HotCorners> hotCorners;
-    std::optional<LayoutPart> layoutPart;
     bool operator==(const OutputConfig &) const = default;
 };
 
@@ -36,8 +35,7 @@ struct MonitorProfile
 {
     QString name;
     QList<MonitorMatch> matches;
-    std::optional<Layout> layout;
-    std::optional<LayoutPart> layoutPart;
+    std::optional<LayoutPart> layout;
     bool operator==(const MonitorProfile &) const = default;
 };
 
@@ -45,8 +43,7 @@ struct NamedWorkspace
 {
     QString name;
     std::optional<QString> openOnOutput;
-    std::optional<Layout> layout;
-    std::optional<LayoutPart> layoutPart;
+    std::optional<LayoutPart> layout;
     bool operator==(const NamedWorkspace &) const = default;
 };
 

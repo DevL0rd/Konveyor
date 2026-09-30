@@ -64,14 +64,19 @@ constexpr ScopeSpec kScopes[] = {
 
 std::optional<Layout> scopedLayout(const Config &config, Scope scope)
 {
+    std::optional<LayoutPart> part;
     switch (scope) {
     case Output:
-        return config.outputs.value(0).layout;
+        part = config.outputs.value(0).layout;
+        break;
     case Profile:
-        return config.monitorProfiles.value(0).layout;
+        part = config.monitorProfiles.value(0).layout;
+        break;
     default:
-        return config.workspaces.value(0).layout;
+        part = config.workspaces.value(0).layout;
+        break;
     }
+    return part ? std::optional(mergedLayout(config.layout, *part)) : std::nullopt;
 }
 
 QString inScope(const ScopeSpec &spec, const QString &node)
@@ -281,7 +286,7 @@ void TestConfigScopes::emptyPresetListsFallBackToDefaults()
         + inScope(kScopes[0], QStringLiteral("preset-column-widths {}")));
     QCOMPARE(config.layout.presetColumnWidths, defaultConfig().layout.presetColumnWidths);
     QCOMPARE(config.layout.presetWindowHeights, defaultConfig().layout.presetWindowHeights);
-    QCOMPARE(config.outputs.first().layout->presetColumnWidths, defaultConfig().layout.presetColumnWidths);
+    QCOMPARE(scopedLayout(config, Output)->presetColumnWidths, defaultConfig().layout.presetColumnWidths);
 }
 
 void TestConfigScopes::scopesWithoutLayoutHaveNoLayout()

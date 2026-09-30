@@ -38,12 +38,12 @@ Config::Config profiledConfig()
     Config::MonitorMatch aspect;
     aspect.aspectRatioAbove = 2.0;
     wide.matches.append(aspect);
-    wide.layout = config.layout;
-    wide.layout->defaultColumnWidth = Config::Proportion {0.25};
+    wide.layout = Config::LayoutPart {};
+    wide.layout->defaultColumnWidth = std::optional<Config::PresetSize>(Config::Proportion {0.25});
     Config::MonitorProfile standard;
     standard.name = QStringLiteral("standard");
-    standard.layout = config.layout;
-    standard.layout->defaultColumnWidth = Config::Proportion {0.5};
+    standard.layout = Config::LayoutPart {};
+    standard.layout->defaultColumnWidth = std::optional<Config::PresetSize>(Config::Proportion {0.5});
     config.monitorProfiles = {wide, standard};
     return config;
 }

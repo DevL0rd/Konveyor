@@ -9,7 +9,7 @@
 namespace Konveyor::Layout
 {
 
-void Workspace::setLayoutOverride(std::optional<Config::Layout> layoutOverride)
+void Workspace::setLayoutOverride(std::optional<Config::LayoutPart> layoutOverride)
 {
     if (m_layoutOverride == layoutOverride) {
         return;

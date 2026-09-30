@@ -14,14 +14,14 @@ namespace
 
 std::atomic<quint64> s_nextWorkspaceId {1};
 
-std::optional<Config::Layout> layoutOf(const std::optional<Config::NamedWorkspace> &config)
+std::optional<Config::LayoutPart> layoutOf(const std::optional<Config::NamedWorkspace> &config)
 {
     return config ? config->layout : std::nullopt;
 }
 
-OptionsPtr resolveOptions(const OptionsPtr &base, const std::optional<Config::Layout> &part, double scale)
+OptionsPtr resolveOptions(const OptionsPtr &base, const std::optional<Config::LayoutPart> &part, double scale)
 {
-    return makeOptions(scaledFor(withLayoutOverride(*base, part), scale));
+    return makeOptions(scaledFor(withLayoutPart(*base, part), scale));
 }
 
 }

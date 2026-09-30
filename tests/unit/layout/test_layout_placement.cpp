@@ -22,8 +22,8 @@ Config::Config portraitConfig()
     Config::MonitorMatch match;
     match.aspectRatioBelow = 1.0;
     profile.matches.append(match);
-    Config::Layout layout = config.layout;
-    layout.defaultColumnWidth = Config::Proportion {1.0};
+    Config::LayoutPart layout;
+    layout.defaultColumnWidth = std::optional<Config::PresetSize>(Config::Proportion {1.0});
     layout.newWindowPlacement = Config::NewWindowPlacement::Stack;
     layout.maxRowsPerColumn = 2;
     profile.layout = layout;

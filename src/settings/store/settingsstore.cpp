@@ -206,7 +206,7 @@ QVariantMap SettingsStore::scope(const QString &layoutPath) const
     const QString ownerName = ownerNode && !ownerNode->arguments.isEmpty() && ownerNode->arguments.first().isString()
         ? ownerNode->arguments.first().toString()
         : QString();
-    return layoutValues(scopedLayout(m_config, owner.section(QLatin1Char('#'), 0, 0), ownerName));
+    return layoutValues(scopedLayout(m_config, owner.section(QLatin1Char('#'), 0, 0), ownerName, m_live->outputs(), m_live->workspaces()));
 }
 
 bool SettingsStore::setNode(const QString &path, const QVariantMap &node)

@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.konveyor.settings
+import "LayoutKeys.js" as LayoutKeys
 
 ColumnLayout {
     id: root
@@ -21,8 +22,8 @@ ColumnLayout {
         visible: true
         type: Kirigami.MessageType.Information
         text: root.overrideCount > 0
-            ? root.overrideCount + (root.overrideCount === 1 ? " layout setting differs" : " layout settings differ") + " from your main layout here. Everything else follows the Layout and Look pages."
-            : "Everything here follows the Layout and Look pages. Tick a setting to change it just for this one."
+            ? root.overrideCount + (root.overrideCount === 1 ? " layout setting is" : " layout settings are") + " changed here. Everything else comes from " + LayoutKeys.inheritedFrom(root.scopePath) + "."
+            : "Everything here comes from " + LayoutKeys.inheritedFrom(root.scopePath) + ". Tick a setting to change it just for this one."
     }
 
     SizesSection {

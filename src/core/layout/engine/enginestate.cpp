@@ -335,7 +335,7 @@ QList<OutputState> Engine::outputStates() const
         state.transitionProgress = monitor.transitionProgress();
         const Config::InsertHint &hint = monitor.options()->layout.insertHint;
         state.dropHintPaint = {hint.paint.source, hint.paint.color, hint.paint.gradient};
-        state.backgroundColor = monitor.options()->layout.backgroundColor;
+        state.backgroundColor = monitor.activeWorkspace().options()->layout.backgroundColor;
         state.dropHint = d->dropHintRect(monitor);
         states.append(state);
     }

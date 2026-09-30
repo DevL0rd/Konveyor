@@ -49,7 +49,7 @@ void decodeOutput(LoadContext &context, const Kdl::Node &node)
     NodeTable table;
     table.insert(QStringLiteral("layout"), [&output](const Kdl::Node &child) {
         rejectNodes(child, globalOnlyLayoutNodes(), QStringLiteral("output.layout"));
-        output.layoutPart = decodeLayoutPart(child, false);
+        output.layout = decodeLayoutPart(child, false);
     });
     table.insert(QStringLiteral("hot-corners"), [&output](const Kdl::Node &child) { output.hotCorners = decodeHotCorners(child); });
     decodeChildren(node, table);
@@ -111,7 +111,7 @@ void decodeMonitorProfile(LoadContext &context, const Kdl::Node &node)
     table.insert(QStringLiteral("match"), [&profile](const Kdl::Node &child) { profile.matches.append(decodeMonitorMatch(child)); });
     table.insert(QStringLiteral("layout"), [&profile](const Kdl::Node &child) {
         rejectNodes(child, globalOnlyLayoutNodes(), QStringLiteral("monitor-profile.layout"));
-        profile.layoutPart = decodeLayoutPart(child, false);
+        profile.layout = decodeLayoutPart(child, false);
     });
     decodeChildren(node, table, {QStringLiteral("match")});
     context.config.monitorProfiles.append(profile);
@@ -138,7 +138,7 @@ void decodeWorkspace(LoadContext &context, const Kdl::Node &node)
             globalOnlyLayoutNodes() + monitorOnlyLayoutNodes()
                 + QStringList {QStringLiteral("empty-workspace-above-first"), QStringLiteral("insert-hint")},
             QStringLiteral("workspace.layout"));
-        workspace.layoutPart = decodeLayoutPart(child, false);
+        workspace.layout = decodeLayoutPart(child, false);
     });
     decodeChildren(node, table);
     context.config.workspaces.append(workspace);

@@ -127,6 +127,38 @@ inline Config::Layout randomLayout(Dice &dice)
     return layout;
 }
 
+inline Config::LayoutPart randomLayoutPart(Dice &dice)
+{
+    const Config::Layout full = randomLayout(dice);
+    Config::LayoutPart part;
+    const auto maybe = [&dice](auto &slot, const auto &value) {
+        if (dice.chance(50)) {
+            slot = value;
+        }
+    };
+    maybe(part.gaps, full.gaps);
+    maybe(part.centerFocusedColumn, full.centerFocusedColumn);
+    maybe(part.newColumnPosition, full.newColumnPosition);
+    maybe(part.alwaysCenterSingleColumn, full.alwaysCenterSingleColumn);
+    maybe(part.alwaysExpandSingleColumn, full.alwaysExpandSingleColumn);
+    maybe(part.emptyWorkspaceAboveFirst, full.emptyWorkspaceAboveFirst);
+    maybe(part.defaultColumnDisplay, full.defaultColumnDisplay);
+    maybe(part.presetColumnWidths, full.presetColumnWidths);
+    maybe(part.defaultColumnWidth, full.defaultColumnWidth);
+    maybe(part.groupAppWindows, full.groupAppWindows);
+    maybe(part.maxRowsPerColumn, full.maxRowsPerColumn);
+    maybe(part.newWindowPlacement, full.newWindowPlacement);
+    maybe(part.presetWindowHeights, full.presetWindowHeights);
+    maybe(part.struts, full.struts);
+    maybe(part.focusRing, Config::BorderRule {full.focusRing.enabled, full.focusRing.width, {}, {}, {}});
+    maybe(part.border, Config::BorderRule {full.border.enabled, full.border.width, {}, {}, {}});
+    maybe(part.tabIndicator,
+        Config::TabIndicatorPart {full.tabIndicator.enabled, full.tabIndicator.hideWhenSingleTab, {}, {}, full.tabIndicator.width, {},
+            full.tabIndicator.position, {}, {}, {}});
+    maybe(part.insertHint, Config::InsertHintPart {full.insertHint.enabled, {}});
+    return part;
+}
+
 inline Config::Animations randomAnimations(Dice &dice, bool enabled)
 {
     Config::Animations animations = linearAnimationConfig(dice.pick({50.0, 150.0, 400.0})).animations;
@@ -177,15 +209,15 @@ inline Config::Config randomConfig(quint32 seed, bool animated)
         = Config::DndEdgeScroll {dice.pick({1.0, 30.0, 400.0}), dice.pick({0.0, 100.0}), dice.pick({1.0, 1500.0, 20000.0})};
     config.gestures.dndEdgeWorkspaceSwitch = Config::DndEdgeScroll {dice.pick({1.0, 50.0}), dice.pick({0.0, 100.0}), 1500.0};
     if (dice.chance(60)) {
-        Config::NamedWorkspace web {QStringLiteral("web"), std::nullopt, std::nullopt, std::nullopt};
-        Config::NamedWorkspace chat {QStringLiteral("chat"), QStringLiteral("DP-2"), std::nullopt, std::nullopt};
+        Config::NamedWorkspace web {QStringLiteral("web"), std::nullopt, std::nullopt};
+        Config::NamedWorkspace chat {QStringLiteral("chat"), QStringLiteral("DP-2"), std::nullopt};
         if (dice.chance(50)) {
-            chat.layout = randomLayout(dice);
+            chat.layout = randomLayoutPart(dice);
         }
         config.workspaces = {web, chat};
     }
     if (dice.chance(40)) {
-        config.outputs.append(Config::OutputConfig {QStringLiteral("HDMI-A-1"), randomLayout(dice), std::nullopt, std::nullopt});
+        config.outputs.append(Config::OutputConfig {QStringLiteral("HDMI-A-1"), randomLayoutPart(dice), std::nullopt});
     }
     if (dice.chance(40)) {
         Config::MonitorProfile portrait;
@@ -193,7 +225,7 @@ inline Config::Config randomConfig(quint32 seed, bool animated)
         Config::MonitorMatch match;
         match.widthBelow = 1600;
         portrait.matches.append(match);
-        portrait.layout = randomLayout(dice);
+        portrait.layout = randomLayoutPart(dice);
         config.monitorProfiles.append(portrait);
     }
     return config;

@@ -105,7 +105,7 @@ SettingsPage {
 
     Card {
         QQC2.Label {
-            text: "Settings for one specific monitor. They win over any profile it uses."
+            text: "Settings for one specific monitor. Each setting changed here wins over the profile it uses; the rest still come from the profile."
             wrapMode: Text.Wrap
             opacity: 0.75
             Layout.fillWidth: true

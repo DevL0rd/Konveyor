@@ -92,7 +92,7 @@ output "eDP-1" {
     QCOMPARE(result.config.workspaces.size(), 2);
     QCOMPARE(result.config.workspaces.first().name, QStringLiteral("chat"));
     QCOMPARE(result.config.outputs.size(), 1);
-    QCOMPARE(result.config.outputs.first().layout->gaps, 3.0);
+    QCOMPARE(result.config.outputs.first().layout->gaps, std::optional(3.0));
 }
 
 void TestConfigIncludes::overridesBindsByKey()
@@ -247,7 +247,9 @@ void TestConfigIncludes::emptyBorderQuirkOnlyAppliesToMainFile()
     QCOMPARE(m_dir.load().config.layout.border.enabled, true);
 
     m_dir.write(QStringLiteral("config.kdl"), QStringLiteral("output \"eDP-1\" {\n    layout {\n        border {\n        }\n    }\n}\n"));
-    QCOMPARE(m_dir.load().config.outputs.first().layout->border.enabled, false);
+    const Config scoped = m_dir.load().config;
+    QCOMPARE(scoped.outputs.first().layout->border->enabled, std::nullopt);
+    QCOMPARE(mergedLayout(scoped.layout, *scoped.outputs.first().layout).border.enabled, false);
 }
 
 QTEST_MAIN(TestConfigIncludes)

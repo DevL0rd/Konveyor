@@ -32,6 +32,16 @@ function tabIndicatorNode(tab) {
     ].concat(paintNodes("active", tab.active), paintNodes("inactive", tab.inactive), paintNodes("urgent", tab.urgent)));
 }
 
+function inheritedFrom(scopePath) {
+    if (scopePath.startsWith("output")) {
+        return "the monitor profile this monitor uses, then your main layout on the Layout and Look pages";
+    }
+    if (scopePath.startsWith("workspace")) {
+        return "the monitor the workspace is on, with its profile and per-monitor settings";
+    }
+    return "your main layout on the Layout and Look pages";
+}
+
 function strutsNode(struts) {
     return Kdl.block("struts", ["left", "right", "top", "bottom"].map(side => Kdl.leaf(side, [Math.round(struts[side])])));
 }

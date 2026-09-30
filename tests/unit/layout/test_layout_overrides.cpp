@@ -5,14 +5,14 @@ using namespace LayoutTest;
 namespace
 {
 
-Config::Layout layoutWithGaps(double gaps)
+Config::LayoutPart layoutWithGaps(double gaps)
 {
-    Config::Layout layout = instantConfig().layout;
+    Config::LayoutPart layout;
     layout.gaps = gaps;
     return layout;
 }
 
-Config::Config withOutputLayout(Config::Config config, const QString &name, const Config::Layout &layout)
+Config::Config withOutputLayout(Config::Config config, const QString &name, const Config::LayoutPart &layout)
 {
     Config::OutputConfig output;
     output.name = name;
@@ -21,7 +21,7 @@ Config::Config withOutputLayout(Config::Config config, const QString &name, cons
     return config;
 }
 
-Config::Config withProfileLayout(Config::Config config, const Config::Layout &layout, std::optional<double> aspectBelow = std::nullopt)
+Config::Config withProfileLayout(Config::Config config, const Config::LayoutPart &layout, std::optional<double> aspectBelow = std::nullopt)
 {
     Config::MonitorProfile profile;
     profile.name = QStringLiteral("profile%1").arg(config.monitorProfiles.size());
@@ -35,7 +35,7 @@ Config::Config withProfileLayout(Config::Config config, const Config::Layout &la
     return config;
 }
 
-Config::Config withWorkspaceLayout(Config::Config config, const QString &name, const Config::Layout &layout)
+Config::Config withWorkspaceLayout(Config::Config config, const QString &name, const Config::LayoutPart &layout)
 {
     Config::NamedWorkspace workspace;
     workspace.name = name;
@@ -76,15 +76,15 @@ private Q_SLOTS:
         QCOMPARE(gapOf(fixture, fixture.add()), 24.0);
     }
 
-    void outputLayoutReplacesTheProfileInsteadOfStacking()
+    void outputLayoutChangesOnlyWhatItSetsOverTheProfile()
     {
-        Config::Layout profile = layoutWithGaps(40);
+        Config::LayoutPart profile = layoutWithGaps(40);
         profile.struts = Config::Struts {100, 0, 0, 0};
         Config::Config config = withProfileLayout(instantConfig(), profile);
         config = withOutputLayout(config, QStringLiteral("DP-1"), layoutWithGaps(8));
         Fixture fixture(config);
         const auto id = fixture.add();
-        QCOMPARE(fixture.frame(id), QRectF(8, 8, 948, 1064));
+        QCOMPARE(fixture.frame(id), QRectF(108, 8, 898, 1064));
     }
 
     void outputNamesMatchWithoutCase()
@@ -105,9 +105,11 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void workspaceLayoutReplacesTheOutputLayout()
+    void workspaceLayoutChangesOnlyWhatItSetsOverTheOutputLayout()
     {
-        Config::Config config = withOutputLayout(instantConfig(), QStringLiteral("DP-1"), layoutWithGaps(40));
+        Config::LayoutPart output = layoutWithGaps(40);
+        output.struts = Config::Struts {0, 0, 100, 0};
+        Config::Config config = withOutputLayout(instantConfig(), QStringLiteral("DP-1"), output);
         config = withWorkspaceLayout(config, QStringLiteral("tight"), layoutWithGaps(4));
         Fixture fixture(config);
         QVERIFY(fixture.perform(QStringLiteral("focus-workspace"), {QStringLiteral("tight")}).ok);
@@ -116,9 +118,9 @@ private Q_SLOTS:
         const auto outside = fixture.add(QStringLiteral("b"));
         QCOMPARE(fixture.state(inside).workspaceIndex, 1);
         QCOMPARE(fixture.state(outside).workspaceIndex, 2);
-        QCOMPARE(gapOf(fixture, outside), 40.0);
+        QCOMPARE(gapOf(fixture, outside), 140.0);
         fixture.perform(QStringLiteral("focus-workspace-up"));
-        QCOMPARE(gapOf(fixture, inside), 4.0);
+        QCOMPARE(gapOf(fixture, inside), 104.0);
         VERIFY_INVARIANTS(fixture);
     }
 
@@ -177,7 +179,7 @@ private Q_SLOTS:
 
     void placementSettingsFollowTheOutputLayout()
     {
-        Config::Layout stacking = instantConfig().layout;
+        Config::LayoutPart stacking;
         stacking.newWindowPlacement = Config::NewWindowPlacement::Stack;
         stacking.maxRowsPerColumn = 2;
         Fixture fixture(withOutputLayout(instantConfig(), QStringLiteral("DP-2"), stacking));
@@ -196,7 +198,7 @@ private Q_SLOTS:
 
     void placementSettingsFollowTheWorkspaceLayout()
     {
-        Config::Layout stacking = instantConfig().layout;
+        Config::LayoutPart stacking;
         stacking.newWindowPlacement = Config::NewWindowPlacement::Stack;
         Fixture fixture(withWorkspaceLayout(instantConfig(), QStringLiteral("stack"), stacking));
         const auto a = fixture.add(QStringLiteral("a"));
@@ -208,7 +210,7 @@ private Q_SLOTS:
 
     void groupAppWindowsFollowsTheOutputLayout()
     {
-        Config::Layout grouping = instantConfig().layout;
+        Config::LayoutPart grouping;
         grouping.groupAppWindows = Config::GroupAppWindows::Stack;
         Fixture fixture(withOutputLayout(instantConfig(), QStringLiteral("DP-1"), grouping));
         const auto first = fixture.add(QStringLiteral("app"));
@@ -219,7 +221,7 @@ private Q_SLOTS:
 
     void floatChildWindowsFollowsTheOutputLayout()
     {
-        Config::Layout floating = instantConfig().layout;
+        Config::LayoutPart floating;
         floating.floatChildWindows = true;
         Fixture fixture(withOutputLayout(instantConfig(), QStringLiteral("DP-2"), floating));
         fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
@@ -234,7 +236,7 @@ private Q_SLOTS:
 
     void defaultColumnDisplayFollowsTheOutputLayout()
     {
-        Config::Layout tabbed = instantConfig().layout;
+        Config::LayoutPart tabbed;
         tabbed.defaultColumnDisplay = Config::ColumnDisplay::Tabbed;
         Fixture fixture(withOutputLayout(instantConfig(), QStringLiteral("DP-1"), tabbed));
         const auto first = fixture.add(QStringLiteral("a"));
@@ -245,7 +247,7 @@ private Q_SLOTS:
 
     void newColumnPositionFollowsTheOutputLayout()
     {
-        Config::Layout left = instantConfig().layout;
+        Config::LayoutPart left;
         left.newColumnPosition = Config::NewColumnPosition::Left;
         Fixture fixture(withOutputLayout(instantConfig(), QStringLiteral("DP-1"), left));
         const auto first = fixture.add(QStringLiteral("a"));

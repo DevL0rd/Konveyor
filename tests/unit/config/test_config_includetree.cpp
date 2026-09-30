@@ -231,9 +231,10 @@ void TestConfigIncludeTree::scopedLayoutsSeeLaterIncludes()
 {
     const Config config = loadBoth(QStringLiteral("output \"DP-1\" { layout { gaps 2; }; }\nworkspace \"w\" { layout { gaps 3; }; }"),
         QStringLiteral("layout { center-focused-column \"always\"; gaps 30; }"));
-    QCOMPARE(config.outputs.first().layout->gaps, 2.0);
-    QCOMPARE(config.outputs.first().layout->centerFocusedColumn, CenterFocusedColumn::Always);
-    QCOMPARE(config.workspaces.first().layout->centerFocusedColumn, CenterFocusedColumn::Always);
+    const Layout output = mergedLayout(config.layout, *config.outputs.first().layout);
+    QCOMPARE(output.gaps, 2.0);
+    QCOMPARE(output.centerFocusedColumn, CenterFocusedColumn::Always);
+    QCOMPARE(mergedLayout(config.layout, *config.workspaces.first().layout).centerFocusedColumn, CenterFocusedColumn::Always);
     QCOMPARE(config.layout.gaps, 30.0);
 }
 

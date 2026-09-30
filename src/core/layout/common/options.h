@@ -21,6 +21,7 @@ using OptionsPtr = std::shared_ptr<const Options>;
 Config::Layout normalizedLayout(const Config::Layout &layout);
 Options optionsFromConfig(const Config::Config &config);
 Options withLayoutOverride(Options options, const std::optional<Config::Layout> &part);
+Options withLayoutPart(Options options, const std::optional<Config::LayoutPart> &part);
 Options scaledFor(Options options, double scale);
 OptionsPtr makeOptions(Options options);
 

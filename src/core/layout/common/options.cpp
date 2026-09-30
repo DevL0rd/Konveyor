@@ -1,5 +1,6 @@
 #include "layout/common/options.h"
 
+#include "config/loader.h"
 #include "layout/common/geometry.h"
 
 namespace Konveyor::Layout
@@ -45,6 +46,14 @@ Options withLayoutOverride(Options options, const std::optional<Config::Layout> 
 {
     if (part) {
         options.layout = normalizedLayout(*part);
+    }
+    return options;
+}
+
+Options withLayoutPart(Options options, const std::optional<Config::LayoutPart> &part)
+{
+    if (part) {
+        options.layout = Config::mergedLayout(options.layout, *part);
     }
     return options;
 }

@@ -42,9 +42,11 @@ void TestConfigOutputs::parsesOutput()
     const OutputConfig &primary = result.config.outputs.first();
     QCOMPARE(primary.name, QStringLiteral("eDP-1"));
     QVERIFY(primary.layout.has_value());
-    QCOMPARE(primary.layout->gaps, 4.0);
-    QCOMPARE(primary.layout->border.enabled, true);
-    QCOMPARE(primary.layout->focusRing.width, 4.0);
+    QCOMPARE(primary.layout->gaps, std::optional(4.0));
+    QCOMPARE(primary.layout->focusRing, std::nullopt);
+    const Layout primaryLayout = mergedLayout(result.config.layout, *primary.layout);
+    QCOMPARE(primaryLayout.border.enabled, true);
+    QCOMPARE(primaryLayout.focusRing.width, 4.0);
     QVERIFY(primary.hotCorners.has_value());
     QCOMPARE(primary.hotCorners->enabled, false);
     QCOMPARE(result.config.layout.gaps, 16.0);
@@ -74,10 +76,10 @@ void TestConfigOutputs::parsesMonitorProfiles()
     QCOMPARE(wide.matches.size(), 1);
     QCOMPARE(wide.matches.at(0).aspectRatioAbove, std::optional(2.0));
     QVERIFY(wide.layout.has_value());
-    QCOMPARE(std::get<Proportion>(*wide.layout->defaultColumnWidth).value, 0.25);
+    QCOMPARE(std::get<Proportion>(**wide.layout->defaultColumnWidth).value, 0.25);
     const MonitorProfile &standard = config.monitorProfiles.at(1);
     QVERIFY(standard.matches.isEmpty());
-    QCOMPARE(std::get<Proportion>(*standard.layout->defaultColumnWidth).value, 0.5);
+    QCOMPARE(std::get<Proportion>(**standard.layout->defaultColumnWidth).value, 0.5);
 }
 
 void TestConfigOutputs::parsesWorkspaces()
@@ -95,7 +97,7 @@ void TestConfigOutputs::parsesWorkspaces()
     QCOMPARE(config.workspaces.first().name, QStringLiteral("chat"));
     QCOMPARE(config.workspaces.first().openOnOutput, std::optional {QStringLiteral("eDP-1")});
     QVERIFY(config.workspaces.first().layout.has_value());
-    QCOMPARE(config.workspaces.first().layout->gaps, 2.0);
+    QCOMPARE(config.workspaces.first().layout->gaps, std::optional(2.0));
     QCOMPARE(config.workspaces.at(1).name, QStringLiteral("code"));
     QVERIFY(!config.workspaces.at(1).layout.has_value());
 }

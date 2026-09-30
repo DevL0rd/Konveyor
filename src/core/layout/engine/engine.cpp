@@ -1,5 +1,6 @@
 #include "layout/engine/engineprivate.h"
 
+#include "config/loader.h"
 #include "layout/common/geometry.h"
 #include "layout/monitor/monitorprofiles.h"
 
@@ -17,13 +18,22 @@ constexpr auto StartupWindow = std::chrono::seconds(60);
 
 std::optional<Config::Layout> layoutForOutput(const Config::Config &config, const QString &name, QSizeF size)
 {
-    for (const Config::OutputConfig &output : config.outputs) {
-        if (output.name.compare(name, Qt::CaseInsensitive) == 0 && output.layout) {
-            return output.layout;
-        }
-    }
     const Config::MonitorProfile *profile = monitorProfileFor(config, name, size);
-    return profile ? profile->layout : std::nullopt;
+    const auto output = std::ranges::find_if(
+        config.outputs, [&name](const Config::OutputConfig &entry) { return entry.name.compare(name, Qt::CaseInsensitive) == 0; });
+    const bool fromProfile = profile && profile->layout;
+    const bool fromOutput = output != config.outputs.end() && output->layout;
+    if (!fromProfile && !fromOutput) {
+        return std::nullopt;
+    }
+    Config::Layout layout = config.layout;
+    if (fromProfile) {
+        layout = Config::mergedLayout(layout, *profile->layout);
+    }
+    if (fromOutput) {
+        layout = Config::mergedLayout(layout, *output->layout);
+    }
+    return layout;
 }
 
 }
