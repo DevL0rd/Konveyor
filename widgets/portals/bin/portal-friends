@@ -19,7 +19,7 @@ Modes:
   portal-friends --serve      resident: refresh the snapshot every interval
   portal-friends --set-key K  write the Steam Web API key into the config
 """
-import os, re, sys, json, time, urllib.parse, urllib.request, urllib.error
+import math, os, re, sys, json, time, urllib.parse, urllib.request, urllib.error
 
 HOME = os.path.expanduser("~")
 APP = "Plasma-App-Portal"
@@ -214,11 +214,31 @@ def cmd_check():
     return 0
 
 
+MIN_POLL_INTERVAL = 5
+
+
+def poll_interval(cfg):
+    value = cfg.get("poll_interval", 60)
+    try:
+        interval = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"poll_interval must be a number of seconds, not {value!r}") from None
+    if not math.isfinite(interval) or interval < MIN_POLL_INTERVAL:
+        raise ValueError(f"poll_interval must be at least {MIN_POLL_INTERVAL} seconds, not {value!r}")
+    return interval
+
+
 def cmd_serve():
-    interval = float(load_config().get("poll_interval", 60))
     while True:
+        cfg = load_config()
         try:
-            write_snapshot(build_snapshot(load_config()))
+            interval = poll_interval(cfg)
+        except ValueError as error:
+            write_snapshot({"ts": time.time(), "ok": False, "by_appid": {}, "error": str(error)})
+            sys.stderr.write(f"portal-friends: {error} in {CONFIG}\n")
+            return 1
+        try:
+            write_snapshot(build_snapshot(cfg))
         except Exception as e:
             try:
                 write_snapshot({"ts": time.time(), "ok": False, "by_appid": {},
@@ -262,10 +282,15 @@ def cmd_set_key():
     return 0
 
 
+MODES = {"--check": cmd_check, "--serve": cmd_serve, "--snapshot": cmd_snapshot, "--set-key": cmd_set_key}
+
+
 def main():
     arg = sys.argv[1] if len(sys.argv) > 1 else "--check"
-    return {"--check": cmd_check, "--serve": cmd_serve,
-            "--snapshot": cmd_snapshot, "--set-key": cmd_set_key}.get(arg, cmd_check)()
+    if arg not in MODES:
+        sys.stderr.write(f"portal-friends: unknown mode {arg!r}\n{__doc__.split('Modes:', 1)[1]}")
+        return 2
+    return MODES[arg]()
 
 
 if __name__ == "__main__":

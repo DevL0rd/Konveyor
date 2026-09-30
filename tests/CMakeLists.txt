@@ -151,3 +151,6 @@ target_compile_options(test_kontrolpanel_windows_qml PRIVATE -Wall -Wextra -Werr
 target_compile_definitions(test_kontrolpanel_windows_qml PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 add_test(NAME test_kontrolpanel_windows_qml COMMAND test_kontrolpanel_windows_qml)
 set_tests_properties(test_kontrolpanel_windows_qml PROPERTIES LABELS "unit;kontrolpanel" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+
+add_test(NAME test_portal_friends_modes COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_portal_friends_modes.py)
+set_tests_properties(test_portal_friends_modes PROPERTIES LABELS "unit;widgets")
