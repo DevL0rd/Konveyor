@@ -97,6 +97,20 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(f.fixture);
     }
 
+    void windowsOpenedBeforeTheFirstOutputGetTheDefaultWidth()
+    {
+        Clock clock = Clock::frozenAt(Duration::zero());
+        Layout::Engine engine(clock);
+        engine.setConfig(instantConfig());
+        for (const Layout::WindowId id : {1, 2}) {
+            engine.addWindow(id, makeWindow(QString::number(id), QString(), QSizeF(800, 600)), QString(), Layout::ActivationPolicy::Focus);
+        }
+        engine.addOutput(makeOutput(Laptop, QRectF(0, 0, 1920, 1080)));
+        QCOMPARE(engine.windowState(1)->targetFrame.width(), 936.0);
+        QCOMPARE(engine.windowState(2)->targetFrame.width(), 936.0);
+        QCOMPARE(engine.checkConsistency(), QString());
+    }
+
     void replugKeepsTheActiveWorkspaceOfTheOutput()
     {
         UpperAndLower f;

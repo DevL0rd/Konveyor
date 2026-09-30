@@ -11,6 +11,9 @@ void Engine::addWindow(WindowId id, const WindowProperties &properties, const QS
     if (hasWindow(id)) {
         return;
     }
+    if (d->monitors.empty() && d->orphanWorkspaces.empty()) {
+        d->orphanWorkspaces.emplace_back(OutputArea(), d->clock, d->options, std::nullopt);
+    }
     NewWindowPlan plan = d->planNewWindow(properties, preferredOutput, policy);
     const bool restoring = restore && d->workspaceById(restore->workspace);
     if (restoring) {

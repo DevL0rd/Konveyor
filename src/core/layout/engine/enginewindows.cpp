@@ -172,9 +172,6 @@ MonitorAddRequest makeAddRequest(const NewWindowPlan &plan, ColumnWidth width)
 
 Workspace *Engine::Private::workspaceForPlacement(const NewWindowPlan &plan)
 {
-    if (monitors.empty() && orphanWorkspaces.empty()) {
-        orphanWorkspaces.emplace_back(OutputArea(), clock, options, std::nullopt);
-    }
     if (Workspace *workspace = plan.workspace ? workspaceById(*plan.workspace) : nullptr) {
         return workspace;
     }
