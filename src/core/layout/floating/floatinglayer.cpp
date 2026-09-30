@@ -96,7 +96,9 @@ void FloatingLayer::addTile(Tile tile, bool activate)
 void FloatingLayer::insertTile(std::size_t idx, Tile tile, bool activate)
 {
     tile.updateConfig(m_viewSize, m_scale, m_options);
+    tile.window().setExpansionForceResizable(false);
     prepareTileSize(tile);
+    keepWithinSizeLimits(tile);
 
     if (activate || m_tiles.empty()) {
         m_activeWindow = tile.id();
@@ -180,6 +182,7 @@ bool FloatingLayer::updateWindow(WindowId id)
     const QSizeF prevSize = data.size;
 
     tile.updateWindow();
+    keepWithinSizeLimits(tile);
     data.update(tile);
 
     if (!edges) {
@@ -239,10 +242,31 @@ std::optional<WindowId> FloatingLayer::windowUnder(QPointF pos) const
     return std::nullopt;
 }
 
+namespace
+{
+
+bool outsideLimit(double size, int min, int max)
+{
+    constexpr double Tolerance = 1.0;
+    return size + Tolerance < min || (max > 0 && min <= max && size > max + Tolerance);
+}
+
+}
+
 QString FloatingLayer::verifyTile(std::size_t index) const
 {
-    if (m_tiles[index].window().requestedMode() != WindowMode::Normal) {
+    const Tile &tile = m_tiles[index];
+    if (tile.window().requestedMode() != WindowMode::Normal) {
         return QStringLiteral("floating: windows cannot be maximized or fullscreen");
+    }
+    if (tile.window().isExpansionForceResizable()) {
+        return QStringLiteral("floating: window %1 keeps the size exemption of an expanded column").arg(tile.id());
+    }
+    const QSizeF size = tile.targetWindowSize();
+    const QSize min = tile.window().minSize();
+    const QSize max = tile.window().maxSize();
+    if (outsideLimit(size.width(), min.width(), max.width()) || outsideLimit(size.height(), min.height(), max.height())) {
+        return QStringLiteral("floating: window %1 is outside its minimum or maximum size").arg(tile.id());
     }
     FloatingData expected = m_data[index];
     expected.update(m_tiles[index]);

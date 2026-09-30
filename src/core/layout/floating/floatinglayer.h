@@ -104,6 +104,7 @@ private:
     void setWindowSize(std::size_t idx, SizeChange change, bool horizontal, bool animate);
     std::size_t togglePresetIndex(std::size_t idx, bool horizontal, bool forwards) const;
     void prepareTileSize(Tile &tile) const;
+    static void keepWithinSizeLimits(Tile &tile);
 
     std::vector<Tile> m_tiles;
     std::vector<FloatingData> m_data;

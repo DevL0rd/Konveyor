@@ -120,6 +120,17 @@ void FloatingLayer::prepareTileSize(Tile &tile) const
     window.requestSizeUntilCommit(size, true);
 }
 
+void FloatingLayer::keepWithinSizeLimits(Tile &tile)
+{
+    LayoutWindow &window = tile.window();
+    const QSize current = roundedSize(tile.targetWindowSize());
+    const QSize clamped(clampToSizeLimits(current.width(), window.minSize().width(), window.maxSize().width()),
+        clampToSizeLimits(current.height(), window.minSize().height(), window.maxSize().height()));
+    if (clamped != current) {
+        window.requestSizeUntilCommit(clamped, true);
+    }
+}
+
 QSize FloatingLayer::initialWindowSize(const std::optional<Config::PresetSize> &width, const std::optional<Config::PresetSize> &height,
     const EffectiveWindowRules &rules) const
 {
