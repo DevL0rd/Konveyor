@@ -134,11 +134,13 @@ void appendDeviceGestures(QJsonArray &array, const QString &device, const Config
         array.append(gestureToJson(
             device, touch.swipeFingers, QStringLiteral("swipe-vertical"), QStringLiteral("switch-workspace"), touch.naturalSwipe));
     }
-    if (touch.windowHorizontalSwipe == Config::WindowHorizontalSwipe::ConsumeOrExpel) {
+    const bool rowSwipes = touch.horizontalSwipe != Config::HorizontalSwipe::Off || touch.verticalSwipe != Config::VerticalSwipe::Off;
+    const bool windowSwipes = !rowSwipes || touch.windowSwipeFingers != touch.swipeFingers;
+    if (windowSwipes && touch.windowHorizontalSwipe == Config::WindowHorizontalSwipe::ConsumeOrExpel) {
         array.append(gestureToJson(device, touch.windowSwipeFingers, QStringLiteral("window-swipe-horizontal"),
             QStringLiteral("consume-or-expel"), touch.naturalSwipe));
     }
-    if (touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveWindow) {
+    if (windowSwipes && touch.windowVerticalSwipe == Config::WindowVerticalSwipe::MoveWindow) {
         array.append(gestureToJson(
             device, touch.windowSwipeFingers, QStringLiteral("window-swipe-vertical"), QStringLiteral("move-window"), touch.naturalSwipe));
     }

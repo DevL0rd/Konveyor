@@ -117,6 +117,36 @@ private Q_SLOTS:
         QVERIFY(Ipc::gesturesToJson(gestures).isEmpty());
     }
 
+    void gesturesJsonLeavesOutWindowSwipesTheRowSwipesTakeOver_data()
+    {
+        QTest::addColumn<bool>("rowSwipes");
+        QTest::addColumn<QStringList>("motions");
+        QTest::newRow("row swipes on") << true << QStringList {QStringLiteral("swipe-horizontal"), QStringLiteral("swipe-vertical")};
+        QTest::newRow("row swipes off") << false
+                                        << QStringList {QStringLiteral("window-swipe-horizontal"), QStringLiteral("window-swipe-vertical")};
+    }
+
+    void gesturesJsonLeavesOutWindowSwipesTheRowSwipesTakeOver()
+    {
+        QFETCH(bool, rowSwipes);
+        QFETCH(QStringList, motions);
+        Config::Gestures gestures;
+        gestures.touchscreen.enabled = false;
+        gestures.touchpad.windowSwipeFingers = gestures.touchpad.swipeFingers;
+        gestures.touchpad.pinch = Config::PinchAction::Off;
+        gestures.touchpad.threeFingerTap = Config::TapAction::Off;
+        gestures.touchpad.fourFingerTap = Config::TapAction::Off;
+        if (!rowSwipes) {
+            gestures.touchpad.horizontalSwipe = Config::HorizontalSwipe::Off;
+            gestures.touchpad.verticalSwipe = Config::VerticalSwipe::Off;
+        }
+        QStringList listed;
+        for (const QJsonValue &gesture : Ipc::gesturesToJson(gestures)) {
+            listed.append(gesture.toObject()[QStringLiteral("motion")].toString());
+        }
+        QCOMPARE(listed, motions);
+    }
+
     void workspaceJsonHasNullNameWhenUnnamed()
     {
         Layout::WorkspaceState state;
