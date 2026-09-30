@@ -5,11 +5,13 @@
 
 #include <QDBusConnectionInterface>
 #include <QDBusInterface>
+#include <QDBusMetaType>
 #include <QDBusReply>
 #include <QDBusServiceWatcher>
 #include <QSignalSpy>
 #include <QTest>
 
+#include <csignal>
 #include <memory>
 
 using Konveyor::Test::FakeKGlobalAccel;
@@ -32,6 +34,15 @@ QtObject {
         function onToggleRequested() { service.setOpen(!service.isOpen) }
     }
     Component.onCompleted: config.tileSize = 64
+}
+)";
+
+const QByteArray pageRecordingOverlay = R"(import QtQuick
+Item {
+    Connections {
+        target: root
+        function onOpenChanged() { root.config.appsCategory = root.requestedPage }
+    }
 }
 )";
 
@@ -177,7 +188,72 @@ private Q_SLOTS:
         QVERIFY(m_process->state() == QProcess::Running);
     }
 
+    void theFirstStartAfterInstallOpensTheRequestedPageOnceKonveyorRuns()
+    {
+        useRealMainWithPageRecordingOverlay();
+        FakeService konveyor(QStringLiteral("org.kde.Konveyor"), QStringLiteral("/Konveyor"),
+            [](const QDBusMessage &message) { return message.createReply(); });
+        QVERIFY(konveyor.start(m_session->address()));
+        QVERIFY(writeFile(configPath(), "[General]\nopenPageOnStart=shortcuts\n"));
+        start();
+        QDBusInterface panel(busName, QStringLiteral("/KontrolPanel"), busName, QDBusConnection::sessionBus());
+        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), true);
+        const KConfig config(configPath(), KConfig::SimpleConfig);
+        QCOMPARE(config.group(QStringLiteral("General")).readEntry("openPageOnStart"), QString());
+        QCOMPARE(config.group(QStringLiteral("General")).readEntry("appsCategory"), QStringLiteral("shortcuts"));
+    }
+
+    void portalLauncherStartsTheServiceAndItOpensOnThePage()
+    {
+        useRealMainWithPageRecordingOverlay();
+        QVERIFY(writeFile(m_session->dir(QStringLiteral("services")) + QStringLiteral("/org.devl0rd.KontrolPanel.service"),
+            QStringLiteral("[D-BUS Service]\nName=%1\nExec=%2 %3\n")
+                .arg(busName, QStringLiteral(KONVEYOR_KONTROL_PANEL), m_directory)
+                .toUtf8()));
+        QVERIFY(useTheSessionEnvironmentForActivation());
+        QDBusServiceWatcher watcher(busName, QDBusConnection::sessionBus(), QDBusServiceWatcher::WatchForUnregistration);
+        QSignalSpy gone(&watcher, &QDBusServiceWatcher::serviceUnregistered);
+
+        const ProgramResult result = m_session->run(QStringLiteral("python3"),
+            {QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/portals/bin/portal-launcher"), QStringLiteral("games")});
+        QVERIFY2(result.exitCode == 0, qPrintable(result.err));
+        const uint pid = QDBusConnection::sessionBus().interface()->servicePid(busName);
+        QVERIFY(pid > 0);
+        QDBusInterface panel(busName, QStringLiteral("/KontrolPanel"), busName, QDBusConnection::sessionBus());
+        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), true);
+        const KConfig config(configPath(), KConfig::SimpleConfig);
+        QCOMPARE(config.group(QStringLiteral("General")).readEntry("appsCategory"), QStringLiteral("games"));
+        QCOMPARE(::kill(static_cast<pid_t>(pid), SIGTERM), 0);
+        QVERIFY(gone.wait(15000));
+    }
+
 private:
+    QString configPath() const { return m_session->dir(QStringLiteral("config")) + QStringLiteral("/konveyor/kontrolpanelrc"); }
+
+    void useRealMainWithPageRecordingOverlay()
+    {
+        QVERIFY(QFile::remove(m_directory + QStringLiteral("/Main.qml")));
+        QVERIFY(QFile::copy(
+            QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/portals/kontrol-panel/Main.qml"), m_directory + QStringLiteral("/Main.qml")));
+        QVERIFY(writeFile(m_directory + QStringLiteral("/Overlay.qml"), pageRecordingOverlay));
+        QVERIFY(writeFile(m_directory + QStringLiteral("/ConfigWindow.qml"), "import QtQuick\nimport QtQuick.Window\nWindow {}\n"));
+    }
+
+    bool useTheSessionEnvironmentForActivation() const
+    {
+        qDBusRegisterMetaType<QMap<QString, QString>>();
+        const QProcessEnvironment environment = m_session->environment();
+        QMap<QString, QString> variables;
+        const QStringList keys = environment.keys();
+        for (const QString &key : keys) {
+            variables.insert(key, environment.value(key));
+        }
+        QDBusMessage update = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.DBus"),
+            QStringLiteral("/org/freedesktop/DBus"), QStringLiteral("org.freedesktop.DBus"), QStringLiteral("UpdateActivationEnvironment"));
+        update << QVariant::fromValue(variables);
+        return QDBusConnection::sessionBus().call(update).type() == QDBusMessage::ReplyMessage;
+    }
+
     void start()
     {
         m_process = std::make_unique<QProcess>();

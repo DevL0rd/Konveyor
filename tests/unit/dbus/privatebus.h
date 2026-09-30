@@ -51,7 +51,7 @@ public:
         }
         const QDir root(m_root.path());
         for (const QString &name : {QStringLiteral("home"), QStringLiteral("config"), QStringLiteral("data"), QStringLiteral("state"),
-                 QStringLiteral("cache"), QStringLiteral("runtime")}) {
+                 QStringLiteral("cache"), QStringLiteral("runtime"), QStringLiteral("services")}) {
             root.mkpath(name);
             m_dirs.insert(name, root.filePath(name));
         }
@@ -60,9 +60,10 @@ public:
             return false;
         }
         config.write(QStringLiteral("<busconfig><type>session</type><listen>unix:path=%1</listen><auth>EXTERNAL</auth>"
+                                    "<servicedir>%2</servicedir>"
                                     "<policy context=\"default\"><allow send_destination=\"*\" eavesdrop=\"true\"/>"
                                     "<allow eavesdrop=\"true\"/><allow own=\"*\"/></policy></busconfig>\n")
-                .arg(root.filePath(QStringLiteral("bus")))
+                .arg(root.filePath(QStringLiteral("bus")), dir(QStringLiteral("services")))
                 .toUtf8());
         config.close();
         const QString daemon = QStandardPaths::findExecutable(QStringLiteral("dbus-daemon"));
