@@ -41,6 +41,7 @@ private Q_SLOTS:
     void themeColorKeywords_data();
     void themeColorKeywords();
     void themeColorsAreOnlyForDecorations();
+    void gradientsForInactiveAndInsertHint();
 };
 
 void TestConfigNodes::warpMouseModes()
@@ -330,6 +331,20 @@ void TestConfigNodes::themeColorsAreOnlyForDecorations()
         QStringLiteral("gradients need explicit colors, theme colors like `accent` are not supported"));
     verifyFailure(QStringLiteral("layout { border { active-gradient from=\"red\" to=»\"focus\"; }; }"),
         QStringLiteral("gradients need explicit colors, theme colors like `accent` are not supported"));
+}
+
+void TestConfigNodes::gradientsForInactiveAndInsertHint()
+{
+    const Config config = parsed(QStringLiteral(R"(
+        layout {
+            border { inactive-gradient from="#000000" to="#ffffff" angle=90; }
+            insert-hint { gradient from="#ff0000" to="#0000ff" relative-to="workspace-view"; }
+        }
+    )"));
+    QCOMPARE(config.layout.border.inactive.gradient->to, QColor(255, 255, 255));
+    QCOMPARE(config.layout.border.inactive.gradient->angle, 90.0);
+    QCOMPARE(config.layout.insertHint.paint.gradient->from, QColor(255, 0, 0));
+    QCOMPARE(config.layout.insertHint.paint.gradient->relativeTo, GradientRelativeTo::WorkspaceView);
 }
 
 QTEST_MAIN(TestConfigNodes)
