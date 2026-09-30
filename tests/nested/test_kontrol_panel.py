@@ -55,8 +55,8 @@ def main():
         panel, imports, program = stage(Path(temporary))
         files = {"data/applications/konveyor-kontrol-panel.desktop": PROGRAM_DESKTOP.format(program=program, panel=panel),
                  "data/applications/org.qt-project.qml.desktop": PROBE_DESKTOP}
-        return run_runner(HERE / "runners" / "kontrol_panel.py", clients=(), timeout=300, setup=SETUP.format(imports=imports, panel=panel),
-                          files=files, permission_checks=True)
+        return run_runner(HERE / "runners" / "kontrol_panel.py", clients=(), timeout=420, setup=SETUP.format(imports=imports, panel=panel),
+                          files=files, permission_checks=True, global_shortcuts=True, output_count=2)
 
 
 if __name__ == "__main__":

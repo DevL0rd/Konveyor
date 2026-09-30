@@ -7,19 +7,25 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 import dbus
-from fakepointer import binary, keys
-from keycodes import KEY_CODES
+from checks import Checks
+from fakepointer import binary, click, keys, move, tap
+from keycodes import KEY_CODES, MODIFIER_CODES
 from kwinsession import active_title, for_window, open_client, run_script, wait_for, window_minimized
 from nested import build_dir
 
 PROBE = "notes.txt"
 APP = "probe editor"
 SERVICE = ("org.devl0rd.KontrolPanel", "/KontrolPanel")
+META, ALT = MODIFIER_CODES["Super"], MODIFIER_CODES["Alt"]
 
 
-def panel(method):
+def panel(method, *arguments):
     proxy = dbus.SessionBus().get_object(*SERVICE)
-    return getattr(dbus.Interface(proxy, SERVICE[0]), method)()
+    return getattr(dbus.Interface(proxy, SERVICE[0]), method)(*arguments)
+
+
+def is_open():
+    return bool(panel("IsOpen"))
 
 
 def allow_fake_input():
@@ -27,50 +33,122 @@ def allow_fake_input():
     desktop.write_text(f"[Desktop Entry]\nType=Application\nName=Fake input\nExec={binary()}\nNoDisplay=true\n"
                        "X-KDE-Wayland-Interfaces=org_kde_kwin_fake_input\n")
     subprocess.run(["kbuildsycoca6"], capture_output=True, check=True)
+    return wait_for(lambda: subprocess.run([binary(), "move", "960", "540"], capture_output=True).returncode == 0, 30)
+
+
+def press(code):
+    keys((code, 1), (code, 0))
 
 
 def type_text(text):
-    events = []
     for letter in text:
-        code = KEY_CODES["space" if letter == " " else letter.upper()]
-        events += [(code, 1), (code, 0)]
-    keys(*events)
+        press(KEY_CODES["space" if letter == " " else letter.upper()])
 
 
-def switch_with_enter():
-    keys((KEY_CODES["Return"], 1), (KEY_CODES["Return"], 0))
-    return wait_for(lambda: active_title() == PROBE and not window_minimized(PROBE), 30)
+def outputs():
+    printed = run_script('for (const o of workspace.screens) { const g = o.geometry; print("MARK|" + o.name + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); }')
+    return {name: tuple(float(v) for v in values) for name, *values in (line.split("|") for line in printed)}
+
+
+def panel_windows():
+    printed = run_script('for (const w of workspace.windowList()) { if (!w.deleted && w.resourceClass == "konveyor-kontrol-panel") { const g = w.frameGeometry; '
+                         'print("MARK|" + w.output.name + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); } }')
+    shown = [(name, tuple(float(v) for v in values)) for name, *values in (line.split("|") for line in printed)]
+    return sorted(shown, key=lambda window: window[1][2] * window[1][3])
+
+
+def card():
+    shown = panel_windows()
+    return shown[0] if len(shown) == 2 else None
+
+
+def backdrop():
+    shown = panel_windows()
+    return shown[1] if len(shown) == 2 else None
+
+
+def inside(rect, area):
+    return area[0] <= rect[0] and area[1] <= rect[1] and rect[0] + rect[2] <= area[0] + area[2] and rect[1] + rect[3] <= area[1] + area[3]
+
+
+def opened_and_focused():
+    return wait_for(lambda: is_open() and active_title() == "", 30)
+
+
+def closed():
+    return wait_for(lambda: not is_open() and not panel_windows(), 30)
+
+
+def search_switches_to_a_minimized_window(checks):
+    open_client(PROBE)
+    run_script(for_window(PROBE, "w.minimized = true;"))
+    checks.expect(wait_for(lambda: window_minimized(PROBE), 30), f"{PROBE} is minimized")
+    panel("Toggle")
+    if not checks.expect(opened_and_focused(), "Toggle opens the Kontrol Panel with focus"):
+        return
+    type_text(APP)
+    press(KEY_CODES["Return"])
+    checks.expect(wait_for(lambda: active_title() == PROBE and not window_minimized(PROBE), 30), f"Enter on {APP} switched to {PROBE}")
+    checks.expect(wait_for(lambda: not is_open(), 30), "switching windows closed the Kontrol Panel")
+
+
+def meta_and_alt_f1_open_and_close_it(checks):
+    press(META)
+    checks.expect(opened_and_focused(), "Meta opens the Kontrol Panel with focus")
+    press(META)
+    checks.expect(closed(), "Meta again closes it")
+    tap([ALT], KEY_CODES["F1"])
+    checks.expect(opened_and_focused(), "Alt+F1 opens it")
+    press(KEY_CODES["Escape"])
+    checks.expect(closed(), "Escape closes it")
+
+
+def clicking_beside_the_card_closes_it(checks):
+    move(960, 540)
+    press(META)
+    checks.expect(opened_and_focused(), "Meta opens the Kontrol Panel")
+    click(40, 540)
+    checks.expect(closed(), "a click on the dimmed backdrop beside the card closes it")
+
+
+def asking_for_a_page_while_open_switches_or_closes(checks):
+    panel("Open", "apps")
+    checks.expect(opened_and_focused(), "Open apps opens the Kontrol Panel")
+    panel("Open", "games")
+    checks.expect(is_open() and card() is not None, "Open games while it is open keeps it open")
+    checks.expect(active_title() == "", "the Kontrol Panel keeps focus after switching pages")
+    panel("Open", "games")
+    checks.expect(closed(), "Open games again closes it")
+
+
+def it_opens_on_the_output_under_the_pointer_and_fits_it(checks):
+    result = subprocess.run(["kscreen-doctor", "output.Virtual-1.scale.2"], capture_output=True, text=True)
+    checks.expect(result.returncode == 0 and "not found" not in result.stderr + result.stdout, f"output Virtual-1 is scaled to 2 {result.stderr}")
+    checks.expect(wait_for(lambda: outputs().get("Virtual-1", (0, 0, 0, 0))[2] == 960, 30), "Virtual-1 is 960 logical pixels wide")
+    for name, area in sorted(outputs().items(), reverse=True):
+        move(area[0] + area[2] / 2, area[1] + area[3] / 2)
+        press(META)
+        checks.expect(opened_and_focused(), f"Meta opens the Kontrol Panel with the pointer on {name}")
+        placed = wait_for(lambda: (lambda shown: shown if shown and shown[0] == name and inside(shown[1], area) else None)(card()), 30)
+        checks.expect(placed is not None, f"the card sits inside {name} {area}, it is at {card()}")
+        checks.equal(backdrop(), (name, area), f"the backdrop covers {name}")
+        press(META)
+        checks.expect(closed(), f"Meta closes it on {name}")
 
 
 def main():
-    problems = []
-    allow_fake_input()
+    checks = Checks()
+    checks.expect(allow_fake_input(), "KWin lets the test send input")
     log = open(os.environ["KONVEYOR_KWIN_LOG"], "a")
-    open_client(PROBE)
-    run_script(for_window(PROBE, "w.minimized = true;"))
-    if not wait_for(lambda: window_minimized(PROBE), 30):
-        problems.append(f"{PROBE} did not minimize")
     process = subprocess.Popen([str(build_dir() / "bin" / "konveyor-kontrol-panel"), os.environ["KONVEYOR_KONTROL_PANEL_DIR"]],
                                stdout=log, stderr=subprocess.STDOUT)
-    if not wait_for(lambda: dbus.SessionBus().name_has_owner(SERVICE[0]), 60):
-        problems.append("the Kontrol Panel never took its bus name")
+    if checks.expect(wait_for(lambda: dbus.SessionBus().name_has_owner(SERVICE[0]), 60), "the Kontrol Panel takes its bus name"):
+        checks.run(it_opens_on_the_output_under_the_pointer_and_fits_it, meta_and_alt_f1_open_and_close_it, clicking_beside_the_card_closes_it,
+                   asking_for_a_page_while_open_switches_or_closes, search_switches_to_a_minimized_window)
     else:
-        panel("Toggle")
-        if not wait_for(lambda: bool(panel("IsOpen")) and active_title() == "", 30):
-            problems.append(f"the Kontrol Panel did not take focus, {active_title()} has it")
-        else:
-            type_text(APP)
-            if not switch_with_enter():
-                problems.append(f"Enter on the open window result left {active_title()} active")
-            elif bool(panel("IsOpen")):
-                problems.append("the Kontrol Panel stayed open after switching windows")
-            else:
-                print(f"searching for {APP} switched to its minimized window {PROBE}")
+        checks.run()
     process.terminate()
     process.wait(timeout=30)
-    for problem in problems:
-        print("  PROBLEM " + problem)
-    print("RESULT:", "FAIL" if problems else "PASS")
 
 
 if __name__ == "__main__":
