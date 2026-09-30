@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fuzzwindows.h"
+#include "fuzzgestures.h"
 
 #include <QMap>
 #include <QSet>
@@ -53,7 +53,7 @@ public:
     {
         for (qsizetype i = 0; i < events.size(); ++i) {
             apply(events.at(i));
-            QString error = m_fixture.invariants();
+            QString error = m_gestures.holdsDrag() ? m_fixture.engine().checkConsistency() : m_fixture.invariants();
             error = error.isEmpty() ? checkStates(m_fixture.engine().windowStates()) : error;
             if (!error.isEmpty()) {
                 return {i, error};
@@ -87,12 +87,11 @@ private:
 
     void apply(const Event &event)
     {
-        const bool needsWindow = event.step != Step::AddWindow && event.step != Step::Act && event.step != Step::Reload
-            && event.step != Step::AddOutput && event.step != Step::Advance && event.step != Step::LayoutFocus
-            && event.step != Step::DataDrag && event.step != Step::RemoveOutput && event.step != Step::UpdateOutput;
-        const bool needsOutput = event.step == Step::FocusOutput || event.step == Step::Swipe || event.step == Step::WorkspaceSwipe
-            || event.step == Step::UpdateOutput || event.step == Step::DataDrag || event.step == Step::Drag;
-        if ((needsWindow && m_windows.isEmpty()) || (needsOutput && m_present.isEmpty())) {
+        static const QList<Step> windowSteps {Step::RemoveWindow, Step::Fullscreen, Step::FillWidth, Step::Urgent, Step::Activate,
+            Step::FloatingFrame, Step::UpdateProperties};
+        static const QList<Step> outputSteps {Step::FocusOutput, Step::UpdateOutput, Step::FocusWorkspace};
+        const bool needsWindow = windowSteps.contains(event.step) || gestureNeedsWindow(event);
+        if ((needsWindow && m_windows.isEmpty()) || (outputSteps.contains(event.step) && m_present.isEmpty())) {
             return;
         }
         applyLayoutEvent(event) || applyOutputEvent(event) || applyWindowEvent(event) || applyGestureEvent(event);
@@ -143,6 +142,9 @@ private:
             return true;
         case Step::FocusOutput:
             m_fixture.engine().focusOutput(outputAt(event.a));
+            return true;
+        case Step::FocusWorkspace:
+            m_fixture.engine().focusWorkspace(outputAt(event.a), static_cast<int>(event.b % 5));
             return true;
         default:
             return false;
@@ -261,59 +263,19 @@ private:
 
     bool applyGestureEvent(const Event &event)
     {
-        Layout::Engine &engine = m_fixture.engine();
-        const double delta = double(event.c % 600) - 300;
-        switch (event.step) {
-        case Step::Swipe:
-        case Step::WorkspaceSwipe: {
-            const bool touchpad = event.b % 2 == 0;
-            const bool workspace = event.step == Step::WorkspaceSwipe;
-            workspace ? engine.beginWorkspaceSwipe(outputAt(event.a), touchpad) : engine.beginSwipe(outputAt(event.a), touchpad);
-            for (int i = 0; i < 3; ++i) {
-                m_timestamp += 16;
-                workspace ? engine.updateWorkspaceSwipe(delta, m_timestamp, touchpad) : engine.updateSwipe(delta, m_timestamp, touchpad);
-            }
-            workspace ? engine.endWorkspaceSwipe(touchpad) : engine.endSwipe(touchpad);
-            return true;
+        GestureTarget target;
+        if (!m_windows.isEmpty()) {
+            target.window = windowAt(event.a);
         }
-        case Step::Drag: {
-            const Layout::WindowId id = windowAt(event.a);
-            const QString output = outputAt(event.b);
-            const QPointF target = m_present.value(output).geometry.center() + QPointF(delta, delta / 3.0);
-            if (engine.beginWindowDrag(id, m_fixture.frame(id).center())) {
-                engine.updateWindowDrag(m_fixture.frame(id).center() + QPointF(40, 10), output);
-                engine.updateWindowDrag(target, output);
-                if (event.c % 4 == 0) {
-                    engine.toggleWindowDragFloating();
-                }
-                engine.endWindowDrag();
-            }
-            return true;
+        if (!m_present.isEmpty()) {
+            target.output = outputAt(event.b);
+            target.outputGeometry = m_present.value(target.output).geometry;
         }
-        case Step::Resize: {
-            const quint8 edges = std::initializer_list<quint8> {8, 4, 2, 1, 10, 5}.begin()[event.b % 6];
-            if (engine.beginResize(windowAt(event.a), edges)) {
-                engine.updateResize(QPointF(delta, delta / 2.0));
-                engine.endResize();
-            }
-            return true;
-        }
-        case Step::DataDrag: {
-            const QString output = outputAt(event.a);
-            engine.beginDataDrag();
-            m_timestamp += 16;
-            engine.dataDragEdgeScroll(output, m_present.value(output).geometry.topLeft() + QPointF(2, 300), m_timestamp);
-            m_timestamp += 400;
-            engine.dataDragEdgeScroll(output, m_present.value(output).geometry.topLeft() + QPointF(2, 300), m_timestamp);
-            engine.endDataDrag();
-            return true;
-        }
-        default:
-            return false;
-        }
+        return m_gestures.apply(event, target);
     }
 
     Fixture m_fixture;
+    GestureDriver m_gestures {m_fixture};
     QList<Layout::OutputInfo> m_pool;
     bool m_animated = false;
     std::map<QString, int> *m_successes = nullptr;
@@ -321,7 +283,6 @@ private:
     QList<Layout::WindowId> m_windows;
     QHash<Layout::WindowId, Layout::WindowProperties> m_properties;
     QList<Layout::WindowId> m_closing;
-    qint64 m_timestamp = 0;
 };
 
 }

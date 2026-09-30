@@ -50,7 +50,27 @@ QString Engine::checkConsistency() const
             return error;
         }
     }
-    return d->checkWindowPlacement();
+    if (const QString error = d->checkWindowPlacement(); !error.isEmpty()) {
+        return error;
+    }
+    return d->windowDrag && d->windowDrag->moving ? QString() : d->checkViews();
+}
+
+QString Engine::Private::checkViews() const
+{
+    for (const Monitor &monitor : monitors) {
+        for (const Workspace &workspace : monitor.workspaces()) {
+            if (const QString error = workspace.scrolling().verifyView(); !error.isEmpty()) {
+                return error;
+            }
+        }
+    }
+    for (const Workspace &workspace : orphanWorkspaces) {
+        if (const QString error = workspace.scrolling().verifyView(); !error.isEmpty()) {
+            return error;
+        }
+    }
+    return {};
 }
 
 QString Engine::Private::checkWindowPlacement() const

@@ -31,6 +31,7 @@ enum class Step
     Drag,
     Resize,
     DataDrag,
+    FocusWorkspace,
 };
 
 struct Event
@@ -42,6 +43,24 @@ struct Event
     Config::Action action;
     qsizetype index = 0;
 };
+
+enum class Phase
+{
+    Begin,
+    Update,
+    End,
+    Whole,
+};
+
+inline Phase gesturePhase(const Event &event)
+{
+    return static_cast<Phase>((event.c >> 24) % 4);
+}
+
+inline bool isGesture(Step step)
+{
+    return step == Step::Swipe || step == Step::WorkspaceSwipe || step == Step::Drag || step == Step::Resize || step == Step::DataDrag;
+}
 
 inline const QString WindowPlaceholder = QStringLiteral("#window");
 
@@ -133,8 +152,8 @@ inline Step randomStep(Dice &dice)
     static const QList<std::pair<Step, quint32>> weights {{Step::AddWindow, 16}, {Step::RemoveWindow, 6}, {Step::Act, 40},
         {Step::Reload, 4}, {Step::AddOutput, 2}, {Step::RemoveOutput, 2}, {Step::UpdateOutput, 2}, {Step::Advance, 6},
         {Step::Fullscreen, 2}, {Step::FillWidth, 1}, {Step::Urgent, 1}, {Step::Activate, 3}, {Step::LayoutFocus, 1},
-        {Step::FloatingFrame, 2}, {Step::FocusOutput, 2}, {Step::UpdateProperties, 2}, {Step::Swipe, 1}, {Step::WorkspaceSwipe, 1},
-        {Step::Drag, 2}, {Step::Resize, 1}, {Step::DataDrag, 1}};
+        {Step::FloatingFrame, 2}, {Step::FocusOutput, 2}, {Step::UpdateProperties, 2}, {Step::Swipe, 3}, {Step::WorkspaceSwipe, 3},
+        {Step::Drag, 4}, {Step::Resize, 3}, {Step::DataDrag, 2}, {Step::FocusWorkspace, 2}};
     quint32 total = 0;
     for (const auto &[step, weight] : weights) {
         total += weight;
@@ -178,13 +197,21 @@ inline QString describe(const Event &event)
         QStringLiteral("advance"), QStringLiteral("fullscreen"), QStringLiteral("fill-width"), QStringLiteral("urgent"),
         QStringLiteral("activate"), QStringLiteral("layout-focus"), QStringLiteral("floating-frame"), QStringLiteral("focus-output"),
         QStringLiteral("update-properties"), QStringLiteral("swipe"), QStringLiteral("workspace-swipe"), QStringLiteral("drag"),
-        QStringLiteral("resize"), QStringLiteral("data-drag")};
+        QStringLiteral("resize"), QStringLiteral("data-drag"), QStringLiteral("focus-workspace")};
     QString text = QStringLiteral("#%1 %2 %3 %4 %5")
                        .arg(event.index)
                        .arg(steps.at(static_cast<qsizetype>(event.step)))
                        .arg(event.a)
                        .arg(event.b)
                        .arg(event.c);
+    if (isGesture(event.step)) {
+        static const QStringList phases {QStringLiteral("begin"), QStringLiteral("update"), QStringLiteral("end"), QStringLiteral("whole")};
+        text += QLatin1Char(' ') + phases.at(static_cast<qsizetype>(gesturePhase(event)));
+    }
+    if (isGesture(event.step)) {
+        static const QStringList phases {QStringLiteral("begin"), QStringLiteral("update"), QStringLiteral("end"), QStringLiteral("whole")};
+        text += QLatin1Char(' ') + phases.at(static_cast<qsizetype>(gesturePhase(event)));
+    }
     if (event.step == Step::Act) {
         text += QStringLiteral(" %1 %2").arg(event.action.name, event.action.arguments.join(QLatin1Char(' ')));
         for (const auto &[key, value] : event.action.properties) {

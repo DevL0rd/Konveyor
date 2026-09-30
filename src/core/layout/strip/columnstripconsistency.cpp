@@ -125,7 +125,7 @@ QString ColumnStrip::verifyColumns() const
 
 QString ColumnStrip::verifyView() const
 {
-    if (centersActiveColumn() || m_scroll.isSwiping() || m_resize || !std::ranges::all_of(m_columns, isNormal)) {
+    if (m_columns.empty() || centersActiveColumn() || m_scroll.isSwiping() || m_resize || !std::ranges::all_of(m_columns, isNormal)) {
         return {};
     }
     const double gaps = m_options->layout.gaps;
@@ -162,7 +162,7 @@ QString ColumnStrip::checkConsistency() const
     if (m_scrollToRestore && m_columns[m_activeColumnIndex].sizingMode() == WindowMode::Normal) {
         return QStringLiteral("scrolling: the active column must be fullscreen or maximized to restore a view offset");
     }
-    return verifyView();
+    return {};
 }
 
 }
