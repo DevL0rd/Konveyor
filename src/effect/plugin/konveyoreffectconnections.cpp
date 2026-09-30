@@ -270,7 +270,11 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
     const std::optional<Layout::RestorePlacement> placement
         = restore == d->minimizedPlacements.constEnd() ? std::nullopt : std::optional(*restore);
     d->minimizedPlacements.remove(window);
-    changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);
+    if (const std::optional<HandedOverPlacement> handed = d->handoff.takePlacement(window, readEngine())) {
+        changeEngine().addWindow(id, d->windows.propertiesOf(window), handed->output, Layout::ActivationPolicy::NoFocus, handed->placement);
+    } else {
+        changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);
+    }
     connect(window, &KWin::Window::frameGeometryChanged, this, [this, id] {
         placeMonitorOverlays(id);
         placeMonitorPanels(id);

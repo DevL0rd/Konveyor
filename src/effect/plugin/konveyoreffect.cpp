@@ -55,18 +55,21 @@ KonveyorEffect::KonveyorEffect()
     connectOverviewSync();
     installInputFilter();
     startDBusService();
-    d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
-    d->windows.start();
-    followActiveWindow();
+    d->config.start();
     d->outputs.start();
     d->desktops.start();
+    d->handoff = LayoutHandoff::take();
+    d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
+    d->windows.start([this](KWin::Window *first, KWin::Window *second) { return d->handoff.comesBefore(first, second); });
+    d->focusRequest.reset();
+    followActiveWindow();
     d->plasmaShell.start();
-    d->config.start();
     scheduleFlush();
 }
 
 KonveyorEffect::~KonveyorEffect()
 {
+    LayoutHandoff::give(d->engine, d->windows);
     if (d->memorySaveTimer.isActive()) {
         d->memoryStore.save(d->engine.windowMemory());
     }

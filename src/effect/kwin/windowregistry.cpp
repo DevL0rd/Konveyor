@@ -3,6 +3,7 @@
 #include <window.h>
 #include <workspace.h>
 
+#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -29,13 +30,14 @@ WindowRegistry::WindowRegistry(QObject *parent)
     : QObject(parent)
 { }
 
-void WindowRegistry::start()
+void WindowRegistry::start(const std::function<bool(KWin::Window *, KWin::Window *)> &adoptionOrder)
 {
     connect(KWin::workspace(), &KWin::Workspace::windowAdded, this, &WindowRegistry::observe);
     connect(KWin::workspace(), &KWin::Workspace::windowRemoved, this, &WindowRegistry::forget);
     connect(KWin::workspace(), &KWin::Workspace::windowActivated, this, &WindowRegistry::activeWindowChanged);
     m_adopting = true;
-    const QList<KWin::Window *> windows = KWin::workspace()->windows();
+    QList<KWin::Window *> windows = KWin::workspace()->windows();
+    std::ranges::stable_sort(windows, adoptionOrder);
     for (KWin::Window *window : windows) {
         observe(window);
     }

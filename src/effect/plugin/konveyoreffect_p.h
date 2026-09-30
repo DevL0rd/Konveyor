@@ -19,6 +19,7 @@
 #include "kwin/windowregistry.h"
 #include "plasma/plasmashellsync.h"
 #include "plugin/configmanager.h"
+#include "plugin/layouthandoff.h"
 #include "plugin/notifications.h"
 #include "plugin/windowmemorystore.h"
 
@@ -127,6 +128,7 @@ struct KonveyorEffect::Private
     QTimer memorySaveTimer;
     QTimer startupRulesTimer;
     WindowMemoryStore memoryStore;
+    LayoutHandoff handoff;
     bool animating = false;
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;

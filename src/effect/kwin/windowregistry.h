@@ -24,7 +24,7 @@ class WindowRegistry : public QObject
 public:
     explicit WindowRegistry(QObject *parent = nullptr);
 
-    void start();
+    void start(const std::function<bool(KWin::Window *, KWin::Window *)> &adoptionOrder);
     void setWantsWindow(std::function<bool(const Layout::WindowProperties &)> wantsWindow);
     void reevaluate();
 
