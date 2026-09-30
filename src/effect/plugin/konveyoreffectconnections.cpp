@@ -86,9 +86,11 @@ void KonveyorEffect::installInputFilter()
         const KWin::LogicalOutput *output = d->outputs.outputNamed(*home);
         return !output || QRectF(output->geometryF()).contains(position);
     });
+    const auto pointerBind
+        = [this](Config::BindTrigger trigger, Qt::KeyboardModifiers modifiers, Config::MouseButton button,
+              Config::ScrollDirection direction) { return d->shortcuts.triggerPointerBind(trigger, modifiers, button, direction); };
     d->input = std::make_unique<InputFilter>(InputHandlers {
-        [this](Config::BindTrigger trigger, Qt::KeyboardModifiers modifiers, Config::MouseButton button,
-            Config::ScrollDirection direction) { return d->shortcuts.triggerPointerBind(trigger, modifiers, button, direction); },
+        pointerBind,
         [this](const QPointF &position, qint64 timestamp) { handlePointerMotion(position, timestamp); },
         [this] { endTitlebarDrag(); },
         [this](const QPointF &position) { return switchToTabUnderPointer(position); },
@@ -98,6 +100,7 @@ void KonveyorEffect::installInputFilter()
         },
         [this] { markMoveCancelled(); },
     });
+    d->axisInput = std::make_unique<AxisFilter>(pointerBind);
     d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {
         changeEngine().dataDragEdgeScroll(outputNameAt(position), position, timestampMs);
     });

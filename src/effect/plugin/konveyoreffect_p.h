@@ -117,6 +117,7 @@ struct KonveyorEffect::Private
     PlasmaShellSync plasmaShell;
     std::unique_ptr<SpillInputFilter> spillInput;
     std::unique_ptr<InputFilter> input;
+    std::unique_ptr<AxisFilter> axisInput;
     std::unique_ptr<DragMotionFilter> dragMotion;
     std::unique_ptr<GestureFilter> gestureInput;
     std::unique_ptr<TouchpadContactReader> touchpadContacts;

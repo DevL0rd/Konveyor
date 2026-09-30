@@ -73,14 +73,20 @@ bool DragMotionFilter::pointerMotion(KWin::PointerMotionEvent *event)
     return false;
 }
 
-bool InputFilter::pointerAxis(KWin::PointerAxisEvent *event)
+AxisFilter::AxisFilter(PointerBind pointerBind)
+    : KWin::InputEventFilter(KWin::InputFilterOrder::Effects)
+    , m_pointerBind(std::move(pointerBind))
+{
+    KWin::input()->installInputEventFilter(this);
+}
+
+bool AxisFilter::pointerAxis(KWin::PointerAxisEvent *event)
 {
     const std::optional<Config::ScrollDirection> direction = directionOf(event);
     if (!direction || event->modifiersRelevantForGlobalShortcuts == Qt::NoModifier) {
         return false;
     }
-    return m_handlers.pointerBind(
-        scrollTriggerOf(event), event->modifiersRelevantForGlobalShortcuts, Config::MouseButton::Left, *direction);
+    return m_pointerBind(scrollTriggerOf(event), event->modifiersRelevantForGlobalShortcuts, Config::MouseButton::Left, *direction);
 }
 
 bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)

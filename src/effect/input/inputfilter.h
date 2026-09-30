@@ -27,7 +27,6 @@ public:
     explicit InputFilter(InputHandlers handlers);
     ~InputFilter() override;
 
-    bool pointerAxis(KWin::PointerAxisEvent *event) override;
     bool pointerButton(KWin::PointerButtonEvent *event) override;
     bool pointerMotion(KWin::PointerMotionEvent *event) override;
     bool keyboardKey(KWin::KeyboardKeyEvent *event) override;
@@ -38,6 +37,19 @@ private:
     InputHandlers m_handlers;
     QSet<quint32> m_swallowedKeys;
     QSet<Qt::MouseButton> m_swallowedButtons;
+};
+
+class AxisFilter : public KWin::InputEventFilter
+{
+public:
+    using PointerBind = std::function<bool(Config::BindTrigger, Qt::KeyboardModifiers, Config::MouseButton, Config::ScrollDirection)>;
+
+    explicit AxisFilter(PointerBind pointerBind);
+
+    bool pointerAxis(KWin::PointerAxisEvent *event) override;
+
+private:
+    PointerBind m_pointerBind;
 };
 
 class DragMotionFilter : public KWin::InputEventFilter

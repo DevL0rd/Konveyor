@@ -270,10 +270,12 @@ binds {
     Mod+Shift+U         { move-workspace-down; }
     Mod+Shift+I         { move-workspace-up; }
 
-    Mod+WheelScrollDown      cooldown-ms=150 { focus-workspace-down; }
-    Mod+WheelScrollUp        cooldown-ms=150 { focus-workspace-up; }
-    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
-    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+    // KWin's own wheel shortcuts come first: Mod+Ctrl with the vertical wheel
+    // zooms and Mod+Alt with it switches desktops, so those stay unbound here.
+    Mod+WheelScrollDown           cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp             cooldown-ms=150 { focus-workspace-up; }
+    Mod+Ctrl+Alt+WheelScrollDown  cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Ctrl+Alt+WheelScrollUp    cooldown-ms=150 { move-column-to-workspace-up; }
 
     Mod+WheelScrollRight      { focus-column-right; }
     Mod+WheelScrollLeft       { focus-column-left; }
