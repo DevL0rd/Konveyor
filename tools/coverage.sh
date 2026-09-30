@@ -16,7 +16,7 @@ step() {
 step "configure the coverage build (clang source-based coverage)"
 cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
     -DCMAKE_C_FLAGS="$FLAGS" -DCMAKE_CXX_FLAGS="$FLAGS" -DCMAKE_EXE_LINKER_FLAGS="$FLAGS" \
-    -DCMAKE_SHARED_LINKER_FLAGS="$FLAGS" -DCMAKE_MODULE_LINKER_FLAGS="$FLAGS" >/dev/null
+    -DCMAKE_SHARED_LINKER_FLAGS="$FLAGS" -DCMAKE_MODULE_LINKER_FLAGS="$FLAGS" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null
 
 step "build"
 cmake --build "$BUILD_DIR"

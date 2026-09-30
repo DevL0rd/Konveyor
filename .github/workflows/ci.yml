@@ -14,35 +14,33 @@ jobs:
   checks:
     name: Build, test and lint
     runs-on: ubuntu-latest
-    container:
-      image: archlinux:base-devel
     steps:
-      - name: Install the check tools
-        run: pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols typos nodejs npm shellcheck ruff
-
-      - name: Build xunused
-        run: |
-          git clone https://github.com/mgehre/xunused.git /tmp/xunused
-          git -C /tmp/xunused checkout b81e0ef
-          if [[ ! -f /usr/include/clang/Driver/Options.h ]]; then
-            sed -i 's|#include "clang/Driver/Options.h"|#include "clang/Options/Options.h"|' /tmp/xunused/main.cpp
-          fi
-          cmake -S /tmp/xunused -B /tmp/xunused/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build /tmp/xunused/build
-          install -Dm755 /tmp/xunused/build/xunused /usr/local/bin/xunused
-
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Mark checkout as safe
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
+        run: tests/nested/ci/vgem.sh
 
-      - name: Install Konveyor's dependencies
-        run: extras/packaging/dependencies.sh
+      - name: Lint, build, run the unit and nested KWin tests with coverage and check it against tests/coverage/thresholds.json
+        run: >-
+          docker run --rm --device /dev/dri --shm-size 2g --security-opt seccomp=unconfined
+          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh
 
-      - name: Run the full check suite
-        run: ./tools/check.sh
+      - name: Publish the coverage summary
+        if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
+        run: cat build-coverage/coverage/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the coverage report
+        if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: |
+            build-coverage/coverage/html
+            build-coverage/coverage/summary.md
+            build-coverage/coverage/cpp.json
+            build-coverage/coverage/python.json
 
   sanitizers:
     name: Layout tests under sanitizers
@@ -53,7 +51,7 @@ jobs:
       - name: Install the build tools
         run: pacman -Syu --noconfirm --needed git cmake ninja wayland-protocols
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -65,53 +63,6 @@ jobs:
 
       - name: Run the layout tests with AddressSanitizer, UndefinedBehaviorSanitizer and libstdc++ assertions
         run: ./tools/sanitize.sh layout
-
-  coverage:
-    name: Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
-        run: tests/nested/ci/vgem.sh
-
-      - name: Measure coverage of the unit and nested KWin tests on Arch Linux and check it against tests/coverage/thresholds.json
-        run: >-
-          docker run --rm --device /dev/dri --shm-size 2g --security-opt seccomp=unconfined
-          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh coverage
-
-      - name: Publish the coverage summary
-        if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
-        run: cat build-coverage/coverage/summary.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload the coverage report
-        if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: |
-            build-coverage/coverage/html
-            build-coverage/coverage/summary.md
-            build-coverage/coverage/cpp.json
-            build-coverage/coverage/python.json
-
-  nested:
-    name: Nested KWin tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
-        run: tests/nested/ci/vgem.sh
-
-      - name: Build and run the nested KWin tests as a normal user on Arch Linux
-        run: >-
-          docker run --rm --device /dev/dri --shm-size 2g --security-opt seccomp=unconfined
-          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh nested
 
   distros:
     name: Install dependencies and build on ${{ matrix.name }}
@@ -152,7 +103,7 @@ jobs:
       - name: Install Plasma
         run: ${{ matrix.plasma }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -171,7 +122,7 @@ jobs:
     name: Install, check and uninstall on Arch Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -186,7 +137,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
@@ -198,7 +149,7 @@ jobs:
           sha256sum "konveyor-${version}.tar.gz" > "konveyor-${version}.tar.gz.sha256"
 
       - name: Publish the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             konveyor-*.tar.gz
