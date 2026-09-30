@@ -58,9 +58,9 @@ void TestSettingsControlsLookQml::controls_data()
         {"LookPage", "Show tabs beside tabbed columns", "switched", "[false]", "layout/tab-indicator", R"({"children":["off"]})"});
     addControl("tab side", {"LookPage", "Placement", "chosen", R"(["top"])", "layout/tab-indicator/position", R"({"args":["top"]})"});
     addControl("tab inside",
-        {"LookPage", "^Inside the column", "toggle,toggled", "[]", "layout/tab-indicator/place-within-column", R"({"args":[]})"});
+        {"LookPage", "^Inside the column", "toggle;toggled", "[]", "layout/tab-indicator/place-within-column", R"({"args":[]})"});
     addControl("tab outside",
-        {"LookPage", "^Inside the column", "toggle,toggled", "[]", "layout/tab-indicator/place-within-column", "null",
+        {"LookPage", "^Inside the column", "toggle;toggled", "[]", "layout/tab-indicator/place-within-column", "null",
             "layout { tab-indicator { place-within-column; }; }\n"});
     addControl("hide single tab",
         {"LookPage", "Hide when there's only one tab", "switched", "[true]", "layout/tab-indicator/hide-when-single-tab",
@@ -90,9 +90,9 @@ void TestSettingsControlsLookQml::controls_data()
         {"LookPage", "Cut app content to the rounded shape", "switched", "[false]", "window-rule/clip-to-geometry", R"({"args":[false]})"});
     addControl("animations off", {"MotionPage", "Animate windows", "switched", "[false]", "animations", R"({"children":["off"]})"});
     addControl("slowdown", {"MotionPage", "Animation speed", "edited", "[2.46]", "animations/slowdown", R"({"args":[2.5]})"});
-    addControl("open instantly", {"MotionPage", "Opening windows", "toggle,toggled", "[]", "animations/window-open/off", R"({"args":[]})"});
+    addControl("open instantly", {"MotionPage", "Opening windows", "toggle;toggled", "[]", "animations/window-open/off", R"({"args":[]})"});
     addControl("open animated",
-        {"MotionPage", "Opening windows", "toggle,toggled", "[]", "animations/window-open/off", "null",
+        {"MotionPage", "Opening windows", "toggle;toggled", "[]", "animations/window-open/off", "null",
             "animations { window-open { off; }; }\n"});
     addControl("spring",
         {"MotionPage", "^Moving windows", "chosen", R"(["spring"])", "animations/window-movement/spring",

@@ -23,7 +23,7 @@ Window {
         const found = [];
         const seen = new Set();
         const visit = item => {
-            if (!item || seen.has(item)) {
+            if (!item || typeof item !== "object" || seen.has(item)) {
                 return;
             }
             seen.add(item);
@@ -32,8 +32,9 @@ Window {
                 visit(child);
             }
             visit(item.contentItem);
-            for (const entry of (item.data || [])) {
-                visit(entry);
+            const data = item.data;
+            for (let index = 0; data && typeof data === "object" && index < (data.length || 0); ++index) {
+                visit(data[index]);
             }
         };
         visit(root);
@@ -42,8 +43,9 @@ Window {
     function drive(label, nth, signal, args) {
         const all = items(page);
         const byTitle = label.startsWith("^");
-        const text = byTitle ? label.slice(1) : label;
-        let rows = byTitle ? [] : all.filter(item => item.label === text);
+        const byPath = label.startsWith("=");
+        const text = byTitle || byPath ? label.slice(1) : label;
+        let rows = label === "*" ? [page] : byPath ? all.filter(item => item.path === text) : byTitle ? [] : all.filter(item => item.label === text);
         if (!rows.length) {
             rows = all.filter(item => item.title === text || item.text === text || item.heading === text);
         }
@@ -51,16 +53,24 @@ Window {
         if (!row) {
             return "no control labelled " + label + " #" + nth;
         }
-        const calls = signal.split(",");
-        const [name, which] = calls[0].split("@");
+        const calls = signal.split(";");
+        const [first, which] = calls[0].split("@");
+        const key = first.split("=")[0];
         const slots = Array.from(row.editor || []).concat(Array.from(row.control || []));
         const inSlots = [].concat(...slots.map(items));
-        const target = inSlots.concat(items(row)).filter(item => typeof item[name] === "function")[Number(which || 0)];
+        const target = inSlots.concat(items(row)).filter(item => item[key] !== undefined && (first.includes("=") || typeof item[key] === "function"))[Number(which || 0)];
         if (!target) {
             return "no " + calls[0] + " under " + label;
         }
-        for (const call of [name].concat(calls.slice(1))) {
-            target[call](...(call === name ? args : []));
+        let pending = args;
+        for (const call of [first].concat(calls.slice(1))) {
+            if (call.includes("=")) {
+                const [name, value] = call.split("=");
+                target[name] = JSON.parse(value);
+            } else {
+                target[call](...pending);
+                pending = [];
+            }
         }
         return "";
     }
@@ -152,10 +162,18 @@ inline void runControl(const SettingsHome &home)
         driver.get(), "open", Q_RETURN_ARG(QVariant, opened), Q_ARG(QVariant, page), Q_ARG(QVariant, parsedJson(properties))));
     QVERIFY(opened.toBool());
     QSignalSpy failed(store, SIGNAL(editFailed(QString)));
-    QVariant problem;
-    QVERIFY(QMetaObject::invokeMethod(driver.get(), "drive", Q_RETURN_ARG(QVariant, problem), Q_ARG(QVariant, label), Q_ARG(QVariant, nth),
-        Q_ARG(QVariant, signal), Q_ARG(QVariant, parsedJson(arguments))));
-    QCOMPARE(problem.toString(), QString());
+    const QStringList labels = label.split(QStringLiteral(" | "));
+    const QStringList steps = signal.split(QStringLiteral(" | "));
+    const QStringList argumentLists = QString::fromUtf8(arguments).split(QStringLiteral(" | "));
+    QCOMPARE(steps.size(), labels.size());
+    QCOMPARE(argumentLists.size(), labels.size());
+    for (qsizetype step = 0; step < labels.size(); ++step) {
+        QVariant problem;
+        QVERIFY(QMetaObject::invokeMethod(driver.get(), "drive", Q_RETURN_ARG(QVariant, problem), Q_ARG(QVariant, labels.at(step)),
+            Q_ARG(QVariant, step == 0 ? nth : 0), Q_ARG(QVariant, steps.at(step)),
+            Q_ARG(QVariant, parsedJson(argumentLists.at(step).toUtf8()))));
+        QCOMPARE(problem.toString(), QString());
+    }
     QCOMPARE(failed.count(), 0);
     QCOMPARE(store->property("configError").toString(), QString());
     const QVariantMap node = call<QVariantMap>(store, "node", path);

@@ -15,5 +15,5 @@ Segmented {
         { value: "no", label: root.noLabel }
     ]
     currentValue: root.triState === undefined || root.triState === null ? "unset" : (root.triState ? "yes" : "no")
-    onChosen: value => root.triStateChosen(value === "unset" ? null : value === "yes")
+    onChosen: value => root.stateChosen(value === "unset" ? null : value === "yes")
 }
