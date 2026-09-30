@@ -41,11 +41,15 @@ KDE_SECTIONS = {
 
 MODIFIER_ORDER = ["Meta", "Ctrl", "Alt", "Shift"]
 MODIFIER_ALIASES = {"mod": "Meta", "super": "Meta", "win": "Meta", "meta": "Meta", "ctrl": "Ctrl", "control": "Ctrl", "alt": "Alt", "shift": "Shift"}
-KEY_ALIASES = {"page_down": "pgdown", "page_up": "pgup", "bracketleft": "[", "bracketright": "]", "comma": ",", "period": ".", "minus": "-", "equal": "=", "escape": "esc", "slash": "/"}
+KEY_ALIASES = {"plus": "+", "page_down": "pgdown", "page_up": "pgup", "bracketleft": "[", "bracketright": "]", "comma": ",", "period": ".", "minus": "-", "equal": "=", "escape": "esc", "slash": "/"}
+
+
+def split_key(text):
+    return re.split(r"\+(?!$)", text)
 
 
 def normalize_key(text):
-    parts = text.split("+")
+    parts = split_key(text)
     modifiers = sorted({MODIFIER_ALIASES.get(part.lower(), part) for part in parts[:-1]}, key=lambda m: MODIFIER_ORDER.index(m) if m in MODIFIER_ORDER else 99)
     key = parts[-1].lower()
     return "+".join(modifiers + [KEY_ALIASES.get(key, key)])
@@ -55,13 +59,16 @@ def close_running():
     try:
         pid = int(PID_FILE.read_text().strip())
         cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
-    except (FileNotFoundError, ValueError, ProcessLookupError):
+    except (FileNotFoundError, ValueError):
         PID_FILE.unlink(missing_ok=True)
         return False
     PID_FILE.unlink(missing_ok=True)
     if str(QML).encode() not in cmdline:
         return False
-    os.kill(pid, signal.SIGTERM)
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return False
     return True
 
 
@@ -97,7 +104,8 @@ def gesture_entry(gesture):
             "kontrol-panel": "Open or close the Kontrol Panel",
             "toggle-overview": "Open or close the overview",
         }
-        return {"action": f"{taps[gesture['action']]} on the {device}", "keys": [f"{fingers} fingers tap"], "gesture": gesture}
+        tap = taps.get(gesture["action"]) or gesture["action"].replace("-", " ").capitalize()
+        return {"action": f"{tap} on the {device}", "keys": [f"{fingers} fingers tap"], "gesture": gesture}
     actions = {
         "swipe-horizontal": ("Scroll the row", "swipe ←→"),
         "swipe-vertical": ("Switch workspace", "swipe ↑↓"),
@@ -105,7 +113,7 @@ def gesture_entry(gesture):
         "window-swipe-horizontal": ("Merge the window into the next column, or pop it out", "swipe ←→"),
         "window-swipe-vertical": ("Move the window up or down, then to the next workspace", "swipe ↑↓"),
     }
-    action, glyph = actions[motion]
+    action, glyph = actions.get(motion) or (gesture["action"].replace("-", " ").capitalize(), motion.replace("-", " "))
     return {"action": f"{action} on the {device}", "keys": [f"{fingers} fingers {glyph}"], "gesture": gesture}
 
 
@@ -150,6 +158,11 @@ def split_shortcut_value(value):
     return re.split(r"(?<!\\),", value, maxsplit=2)
 
 
+def shortcut_keys(value):
+    keys = split_shortcut_value(value)[0].replace("\\t", "\t").split("\t")
+    return [key.replace("\\,", ",") for key in keys if key and key != "none"]
+
+
 def kde_entries(taken_keys):
     if not KGLOBALSHORTCUTS.exists():
         return
@@ -160,12 +173,12 @@ def kde_entries(taken_keys):
             group = header.group(1)
             continue
         if group == LAUNCHER_GAMES_GROUP and line.startswith("_launch="):
-            keys = [k for k in line.split("=", 1)[1].split("\t") if k and k != "none"]
+            keys = shortcut_keys(line.split("=", 1)[1])
             if keys:
                 yield WIDGETS_SECTION, {"action": "Kontrol Panel: open on Games", "keys": keys}
             continue
         if group == KONTROL_PANEL_GROUP and line.startswith("toggle="):
-            keys = [k for k in split_shortcut_value(line.split("=", 1)[1])[0].split("\\t") if k and k != "none"]
+            keys = shortcut_keys(line.split("=", 1)[1])
             if keys:
                 yield WIDGETS_SECTION, {"action": "Kontrol Panel: open", "keys": keys}
             continue
@@ -174,7 +187,7 @@ def kde_entries(taken_keys):
         fields = split_shortcut_value(line.split("=", 1)[1])
         if len(fields) < 3:
             continue
-        keys = [k.replace("\\,", ",") for k in fields[0].split("\t") if k and k != "none" and normalize_key(k) not in taken_keys]
+        keys = [key for key in shortcut_keys(fields[0]) if normalize_key(key) not in taken_keys]
         if keys:
             yield KDE_SECTIONS[group], {"action": fields[2], "keys": keys}
 
@@ -222,22 +235,63 @@ def build_sections():
     return [{"name": name, "entries": sorted(entries, key=lambda e: e["action"].lower())} for name, entries in ordered]
 
 
-def main():
-    if sys.argv[1:] == ["--json"]:
-        json.dump(build_sections(), sys.stdout)
-        return 0
-    if PORTAL_LAUNCHER.exists():
-        return subprocess.run([str(PORTAL_LAUNCHER), "shortcuts"], check=False).returncode
+def notify(summary, message):
+    try:
+        notifications = dbus.Interface(dbus.SessionBus().get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications"), "org.freedesktop.Notifications")
+        notifications.Notify("Konveyor", dbus.UInt32(0), "dialog-error", summary, message, dbus.Array([], signature="s"), dbus.Dictionary({}, signature="sv"), 10000)
+    except dbus.exceptions.DBusException as error:
+        sys.stderr.write(f"konveyor-cheatsheet: could not show a notification: {error.get_dbus_message()}\n")
+
+
+def fail(message, show):
+    sys.stderr.write(f"konveyor-cheatsheet: {message}\n")
+    if show:
+        notify("Could not show the keyboard shortcuts", message)
+    return 1
+
+
+def sections_or_error():
+    try:
+        return build_sections(), None
+    except dbus.exceptions.DBusException as error:
+        return None, f"could not reach Konveyor on the session bus (is the effect enabled?): {error.get_dbus_message()}"
+
+
+def show_viewer():
     if close_running():
         return 0
+    sections, error = sections_or_error()
+    if error:
+        return fail(error, True)
     env = dict(os.environ, QT_WAYLAND_SHELL_INTEGRATION="layer-shell")
-    process = subprocess.Popen([str(VIEWER), str(QML), json.dumps(build_sections())], env=env)
+    try:
+        process = subprocess.Popen([str(VIEWER), str(QML), json.dumps(sections)], env=env)
+    except OSError as error:
+        return fail(f"could not start {VIEWER}: {error.strerror}", True)
     PID_FILE.write_text(str(process.pid))
     code = process.wait()
     if PID_FILE.exists() and PID_FILE.read_text().strip() == str(process.pid):
         PID_FILE.unlink()
     return max(code, 0)
 
+
+def main():
+    arguments = sys.argv[1:]
+    if arguments == ["--json"]:
+        sections, error = sections_or_error()
+        if error:
+            return fail(error, False)
+        json.dump(sections, sys.stdout)
+        return 0
+    if arguments:
+        sys.stderr.write("usage: konveyor-cheatsheet [--json]\n")
+        return 2
+    if PORTAL_LAUNCHER.exists():
+        try:
+            return subprocess.run([str(PORTAL_LAUNCHER), "shortcuts"], check=False).returncode
+        except OSError as error:
+            return fail(f"could not start {PORTAL_LAUNCHER}: {error.strerror}", True)
+    return show_viewer()
 
 if __name__ == "__main__":
     sys.exit(main())

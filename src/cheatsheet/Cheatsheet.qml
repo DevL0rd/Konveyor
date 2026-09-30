@@ -137,7 +137,7 @@ Window {
                                                     Layout.alignment: Qt.AlignRight
 
                                                     Repeater {
-                                                        model: modelData.split("+").filter(part => part !== "")
+                                                        model: modelData.split(/\+(?!$)/)
 
                                                         delegate: Rectangle {
                                                             required property string modelData
