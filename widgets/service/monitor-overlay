@@ -14,9 +14,10 @@ def runtime_directory():
 
 def read_state(path):
     try:
-        return json.loads(path.read_text())
+        state = json.loads(path.read_text())
     except (OSError, ValueError):
         return {}
+    return state if isinstance(state, dict) else {}
 
 
 def konveyor_json(request):
@@ -74,11 +75,18 @@ def write_state(path, state):
     os.replace(temporary, path)
 
 
+def usage():
+    sys.stderr.write("usage: monitor-overlay [toggle|show|hide|remove <window-id>|update-fullscreen <window-id> <0|1>]\n")
+    return 2
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "toggle"
-    if mode not in ("toggle", "show", "hide", "remove", "update-fullscreen"):
-        sys.stderr.write("usage: monitor-overlay [toggle|show|hide|remove|update-fullscreen]\n")
-        return 2
+    wanted = {"remove": 3, "update-fullscreen": 4}.get(mode, 0)
+    if mode not in ("toggle", "show", "hide", "remove", "update-fullscreen") or len(sys.argv) < wanted:
+        return usage()
+    if wanted > 2 and not sys.argv[2].isdigit() or wanted > 3 and sys.argv[3] not in ("0", "1"):
+        return usage()
     directory = runtime_directory()
     directory.mkdir(parents=True, exist_ok=True)
     state_path = directory / "state.json"
@@ -89,13 +97,9 @@ def main():
         if mode == "hide":
             targets = []
         elif mode == "remove":
-            if len(sys.argv) < 3:
-                return 2
             window_id = int(sys.argv[2])
             targets = [target for target in targets if int(target.get("windowId", 0) or 0) != window_id]
         elif mode == "update-fullscreen":
-            if len(sys.argv) < 4:
-                return 2
             window_id = int(sys.argv[2])
             fullscreen = sys.argv[3] == "1"
             changed = False
