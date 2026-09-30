@@ -103,7 +103,7 @@ private Q_SLOTS:
 
     void anOverlayHostWithNothingToShowDoesNotWatch()
     {
-        const PlasmoidSpec overlay {QStringLiteral("process-monitor/plasmoids/org.devl0rd.procmon.overlay"),
+        const PlasmoidSpec overlay {QStringLiteral("process-monitor/plasmoids/org.devl0rd.procmon.panel"),
             QStringLiteral("org.devl0rd.procmon.overlay"), QStringLiteral("utilities-system-monitor"), {}};
         auto harness = Procmon::started(Form::Planar, {{QStringLiteral("updateInterval"), 500}}, overlay);
         QVERIFY(harness);

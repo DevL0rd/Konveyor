@@ -16,3 +16,4 @@ plasmoids/*/contents/ui/lib/
 plasmoids/org.devl0rd.procmon/contents/ui/*.qml
 plasmoids/org.devl0rd.procmon/contents/ui/*.mjs
 plasmoids/org.devl0rd.procmon/contents/config/main.xml
+plasmoids/org.devl0rd.procmon.overlay/contents/

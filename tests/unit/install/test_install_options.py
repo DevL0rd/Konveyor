@@ -126,6 +126,15 @@ class TestWidgetInstallerOptions(HarnessTest):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("as your normal user", result.stderr)
 
+    def test_the_monitor_overlays_get_the_panel_ui_and_settings(self):
+        self.assertSucceeded(self.widgets("install.sh", "--no-restart"))
+        widgets = self.harness.home / ".local" / "share" / "konveyor" / "widgets"
+        for monitor, plugin in (("system-monitor", "org.devl0rd.sysmon"), ("process-monitor", "org.devl0rd.procmon")):
+            panel = widgets / monitor / "plasmoids" / f"{plugin}.panel" / "contents"
+            overlay = widgets / monitor / "plasmoids" / f"{plugin}.overlay" / "contents"
+            for name in ("ui/main.qml", "ui/FullView.qml", "ui/configGeneral.qml", "config/main.xml", "config/config.qml"):
+                self.assertEqual((overlay / name).read_text(), (panel / name).read_text(), f"{plugin}.overlay {name}")
+
     def test_missing_commands_are_named(self):
         for name in ("kscreen-doctor", "jq"):
             (self.harness.stubs / name).unlink()

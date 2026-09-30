@@ -213,7 +213,7 @@ private Q_SLOTS:
 
     void overlayHostWatchesTheOverlaidProcesses()
     {
-        const PlasmoidSpec host {QStringLiteral("process-monitor/plasmoids/org.devl0rd.procmon.overlay"),
+        const PlasmoidSpec host {QStringLiteral("process-monitor/plasmoids/org.devl0rd.procmon.panel"),
             QStringLiteral("org.devl0rd.procmon.overlay"), QStringLiteral("utilities-system-monitor"), {}};
         auto harness = started(Form::Planar, {}, host);
         QVERIFY(harness);

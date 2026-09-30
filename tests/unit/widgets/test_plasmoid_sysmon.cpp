@@ -14,7 +14,7 @@ const QByteArray emptySnapshot = R"({"ts":0,"cpu":{},"mem":{},"gpu":null})";
 
 const PlasmoidSpec panel {QStringLiteral("system-monitor/plasmoids/org.devl0rd.sysmon.panel"), QStringLiteral("org.devl0rd.sysmon.panel"),
     QStringLiteral("cpu"), {}};
-const PlasmoidSpec overlayHost {QStringLiteral("system-monitor/plasmoids/org.devl0rd.sysmon.overlay"),
+const PlasmoidSpec overlayHost {QStringLiteral("system-monitor/plasmoids/org.devl0rd.sysmon.panel"),
     QStringLiteral("org.devl0rd.sysmon.overlay"), QStringLiteral("cpu"), {}};
 
 QString dataPath()

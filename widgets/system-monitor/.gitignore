@@ -16,3 +16,4 @@ plasmoids/*/contents/ui/lib/
 
 plasmoids/org.devl0rd.sysmon/contents/ui/*.qml
 plasmoids/org.devl0rd.sysmon/contents/config/main.xml
+plasmoids/org.devl0rd.sysmon.overlay/contents/

@@ -267,23 +267,6 @@ private Q_SLOTS:
         }
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
-
-    void overlayListUsesThePanelRows_data()
-    {
-        QTest::addColumn<QString>("file");
-        QTest::newRow("rows") << QStringLiteral("ProcessRow.qml");
-        QTest::newRow("list") << QStringLiteral("FullView.qml");
-    }
-
-    void overlayListUsesThePanelRows()
-    {
-        QFETCH(QString, file);
-        const QString plasmoids = PlasmoidHarness::widgetsDir() + QStringLiteral("/process-monitor/plasmoids/");
-        QFile panel(plasmoids + QStringLiteral("org.devl0rd.procmon.panel/contents/ui/") + file);
-        QFile overlay(plasmoids + QStringLiteral("org.devl0rd.procmon.overlay/contents/ui/") + file);
-        QVERIFY(panel.open(QIODevice::ReadOnly) && overlay.open(QIODevice::ReadOnly));
-        QCOMPARE(overlay.readAll(), panel.readAll());
-    }
 };
 
 QTEST_MAIN(TestPlasmoidProcmonReuse)
