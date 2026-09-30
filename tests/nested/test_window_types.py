@@ -18,16 +18,11 @@ desktops=
 desktopsrule=3
 """
 
-SCRIPT = """
-export QT_QPA_PLATFORM=wayland
-python3 {runner} > "$KONVEYOR_REPORT" 2>&1
-"""
-
 
 def main():
-    from nested import run_script
+    from nested import run_runner
 
-    return run_script(SCRIPT.format(runner=HERE / "runners" / "window_types.py"), timeout=240, xwayland=True,
+    return run_runner(HERE / "runners" / "window_types.py", clients=(), timeout=240, xwayland=True,
                       files={"config/kwinrulesrc": STICKY_RULE})
 
 

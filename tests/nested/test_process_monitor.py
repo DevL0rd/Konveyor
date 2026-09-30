@@ -6,16 +6,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "harness"))
 
-SCRIPT = """
-export QT_QPA_PLATFORM=wayland
-python3 {runner} > "$KONVEYOR_REPORT" 2>&1
-"""
-
 
 def main():
-    from nested import run_script
+    from nested import run_runner
 
-    return run_script(SCRIPT.format(runner=HERE / "runners" / "process_monitor.py"), timeout=180,
+    return run_runner(HERE / "runners" / "process_monitor.py", clients=(), timeout=180,
                       extra_kwinrc="process_monitor_telemetryEnabled=true")
 
 

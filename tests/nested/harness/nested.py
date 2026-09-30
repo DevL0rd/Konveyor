@@ -142,12 +142,13 @@ class NestedSession:
 
 RUNNER_SCRIPT = """
 export QT_QPA_PLATFORM=wayland
-python3 {clients} {client} A B C > "$KONVEYOR_REPORT" 2>&1 && python3 {runner} {arguments} > "$KONVEYOR_REPORT" 2>&1
+{setup}{prelude}python3 {runner} {arguments} > "$KONVEYOR_REPORT" 2>&1
 """
 
 
-def run_runner(runner, timeout, extra_config="", client="client.qml", arguments="", **session):
-    script = RUNNER_SCRIPT.format(clients=HARNESS / "clients.py", client=client, runner=runner, arguments=arguments)
+def run_runner(runner, timeout, extra_config="", client="client.qml", arguments="", clients=("A", "B", "C"), setup="", **session):
+    prelude = f'python3 {HARNESS / "clients.py"} {client} {" ".join(clients)} > "$KONVEYOR_REPORT" 2>&1 && ' if clients else ""
+    script = RUNNER_SCRIPT.format(setup=setup, prelude=prelude, runner=runner, arguments=arguments)
     return run_script(script, timeout, extra_config, **session)
 
 
