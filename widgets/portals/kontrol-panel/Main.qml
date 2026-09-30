@@ -7,7 +7,6 @@ Item {
     required property var config
 
     property bool open: false
-    readonly property bool openedByKey: true
     property var pendingPins: []
     signal pinsRequested()
     property string requestedPage: ""

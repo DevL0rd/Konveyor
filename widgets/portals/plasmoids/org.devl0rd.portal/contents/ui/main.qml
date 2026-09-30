@@ -12,8 +12,6 @@ PlasmoidItem {
     readonly property string panelIcon: Plasmoid.configuration.icon || "view-app-grid-symbolic"
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property bool open: inPanel ? expanded : visible
-    readonly property bool openedByKey: false
-    readonly property string openScreen: ""
     property var pendingPins: []
     property string requestedPage: ""
     signal pinsRequested()

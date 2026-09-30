@@ -10,8 +10,6 @@ Item {
     height: 900
 
     property bool open: false
-    readonly property bool openedByKey: !portal
-    readonly property string openScreen: ""
     property var pendingPins: []
     signal pinsRequested()
     property string requestedPage: ""
