@@ -2,9 +2,28 @@
 
 #include <core/renderviewport.h>
 #include <effect/effectwindow.h>
+#include <scene/shadowitem.h>
+#include <scene/windowitem.h>
 
 namespace Konveyor
 {
+
+namespace
+{
+
+void setContentOpacity(KWin::Window *window, double opacity)
+{
+    KWin::WindowItem *item = window ? window->windowItem() : nullptr;
+    if (!item) {
+        return;
+    }
+    item->windowContainer()->setOpacity(opacity);
+    if (KWin::ShadowItem *shadow = item->shadowItem()) {
+        shadow->setOpacity(opacity);
+    }
+}
+
+}
 
 KonveyorEffect::KonveyorEffect()
 {
@@ -49,6 +68,9 @@ KonveyorEffect::~KonveyorEffect()
     if (d->memorySaveTimer.isActive()) {
         d->memoryStore.save(d->engine.windowMemory());
     }
+    if (d->draggedOpacity) {
+        setContentOpacity(d->windows.windowOf(d->draggedOpacity->first), 1.0);
+    }
     MinimizeRule::apply(false);
     for (const KWin::ElectricBorder border : std::as_const(d->reservedCorners)) {
         KWin::effects->unreserveElectricBorder(border, this);
@@ -57,7 +79,7 @@ KonveyorEffect::~KonveyorEffect()
 
 bool KonveyorEffect::isActive() const
 {
-    return d->animating || hasSpill();
+    return d->animating || d->draggedOpacity || hasSpill();
 }
 
 bool KonveyorEffect::blocksDirectScanout() const
@@ -101,7 +123,7 @@ bool KonveyorEffect::hasSpill() const
 
 void KonveyorEffect::prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data)
 {
-    if (spillHome(w->window())) {
+    if (spillHome(w->window()) || isDragged(w->window())) {
         data.setTranslucent();
     }
     KWin::Effect::prePaintWindow(view, w, data);
@@ -170,6 +192,8 @@ void KonveyorEffect::flush()
     updateHomeOutputs(states);
     acknowledgeSettledModeChanges(states);
     updateDecorations(states);
+    updateDropHint(states);
+    updateDraggedOpacity(states);
     d->fullscreenShade.update(states);
     applyFocusRequest();
     d->plasmaShell.update(states, d->outputs.orderedNames());
@@ -215,6 +239,46 @@ void KonveyorEffect::updateDecorations(const QList<Layout::WindowState> &states)
             d->decorations.update(window, state, home->geometryF(), home->scale());
         }
     }
+}
+
+void KonveyorEffect::updateDropHint(const QList<Layout::WindowState> &states)
+{
+    const std::optional<Layout::WindowId> moving = readEngine().movingWindow();
+    const QList<Layout::OutputState> outputs = readEngine().outputStates();
+    const auto hinted = std::ranges::find_if(outputs, [](const Layout::OutputState &output) { return output.dropHint.has_value(); });
+    const auto carrier = std::ranges::find_if(states, [&moving](const Layout::WindowState &state) { return state.id == moving; });
+    KWin::Window *window = moving ? d->windows.windowOf(*moving) : nullptr;
+    const KWin::LogicalOutput *output = hinted != outputs.end() ? d->outputs.outputNamed(hinted->name) : nullptr;
+    if (!window || !output || carrier == states.end()) {
+        d->decorations.hideDropHint();
+        return;
+    }
+    d->decorations.showDropHint(*moving, window,
+        {*hinted->dropHint, hinted->dropHintPaint, d->decorations.radiusFor(window, carrier->cornerRadius), output->geometryF(),
+            output->scale()});
+}
+
+void KonveyorEffect::updateDraggedOpacity(const QList<Layout::WindowState> &states)
+{
+    const std::optional<Layout::WindowId> moving = readEngine().movingWindow();
+    const auto state = std::ranges::find_if(states, [&moving](const Layout::WindowState &each) { return each.id == moving; });
+    const std::optional<std::pair<Layout::WindowId, double>> wanted
+        = state != states.end() ? std::optional(std::pair(state->id, state->renderAlpha)) : std::nullopt;
+    if (wanted == d->draggedOpacity) {
+        return;
+    }
+    if (d->draggedOpacity && (!wanted || wanted->first != d->draggedOpacity->first)) {
+        setContentOpacity(d->windows.windowOf(d->draggedOpacity->first), 1.0);
+    }
+    if (wanted) {
+        setContentOpacity(d->windows.windowOf(wanted->first), wanted->second);
+    }
+    d->draggedOpacity = wanted;
+}
+
+bool KonveyorEffect::isDragged(KWin::Window *window) const
+{
+    return d->draggedOpacity && window && d->windows.idOf(window) == d->draggedOpacity->first;
 }
 
 void KonveyorEffect::applyConfig(const Config::Config &config)

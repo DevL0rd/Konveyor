@@ -100,6 +100,9 @@ private:
     const Layout::Engine &readEngine() const;
     void acknowledgeSettledModeChanges(const QList<Layout::WindowState> &states);
     void updateDecorations(const QList<Layout::WindowState> &states);
+    void updateDropHint(const QList<Layout::WindowState> &states);
+    void updateDraggedOpacity(const QList<Layout::WindowState> &states);
+    bool isDragged(KWin::Window *window) const;
     void updateHomeOutputs(const QList<Layout::WindowState> &states);
     std::optional<QRectF> spillHome(KWin::Window *window) const;
     bool hasSpill() const;

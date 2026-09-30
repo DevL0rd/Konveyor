@@ -61,13 +61,37 @@ void DecorationLayer::update(KWin::Window *window, const Layout::WindowState &st
     decorations.tabs.resize(static_cast<size_t>(tabCount));
     for (qsizetype i = 0; i < tabCount; ++i) {
         apply(decorations.tabs[static_cast<size_t>(i)], parent,
-            tab(frame, state.tabBar.tabRects[i], state.tabBar.tabRadii[i], state.tabBar.tabPaints.value(i), workspaceView, scale));
+            filled(frame, state.tabBar.tabRects[i], state.tabBar.tabRadii[i], state.tabBar.tabPaints.value(i), workspaceView, scale));
     }
+}
+
+void DecorationLayer::showDropHint(Layout::WindowId carrier, KWin::Window *window, const DropHintRequest &request)
+{
+    KWin::Item *parent = window->windowItem();
+    if (!parent) {
+        hideDropHint();
+        return;
+    }
+    Placement placement
+        = filled(window->frameGeometry(), request.rect, request.radius, request.paint, request.workspaceView, request.scale);
+    placement.z = -1;
+    m_dropHintCarrier = carrier;
+    apply(m_dropHint, parent, placement);
+}
+
+void DecorationLayer::hideDropHint()
+{
+    m_dropHintCarrier.reset();
+    m_dropHint.item.reset();
+    m_dropHint.outline.reset();
 }
 
 void DecorationLayer::remove(Layout::WindowId id)
 {
     m_decorations.erase(id);
+    if (m_dropHintCarrier == id) {
+        hideDropHint();
+    }
 }
 
 Config::CornerRadius DecorationLayer::radiusFor(KWin::Window *window, const Config::CornerRadius &fromRules)
@@ -81,6 +105,9 @@ Config::CornerRadius DecorationLayer::radiusFor(KWin::Window *window, const Conf
 
 void DecorationLayer::retainOnly(const QSet<Layout::WindowId> &ids)
 {
+    if (m_dropHintCarrier && !ids.contains(*m_dropHintCarrier)) {
+        hideDropHint();
+    }
     for (auto it = m_decorations.begin(); it != m_decorations.end();) {
         it = ids.contains(it->first) ? std::next(it) : m_decorations.erase(it);
     }
@@ -109,7 +136,7 @@ void DecorationLayer::applyOutlined(Slot &slot, KWin::Item *parent, const Placem
         KWin::BorderRadius(radius.topLeft, radius.topRight, radius.bottomRight, radius.bottomLeft));
     if (!slot.outline || slot.outline->parentItem() != parent) {
         slot.outline = std::make_unique<KWin::OutlinedBorderItem>(placement.innerRect, wanted, parent);
-        slot.outline->setZ(1);
+        slot.outline->setZ(placement.z);
     }
     if (slot.outline->outline() != wanted) {
         slot.outline->setOutline(wanted);
@@ -123,7 +150,7 @@ void DecorationLayer::applyImage(Slot &slot, KWin::Item *parent, const Placement
 {
     if (!slot.item || slot.item->parentItem() != parent) {
         slot.item = std::make_unique<KWin::ImageItem>(parent);
-        slot.item->setZ(1);
+        slot.item->setZ(placement.z);
         slot.spec = {};
     }
     if (!(slot.spec == placement.spec)) {
@@ -156,7 +183,7 @@ DecorationLayer::Placement DecorationLayer::outline(
     return placement;
 }
 
-DecorationLayer::Placement DecorationLayer::tab(const QRectF &frame, const QRectF &rect, const Config::CornerRadius &radius,
+DecorationLayer::Placement DecorationLayer::filled(const QRectF &frame, const QRectF &rect, const Config::CornerRadius &radius,
     const Layout::ResolvedPaint &paint, const QRectF &workspaceView, double scale) const
 {
     Placement placement;

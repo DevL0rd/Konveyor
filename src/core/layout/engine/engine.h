@@ -259,6 +259,7 @@ public:
     QList<WorkspaceState> workspaceStates() const;
     QList<OutputState> outputStates() const;
     std::optional<WindowId> focusedWindow() const;
+    std::optional<WindowId> movingWindow() const;
     std::optional<WindowId> windowAt(const QPointF &globalPos) const;
     std::optional<WindowHit> hitAt(const QPointF &globalPos) const;
 

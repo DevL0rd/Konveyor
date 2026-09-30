@@ -368,6 +368,14 @@ std::optional<WindowId> Engine::focusedWindow() const
     return d->focused;
 }
 
+std::optional<WindowId> Engine::movingWindow() const
+{
+    if (!d->windowDrag || !d->windowDrag->moving) {
+        return std::nullopt;
+    }
+    return d->windowDrag->window;
+}
+
 std::optional<WindowId> Engine::windowAt(const QPointF &globalPos) const
 {
     const std::optional<WindowHit> hit = hitAt(globalPos);

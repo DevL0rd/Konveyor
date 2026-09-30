@@ -31,7 +31,18 @@ public:
     explicit DecorationLayer(const AccentColor &accent, QObject *parent = nullptr);
     ~DecorationLayer() override;
 
+    struct DropHintRequest
+    {
+        QRectF rect;
+        Layout::ResolvedPaint paint;
+        Config::CornerRadius radius;
+        QRectF workspaceView;
+        double scale = 1.0;
+    };
+
     void update(KWin::Window *window, const Layout::WindowState &state, const QRectF &workspaceView, double scale);
+    void showDropHint(Layout::WindowId carrier, KWin::Window *window, const DropHintRequest &request);
+    void hideDropHint();
     void remove(Layout::WindowId id);
     void retainOnly(const QSet<Layout::WindowId> &ids);
     Config::CornerRadius radiusFor(KWin::Window *window, const Config::CornerRadius &fromRules);
@@ -58,6 +69,7 @@ private:
         QPointF position;
         QRectF innerRect;
         double thickness = 0.0;
+        int z = 1;
         bool visible = false;
         bool filled = false;
     };
@@ -75,7 +87,7 @@ private:
     };
 
     Placement outline(const OutlineRequest &request, const Layout::DecorationState &decoration, const Layout::WindowState &state) const;
-    Placement tab(const QRectF &frame, const QRectF &rect, const Config::CornerRadius &radius, const Layout::ResolvedPaint &paint,
+    Placement filled(const QRectF &frame, const QRectF &rect, const Config::CornerRadius &radius, const Layout::ResolvedPaint &paint,
         const QRectF &workspaceView, double scale) const;
     void fillPaint(
         Render::BorderSpec &spec, const Layout::ResolvedPaint &paint, const QRectF &globalRect, const QRectF &workspaceView) const;
@@ -83,6 +95,8 @@ private:
     const AccentColor &m_accent;
     double m_systemRadius = 0.0;
     std::map<Layout::WindowId, Decorations> m_decorations;
+    std::optional<Layout::WindowId> m_dropHintCarrier;
+    Slot m_dropHint;
 };
 
 }
