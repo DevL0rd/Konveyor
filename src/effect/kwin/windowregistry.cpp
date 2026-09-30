@@ -4,6 +4,7 @@
 #include <workspace.h>
 
 #include <memory>
+#include <utility>
 
 namespace Konveyor
 {
@@ -174,13 +175,20 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
     connect(window, &KWin::Window::desktopsChanged, this, emitProperties);
     connect(window, &KWin::Window::demandsAttentionChanged, this,
         [this, window, id]() { Q_EMIT urgencyChanged(id, window->isDemandingAttention()); });
-    connect(
-        window, &KWin::Window::fullScreenChanged, this, [this, window, id]() { Q_EMIT fullscreenRequested(id, window->isFullScreen()); });
+    const auto announcedFullscreen = std::make_shared<bool>(window->isFullScreen());
+    const auto announceFullscreen = [this, id, announcedFullscreen](bool fullscreen) {
+        if (std::exchange(*announcedFullscreen, fullscreen) != fullscreen) {
+            Q_EMIT fullscreenRequested(id, fullscreen);
+        }
+    };
+    connect(window, &KWin::Window::fullScreenChanged, this, [window, announceFullscreen]() { announceFullscreen(window->isFullScreen()); });
     connect(
         window, &KWin::Window::maximizedChanged, this, [this, window, id]() { Q_EMIT maximizeRequested(id, isMaximizeRequested(window)); });
     connect(window, &KWin::Window::borderRadiusChanged, this, [this, id]() { Q_EMIT appearanceChanged(id); });
-    connect(window, &KWin::Window::frameGeometryChanged, this,
-        [this, window, id]() { Q_EMIT sizeCommitted(id, window->frameGeometry().size()); });
+    connect(window, &KWin::Window::frameGeometryChanged, this, [this, window, id, announceFullscreen]() {
+        announceFullscreen(window->isRequestedFullScreen());
+        Q_EMIT sizeCommitted(id, window->frameGeometry().size());
+    });
     connectInteractiveSignals(window, id);
 }
 

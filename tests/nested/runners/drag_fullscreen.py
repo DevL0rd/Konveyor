@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
-from dragging import dragging, placement, settled
+from dragging import dragging, placement, settled, window_json
 from kwinsession import activate, for_window, frame, konveyor_action, run_script, wait_for, window_state
 
 FULL = (0.0, 0.0, 1920.0, 1080.0)
@@ -66,11 +66,27 @@ def floating_request(request, leave):
         leave("C")
         checks.expect(wait_for(lambda: window_state("C").startswith("false|") and settled("C")[:2] == dropped[:2], 10),
                       f"C floats again where it was dragged to ({frame('C')}, dragged to {dropped})")
-        if request is fullscreen_by_bind:
-            checks.equal(frame("C")[2:], size, "C floats again at its own size")
+        checks.equal(frame("C")[2:], size, "C floats again at its own size")
         activate("C")
         checks.equal(konveyor_action("toggle-window-floating"), "", "tile C again")
     step.__name__ = f"floating_{request.__name__}"
+    return step
+
+
+def floating_without_drag(request, leave):
+    def step(checks):
+        activate("C")
+        checks.equal(konveyor_action("toggle-window-floating"), "", "float C")
+        before = settled("C")
+        request("C")
+        checks.expect(wait_for(lambda: is_fullscreen("C"), 10), f"the floating C goes fullscreen ({window_state('C')})")
+        leave("C")
+        checks.expect(wait_for(lambda: window_state("C").startswith("false|") and settled("C") != FULL, 10), "C leaves fullscreen")
+        checks.equal(settled("C"), before, "C floats again where it was and at its own size")
+        checks.expect(window_json("C")["is_floating"], "C is still a floating window")
+        activate("C")
+        checks.equal(konveyor_action("toggle-window-floating"), "", "tile C again")
+    step.__name__ = f"floating_undragged_{request.__name__}_{leave.__name__}"
     return step
 
 
@@ -88,7 +104,9 @@ def windowed_fullscreen(checks):
 
 def main():
     Checks().run(tiled_request(fullscreen_by_app, leave_by_app), tiled_request(fullscreen_by_bind, leave_by_bind), windowed_fullscreen,
-                 floating_request(fullscreen_by_bind, leave_by_bind), floating_request(fullscreen_by_app, leave_by_app))
+                 floating_request(fullscreen_by_bind, leave_by_bind), floating_request(fullscreen_by_app, leave_by_app),
+                 *(floating_without_drag(request, leave) for request in (fullscreen_by_bind, fullscreen_by_app)
+                   for leave in (leave_by_bind, leave_by_app)))
 
 
 if __name__ == "__main__":
