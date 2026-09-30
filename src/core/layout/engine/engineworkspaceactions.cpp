@@ -240,6 +240,7 @@ ActionResult setWorkspaceName(Engine::Private &d, const Config::Action &action)
         return actionError(QStringLiteral("workspace name already used: %1").arg(name));
     }
     d.monitors[location->monitor].nameWorkspace(location->workspace, name);
+    d.applyNamedWorkspaceLayouts();
     return {};
 }
 
@@ -257,6 +258,7 @@ ActionResult unsetWorkspaceName(Engine::Private &d, const Config::Action &action
     }
     Monitor &monitor = d.monitors[location->monitor];
     monitor.clearWorkspaceName(monitor.workspaces()[location->workspace].id());
+    d.applyNamedWorkspaceLayouts();
     return {};
 }
 

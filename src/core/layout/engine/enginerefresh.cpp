@@ -135,11 +135,9 @@ void Engine::Private::forgetRemovedWorkspaceNames(const QList<Config::NamedWorks
 void Engine::Private::applyNamedWorkspaceLayouts()
 {
     for (Workspace *workspace : allWorkspaces()) {
-        if (workspace->name().isEmpty()) {
-            continue;
-        }
-        const auto named = std::ranges::find_if(config.workspaces,
-            [workspace](const Config::NamedWorkspace &entry) { return entry.name.compare(workspace->name(), Qt::CaseInsensitive) == 0; });
+        const auto named = std::ranges::find_if(config.workspaces, [workspace](const Config::NamedWorkspace &entry) {
+            return !workspace->name().isEmpty() && entry.name.compare(workspace->name(), Qt::CaseInsensitive) == 0;
+        });
         workspace->setLayoutOverride(named != config.workspaces.end() ? named->layout : std::nullopt);
     }
 }

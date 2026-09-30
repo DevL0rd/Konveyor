@@ -139,6 +139,22 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void workspaceLayoutFollowsTheNameAWorkspaceIsGiven()
+    {
+        Fixture fixture(withWorkspaceLayout(instantConfig(), QStringLiteral("tight"), layoutWithGaps(4)));
+        const auto first = fixture.add(QStringLiteral("a"));
+        QCOMPARE(gapOf(fixture, first), 4.0);
+        QVERIFY(fixture.perform(QStringLiteral("set-workspace-name"), {QStringLiteral("loose")}).ok);
+        QCOMPARE(gapOf(fixture, first), 16.0);
+        fixture.perform(QStringLiteral("focus-workspace-down"));
+        const auto second = fixture.add(QStringLiteral("b"));
+        QVERIFY(fixture.perform(QStringLiteral("set-workspace-name"), {QStringLiteral("tight")}).ok);
+        QCOMPARE(gapOf(fixture, second), 4.0);
+        QVERIFY(fixture.perform(QStringLiteral("unset-workspace-name")).ok);
+        QCOMPARE(gapOf(fixture, second), 16.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void outputLayoutFollowsAReload()
     {
         Config::Config config = instantConfig();
