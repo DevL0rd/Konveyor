@@ -47,6 +47,7 @@ private Q_SLOTS:
     void keepsWatchingAConfigReplacedByRename();
     void watchesAnIncludeAddedLater();
     void reloadsWhenABrokenIncludeIsFixed_data();
+    void followsASymlinkedConfigAcrossReplacements();
     void reloadsWhenABrokenIncludeIsFixed();
 
 private:
@@ -132,6 +133,22 @@ void TestConfigManager::reloadsWhenABrokenIncludeIsFixed()
     QCOMPARE(loaded.last().first().toBool(), true);
     QVERIFY(writeInPlace(filePath(include), gapsConfig(7)));
     QTRY_COMPARE(manager.config().layout.gaps, 7.0);
+}
+
+void TestConfigManager::followsASymlinkedConfigAcrossReplacements()
+{
+    QVERIFY(QDir(m_dir->path()).mkpath(QStringLiteral("dotfiles")));
+    const QString target = filePath(QStringLiteral("dotfiles/config.kdl"));
+    QVERIFY(writeInPlace(target, gapsConfig(2)));
+    QVERIFY(QFile::remove(filePath(QStringLiteral("config.kdl"))));
+    QVERIFY(QFile::link(target, filePath(QStringLiteral("config.kdl"))));
+    ConfigManager manager;
+    manager.start();
+    QCOMPARE(manager.config().layout.gaps, 2.0);
+    QVERIFY(replaceByRename(target, gapsConfig(3)));
+    QTRY_COMPARE(manager.config().layout.gaps, 3.0);
+    QVERIFY(writeInPlace(target, gapsConfig(4)));
+    QTRY_COMPARE(manager.config().layout.gaps, 4.0);
 }
 
 QTEST_GUILESS_MAIN(TestConfigManager)
