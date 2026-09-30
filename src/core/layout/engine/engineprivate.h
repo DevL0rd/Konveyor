@@ -146,6 +146,9 @@ struct Engine::Private
     void appendMovedWindowState(QList<WindowState> &states) const;
 
     void beginInteractiveMoving(const QString &output);
+    void stopEdgeScroll();
+    void edgeScrollAt(Monitor &monitor, QPointF local);
+    void moveDragToActiveOutput();
     void updateDropHint();
     void interactiveMoveFinish();
     void dropInteractiveTile(Monitor &monitor, const Monitor::InsertTarget &insertTarget);

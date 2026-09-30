@@ -30,8 +30,10 @@ void Engine::addWindow(WindowId id, const WindowProperties &properties, const QS
 
 void Engine::removeWindow(WindowId id)
 {
-    if (d->windowDrag && d->windowDrag->window == id) {
+    const bool dragged = d->windowDrag && d->windowDrag->window == id;
+    if (dragged) {
         d->windowDrag.reset();
+        d->stopEdgeScroll();
     }
     for (Monitor &monitor : d->monitors) {
         for (Workspace &workspace : monitor.workspaces()) {
@@ -52,6 +54,10 @@ void Engine::removeWindow(WindowId id)
             d->refresh();
             return;
         }
+    }
+    if (dragged) {
+        d->focusOrder.remove(id);
+        d->refresh();
     }
 }
 

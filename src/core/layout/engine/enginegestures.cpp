@@ -95,27 +95,36 @@ void Engine::beginDataDrag()
     }
 }
 
-void Engine::endDataDrag()
+void Engine::Private::stopEdgeScroll()
 {
-    for (Monitor &monitor : d->monitors) {
+    for (Monitor &monitor : monitors) {
         monitor.endEdgeScroll();
+        monitor.dropHint.reset();
         for (Workspace &workspace : monitor.workspaces()) {
             workspace.endEdgeScroll();
         }
     }
+}
+
+void Engine::Private::edgeScrollAt(Monitor &monitor, QPointF local)
+{
+    monitor.edgeScrollBy(local, 1.0);
+    for (Workspace &workspace : monitor.workspaces()) {
+        workspace.edgeScrollBy(local, 1.0);
+    }
+}
+
+void Engine::endDataDrag()
+{
+    d->stopEdgeScroll();
     d->refresh();
 }
 
 void Engine::dataDragEdgeScroll(const QString &output, const QPointF &pointer, qint64 timestampMs)
 {
     Q_UNUSED(timestampMs)
-    Monitor *monitor = d->monitorByName(output);
-    if (!monitor) {
-        return;
-    }
-    monitor->edgeScrollBy(pointer, 1.0);
-    for (Workspace &workspace : monitor->workspaces()) {
-        workspace.edgeScrollBy(pointer, 1.0);
+    if (Monitor *monitor = d->monitorByName(output)) {
+        d->edgeScrollAt(*monitor, pointer - d->originOf(monitor->outputName()));
     }
 }
 
@@ -247,7 +256,22 @@ void Engine::updateWindowDrag(const QPointF &pointer, const QString &output)
         }
     }
     move.pointerPos = pointer - d->originOf(move.output);
+    if (move.moving && !move.isFloating) {
+        if (Monitor *monitor = d->monitorByName(move.output)) {
+            d->edgeScrollAt(*monitor, move.pointerPos);
+        }
+    }
     d->updateDropHint();
+}
+
+void Engine::Private::moveDragToActiveOutput()
+{
+    const Monitor *monitor = activeMonitor();
+    const QSizeF size = monitor->area().viewSize;
+    windowDrag->output = monitor->outputName();
+    windowDrag->pointerPos
+        = QPointF(std::clamp(windowDrag->pointerPos.x(), 0.0, size.width()), std::clamp(windowDrag->pointerPos.y(), 0.0, size.height()));
+    updateDropHint();
 }
 
 void Engine::toggleWindowDragFloating()
@@ -320,13 +344,7 @@ void Engine::Private::interactiveMoveFinish()
     if (!windowDrag) {
         return;
     }
-    for (Monitor &monitor : monitors) {
-        monitor.endEdgeScroll();
-        monitor.dropHint.reset();
-        for (Workspace &workspace : monitor.workspaces()) {
-            workspace.endEdgeScroll();
-        }
-    }
+    stopEdgeScroll();
 
     WindowDrag move = std::move(*windowDrag);
     windowDrag.reset();

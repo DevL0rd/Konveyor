@@ -117,6 +117,10 @@ void Engine::removeOutput(const QString &name)
     if (!idx) {
         return;
     }
+    const bool draggedHere = d->windowDrag && d->windowDrag->output.compare(name, Qt::CaseInsensitive) == 0;
+    if (draggedHere && d->monitors.size() == 1) {
+        d->interactiveMoveFinish();
+    }
     d->lastActiveWorkspace.insert(name, d->monitors[*idx].activeWorkspace().id());
     std::vector<Workspace> workspaces = d->monitors[*idx].releaseWorkspaces();
     d->monitors.erase(d->monitors.begin() + static_cast<std::ptrdiff_t>(*idx));
@@ -132,6 +136,9 @@ void Engine::removeOutput(const QString &name)
         d->orphanWorkspaces = std::move(workspaces);
     } else {
         d->monitors[0].appendWorkspaces(std::move(workspaces));
+    }
+    if (draggedHere && d->windowDrag) {
+        d->moveDragToActiveOutput();
     }
     d->refresh();
 }

@@ -55,6 +55,13 @@ inline Config::NamedWorkspace namedWorkspace(const QString &name, std::optional<
     return named;
 }
 
+inline Config::Config wideColumns()
+{
+    Config::Config config = instantConfig();
+    config.layout.defaultColumnWidth = Config::PresetSize(Config::Fixed {900});
+    return config;
+}
+
 inline Config::WindowRule ruleFor(const QString &appId)
 {
     Config::WindowRule rule;
@@ -166,10 +173,17 @@ public:
 
     std::optional<Layout::WindowId> focused() const { return m_engine.focusedWindow(); }
 
-    void advance(qint64 milliseconds)
+    void passTime(qint64 milliseconds)
     {
         m_elapsed += milliseconds;
         m_clock.setRawNow(std::chrono::duration_cast<Duration>(std::chrono::milliseconds(m_elapsed)));
+    }
+
+    qint64 elapsed() const { return m_elapsed; }
+
+    void advance(qint64 milliseconds)
+    {
+        passTime(milliseconds);
         m_engine.tickAnimations();
         settle();
     }
@@ -190,6 +204,16 @@ private:
     Layout::WindowId m_nextId = 0;
     qint64 m_elapsed = 0;
 };
+
+inline bool startMove(Fixture &fixture, Layout::WindowId id, QPointF to, const QString &output = QStringLiteral("DP-1"))
+{
+    const QPointF start = fixture.frame(id).center();
+    if (!fixture.engine().beginWindowDrag(id, start)) {
+        return false;
+    }
+    fixture.engine().updateWindowDrag(to, output);
+    return true;
+}
 
 inline Config::Config nativeWidthCycleConfig(bool floating)
 {

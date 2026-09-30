@@ -29,16 +29,6 @@ double firstColumnX(Fixture &fixture)
     return 0.0;
 }
 
-bool startMove(Fixture &fixture, Layout::WindowId id, QPointF to)
-{
-    const QPointF start = fixture.frame(id).center();
-    if (!fixture.engine().beginWindowDrag(id, start)) {
-        return false;
-    }
-    fixture.engine().updateWindowDrag(to, QStringLiteral("DP-1"));
-    return true;
-}
-
 struct AppliedWindow
 {
     QRectF current;
@@ -67,13 +57,6 @@ int applyLikeKWin(Fixture &fixture, QHash<Layout::WindowId, AppliedWindow> &wind
         }
     }
     return resizes;
-}
-
-Config::Config wideColumns()
-{
-    Config::Config config = instantConfig();
-    config.layout.defaultColumnWidth = Config::PresetSize(Config::Fixed {900});
-    return config;
 }
 
 }

@@ -19,13 +19,6 @@ int activeWorkspaceIndex(Layout::Engine &engine)
     return 0;
 }
 
-Config::Config wideColumns()
-{
-    Config::Config config = instantConfig();
-    config.layout.defaultColumnWidth = Config::PresetSize(Config::Fixed {900});
-    return config;
-}
-
 struct Rig
 {
     explicit Rig(const Config::Config &config = wideColumns())
