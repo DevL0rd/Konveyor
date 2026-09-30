@@ -1,8 +1,6 @@
-#include "helpers.h"
+#include "tabhelpers.h"
 
 using namespace LayoutTest;
-
-Q_DECLARE_METATYPE(Config::TabIndicatorPosition)
 
 namespace
 {
@@ -12,16 +10,6 @@ Config::Config tabbedConfig()
     Config::Config config = instantConfig();
     config.layout.defaultColumnDisplay = Config::ColumnDisplay::Tabbed;
     return config;
-}
-
-QList<Layout::WindowId> addTabs(Fixture &fixture, int count)
-{
-    QList<Layout::WindowId> ids {fixture.add(QStringLiteral("tab"))};
-    for (int i = 1; i < count; ++i) {
-        ids.append(fixture.add(QStringLiteral("tab")));
-        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
-    }
-    return ids;
 }
 
 void verifySameFrame(Fixture &fixture, const QList<Layout::WindowId> &ids, QRectF frame)

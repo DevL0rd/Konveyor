@@ -9,19 +9,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, config_path, default_config
 from fakepointer import click
-from kwinsession import active_title, frame, frames, konveyor_action, wait_for
+from kwinsession import active_title, frame, frames, konveyor_action, for_window, run_script, wait_for
 from screenshot import capture_workspace
 
 COLORS = {"A": (200, 0, 0), "B": (0, 200, 0), "C": (0, 0, 200), "D": (200, 200, 0)}
 ACTIVE = (255, 0, 255)
 INACTIVE = (0, 255, 255)
 GAPS = 16
+BORDER = 4
 
 
-def write_config(position="left", width=8, gap=5, radius=0):
-    block = (f'    tab-indicator {{\n        position "{position}"\n        width {width}\n        gap {gap}\n        corner-radius {radius}\n'
-             f'        active-color "#ff00ff"\n        inactive-color "#00ffff"\n    }}\n\n    struts {{')
-    config_path().write_text(re.sub(r"    struts \{", block, default_config(), count=1))
+def write_config(position="left", width=8, gap=5, radius=0, inside=False, border=False):
+    lines = [f'position "{position}"', f"width {width}", f"gap {gap}", f"corner-radius {radius}", 'active-color "#ff00ff"',
+             'inactive-color "#00ffff"'] + (["place-within-column"] if inside else [])
+    block = "    tab-indicator {\n" + "".join(f"        {line}\n" for line in lines) + "    }\n\n    struts {"
+    config = re.sub(r"    struts \{", block, default_config(), count=1)
+    config_path().write_text(config.replace("    border {\n        off\n", "    border {\n") if border else config)
 
 
 def screenshot():
@@ -121,7 +124,9 @@ def thick_tabs_get_room(checks):
         checks.expect(painted, f"a 32 pixel {position} tab indicator is fully visible beside the window")
         room = room_beside("B", position)
         checks.expect(room >= 5 + 32 + 5, f"the window keeps room for a 32 pixel {position} indicator and its distance on both sides ({room})")
-    write_config()
+    write_config(width=32)
+    checks.expect(wait_for(lambda: room_beside("B", "left") == 42, 30), "a thick left indicator moves the window right")
+    write_config(width=4)
     checks.expect(wait_for(lambda: room_beside("B", "left") == GAPS, 30), "a thin indicator fits in the gap and moves nothing")
 
 
@@ -137,6 +142,15 @@ def corner_is(rounded):
     return edge is not None and corner is not None and is_tab(edge) and is_tab(corner) != rounded
 
 
+def every_side_inside_and_outside(checks):
+    for position in ("left", "right", "top", "bottom"):
+        for inside in (False, True):
+            write_config(position=position, width=12, gap=4, inside=inside, border=True)
+            where = f"{position} {'inside' if inside else 'outside'} the column with borders"
+            checks.expect(wait_for(lambda: band_painted("B", position, 12, 4 + BORDER), 30, 0.3), f"the tab indicator {where} is fully visible")
+    write_config()
+
+
 def roundness_rounds_the_tabs(checks):
     write_config(width=16, gap=5, radius=8)
     checks.expect(wait_for(lambda: corner_is(rounded=True), 30, 0.3), f"a corner radius of 8 cuts the corners of the tabs {first_tab_corner('B', 16, 5)}")
@@ -144,8 +158,29 @@ def roundness_rounds_the_tabs(checks):
     checks.expect(wait_for(lambda: corner_is(rounded=False), 30, 0.3), f"a corner radius of 0 keeps them square {first_tab_corner('B', 16, 5)}")
 
 
+def close_window(title):
+    run_script(for_window(title, "w.closeWindow();"))
+    return wait_for(lambda: frame(title) is None, 30)
+
+
+def moving_and_closing_tabs(checks):
+    konveyor_action("focus-column-right")
+    checks.expect(wait_for(lambda: active_title() == "C"), "C is focused")
+    konveyor_action("consume-or-expel-window-left")
+    checks.expect(wait_for(lambda: tabs_share_frame("A", "B", "C") and shown("C"), 30, 0.3), "C joins the tabs and is shown")
+    konveyor_action("consume-or-expel-window-right")
+    checks.expect(wait_for(lambda: not tabs_share_frame("A", "C") and shown("C"), 30, 0.3), "C leaves the tabs and stays shown")
+    konveyor_action("focus-column-left")
+    checks.expect(wait_for(lambda: active_title() in ("A", "B") and shown(active_title()), 30, 0.3), "the tabbed column shows its focused tab")
+    konveyor_action("focus-window-bottom")
+    checks.expect(wait_for(lambda: active_title() == "B" and shown("B"), 30, 0.3), "B is the shown tab")
+    checks.expect(close_window("B"), "B closes")
+    checks.expect(wait_for(lambda: shown("A"), 30, 0.3), "closing the shown tab shows A")
+
+
 def main():
-    Checks().run(switching_tabs_changes_the_shown_window, clicking_a_tab_shows_its_window, fullscreen_tabs_switch_too, thick_tabs_get_room, roundness_rounds_the_tabs)
+    Checks().run(switching_tabs_changes_the_shown_window, clicking_a_tab_shows_its_window, fullscreen_tabs_switch_too, thick_tabs_get_room, every_side_inside_and_outside, roundness_rounds_the_tabs,
+                 moving_and_closing_tabs)
 
 
 if __name__ == "__main__":
