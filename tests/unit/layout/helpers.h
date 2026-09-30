@@ -98,9 +98,9 @@ public:
 
     void setConfig(const Config::Config &config) { m_engine.setConfig(config); }
 
-    void addOutput(const QString &name, QRectF geometry)
+    void addOutput(const QString &name, QRectF geometry, double scale = 1.0)
     {
-        m_engine.addOutput(makeOutput(name, geometry));
+        m_engine.addOutput(makeOutput(name, geometry, scale));
         settle();
     }
 
@@ -134,8 +134,23 @@ public:
         return result;
     }
 
+    void holdCommits(bool hold)
+    {
+        m_holdCommits = hold;
+        settle();
+    }
+
+    void commitAs(Layout::WindowId id, QSizeF size)
+    {
+        m_committed.insert(id, size);
+        m_engine.windowSizeCommitted(id, size);
+    }
+
     void settle()
     {
+        if (m_holdCommits) {
+            return;
+        }
         for (int round = 0; round < 8; ++round) {
             bool changed = false;
             for (const Layout::WindowState &state : m_engine.windowStates()) {
@@ -203,6 +218,7 @@ private:
     QHash<Layout::WindowId, QSizeF> m_committed;
     Layout::WindowId m_nextId = 0;
     qint64 m_elapsed = 0;
+    bool m_holdCommits = false;
 };
 
 inline bool startMove(Fixture &fixture, Layout::WindowId id, QPointF to, const QString &output = QStringLiteral("DP-1"))
@@ -245,6 +261,14 @@ struct WideRow
         return frame.left() >= left && frame.right() <= left + 1920.0;
     }
 };
+
+inline std::pair<Layout::WindowId, Layout::WindowId> addStackedPair(Fixture &fixture)
+{
+    const Layout::WindowId top = fixture.add(QStringLiteral("top"));
+    const Layout::WindowId bottom = fixture.add(QStringLiteral("bottom"));
+    fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+    return {top, bottom};
+}
 
 inline Config::Config nativeWidthCycleConfig(bool floating)
 {

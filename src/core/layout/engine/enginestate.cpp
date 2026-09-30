@@ -80,7 +80,7 @@ QHash<WindowId, TileIndex> collectIndices(const Workspace &workspace)
 TabBarState tabBarFor(const Column &column, const Workspace &workspace, QPointF columnOrigin)
 {
     TabBarState state;
-    if (!column.isTabbed() || !column.tabBar.isShown(column.tiles.size())) {
+    if (!column.isTabbed() || column.sizingMode() != WindowMode::Normal || !column.tabBar.isShown(column.tiles.size())) {
         return state;
     }
     const double scale = workspace.area().scale;
