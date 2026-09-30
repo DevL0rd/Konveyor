@@ -1,8 +1,15 @@
 #include "kontrolpanelservice.h"
 
 #include <QDBusConnection>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
+#include <QRegularExpression>
+#include <QTemporaryDir>
+
 #include <QSignalSpy>
 #include <QTest>
+#include <memory>
 
 using Konveyor::KontrolPanelService;
 
@@ -59,6 +66,31 @@ private Q_SLOTS:
     {
         const KontrolPanelService service;
         QVERIFY(!service.konveyorRunning());
+    }
+
+    void formsOnlyGetTheValuesTheyDeclare()
+    {
+        QTemporaryDir directory;
+        QFile form(directory.filePath(QStringLiteral("form.qml")));
+        QVERIFY(form.open(QIODevice::WriteOnly));
+        form.write("import QtQuick\nItem { property int cfg_size: 1; property string seen: \"\"; Component.onCompleted: seen = \"size \" + "
+                   "cfg_size }\n");
+        form.close();
+        QQmlEngine engine;
+        QQmlComponent parentComponent(&engine);
+        parentComponent.setData("import QtQuick\nItem {}\n", QUrl());
+        std::unique_ptr<QObject> parent(parentComponent.create());
+        const KontrolPanelService service;
+        QQuickItem *item = service.createForm(QUrl::fromLocalFile(form.fileName()),
+            {{QStringLiteral("cfg_size"), 5}, {QStringLiteral("cfg_unknown"), true}}, qobject_cast<QQuickItem *>(parent.get()));
+        QVERIFY(item);
+        QCOMPARE(item->property("seen").toString(), QStringLiteral("size 5"));
+        QCOMPARE(item->parentItem(), parent.get());
+        QCOMPARE(item->parent(), parent.get());
+
+        QTest::ignoreMessage(QtWarningMsg, QRegularExpression(QStringLiteral("could not create .*missing.qml")));
+        QVERIFY(!service.createForm(
+            QUrl::fromLocalFile(directory.filePath(QStringLiteral("missing.qml"))), {}, qobject_cast<QQuickItem *>(parent.get())));
     }
 
     void backgroundEffectsIgnoreAMissingWindow()
