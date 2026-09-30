@@ -22,6 +22,13 @@ void Engine::Private::refresh()
     rememberWindows();
 }
 
+void Engine::Private::takeLayoutFocus()
+{
+    layoutFocused = true;
+    Workspace *active = activeWorkspace();
+    focused = active ? active->activeWindow() : std::nullopt;
+}
+
 void Engine::Private::updateFocus()
 {
     Workspace *active = activeWorkspace();

@@ -117,6 +117,7 @@ struct Engine::Private
 
     void refresh();
     bool focusWindow(WindowId id);
+    void takeLayoutFocus();
     void updateFocus();
     void resolveRules();
     bool resolveWorkspaceRules(Workspace &workspace, std::vector<WindowId> &changed);

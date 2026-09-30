@@ -131,33 +131,15 @@ void Workspace::cycleExpansion(WindowId window)
     }
 }
 
-void Workspace::toggleWidth(bool forwards, bool fromNative)
+void Workspace::toggleFillWidth(std::optional<WindowId> window)
 {
-    if (isFloatingFocused()) {
-        m_floating.toggleWindowWidth(std::nullopt, forwards, fromNative);
-    } else {
-        m_strip.toggleWidth(forwards, fromNative);
+    if (targetIsFloating(window)) {
+        return;
     }
-}
-
-void Workspace::toggleFillWidth()
-{
-    if (!isFloatingFocused()) {
+    if (window) {
+        m_strip.toggleFillWidthFor(*window);
+    } else {
         m_strip.toggleFillWidth();
-    }
-}
-
-void Workspace::toggleFillWidthFor(WindowId window)
-{
-    m_strip.toggleFillWidthFor(window);
-}
-
-void Workspace::setColumnWidth(SizeChange change)
-{
-    if (isFloatingFocused()) {
-        m_floating.setWindowWidth(std::nullopt, change, true);
-    } else {
-        m_strip.setWindowWidth(std::nullopt, change);
     }
 }
 
@@ -186,12 +168,12 @@ void Workspace::resetWindowHeight(std::optional<WindowId> window)
     }
 }
 
-void Workspace::toggleWindowWidth(std::optional<WindowId> window, bool forwards)
+void Workspace::toggleWindowWidth(std::optional<WindowId> window, bool forwards, bool fromNative)
 {
     if (targetIsFloating(window)) {
-        m_floating.toggleWindowWidth(window, forwards);
+        m_floating.toggleWindowWidth(window, forwards, fromNative);
     } else {
-        m_strip.toggleWindowWidth(window, forwards);
+        m_strip.toggleWindowWidth(window, forwards, fromNative);
     }
 }
 

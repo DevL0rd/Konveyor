@@ -127,13 +127,12 @@ public:
     Column *columnById(quint64 columnId);
     std::optional<QRectF> dropSlotRect(DropSlot position) const;
 
-    void toggleWidth(bool forwards, bool fromNative = false);
     void toggleFillWidth();
     void toggleFillWidthFor(WindowId window);
     void setWindowWidth(std::optional<WindowId> window, SizeChange change);
     void setWindowHeight(std::optional<WindowId> window, SizeChange change);
     void resetWindowHeight(std::optional<WindowId> window);
-    void toggleWindowWidth(std::optional<WindowId> window, bool forwards);
+    void toggleWindowWidth(std::optional<WindowId> window, bool forwards, bool fromNative);
     void toggleWindowHeight(std::optional<WindowId> window, bool forwards);
     void expandColumnToAvailableWidth();
     bool setFullscreen(WindowId window, bool fullscreen);

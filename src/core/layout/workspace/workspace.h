@@ -147,14 +147,11 @@ public:
     void centerWindow(std::optional<WindowId> window);
     void centerVisibleColumns();
 
-    void toggleWidth(bool forwards, bool fromNative = false);
-    void toggleFillWidth();
-    void toggleFillWidthFor(WindowId window);
-    void setColumnWidth(SizeChange change);
+    void toggleFillWidth(std::optional<WindowId> window);
     void setWindowWidth(std::optional<WindowId> window, SizeChange change);
     void setWindowHeight(std::optional<WindowId> window, SizeChange change);
     void resetWindowHeight(std::optional<WindowId> window);
-    void toggleWindowWidth(std::optional<WindowId> window, bool forwards);
+    void toggleWindowWidth(std::optional<WindowId> window, bool forwards, bool fromNative);
     void toggleWindowHeight(std::optional<WindowId> window, bool forwards);
     void expandColumnToAvailableWidth();
 

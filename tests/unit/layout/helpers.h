@@ -56,6 +56,11 @@ inline Config::WindowRule ruleFor(const QString &appId)
     return rule;
 }
 
+inline QList<std::pair<QString, QString>> idProperty(quint64 id)
+{
+    return {{QStringLiteral("id"), QString::number(id)}};
+}
+
 inline Config::Action action(
     const QString &name, const QStringList &arguments = {}, const QList<std::pair<QString, QString>> &properties = {})
 {
@@ -77,6 +82,18 @@ public:
     Clock &clock() { return m_clock; }
 
     void setConfig(const Config::Config &config) { m_engine.setConfig(config); }
+
+    void addOutput(const QString &name, QRectF geometry)
+    {
+        m_engine.addOutput(makeOutput(name, geometry));
+        settle();
+    }
+
+    void removeOutput(const QString &name)
+    {
+        m_engine.removeOutput(name);
+        settle();
+    }
 
     Layout::WindowId add(const QString &appId = {}, QSizeF size = QSizeF(100, 100))
     {

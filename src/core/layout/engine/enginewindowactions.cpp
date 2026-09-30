@@ -29,26 +29,25 @@ void addSizeAction(ActionTable &table, const char *name, SizeSetter setter)
 
 void registerPresetActions(ActionTable &table)
 {
-    const auto addColumnWidthAction = [&table](const char *name, bool forwards) {
-        addEngineAction(table, name, [forwards](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
-            if (Workspace *workspace = d.activeWorkspace()) {
-                workspace->toggleWidth(forwards, actionFlag(action, QStringLiteral("from-native"), false));
+    const auto addWidthPresetAction = [&table](const char *name, bool forwards) {
+        addEngineAction(table, name, [forwards](Engine::Private &d, const Config::Action &action, std::optional<WindowId> target) {
+            const auto window = d.target(actionWindowId(action, target));
+            if (Workspace *workspace = d.workspaceForTarget(window)) {
+                workspace->toggleWindowWidth(window, forwards, actionFlag(action, QStringLiteral("from-native"), false));
             }
             return ActionResult();
         });
     };
-    addColumnWidthAction("switch-preset-column-width", true);
-    addColumnWidthAction("switch-preset-column-width-back", false);
-    addTargetAction(
-        table, "switch-preset-window-width", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleWindowWidth(id, true); });
-    addTargetAction(
-        table, "switch-preset-window-width-back", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleWindowWidth(id, false); });
+    addWidthPresetAction("switch-preset-column-width", true);
+    addWidthPresetAction("switch-preset-column-width-back", false);
+    addWidthPresetAction("switch-preset-window-width", true);
+    addWidthPresetAction("switch-preset-window-width-back", false);
     addTargetAction(
         table, "switch-preset-window-height", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleWindowHeight(id, true); });
     addTargetAction(
         table, "switch-preset-window-height-back", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleWindowHeight(id, false); });
     addTargetAction(table, "reset-window-height", +[](Workspace &ws, std::optional<WindowId> id) { ws.resetWindowHeight(id); });
-    addWorkspaceAction(table, "maximize-column", +[](Workspace &ws) { ws.toggleFillWidth(); });
+    addTargetAction(table, "maximize-column", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleFillWidth(id); });
     addWorkspaceAction(table, "expand-column-to-available-width", +[](Workspace &ws) { ws.expandColumnToAvailableWidth(); });
 }
 
@@ -78,9 +77,9 @@ ActionResult toggleWindowedFullscreen(Engine::Private &d, const Config::Action &
 void registerSizeActions(ActionTable &table)
 {
     registerPresetActions(table);
-    addSizeAction(table, "set-column-width", +[](Workspace &ws, std::optional<WindowId>, SizeChange change) { ws.setColumnWidth(change); });
-    addSizeAction(
-        table, "set-window-width", +[](Workspace &ws, std::optional<WindowId> id, SizeChange change) { ws.setWindowWidth(id, change); });
+    for (const char *name : {"set-column-width", "set-window-width"}) {
+        addSizeAction(table, name, +[](Workspace &ws, std::optional<WindowId> id, SizeChange change) { ws.setWindowWidth(id, change); });
+    }
     addSizeAction(
         table, "set-window-height", +[](Workspace &ws, std::optional<WindowId> id, SizeChange change) { ws.setWindowHeight(id, change); });
     addTargetAction(

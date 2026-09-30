@@ -61,16 +61,6 @@ bool ColumnStrip::setMaximized(WindowId window, bool maximize)
     return true;
 }
 
-void ColumnStrip::toggleWidth(bool forwards, bool fromNative)
-{
-    if (m_columns.empty()) {
-        return;
-    }
-    Column &column = m_columns[m_activeColumnIndex];
-    column.toggleWidth(std::nullopt, forwards, fromNative);
-    cancelResizeForColumn(column);
-}
-
 void ColumnStrip::toggleFillWidth()
 {
     if (!m_columns.empty()) {
@@ -117,10 +107,10 @@ void ColumnStrip::resetWindowHeight(std::optional<WindowId> window)
     });
 }
 
-void ColumnStrip::toggleWindowWidth(std::optional<WindowId> window, bool forwards)
+void ColumnStrip::toggleWindowWidth(std::optional<WindowId> window, bool forwards, bool fromNative)
 {
     withTargetColumn(m_columns, m_activeColumnIndex, window, [&](Column &column, std::optional<std::size_t> tileIndex) {
-        column.toggleWidth(tileIndex, forwards);
+        column.toggleWidth(tileIndex, forwards, fromNative);
         cancelResizeForColumn(column);
     });
 }

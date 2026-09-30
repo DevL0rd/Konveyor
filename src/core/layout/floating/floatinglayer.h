@@ -66,7 +66,7 @@ public:
 
     void setWindowWidth(std::optional<WindowId> window, SizeChange change, bool animate);
     void setWindowHeight(std::optional<WindowId> window, SizeChange change, bool animate);
-    void toggleWindowWidth(std::optional<WindowId> window, bool forwards, bool fromNative = false);
+    void toggleWindowWidth(std::optional<WindowId> window, bool forwards, bool fromNative);
     std::optional<std::size_t> closestWidthPresetIndex(std::size_t tileIndex) const;
     void toggleWindowHeight(std::optional<WindowId> window, bool forwards);
 

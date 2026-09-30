@@ -34,21 +34,13 @@ std::optional<WindowId> actionWindowId(const Config::Action &action, std::option
     if (!text) {
         text = actionProperty(action, QStringLiteral("window-id"));
     }
-    if (!text) {
-        return fallback;
-    }
-    const auto parsed = parseIndex(*text);
-    return parsed ? std::optional<WindowId>(*parsed) : fallback;
+    return text ? std::optional<WindowId>(*parseIndex(*text)) : fallback;
 }
 
 bool actionFlag(const Config::Action &action, const QString &name, bool fallback)
 {
     const auto text = actionProperty(action, name);
-    if (!text) {
-        return fallback;
-    }
-    const auto parsed = parseBool(*text);
-    return parsed ? *parsed : fallback;
+    return text ? *parseBool(*text) : fallback;
 }
 
 void addEngineAction(ActionTable &table, const char *name, ActionHandler handler)
@@ -354,7 +346,7 @@ ActionResult Engine::perform(const Config::Action &action, std::optional<WindowI
     if (const auto invalid = invalidProperty(action)) {
         return actionError(*invalid);
     }
-    d->layoutFocused = true;
+    d->takeLayoutFocus();
     const ActionResult result = (*handler)(*d, action, target);
     d->refresh();
     return result;

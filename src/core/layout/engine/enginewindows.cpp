@@ -338,7 +338,7 @@ void Engine::toggleWindowFillWidth(WindowId id)
 {
     d->focusWindow(id);
     if (Workspace *workspace = d->workspaceOf(id)) {
-        workspace->toggleFillWidthFor(id);
+        workspace->toggleFillWidth(id);
         d->refresh();
     }
 }
