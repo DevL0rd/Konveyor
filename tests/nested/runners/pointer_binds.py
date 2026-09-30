@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-import json
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
+import bindlog
 import virtualtouchpad
+from bindlog import fired, last_bind
 from checks import Checks, default_config, load_config
 from fakepointer import Held, chord, move
 from keycodes import MODIFIER_CODES
-from kwinsession import konveyor, qdbus, run_script, wait_for
+from kwinsession import qdbus, run_script, wait_for
 
 SUPER, CTRL, ALT = (MODIFIER_CODES[name] for name in ("Super", "Ctrl", "Alt"))
 MODIFIERS = ("Super", "Ctrl", "Alt", "Shift")
@@ -23,17 +23,6 @@ SENTINEL = "Super+MouseLeft"
 WHEEL_UP = "axis:0:-15"
 WHEEL_DOWN = "axis:0:15"
 WHEEL_RIGHT = "axis:1:15"
-
-
-def last_bind():
-    return json.loads(konveyor("LastBind"))
-
-
-def fired(press):
-    before = last_bind()["count"]
-    press()
-    after = wait_for(lambda: last_bind() if last_bind()["count"] > before else None, 5)
-    return after["key"] if after else None
 
 
 def active_effects():
@@ -124,11 +113,7 @@ def claimed_by_kwin(combo, trigger):
 
 
 def missed(action):
-    before = last_bind()["count"]
-    action()
-    press(("Super",), "MouseLeft")()
-    after = wait_for(lambda: last_bind() if last_bind()["count"] > before and last_bind()["key"] == SENTINEL else None, 10)
-    return after is not None and after["count"] == before + 1
+    return bindlog.missed(action, press(("Super",), "MouseLeft"), SENTINEL)
 
 
 def every_pointer_bind(checks):

@@ -77,13 +77,12 @@ private:
 private Q_SLOTS:
     void initTestCase()
     {
+        m_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+        QVERIFY(m_context);
         m_session = std::make_unique<PrivateSession>();
         QVERIFY(m_session->start());
         m_fake = std::make_unique<FakeKGlobalAccel>();
         QVERIFY(m_fake->start(m_session->address()));
-        m_fake->add(overview, {QKeySequence(QStringLiteral("Meta+W"))});
-        m_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-        QVERIFY(m_context);
     }
 
     void cleanupTestCase()
@@ -162,6 +161,7 @@ private Q_SLOTS:
 
     void takesOverAKdeShortcutAndGivesItBack()
     {
+        m_fake->add(overview, {QKeySequence(QStringLiteral("Meta+W"))});
         {
             auto shortcuts = manager();
             shortcuts->setBinds(binds(QStringLiteral("Mod+W { toggle-overview; }")));

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-import json
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
+from bindlog import fired, last_bind, missed
 from checks import Checks, load_config
 from fakepointer import Held, chord, move, tap
 from keycodes import KEY_CODES, MODIFIER_CODES
-from kwinsession import konveyor, qdbus, wait_for
+from kwinsession import qdbus, wait_for
 
 SUPER, SHIFT = MODIFIER_CODES["Super"], MODIFIER_CODES["Shift"]
 RIGHT_ALT = 100
@@ -32,25 +32,6 @@ binds {
     Super+J { spawn "true"; }
 }
 """
-
-
-def last_bind():
-    return json.loads(konveyor("LastBind"))
-
-
-def fired(press):
-    before = last_bind()["count"]
-    press()
-    after = wait_for(lambda: last_bind() if last_bind()["count"] > before else None, 5)
-    return after["key"] if after else None
-
-
-def missed(press, sentinel):
-    before = last_bind()["count"]
-    press()
-    sentinel()
-    after = wait_for(lambda: last_bind() if last_bind()["count"] > before else None, 10)
-    return after is not None and after["count"] == before + 1
 
 
 def held_for(codes, seconds):
@@ -84,14 +65,14 @@ def level3_mod_key(checks):
     checks.expect(load_config(LEVEL3_BINDS), "a config with ISO_Level3_Shift as the Mod key loads")
     sentinel = lambda: tap([SUPER], KEY_CODES["J"])
     checks.equal(fired(sentinel), "Super+J", "an ordinary Meta bind still runs")
-    checks.expect(missed(lambda: tap([], H), sentinel), "typing H alone runs no bind")
+    checks.expect(missed(lambda: tap([], H), sentinel, "Super+J"), "typing H alone runs no bind")
     checks.equal(fired(lambda: tap([RIGHT_ALT], H)), "ISO_Level3_Shift+H", "AltGr+H runs the Mod+H bind")
     move(960, 540)
     checks.equal(fired(lambda: chord([RIGHT_ALT], "button:274:1", "button:274:0")), "ISO_Level3_Shift+MouseMiddle",
                  "AltGr with the middle button runs the Mod+MouseMiddle bind")
     checks.equal(fired(lambda: chord([RIGHT_ALT], "axis:0:15")), "ISO_Level3_Shift+WheelScrollDown",
                  "AltGr with the wheel runs the Mod+WheelScrollDown bind")
-    checks.expect(missed(lambda: chord([], "button:274:1", "button:274:0"), sentinel), "a plain middle click runs no bind")
+    checks.expect(missed(lambda: chord([], "button:274:1", "button:274:0"), sentinel, "Super+J"), "a plain middle click runs no bind")
 
 
 def main():
