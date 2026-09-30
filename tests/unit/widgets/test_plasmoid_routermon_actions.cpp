@@ -21,6 +21,28 @@ QVariantList macs(std::initializer_list<int> endings)
     return out;
 }
 
+QObject *firstRowActions(PlasmoidHarness &harness)
+{
+    const QList<QQuickItem *> rows = visibleItems(harness.scene(), "ClientRow");
+    for (QQuickItem *row : rows) {
+        if (row->property("mac").toString() == QLatin1String("aa:bb:cc:00:00:01")) {
+            return findByType(row, "PopActions").value(0);
+        }
+    }
+    return nullptr;
+}
+
+QObject *confirmButton(PlasmoidHarness &harness, const char *label)
+{
+    const QList<QQuickItem *> buttons = visibleItems(harness.scene(), "PopConfirm");
+    for (QQuickItem *button : buttons) {
+        if (button->property("label").toString() == QLatin1String(label)) {
+            return button;
+        }
+    }
+    return nullptr;
+}
+
 std::unique_ptr<PlasmoidHarness> fed(const QVariantMap &config = {})
 {
     auto harness = started(Form::Planar, config);
@@ -215,19 +237,66 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
+    void clientActionsRunTheirCommands()
+    {
+        auto harness = fed();
+        QVERIFY(harness);
+        harness->root()->setProperty("tabKey", QStringLiteral("clients"));
+        QObject *actions = nullptr;
+        QTRY_VERIFY(actions = firstRowActions(*harness));
+        const QStringList texts = harness->eval(QStringLiteral("model.map(a => a.text)"), actions).toStringList();
+        const auto run
+            = [&](const char *text) { harness->eval(QStringLiteral("model[%1].run()").arg(texts.indexOf(QLatin1String(text))), actions); };
+        run("SSH");
+        QCOMPARE(harness->command(QStringLiteral("konsole -e ssh")), QStringLiteral("konsole -e ssh 192.168.1.10"));
+        run("Files");
+        QCOMPARE(harness->command(QStringLiteral("xdg-open smb")), QStringLiteral("xdg-open smb://192.168.1.10/"));
+        run("Ping");
+        QVERIFY(harness->command(QStringLiteral("konsole -e bash")).contains(QLatin1String("ping 192.168.1.10;")));
+        run("Port scan");
+        QVERIFY(harness->command(QStringLiteral("konsole -e bash")).contains(QLatin1String("nmap 192.168.1.10 ||")));
+        run("Disconnect");
+        QCOMPARE(harness->command(ctl), ctl + QStringLiteral(" disconnect aa:bb:cc:00:00:01"));
+        run("Block internet");
+        QCOMPARE(harness->command(ctl), ctl + QStringLiteral(" block aa:bb:cc:00:00:01"));
+        run("Copy IP");
+        QCOMPARE(harness->root()->property("message").toString(), QStringLiteral("Copied 192.168.1.10"));
+        run("Pin");
+        QCOMPARE(harness->config(QStringLiteral("pinnedMacs")).toString(), QStringLiteral("aa:bb:cc:00:00:01"));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
+    void tabControlsRunRouterCommands()
+    {
+        auto harness = fed();
+        QVERIFY(harness);
+        harness->root()->setProperty("tabKey", QStringLiteral("system"));
+        QTRY_VERIFY(confirmButton(*harness, "Reboot router"));
+        QMetaObject::invokeMethod(confirmButton(*harness, "Reboot router"), "confirmed");
+        QCOMPARE(harness->command(ctl), ctl + QStringLiteral(" reboot"));
+        harness->root()->setProperty("tabKey", QStringLiteral("wifi"));
+        QTRY_VERIFY(confirmButton(*harness, "Restart WiFi"));
+        QMetaObject::invokeMethod(confirmButton(*harness, "Restart WiFi"), "confirmed");
+        QCOMPARE(harness->command(ctl), ctl + QStringLiteral(" restart-wifi"));
+        harness->root()->setProperty("tabKey", QStringLiteral("dns"));
+        QObject *protection = nullptr;
+        QTRY_VERIFY(protection = visibleItems(harness->scene(), "Switch").value(0));
+        QVERIFY(protection->property("checked").toBool());
+        protection->setProperty("checked", false);
+        QMetaObject::invokeMethod(protection, "toggled");
+        QCOMPARE(harness->command(ctl), ctl + QStringLiteral(" protection off"));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
     void overlayHostWaitsForAWindow()
     {
         auto harness = started(Form::Planar, {}, QStringLiteral("org.devl0rd.routermon.overlay"));
         QVERIFY(harness);
-        QObject *root = harness->root();
         QCOMPARE(harness->plasmoid()->status, 6);
         QVERIFY(!harness->eval(QStringLiteral("routerData.active")).toBool());
-        const QString state = harness->runtimePath(QStringLiteral("Konveyor-Monitor-Overlay/state.json"));
-        QVERIFY(
-            harness->deliver(state, R"({"targets": [{"key": "a", "pid": 7, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}]})",
-                [root] { return root->property("overlayVisible").toBool(); }));
+        QVERIFY(harness->overlay(R"([{"key": "a", "pid": 7, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}])", true));
         QVERIFY(feed(*harness));
-        QVERIFY(harness->deliver(state, R"({"targets": []})", [root] { return !root->property("overlayVisible").toBool(); }));
+        QVERIFY(harness->overlay("[]", false));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 };

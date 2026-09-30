@@ -220,14 +220,11 @@ private Q_SLOTS:
         QObject *root = harness->root();
         QCOMPARE(harness->plasmoid()->status, 6);
         QVERIFY(!root->property("dataWanted").toBool());
-        const QString state = harness->runtimePath(QStringLiteral("Konveyor-Monitor-Overlay/state.json"));
-        QVERIFY(harness->deliver(state,
-            R"({"targets": [{"key": "game", "pid": 200, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}]})",
-            [root] { return root->property("overlayVisible").toBool(); }));
+        QVERIFY(harness->overlay(R"([{"key": "game", "pid": 200, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}])", true));
         QVERIFY(feed(*harness));
         QTRY_COMPARE(harness->eval(QStringLiteral("overlayProcByPid[200] ? overlayProcByPid[200].fps : 0")).toInt(), 144);
         QCOMPARE(harness->eval(QStringLiteral("frametimeWatchPids")).toList(), QVariantList {200});
-        QVERIFY(harness->deliver(state, R"({"targets": []})", [root] { return !root->property("overlayVisible").toBool(); }));
+        QVERIFY(harness->overlay("[]", false));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 };

@@ -42,13 +42,7 @@ inline PlasmoidSpec variant(const QString &id)
 inline std::unique_ptr<PlasmoidHarness> started(
     int form, const QVariantMap &config = {}, const QString &id = QStringLiteral("org.devl0rd.routermon.panel"))
 {
-    auto harness = std::make_unique<PlasmoidHarness>(variant(id));
-    if (!harness->load(form, config) || !harness->show("compactRepresentation") || !harness->show("fullRepresentation")) {
-        qWarning("%s", qPrintable(harness->error));
-        return {};
-    }
-    harness->resolveRuntime(QStringLiteral("printf %s"));
-    return harness;
+    return PlasmoidHarness::started(variant(id), form, config);
 }
 
 inline bool feed(PlasmoidHarness &harness, const QByteArray &json = snapshot())

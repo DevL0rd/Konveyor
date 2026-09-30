@@ -15,12 +15,7 @@ QString helper(const char *mode)
 
 std::unique_ptr<PlasmoidHarness> started(int form)
 {
-    auto harness = std::make_unique<PlasmoidHarness>(screenRotate);
-    if (!harness->load(form) || !harness->show("compactRepresentation") || !harness->show("fullRepresentation")) {
-        qWarning("%s", qPrintable(harness->error));
-        return {};
-    }
-    return harness;
+    return PlasmoidHarness::started(screenRotate, form);
 }
 
 QObject *rotateButton(PlasmoidHarness &harness)

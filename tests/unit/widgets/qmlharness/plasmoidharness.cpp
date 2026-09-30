@@ -124,6 +124,24 @@ QByteArray PlasmoidHarness::fixture(const QString &name)
     return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
 }
 
+std::unique_ptr<PlasmoidHarness> PlasmoidHarness::started(const PlasmoidSpec &spec, int formFactor, const QVariantMap &config)
+{
+    auto harness = std::make_unique<PlasmoidHarness>(spec);
+    if (!harness->load(formFactor, config) || !harness->show("compactRepresentation") || !harness->show("fullRepresentation")) {
+        qWarning("%s", qPrintable(harness->error));
+        return {};
+    }
+    harness->resolveRuntime(QStringLiteral("printf %s"));
+    return harness;
+}
+
+bool PlasmoidHarness::overlay(const QByteArray &targets, bool visible) const
+{
+    QObject *root = m_root.get();
+    return deliver(runtimePath(QStringLiteral("Konveyor-Monitor-Overlay/state.json")), "{\"targets\": " + targets + "}",
+        [root, visible] { return root->property("overlayVisible").toBool() == visible; });
+}
+
 QStringList &PlasmoidHarness::messages()
 {
     static QStringList list;

@@ -34,6 +34,8 @@ public:
     static void prepareEnvironment();
     static QString widgetsDir();
     static QByteArray fixture(const QString &name);
+    static std::unique_ptr<PlasmoidHarness> started(const PlasmoidSpec &spec, int formFactor, const QVariantMap &config = {});
+    bool overlay(const QByteArray &targets, bool visible) const;
     static QStringList &messages();
     static QString report();
 
@@ -77,4 +79,5 @@ private:
 
 QStringList visibleTexts(QQuickItem *item);
 QList<QObject *> findByType(QObject *root, const char *type);
+QList<QQuickItem *> visibleItems(QQuickItem *item, const char *type);
 bool watching(QObject *root, const QString &path);

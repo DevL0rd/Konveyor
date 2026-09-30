@@ -23,13 +23,7 @@ QString dataPath()
 
 std::unique_ptr<PlasmoidHarness> started(int form, const QVariantMap &config = {}, const PlasmoidSpec &spec = panel)
 {
-    auto harness = std::make_unique<PlasmoidHarness>(spec);
-    if (!harness->load(form, config) || !harness->show("compactRepresentation") || !harness->show("fullRepresentation")) {
-        qWarning("%s", qPrintable(harness->error));
-        return {};
-    }
-    harness->resolveRuntime(QStringLiteral("printf %s"));
-    return harness;
+    return PlasmoidHarness::started(spec, form, config);
 }
 
 bool feed(PlasmoidHarness &harness, const QByteArray &json)
@@ -321,14 +315,11 @@ private Q_SLOTS:
         QVERIFY(harness);
         QCOMPARE(harness->plasmoid()->status, 6);
         QVERIFY(!harness->root()->property("dataWanted").toBool());
-        const QString state = harness->runtimePath(QStringLiteral("Konveyor-Monitor-Overlay/state.json"));
         QObject *root = harness->root();
-        QVERIFY(harness->deliver(state,
-            R"({"targets": [{"key": "app", "pid": 5, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}]})",
-            [&] { return root->property("overlayVisible").toBool(); }));
+        QVERIFY(harness->overlay(R"([{"key": "app", "pid": 5, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}])", true));
         QVERIFY(root->property("dataWanted").toBool());
         QVERIFY(feed(*harness, snapshot));
-        QVERIFY(harness->deliver(state, R"({"targets": []})", [&] { return !root->property("overlayVisible").toBool(); }));
+        QVERIFY(harness->overlay("[]", false));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 };

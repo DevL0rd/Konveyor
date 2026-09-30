@@ -112,7 +112,7 @@ private Q_SLOTS:
     {
         QTest::addColumn<QString>("query");
         QTest::addColumn<QVariantList>("pids");
-        QTest::newRow("name") << QStringLiteral("gam") << QVariantList {200};
+        QTest::newRow("name") << QStringLiteral("ame") << QVariantList {200};
         QTest::newRow("case") << QStringLiteral("SHELL") << QVariantList {100};
         QTest::newRow("pid") << QStringLiteral("300") << QVariantList {300};
         QTest::newRow("padded") << QStringLiteral("  game ") << QVariantList {200};

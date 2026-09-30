@@ -71,6 +71,18 @@ QStringList usedSettings(const QString &directory)
     return used;
 }
 
+QObject *openPage(PlasmoidHarness &harness)
+{
+    harness.setUp(Form::Planar);
+    return harness.create(QStringLiteral("contents/ui/configGeneral.qml"), pageProperties(harness));
+}
+
+bool finished(QObject *page, const QString &result, bool error)
+{
+    return page->property("connectionResult").toString() == result && page->property("connectionError").toBool() == error
+        && !page->property("connectionBusy").toBool();
+}
+
 const PlasmoidSpec router = spec(
     "router-monitor/plasmoids/org.devl0rd.routermon.panel", "org.devl0rd.routermon.panel", {QStringLiteral("router-monitor/shared/lib")});
 const QString config = QStringLiteral("$HOME/.local/bin/routermon-config ");
@@ -91,8 +103,7 @@ private Q_SLOTS:
     {
         QFETCH(PlasmoidSpec, plasmoid);
         PlasmoidHarness harness(plasmoid);
-        harness.setUp(Form::Planar);
-        QObject *page = harness.create(QStringLiteral("contents/ui/configGeneral.qml"), pageProperties(harness));
+        QObject *page = openPage(harness);
         QVERIFY2(page, qPrintable(harness.error));
         QStringList keys = harness.plasmoid()->configuration()->keys();
         keys.sort();
@@ -121,8 +132,7 @@ private Q_SLOTS:
     void routerPageLoadsTheConnection()
     {
         PlasmoidHarness harness(router);
-        harness.setUp(Form::Planar);
-        QObject *page = harness.create(QStringLiteral("contents/ui/configGeneral.qml"), pageProperties(harness));
+        QObject *page = openPage(harness);
         QVERIFY2(page, qPrintable(harness.error));
         QVERIFY(page->property("tabbed").toBool());
         QVERIFY(harness.command(config + QStringLiteral("get")).startsWith(config + QStringLiteral("get # ")));
@@ -135,17 +145,14 @@ private Q_SLOTS:
         QVERIFY(harness.command(config + QStringLiteral("test"))
                 .startsWith(config + QStringLiteral("test 'router' 'root' '~/.ssh/key' '/jffs/x.sh' # ")));
         QVERIFY(harness.reply(config + QStringLiteral("test"), QString(), 1, QStringLiteral("Permission denied (publickey)\n")));
-        QCOMPARE(page->property("connectionResult").toString(), QStringLiteral("Permission denied (publickey)"));
-        QVERIFY(page->property("connectionError").toBool());
-        QVERIFY(!page->property("connectionBusy").toBool());
+        QVERIFY(finished(page, QStringLiteral("Permission denied (publickey)"), true));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
     void routerPageConnectsWithTheEncodedPassword()
     {
         PlasmoidHarness harness(router);
-        harness.setUp(Form::Planar);
-        QObject *page = harness.create(QStringLiteral("contents/ui/configGeneral.qml"), pageProperties(harness));
+        QObject *page = openPage(harness);
         QVERIFY2(page, qPrintable(harness.error));
         QVERIFY(harness.reply(config + QStringLiteral("get"), QStringLiteral("{\"host\":\"it's\"}")));
         QMetaObject::invokeMethod(
@@ -154,9 +161,7 @@ private Q_SLOTS:
                 .startsWith(
                     config + QStringLiteral("connect 'it'\\''s' 'admin' '~/.ssh/id_ed25519' '/jffs/lrm-collect.sh' 'cGEgc3M=' # ")));
         QVERIFY(harness.reply(config + QStringLiteral("connect"), QString()));
-        QCOMPARE(page->property("connectionResult").toString(), QStringLiteral("Done"));
-        QVERIFY(!page->property("connectionError").toBool());
-        QVERIFY(!page->property("connectionBusy").toBool());
+        QVERIFY(finished(page, QStringLiteral("Done"), false));
         const QStringList encoded {
             QStringLiteral("cA=="), QStringLiteral("cGE="), QStringLiteral("cGEgc3Mgw6k="), QStringLiteral("cMOkc3N3w7ZyZA=="), QString()};
         QCOMPARE(harness.eval(QStringLiteral("['p', 'pa', 'pa ss é', 'pässwörd', ''].map(base64)"), page).toStringList(), encoded);
@@ -168,13 +173,11 @@ private Q_SLOTS:
     void routerPageShowsAFailedRead()
     {
         PlasmoidHarness harness(router);
-        harness.setUp(Form::Planar);
-        QObject *page = harness.create(QStringLiteral("contents/ui/configGeneral.qml"), pageProperties(harness));
+        QObject *page = openPage(harness);
         QVERIFY2(page, qPrintable(harness.error));
         QVERIFY(harness.reply(config + QStringLiteral("get"), QString(), 127, QStringLiteral("sh: routermon-config: not found\n")));
         QVERIFY(!page->property("connectionLoaded").toBool());
-        QVERIFY(page->property("connectionError").toBool());
-        QCOMPARE(page->property("connectionResult").toString(), QStringLiteral("sh: routermon-config: not found"));
+        QVERIFY(finished(page, QStringLiteral("sh: routermon-config: not found"), true));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 };

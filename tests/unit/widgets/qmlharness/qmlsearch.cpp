@@ -44,3 +44,20 @@ bool watching(QObject *root, const QString &path)
             && model->property("status").toInt() == 1 && model->property("nameFilters").toStringList().contains(file.fileName());
     });
 }
+
+QList<QQuickItem *> visibleItems(QQuickItem *item, const char *type)
+{
+    QList<QQuickItem *> found;
+    if (!item->isVisible()) {
+        return found;
+    }
+    const QString name = QLatin1String(item->metaObject()->className());
+    if (name == QLatin1String(type) || name.startsWith(QLatin1String(type) + QLatin1Char('_'))) {
+        found.append(item);
+    }
+    const QList<QQuickItem *> children = item->childItems();
+    for (QQuickItem *child : children) {
+        found += visibleItems(child, type);
+    }
+    return found;
+}

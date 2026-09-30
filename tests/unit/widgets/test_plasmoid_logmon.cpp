@@ -36,13 +36,7 @@ QByteArray snapshot(qint64 age = 0, bool alive = true)
 
 std::unique_ptr<PlasmoidHarness> started(int form, const QVariantMap &config = {})
 {
-    auto harness = std::make_unique<PlasmoidHarness>(journal);
-    if (!harness->load(form, config) || !harness->show("compactRepresentation") || !harness->show("fullRepresentation")) {
-        qWarning("%s", qPrintable(harness->error));
-        return {};
-    }
-    harness->resolveRuntime(QStringLiteral("printf %s"));
-    return harness;
+    return PlasmoidHarness::started(journal, form, config);
 }
 
 bool feed(PlasmoidHarness &harness, const QByteArray &json = snapshot())
