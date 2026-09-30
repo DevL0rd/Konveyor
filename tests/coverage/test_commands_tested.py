@@ -9,7 +9,7 @@ from completeness import REPO, CompletenessCase, files, mentions_quoted, mention
 TEST_ROOTS = [REPO / "tests" / "unit", REPO / "tests" / "nested", REPO / "tests" / "install"]
 TEST_PATTERNS = ["*.cpp", "*.h", "*.py", "*.sh", "*.qml"]
 COMMAND = re.compile(r"^(?:--)?[a-z][a-z0-9-]+$")
-CLI_MARKER = re.compile(r"konveyor\W{1,6}(?:msg|validate|restore-shortcuts)\b|bin/konveyor\b")
+CLI_MARKER = re.compile(r"konveyor\W{1,6}(?:msg|validate|restore-shortcuts)\b|bin/konveyor\b|KONVEYOR_CLI\b")
 
 
 def scripts():
