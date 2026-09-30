@@ -34,6 +34,29 @@ Config::Config withoutInsertHint()
     return config;
 }
 
+Config::Config withSecondOutputHint(bool enabled, const QColor &color)
+{
+    Config::Config config = instantConfig();
+    config.layout.insertHint.paint.color = QColor(1, 2, 3);
+    Config::OutputConfig second;
+    second.name = QStringLiteral("DP-2");
+    second.layout = config.layout;
+    second.layout->insertHint.enabled = enabled;
+    second.layout->insertHint.paint.color = color;
+    config.outputs.append(second);
+    return config;
+}
+
+std::optional<Layout::OutputState> outputState(Fixture &fixture, const QString &name)
+{
+    for (const Layout::OutputState &state : fixture.engine().outputStates()) {
+        if (state.name == name) {
+            return state;
+        }
+    }
+    return std::nullopt;
+}
+
 }
 
 class TestLayoutDropTargets : public QObject
@@ -142,6 +165,47 @@ private Q_SLOTS:
         t.fixture.advance(1000);
         QVERIFY(!t.fixture.engine().isAnimating());
         QCOMPARE(t.fixture.state(t.c).renderAlpha, 1.0);
+        t.fixture.engine().endWindowDrag();
+    }
+
+    void eachOutputUsesItsOwnInsertHint()
+    {
+        Three t(withSecondOutputHint(true, QColor(4, 5, 6)));
+        t.fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
+        QVERIFY(startMove(t.fixture, t.c, QPointF(2500, 540), QStringLiteral("DP-2")));
+        QVERIFY(outputState(t.fixture, QStringLiteral("DP-2"))->dropHint.has_value());
+        QVERIFY(!outputState(t.fixture, QStringLiteral("DP-1"))->dropHint.has_value());
+        QCOMPARE(outputState(t.fixture, QStringLiteral("DP-2"))->dropHintPaint.color, QColor(4, 5, 6));
+        QCOMPARE(outputState(t.fixture, QStringLiteral("DP-1"))->dropHintPaint.color, QColor(1, 2, 3));
+        t.fixture.engine().updateWindowDrag(QPointF(2, 540), QStringLiteral("DP-1"));
+        QVERIFY(outputState(t.fixture, QStringLiteral("DP-1"))->dropHint.has_value());
+        QVERIFY(!outputState(t.fixture, QStringLiteral("DP-2"))->dropHint.has_value());
+        t.fixture.engine().endWindowDrag();
+    }
+
+    void anOutputCanTurnTheInsertHintOff()
+    {
+        Three t(withSecondOutputHint(false, QColor(4, 5, 6)));
+        t.fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
+        QVERIFY(startMove(t.fixture, t.c, QPointF(2500, 540), QStringLiteral("DP-2")));
+        QVERIFY(!outputState(t.fixture, QStringLiteral("DP-2"))->dropHint.has_value());
+        t.fixture.engine().updateWindowDrag(QPointF(2, 540), QStringLiteral("DP-1"));
+        QVERIFY(outputState(t.fixture, QStringLiteral("DP-1"))->dropHint.has_value());
+        t.fixture.engine().endWindowDrag();
+        t.fixture.settle();
+        QCOMPARE(t.fixture.state(t.c).output, QStringLiteral("DP-1"));
+        QCOMPARE(t.fixture.state(t.c).columnIndex, 0);
+    }
+
+    void turningTheInsertHintOffMidDragHidesIt()
+    {
+        Three t;
+        QVERIFY(startMove(t.fixture, t.c, QPointF(2, 540)));
+        QVERIFY(t.dropHint().has_value());
+        t.fixture.engine().setConfig(withoutInsertHint());
+        QVERIFY(!t.dropHint().has_value());
+        t.fixture.engine().setConfig(instantConfig());
+        QVERIFY(t.dropHint().has_value());
         t.fixture.engine().endWindowDrag();
     }
 
