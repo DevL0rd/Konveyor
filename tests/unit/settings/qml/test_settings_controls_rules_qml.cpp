@@ -127,6 +127,14 @@ void TestSettingsControlsRulesQml::controls_data()
             R"({"props":{"app-id":"^a$","monitor-profile":"^wide$"}})"));
     addControl("floating state",
         rule("Window state", "chosen@3", R"(["yes"])", "window-rule/match", R"({"props":{"app-id":"^a$","is-floating":true}})"));
+    addControl("is-focused state",
+        rule("Window state", "chosen@0", R"(["yes"])", "window-rule/match", R"({"props":{"app-id":"^a$","is-focused":true}})"));
+    addControl("is-active state",
+        rule("Window state", "chosen@1", R"(["no"])", "window-rule/match", R"({"props":{"app-id":"^a$","is-active":false}})"));
+    addControl("is-active-in-column state",
+        rule("Window state", "chosen@2", R"(["yes"])", "window-rule/match", R"({"props":{"app-id":"^a$","is-active-in-column":true}})"));
+    addControl("is-urgent state",
+        rule("Window state", "chosen@4", R"(["yes"])", "window-rule/match", R"({"props":{"app-id":"^a$","is-urgent":true}})"));
     addControl("startup state",
         rule("Window state", "chosen@5", R"(["no"])", "window-rule/match", R"({"props":{"app-id":"^a$","at-startup":false}})"));
     addControl("add match", rule("^Or also match…", "clicked", "[]", "window-rule/match#1", R"({"args":[],"props":{}})"));

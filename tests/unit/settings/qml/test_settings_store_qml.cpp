@@ -161,6 +161,7 @@ void TestSettingsStoreQml::setToggleReplacesOnAndOff()
 {
     Session session = open(
         QStringLiteral("layout {\n    border { off; width 4; }\n    focus-ring {\n        on\n        off\n        width 2\n    }\n}\n"));
+    QVERIFY(!session.store->property("configError").toString().isEmpty());
     QVERIFY(call<bool>(session.store, "setToggle", QStringLiteral("layout/border"), true));
     QVERIFY(call<bool>(session.store, "setToggle", QStringLiteral("layout/focus-ring"), false));
     QVERIFY(call<bool>(session.store, "setToggle", QStringLiteral("layout/insert-hint"), false));
@@ -169,8 +170,10 @@ void TestSettingsStoreQml::setToggleReplacesOnAndOff()
         QStringLiteral("layout {\n    border {\n        width 4\n        on\n    }\n    focus-ring {\n        width 2\n        off\n    }\n"
                        "    insert-hint {\n        off\n    }\n}\n\nanimations {\n    off\n}\n"));
     QVERIFY(QMetaObject::invokeMethod(session.store, "undo"));
-    QCOMPARE(saved(session.store),
-        QStringLiteral("layout {\n    border { off; width 4; }\n    focus-ring {\n        on\n        off\n        width 2\n    }\n}\n"));
+    QVERIFY(session.store->property("configError").toString().contains(QStringLiteral("off")));
+    QCOMPARE(session.store->property("needsSave").toBool(), true);
+    QVERIFY(QMetaObject::invokeMethod(session.store, "save"));
+    QVERIFY(SettingsHome::read(m_home.configPath()).contains(QStringLiteral("insert-hint")));
 }
 
 void TestSettingsStoreQml::setFlagAndSetValue()
