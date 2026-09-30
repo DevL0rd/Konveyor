@@ -1,0 +1,18 @@
+[
+  {"name": "Focus", "entries": [
+    {"action": "Focus column left", "keys": ["Mod+Left", "Mod+H"], "id": "focus-column-left"},
+    {"action": "Focus column right", "keys": ["Mod+Right"], "id": "focus-column-right"}
+  ]},
+  {"name": "Sizing", "entries": [
+    {"action": "Zoom in", "keys": ["Meta++"], "id": "set-column-width"}
+  ]},
+  {"name": "KDE Windows & Desktops", "entries": [
+    {"action": "Show Desktop", "keys": ["Meta+D", "Meta+F12"]}
+  ]},
+  {"name": "KDE Plasma", "entries": [
+    {"action": "Activate Task Manager Entry 1", "keys": ["Meta+1"]}
+  ]},
+  {"name": "Gestures", "entries": [
+    {"action": "Scroll the row on the touchpad", "keys": ["3 fingers swipe ←→"], "gesture": {"device": "touchpad", "fingers": 3, "motion": "swipe-horizontal"}}
+  ]}
+]

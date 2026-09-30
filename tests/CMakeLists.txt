@@ -43,6 +43,20 @@ add_dependencies(test_settings_view_qml konveyor_settings)
 add_test(NAME test_settings_view_qml COMMAND test_settings_view_qml)
 set_tests_properties(test_settings_view_qml PROPERTIES LABELS "unit;settings" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
+find_package(KF6 REQUIRED COMPONENTS Config I18n)
+file(GLOB KONVEYOR_LAUNCHER_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/launcher/test_*.cpp)
+foreach(test_source ${KONVEYOR_LAUNCHER_TESTS})
+    get_filename_component(name ${test_source} NAME_WE)
+    add_executable(${name} ${test_source} unit/widgets/launcher/launcherharness.h)
+    target_link_libraries(${name} PRIVATE Qt6::Qml Qt6::Quick Qt6::Test KF6::ConfigGui KF6::ConfigQml KF6::I18n KF6::I18nQml)
+    target_compile_options(${name} PRIVATE -Wall -Wextra -Werror)
+    target_compile_definitions(${name} PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}" KONVEYOR_BINARY_DIR="${PROJECT_BINARY_DIR}")
+    add_dependencies(${name} konveyor_settings)
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name} PROPERTIES LABELS "unit;widgets"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+endforeach()
+
 add_test(NAME test_monitor_overlay_service COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_monitor_overlay_service.py)
 set_tests_properties(test_monitor_overlay_service PROPERTIES LABELS "unit;widgets")
 

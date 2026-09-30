@@ -1,0 +1,46 @@
+{
+  "games": [
+    {
+      "id": "steam_app_620",
+      "name": "Portal 2",
+      "icon": "steam_icon_620",
+      "appid": "620",
+      "launch": "steam steam://rungameid/620",
+      "portrait": "",
+      "hero": "",
+      "logo": "",
+      "header": "",
+      "has_art": false,
+      "custom_art": false,
+      "last": 2000
+    },
+    {
+      "id": "celeste",
+      "name": "Celeste",
+      "icon": "celeste",
+      "appid": "",
+      "launch": "celeste",
+      "portrait": "",
+      "hero": "",
+      "logo": "",
+      "header": "",
+      "has_art": false,
+      "custom_art": true,
+      "last": 0
+    },
+    {
+      "id": "steam_app_70",
+      "name": "Half-Life",
+      "icon": "steam_icon_70",
+      "appid": "70",
+      "launch": "steam steam://rungameid/70",
+      "portrait": "",
+      "hero": "",
+      "logo": "",
+      "header": "",
+      "has_art": false,
+      "custom_art": false,
+      "last": 1000
+    }
+  ]
+}

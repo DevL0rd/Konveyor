@@ -1,0 +1,3 @@
+module org.kde.plasma.plasma5support
+singleton Commands 1.0 Commands.qml
+DataSource 1.0 DataSource.qml

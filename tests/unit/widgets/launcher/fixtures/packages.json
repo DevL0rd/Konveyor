@@ -1,0 +1,7 @@
+{
+  "query": "vimb",
+  "packages": [
+    {"name": "vimb", "version": "3.7.0-1", "description": "The vim like browser", "source": "standard", "repo": "extra", "url": "https://fanglingsu.github.io/vimb/", "page": "https://archlinux.org/packages/?q=vimb", "votes": 0, "popularity": 0, "outOfDate": false, "rank": 0},
+    {"name": "vimb-git", "version": "3.7.0.r1-1", "description": "The vim like browser, git build", "source": "aur", "repo": "AUR", "url": "", "page": "https://aur.archlinux.org/packages/vimb-git", "votes": 12, "popularity": 0.5, "outOfDate": false, "rank": 1}
+  ]
+}

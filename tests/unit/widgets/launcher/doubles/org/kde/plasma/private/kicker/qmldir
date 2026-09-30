@@ -1,0 +1,9 @@
+module org.kde.plasma.private.kicker
+singleton KickerFixture 1.0 KickerFixture.qml
+KickerModel 1.0 KickerModel.qml
+FavoritesModel 1.0 FavoritesModel.qml
+RootModel 1.0 RootModel.qml
+RunnerModel 1.0 RunnerModel.qml
+SystemModel 1.0 SystemModel.qml
+RecentUsageModel 1.0 RecentUsageModel.qml
+ComputerModel 1.0 ComputerModel.qml

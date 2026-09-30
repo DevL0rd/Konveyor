@@ -1,0 +1,67 @@
+{
+  "ok": true,
+  "needs_api_key": false,
+  "error": "",
+  "friends": [
+    {
+      "name": "erin",
+      "state": 1,
+      "ingame": true,
+      "appid": "620",
+      "game": "Portal 2",
+      "chat": "steam://friends/message/5",
+      "profile": "steam://url/SteamIDPage/5",
+      "join": "steam://joinlobby/620/1",
+      "watch": "steam://broadcast/watch/5"
+    },
+    {
+      "name": "bob",
+      "state": 1,
+      "ingame": false,
+      "appid": "",
+      "game": "",
+      "chat": "steam://friends/message/2",
+      "profile": "steam://url/SteamIDPage/2"
+    },
+    {
+      "name": "carol",
+      "state": 0,
+      "ingame": false,
+      "appid": "",
+      "game": "",
+      "chat": "steam://friends/message/3",
+      "profile": "steam://url/SteamIDPage/3"
+    },
+    {
+      "name": "Alice",
+      "state": 1,
+      "ingame": true,
+      "appid": "620",
+      "game": "Portal 2",
+      "chat": "steam://friends/message/1",
+      "profile": "steam://url/SteamIDPage/1",
+      "profile_web": "https://steamcommunity.com/profiles/1"
+    },
+    {
+      "name": "dave",
+      "state": 3,
+      "ingame": true,
+      "appid": "",
+      "game": "Minecraft",
+      "chat": "steam://friends/message/4",
+      "profile": "steam://url/SteamIDPage/4"
+    }
+  ],
+  "by_appid": {
+    "620": [
+      {
+        "name": "erin",
+        "chat": "steam://friends/message/5"
+      },
+      {
+        "name": "Alice",
+        "chat": "steam://friends/message/1"
+      }
+    ]
+  }
+}
