@@ -40,30 +40,39 @@ Window {
         visit(root);
         return found;
     }
-    function drive(label, nth, signal, args) {
-        const all = items(page);
-        const byTitle = label.startsWith("^");
-        const byPath = label.startsWith("=");
-        const text = byTitle || byPath ? label.slice(1) : label;
-        let rows = label === "*" ? [page] : byPath ? all.filter(item => item.path === text) : byTitle ? [] : all.filter(item => item.label === text);
-        if (!rows.length) {
-            rows = all.filter(item => item.title === text || item.text === text || item.heading === text);
+    function matchesLabel(item, label) {
+        if (label.startsWith("=")) {
+            const [key, value] = label.slice(1).includes(":") ? label.slice(1).split(":") : ["path", label.slice(1)];
+            return item[key] === value;
         }
+        const text = label.startsWith("^") ? label.slice(1) : label;
+        return item.title === text || item.text === text || item.heading === text;
+    }
+    function supports(item, call) {
+        const name = call.split("=")[0];
+        return item[name] !== undefined && (call.includes("=") || typeof item[name] === "function");
+    }
+    function targetIn(row, calls, filter) {
+        const slots = Array.from(row.editor || []).concat(Array.from(row.control || []));
+        const candidates = [].concat(...slots.map(items)).concat(items(row)).filter(item => calls.every(call => supports(item, call)));
+        const index = Number(filter || 0);
+        return isNaN(index) ? candidates.find(item => item.text === filter) : candidates[index];
+    }
+    function drive(label, nth, signal, args) {
+        const parts = signal.split(";");
+        const [first, filter] = parts[0].split("@");
+        const calls = [first].concat(parts.slice(1));
+        const all = items(page);
+        const labelled = label === "*" ? [page] : all.filter(item => !label.startsWith("^") && !label.startsWith("=") && item.label === label);
+        const candidates = labelled.length ? labelled : all.filter(item => matchesLabel(item, label));
+        const rows = candidates.filter(item => targetIn(item, calls, filter) !== undefined);
         const row = rows[nth];
         if (!row) {
-            return "no control labelled " + label + " #" + nth;
+            return "no " + signal + " under " + label + " #" + nth;
         }
-        const calls = signal.split(";");
-        const [first, which] = calls[0].split("@");
-        const key = first.split("=")[0];
-        const slots = Array.from(row.editor || []).concat(Array.from(row.control || []));
-        const inSlots = [].concat(...slots.map(items));
-        const target = inSlots.concat(items(row)).filter(item => item[key] !== undefined && (first.includes("=") || typeof item[key] === "function"))[Number(which || 0)];
-        if (!target) {
-            return "no " + calls[0] + " under " + label;
-        }
+        const target = targetIn(row, calls, filter);
         let pending = args;
-        for (const call of [first].concat(calls.slice(1))) {
+        for (const call of calls) {
             if (call.includes("=")) {
                 const [name, value] = call.split("=");
                 target[name] = JSON.parse(value);
