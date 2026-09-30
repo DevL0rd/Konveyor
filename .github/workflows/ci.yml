@@ -72,8 +72,10 @@ jobs:
     container:
       image: archlinux:base-devel
     steps:
-      - name: Install the coverage tools
-        run: pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols
+      - name: Install the coverage and nested session tools
+        run: >-
+          pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols dbus mesa xorg-xwayland qt6-wayland qt6-declarative
+          python python-dbus python-gobject python-pillow python-xlib plasma-workspace plasma-keyboard breeze libkscreen kcmutils chromium
 
       - uses: actions/checkout@v4
         with:
@@ -85,8 +87,12 @@ jobs:
       - name: Install Konveyor's dependencies
         run: extras/packaging/dependencies.sh
 
-      - name: Measure coverage and check it against tests/coverage/thresholds.json
-        run: ./tools/coverage.sh
+      - name: Measure coverage of the unit and nested KWin tests and check it against tests/coverage/thresholds.json
+        run: |
+          useradd -m tester
+          chown -R tester: "$GITHUB_WORKSPACE"
+          install -d -m 700 -o tester /tmp/runtime-tester
+          runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester ./tools/coverage.sh --nested
 
       - name: Publish the coverage summary
         if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
