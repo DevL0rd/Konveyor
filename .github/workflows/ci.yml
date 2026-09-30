@@ -44,6 +44,43 @@ jobs:
       - name: Run the full check suite
         run: ./tools/check.sh
 
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install the coverage tools
+        run: pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Mark checkout as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install Konveyor's dependencies
+        run: extras/packaging/dependencies.sh
+
+      - name: Measure coverage and check it against tests/coverage/thresholds.json
+        run: ./tools/coverage.sh
+
+      - name: Publish the coverage summary
+        if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
+        run: cat build-coverage/coverage/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the coverage report
+        if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            build-coverage/coverage/html
+            build-coverage/coverage/summary.md
+            build-coverage/coverage/cpp.json
+            build-coverage/coverage/python.json
+
   distros:
     name: Install dependencies and build on ${{ matrix.name }}
     runs-on: ubuntu-latest

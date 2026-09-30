@@ -3,6 +3,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 BUILD_DIR="${KONVEYOR_BUILD_DIR:-build}"
+NESTED=false
+COVERAGE=false
+for argument in "$@"; do
+    case "$argument" in
+        --nested) NESTED=true ;;
+        --coverage) COVERAGE=true ;;
+        *)
+            echo "usage: tools/check.sh [--nested] [--coverage]" >&2
+            exit 2
+            ;;
+    esac
+done
 
 step() {
     printf '\n==> %s\n' "$1"
@@ -54,9 +66,18 @@ typos
 step "duplicate code (jscpd)"
 npx --yes jscpd@5 src tests tools extras
 
-if [[ "${1:-}" == "--nested" ]]; then
+if $NESTED; then
     step "nested KWin tests"
     ctest --test-dir "$BUILD_DIR" --output-on-failure -L nested
+fi
+
+if $COVERAGE; then
+    step "coverage"
+    if $NESTED; then
+        tools/coverage.sh --nested
+    else
+        tools/coverage.sh
+    fi
 fi
 
 printf '\nAll checks passed.\n'
