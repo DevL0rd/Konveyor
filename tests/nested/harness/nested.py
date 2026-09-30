@@ -49,8 +49,10 @@ class NestedSession:
         self.data_home = self.root / "data"
         self.state_home = self.root / "state"
         self.home = self.root / "home"
-        for directory in (self.config_home, self.data_home, self.state_home, self.home):
-            directory.mkdir()
+        self.cache_home = self.root / "cache"
+        self.runtime = self.root / "runtime"
+        for directory in (self.config_home, self.data_home, self.state_home, self.home, self.cache_home, self.runtime):
+            directory.mkdir(mode=0o700)
         (self.config_home / "kwinrc").write_text(textwrap.dedent(f"""\
             [Plugins]
             konveyor_effectEnabled=true
@@ -97,6 +99,9 @@ class NestedSession:
         env["XDG_CONFIG_HOME"] = str(self.config_home)
         env["XDG_DATA_HOME"] = str(self.data_home)
         env["XDG_STATE_HOME"] = str(self.state_home)
+        env["XDG_CACHE_HOME"] = str(self.cache_home)
+        env["XDG_RUNTIME_DIR"] = str(self.runtime)
+        env["KONVEYOR_OUTSIDE_DIRS"] = ":".join(dict.fromkeys(filter(None, (os.environ.get("HOME"), os.environ.get("XDG_RUNTIME_DIR"), f"/run/user/{os.getuid()}"))))
         if self.data_dirs:
             env["XDG_DATA_DIRS"] = self.data_dirs
         env["KONVEYOR_TEST_ROOT"] = str(self.root)

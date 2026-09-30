@@ -41,6 +41,7 @@ def stage(root):
             shutil.copy(path, lib)
     shutil.copy(REPO / "widgets" / "shared" / "MonitorOverlay.qml", lib)
     shutil.copytree(REPO / "widgets" / "portals" / "shared" / "lib", lib, dirs_exist_ok=True)
+    shutil.copytree(HERE / "doubles", root / "imports")
     konveyor = root / "imports" / "org" / "kde" / "konveyor"
     konveyor.mkdir(parents=True)
     (konveyor / "settings").symlink_to(build_dir() / "bin" / "org" / "kde" / "konveyor" / "settings")

@@ -4,6 +4,7 @@ import subprocess
 import traceback
 from pathlib import Path
 
+import hermetic
 from kwinsession import konveyor
 from nested import REPO, build_dir
 
@@ -29,6 +30,8 @@ class Checks:
             except Exception:
                 self.problems.append(f"{step.__name__} raised")
                 traceback.print_exc()
+        for leak in hermetic.leaks():
+            self.expect(False, f"the nested session reached outside its own directories: {leak}")
         for problem in self.problems:
             print("  PROBLEM " + problem)
         print("RESULT:", "FAIL" if self.problems else "PASS")
