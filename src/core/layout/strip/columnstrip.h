@@ -155,6 +155,7 @@ public:
     QString checkConsistency() const;
     QString verifyArea() const;
     QString verifyColumns() const;
+    QString verifyView() const;
 
 private:
     void stackLooseColumns(std::size_t maxRows);

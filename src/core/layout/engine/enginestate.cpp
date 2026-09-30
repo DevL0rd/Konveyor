@@ -377,22 +377,4 @@ std::optional<WindowId> Engine::windowAt(const QPointF &globalPos) const
     return std::nullopt;
 }
 
-QString Engine::checkConsistency() const
-{
-    for (const Monitor &monitor : d->monitors) {
-        if (const QString error = monitor.checkConsistency(); !error.isEmpty()) {
-            return error;
-        }
-    }
-    if (!d->monitors.empty() && d->activeMonitorIndex >= d->monitors.size()) {
-        return QStringLiteral("engine: active monitor index out of range");
-    }
-    for (const Workspace &workspace : d->orphanWorkspaces) {
-        if (const QString error = workspace.checkConsistency(); !error.isEmpty()) {
-            return error;
-        }
-    }
-    return {};
-}
-
 }

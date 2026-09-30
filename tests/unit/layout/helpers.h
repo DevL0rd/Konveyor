@@ -1,7 +1,10 @@
 #pragma once
 
 #include "anim/clock.h"
+#include "client.h"
 #include "layout/engine/engine.h"
+#include "outputs.h"
+#include "tilechecks.h"
 
 #include <QHash>
 #include <QTest>
@@ -15,17 +18,6 @@ namespace LayoutTest
 using Konveyor::Anim::Clock;
 using Konveyor::Anim::Duration;
 namespace Config = Konveyor::Config;
-namespace Layout = Konveyor::Layout;
-
-inline Layout::OutputInfo makeOutput(const QString &name, QRectF geometry, double scale = 1.0)
-{
-    Layout::OutputInfo info;
-    info.name = name;
-    info.geometry = geometry;
-    info.workArea = geometry;
-    info.scale = scale;
-    return info;
-}
 
 inline Layout::WindowProperties makeWindow(const QString &appId = {}, const QString &title = {}, QSizeF size = QSizeF(100, 100))
 {
@@ -44,6 +36,21 @@ inline Config::Config instantConfig()
     config.layout.presetColumnWidths = {Config::Proportion {1.0 / 3.0}, Config::Proportion {0.5}, Config::Proportion {2.0 / 3.0}};
     config.layout.rememberWindowSizes = false;
     config.layout.alwaysExpandSingleColumn = false;
+    return config;
+}
+
+inline Config::Config linearAnimationConfig(double durationMs = 200)
+{
+    Config::Config config = instantConfig();
+    config.animations.enabled = true;
+    Config::EasingParams easing;
+    easing.durationMs = durationMs;
+    easing.curve = Config::EasingCurve::Linear;
+    for (Config::AnimationParams *slot : {&config.animations.workspaceSwitch, &config.animations.windowOpen,
+             &config.animations.horizontalViewMovement, &config.animations.windowMovement, &config.animations.windowResize}) {
+        slot->enabled = true;
+        slot->kind = easing;
+    }
     return config;
 }
 
@@ -93,21 +100,24 @@ public:
         m_engine.addOutput(makeOutput(QStringLiteral("DP-1"), geometry));
     }
 
+    ~Fixture()
+    {
+        recordViolation(QStringLiteral("at the end of the test"));
+        if (!m_violation.isEmpty() && !QTest::currentTestFailed()) {
+            QTest::qFail(qPrintable(m_violation), __FILE__, __LINE__);
+        }
+    }
+
+    Fixture(const Fixture &) = delete;
+    Fixture &operator=(const Fixture &) = delete;
+
     Layout::Engine &engine() { return m_engine; }
     Clock &clock() { return m_clock; }
 
-    void setConfig(const Config::Config &config) { m_engine.setConfig(config); }
-
-    void addOutput(const QString &name, QRectF geometry, double scale = 1.0)
+    void setConfig(const Config::Config &config)
     {
-        m_engine.addOutput(makeOutput(name, geometry, scale));
-        settle();
-    }
-
-    void removeOutput(const QString &name)
-    {
-        m_engine.removeOutput(name);
-        settle();
+        m_engine.setConfig(config);
+        recordViolation(QStringLiteral("after a config reload"));
     }
 
     Layout::WindowId add(const QString &appId = {}, QSizeF size = QSizeF(100, 100))
@@ -126,6 +136,32 @@ public:
         return id;
     }
 
+    Layout::WindowId addClient(const Layout::WindowProperties &properties, const Client &client,
+        Layout::ActivationPolicy policy = Layout::ActivationPolicy::Focus, const QString &preferredOutput = {})
+    {
+        const Layout::WindowId id = ++m_nextId;
+        m_clients.set(id, client);
+        m_engine.addWindow(id, properties, preferredOutput, policy);
+        settle();
+        return id;
+    }
+
+    void setClient(Layout::WindowId id, const Client &client) { m_clients.set(id, client); }
+
+    void addOutput(const Layout::OutputInfo &output)
+    {
+        m_engine.addOutput(output);
+        settle();
+    }
+
+    void addOutput(const QString &name, QRectF geometry, double scale = 1.0) { addOutput(makeOutput(name, geometry, scale)); }
+
+    void removeOutput(const QString &name)
+    {
+        m_engine.removeOutput(name);
+        settle();
+    }
+
     Layout::ActionResult perform(
         const QString &name, const QStringList &arguments = {}, const QList<std::pair<QString, QString>> &properties = {})
     {
@@ -142,7 +178,7 @@ public:
 
     void commitAs(Layout::WindowId id, QSizeF size)
     {
-        m_committed.insert(id, size);
+        m_clients.markAnswered(id, size);
         m_engine.windowSizeCommitted(id, size);
     }
 
@@ -151,21 +187,17 @@ public:
         if (m_holdCommits) {
             return;
         }
+        m_clients.commitHeld(m_engine);
         for (int round = 0; round < 8; ++round) {
             bool changed = false;
             for (const Layout::WindowState &state : m_engine.windowStates()) {
-                const QSizeF size = state.targetFrame.size();
-                if (m_committed.value(state.id) == size) {
-                    continue;
-                }
-                m_committed.insert(state.id, size);
-                m_engine.windowSizeCommitted(state.id, size);
-                changed = true;
+                changed = m_clients.answer(m_engine, state.id, state.targetFrame.size()) || changed;
             }
             if (!changed) {
-                return;
+                break;
             }
         }
+        recordViolation(QStringLiteral("after settling"));
     }
 
     Layout::WindowState state(Layout::WindowId id)
@@ -203,21 +235,50 @@ public:
         settle();
     }
 
+    void advanceInSteps(qint64 milliseconds, qint64 step = 16)
+    {
+        for (qint64 done = 0; done < milliseconds; done += step) {
+            advance(std::min(step, milliseconds - done));
+        }
+    }
+
     void remove(Layout::WindowId id)
     {
         m_engine.removeWindow(id);
-        m_committed.remove(id);
+        m_clients.forget(id);
         settle();
     }
 
-    QString invariants() { return m_engine.checkConsistency(); }
+    void stopReporting()
+    {
+        m_reporting = false;
+        m_violation.clear();
+    }
+
+    QString invariants()
+    {
+        const QString error = m_engine.checkConsistency();
+        return error.isEmpty() ? tileProblems(m_engine) : error;
+    }
 
 private:
+    void recordViolation(const QString &when)
+    {
+        if (!m_reporting || !m_violation.isEmpty()) {
+            return;
+        }
+        if (const QString error = invariants(); !error.isEmpty()) {
+            m_violation = QStringLiteral("invariant broken %1: %2").arg(when, error);
+        }
+    }
+
     Clock m_clock;
     Layout::Engine m_engine;
-    QHash<Layout::WindowId, QSizeF> m_committed;
+    ClientPool m_clients;
     Layout::WindowId m_nextId = 0;
     qint64 m_elapsed = 0;
+    QString m_violation;
+    bool m_reporting = true;
     bool m_holdCommits = false;
 };
 

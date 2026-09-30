@@ -146,6 +146,7 @@ struct Engine::Private
     void appendWorkspaceStates(QList<WindowState> &states, const Workspace &workspace, const WorkspaceRenderContext &context) const;
     std::optional<QRectF> dropHintRect(const Monitor &monitor) const;
     void appendMovedWindowState(QList<WindowState> &states) const;
+    QString checkWindowPlacement() const;
 
     void beginInteractiveMoving(const QString &output);
     void stopEdgeScroll();
