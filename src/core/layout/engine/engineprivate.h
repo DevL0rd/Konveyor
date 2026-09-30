@@ -136,8 +136,9 @@ struct Engine::Private
 
     std::optional<std::size_t> monitorInDirection(const QString &direction) const;
 
-    void moveWindowToMonitor(std::optional<WindowId> window, std::size_t monitorIndex, bool activate);
-    void moveColumnToMonitor(std::size_t monitorIndex, bool activate);
+    void moveWindowToMonitor(
+        std::optional<WindowId> window, std::size_t monitorIndex, bool activate, std::optional<std::size_t> workspaceIndex);
+    void moveColumnToMonitor(std::size_t monitorIndex, bool activate, std::optional<std::size_t> workspaceIndex);
     void moveWorkspaceToMonitor(std::size_t monitorIndex);
 
     void appendWorkspaceStates(QList<WindowState> &states, const Workspace &workspace, const WorkspaceRenderContext &context) const;

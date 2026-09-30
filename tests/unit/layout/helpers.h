@@ -47,6 +47,14 @@ inline Config::Config instantConfig()
     return config;
 }
 
+inline Config::NamedWorkspace namedWorkspace(const QString &name, std::optional<QString> output = std::nullopt)
+{
+    Config::NamedWorkspace named;
+    named.name = name;
+    named.openOnOutput = std::move(output);
+    return named;
+}
+
 inline Config::WindowRule ruleFor(const QString &appId)
 {
     Config::WindowRule rule;
@@ -145,6 +153,16 @@ public:
     }
 
     QRectF frame(Layout::WindowId id) { return state(id).targetFrame; }
+
+    Layout::WorkspaceState workspaceNamed(const QString &name) const
+    {
+        for (const Layout::WorkspaceState &workspace : m_engine.workspaceStates()) {
+            if (workspace.name == name) {
+                return workspace;
+            }
+        }
+        return {};
+    }
 
     std::optional<Layout::WindowId> focused() const { return m_engine.focusedWindow(); }
 

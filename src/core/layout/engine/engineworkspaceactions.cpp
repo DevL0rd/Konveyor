@@ -44,13 +44,14 @@ void addDirectionalActions(ActionTable &table, const QString &prefix, const Dire
     }
 }
 
-std::optional<WorkspaceLocation> findWorkspace(Engine::Private &d, const Config::WorkspaceReference &reference)
+std::optional<WorkspaceLocation> findWorkspace(
+    Engine::Private &d, const Config::WorkspaceReference &reference, std::optional<std::size_t> indexMonitor = std::nullopt)
 {
     if (d.monitors.empty()) {
         return std::nullopt;
     }
     if (reference.kind == Config::WorkspaceReferenceKind::Index) {
-        const std::size_t monitorIndex = std::min(d.activeMonitorIndex, d.monitors.size() - 1);
+        const std::size_t monitorIndex = std::min(indexMonitor.value_or(d.activeMonitorIndex), d.monitors.size() - 1);
         const std::size_t count = d.monitors[monitorIndex].workspaces().size();
         const std::size_t index = reference.index > 0 ? static_cast<std::size_t>(reference.index - 1) : 0;
         return WorkspaceLocation {monitorIndex, std::min(index, count - 1)};
@@ -156,13 +157,13 @@ struct WorkspaceTargetRequest
     QString error;
 };
 
-WorkspaceTargetRequest resolveWorkspaceTarget(Engine::Private &d, const Config::Action &action)
+WorkspaceTargetRequest resolveWorkspaceTarget(Engine::Private &d, const Config::Action &action, std::size_t indexMonitor)
 {
     const auto reference = referenceArgument(action, 0);
     if (!reference) {
         return {std::nullopt, true, reference.error()};
     }
-    const auto location = findWorkspace(d, *reference);
+    const auto location = findWorkspace(d, *reference, indexMonitor);
     if (!location) {
         return {std::nullopt, true, QStringLiteral("no such workspace")};
     }
@@ -171,19 +172,19 @@ WorkspaceTargetRequest resolveWorkspaceTarget(Engine::Private &d, const Config::
 
 ActionResult moveWindowToWorkspace(Engine::Private &d, const Config::Action &action, std::optional<WindowId> target)
 {
-    const WorkspaceTargetRequest request = resolveWorkspaceTarget(d, action);
-    if (!request.location) {
-        return actionError(request.error);
-    }
-    const auto location = request.location;
-    const bool focus = request.focus;
     const auto window = actionWindowId(action, target);
     const auto sourceIndex = window ? d.monitorIndexOf(*window) : std::optional<std::size_t>(d.activeMonitorIndex);
     if (!sourceIndex) {
         return actionError(QStringLiteral("no such window"));
     }
+    const WorkspaceTargetRequest request = resolveWorkspaceTarget(d, action, *sourceIndex);
+    if (!request.location) {
+        return actionError(request.error);
+    }
+    const auto location = request.location;
+    const bool focus = request.focus;
     if (*sourceIndex != location->monitor) {
-        d.moveWindowToMonitor(window, location->monitor, focus);
+        d.moveWindowToMonitor(window, location->monitor, focus, location->workspace);
         return {};
     }
     d.monitors[location->monitor].moveToWorkspace(window, location->workspace, focus ? Activation::Smart : Activation::Never);
@@ -192,14 +193,14 @@ ActionResult moveWindowToWorkspace(Engine::Private &d, const Config::Action &act
 
 ActionResult moveColumnToWorkspace(Engine::Private &d, const Config::Action &action)
 {
-    const WorkspaceTargetRequest request = resolveWorkspaceTarget(d, action);
+    const WorkspaceTargetRequest request = resolveWorkspaceTarget(d, action, d.activeMonitorIndex);
     if (!request.location) {
         return actionError(request.error);
     }
     const auto location = request.location;
     const bool focus = request.focus;
     if (location->monitor != d.activeMonitorIndex) {
-        d.moveColumnToMonitor(location->monitor, focus);
+        d.moveColumnToMonitor(location->monitor, focus, location->workspace);
         return {};
     }
     d.monitors[location->monitor].moveColumnToWorkspace(location->workspace, focus);
@@ -297,12 +298,12 @@ void focusMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &)
 
 void moveWindowToMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &action)
 {
-    d.moveWindowToMonitor(actionWindowId(action, d.focused), idx, true);
+    d.moveWindowToMonitor(actionWindowId(action, d.focused), idx, true, std::nullopt);
 }
 
 void moveColumnToMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &)
 {
-    d.moveColumnToMonitor(idx, true);
+    d.moveColumnToMonitor(idx, true, std::nullopt);
 }
 
 void moveWorkspaceToMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &)

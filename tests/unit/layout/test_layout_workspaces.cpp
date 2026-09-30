@@ -16,14 +16,6 @@ int workspaceCount(Layout::Engine &engine, const QString &output)
     return count;
 }
 
-Config::NamedWorkspace namedWorkspace(const QString &name, std::optional<QString> output = std::nullopt)
-{
-    Config::NamedWorkspace named;
-    named.name = name;
-    named.openOnOutput = std::move(output);
-    return named;
-}
-
 QStringList workspaceNames(Layout::Engine &engine, const QString &output)
 {
     QStringList names;

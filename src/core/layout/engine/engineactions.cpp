@@ -262,7 +262,7 @@ ActionResult moveColumnOrMonitor(Engine::Private &d, const QString &direction)
         return {};
     }
     if (const auto idx = d.monitorInDirection(direction)) {
-        d.moveColumnToMonitor(*idx, true);
+        d.moveColumnToMonitor(*idx, true, std::nullopt);
     }
     return {};
 }

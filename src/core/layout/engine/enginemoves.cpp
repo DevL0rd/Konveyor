@@ -93,7 +93,8 @@ std::optional<std::size_t> Engine::Private::monitorInDirection(const QString &di
     return nearestInDirection(geometries, active, *axis);
 }
 
-void Engine::Private::moveWindowToMonitor(std::optional<WindowId> window, std::size_t monitorIndex, bool activate)
+void Engine::Private::moveWindowToMonitor(
+    std::optional<WindowId> window, std::size_t monitorIndex, bool activate, std::optional<std::size_t> workspaceIndex)
 {
     const auto id = target(window);
     if (!id || monitorIndex >= monitors.size()) {
@@ -110,6 +111,9 @@ void Engine::Private::moveWindowToMonitor(std::optional<WindowId> window, std::s
     DetachedTile removed = workspace->removeTile(*id);
 
     MonitorAddRequest request;
+    if (workspaceIndex) {
+        request.target = MonitorAddTarget::onWorkspace(monitors[monitorIndex].workspaces()[*workspaceIndex].id());
+    }
     request.activate = activate ? Activation::Always : Activation::Never;
     request.width = removed.width;
     request.fillsWidth = removed.fillsWidth;
@@ -121,7 +125,7 @@ void Engine::Private::moveWindowToMonitor(std::optional<WindowId> window, std::s
     }
 }
 
-void Engine::Private::moveColumnToMonitor(std::size_t monitorIndex, bool activate)
+void Engine::Private::moveColumnToMonitor(std::size_t monitorIndex, bool activate, std::optional<std::size_t> workspaceIndex)
 {
     if (monitorIndex >= monitors.size() || monitorIndex == activeMonitorIndex || monitors.empty()) {
         return;
@@ -129,14 +133,14 @@ void Engine::Private::moveColumnToMonitor(std::size_t monitorIndex, bool activat
     const std::size_t sourceIndex = std::min(activeMonitorIndex, monitors.size() - 1);
     Workspace &source = monitors[sourceIndex].activeWorkspace();
     if (source.isFloatingFocused()) {
-        moveWindowToMonitor(source.activeWindow(), monitorIndex, activate);
+        moveWindowToMonitor(source.activeWindow(), monitorIndex, activate, workspaceIndex);
         return;
     }
     auto column = source.removeActiveColumn();
     if (!column) {
         return;
     }
-    const std::size_t targetWorkspace = monitors[monitorIndex].activeWorkspaceIndex();
+    const std::size_t targetWorkspace = workspaceIndex.value_or(monitors[monitorIndex].activeWorkspaceIndex());
     monitors[monitorIndex].addColumn(targetWorkspace, std::move(*column), activate, std::nullopt);
     monitors[sourceIndex].pruneWorkspaces();
     if (activate) {
@@ -151,6 +155,7 @@ void Engine::Private::moveWorkspaceToMonitor(std::size_t monitorIndex)
     }
     const std::size_t sourceIndex = std::min(activeMonitorIndex, monitors.size() - 1);
     Workspace workspace = monitors[sourceIndex].detachWorkspaceAt(monitors[sourceIndex].activeWorkspaceIndex());
+    workspace.setHomeOutput(monitors[monitorIndex].area().outputId);
     const std::size_t insertAt = monitors[monitorIndex].workspaces().size();
     monitors[monitorIndex].insertWorkspace(std::move(workspace), insertAt, true);
     activeMonitorIndex = monitorIndex;
