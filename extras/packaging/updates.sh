@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-KONVEYOR_UPDATER_DIR="/usr/lib/konveyor"
+KONVEYOR_UPDATER_DIR="$KONVEYOR_SYSTEM_ROOT/usr/lib/konveyor"
 KONVEYOR_USER_UPDATER_DIR="$HOME/.local/lib/konveyor"
 KONVEYOR_LOGIN_UNIT="konveyor-login-update.service"
 declare -A KONVEYOR_UPDATE_HOOKS=(
-    [pacman]="konveyor-rebuild.hook /usr/share/libalpm/hooks/konveyor-rebuild.hook 644"
-    [dnf]="konveyor-rebuild.actions /etc/dnf/libdnf5-plugins/actions.d/konveyor-rebuild.actions 644"
-    [zypper]="konveyor-rebuild.zypp /usr/lib/zypp/plugins/commit/konveyor-rebuild 755"
-    [apt-get]="konveyor-rebuild.apt /etc/apt/apt.conf.d/99konveyor-rebuild 644"
+    [pacman]="konveyor-rebuild.hook $KONVEYOR_SYSTEM_ROOT/usr/share/libalpm/hooks/konveyor-rebuild.hook 644"
+    [dnf]="konveyor-rebuild.actions $KONVEYOR_SYSTEM_ROOT/etc/dnf/libdnf5-plugins/actions.d/konveyor-rebuild.actions 644"
+    [zypper]="konveyor-rebuild.zypp $KONVEYOR_SYSTEM_ROOT/usr/lib/zypp/plugins/commit/konveyor-rebuild 755"
+    [apt-get]="konveyor-rebuild.apt $KONVEYOR_SYSTEM_ROOT/etc/apt/apt.conf.d/99konveyor-rebuild 644"
 )
-KONVEYOR_LEGACY_HOOK="/etc/pacman.d/hooks/konveyor-rebuild.hook"
+KONVEYOR_LEGACY_HOOK="$KONVEYOR_SYSTEM_ROOT/etc/pacman.d/hooks/konveyor-rebuild.hook"
 KONVEYOR_SOURCE_STATE="$KONVEYOR_STATE_DIR/update-source"
 KONVEYOR_LEGACY_SOURCE_STATE="$KONVEYOR_STATE_DIR/source"
 
@@ -117,7 +117,7 @@ register_updates() {
     read -r source target mode <<<"${KONVEYOR_UPDATE_HOOKS[$manager]}"
     copy_updater "$KONVEYOR_UPDATER_DIR" run_root
     run_root install -Dm"$mode" "$SOURCE_DIR/extras/packaging/$source" "$target"
-    if [[ $manager == pacman ]] && grep -qa 'NetworkAccess' /usr/lib/libalpm.so.*; then
+    if [[ $manager == pacman ]] && grep -qa 'NetworkAccess' "$KONVEYOR_SYSTEM_ROOT"/usr/lib/libalpm.so.*; then
         run_root sed -i '/^Exec = /a NetworkAccess = allowed' "$target"
     fi
     [[ -e $KONVEYOR_LEGACY_HOOK ]] && run_root rm -f "$KONVEYOR_LEGACY_HOOK"

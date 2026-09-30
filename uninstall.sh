@@ -175,4 +175,4 @@ main() {
     say "Konveyor is uninstalled. Log out and back in to fully unload it from KWin."
 }
 
-main "$@"
+[[ ${BASH_SOURCE[0]} != "$0" ]] || main "$@"

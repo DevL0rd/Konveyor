@@ -276,4 +276,4 @@ main() {
     say "Config file: ~/.config/konveyor/config.kdl (created on first start)"
 }
 
-main "$@"
+[[ ${BASH_SOURCE[0]} != "$0" ]] || main "$@"

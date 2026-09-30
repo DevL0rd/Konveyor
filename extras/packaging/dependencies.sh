@@ -22,7 +22,7 @@ remove_stale_toolboxes() {
 
 prepare_toolbox() {
     local release locks mismatched
-    release=$(. /etc/os-release && [[ " $ID ${ID_LIKE:-} " == *" fedora "* ]] && printf '%s' "$VERSION_ID") \
+    release=$(. "$KONVEYOR_OS_RELEASE" && [[ " $ID ${ID_LIKE:-} " == *" fedora "* ]] && printf '%s' "$VERSION_ID") \
         || die "on image-based systems Konveyor builds in a Fedora toolbox, and this system isn't based on Fedora"
     command -v toolbox >/dev/null || die "toolbox is missing; Fedora Atomic desktops ship it, so install it with: rpm-ostree install toolbox"
     remove_stale_toolboxes
@@ -73,7 +73,7 @@ prepare_steamos_box() {
     [[ $(printf '%s\n' 6.7 "$(kwin_version)" | sort -V | head -1) == 6.7 ]] \
         || die "this SteamOS build has KWin $(kwin_version), and Konveyor needs Plasma 6.7, which SteamOS 3.9 brings. Switch to the Preview update channel in Settings > System, update, and run ./install.sh again"
     command -v distrobox >/dev/null || die "distrobox is missing; SteamOS 3.5 and newer ship it"
-    mapfile -t repos < <(sed -n 's/^\[\(.*\)\]$/\1/p' /etc/pacman.conf | grep -vx options)
+    mapfile -t repos < <(sed -n 's/^\[\(.*\)\]$/\1/p' "$KONVEYOR_SYSTEM_ROOT/etc/pacman.conf" | grep -vx options)
     if ! podman container exists "$KONVEYOR_BUILD_BOX"; then
         say "Creating the $KONVEYOR_BUILD_BOX box to build Konveyor in"
         remember_pulled_image docker.io/library/archlinux:latest

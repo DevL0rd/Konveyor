@@ -54,6 +54,7 @@ class TestUpdateSource(unittest.TestCase):
             "XDG_CONFIG_HOME": str(self.home / ".config"),
             "PATH": f"{bin_dir}:{os.environ['PATH']}",
             "KONVEYOR_PREFIX": str(root / "prefix"),
+            "KONVEYOR_SYSTEM_ROOT": str(root / "system"),
         }
         self.state = root / "prefix" / "share" / "konveyor"
 
