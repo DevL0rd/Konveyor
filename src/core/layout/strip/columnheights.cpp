@@ -96,7 +96,9 @@ void Column::layoutTiles(bool animate)
     distributeHeights(heights, minSizes, maxSizes);
 
     for (std::size_t i = 0; i < tiles.size(); ++i) {
-        tiles[i].requestOuterSize(QSizeF(width, heights[i].value), animate);
+        const double maxWidth = maxSizes[i].width() > 0.0 ? std::min(width, maxSizes[i].width()) : width;
+        const double tileWidth = std::max(maxWidth, minSizes[i].width());
+        tiles[i].requestOuterSize(QSizeF(tileWidth, heights[i].value), animate);
     }
 }
 
@@ -184,7 +186,7 @@ void Column::distributeHeights(
     }
     double totalWeight = totalAutoWeight(heights);
 
-    const auto findUnsatisfied = [&]() -> std::optional<std::size_t> {
+    const auto findUnsatisfied = [&]() -> std::optional<std::pair<std::size_t, double>> {
         double left = heightLeft;
         double weightLeft = totalWeight;
         for (std::size_t i = 0; i < heights.size(); ++i) {
@@ -193,7 +195,10 @@ void Column::distributeHeights(
             }
             const double autoHeight = left * (heights[i].value / weightLeft);
             if (minSizes[i].height() > autoHeight) {
-                return i;
+                return std::pair(i, minSizes[i].height());
+            }
+            if (maxSizes[i].height() > 0.0 && maxSizes[i].height() < autoHeight) {
+                return std::pair(i, maxSizes[i].height());
             }
             left -= autoHeightFor(tiles[i], autoHeight);
             weightLeft -= heights[i].value;
@@ -202,10 +207,10 @@ void Column::distributeHeights(
     };
 
     while (const auto unsatisfied = findUnsatisfied()) {
-        const std::size_t i = *unsatisfied;
+        const auto [i, height] = *unsatisfied;
         totalWeight -= heights[i].value;
-        heights[i] = WindowHeight::fixed(minSizes[i].height());
-        heightLeft -= minSizes[i].height();
+        heights[i] = WindowHeight::fixed(height);
+        heightLeft -= height;
     }
 
     for (std::size_t i = 0; i < heights.size(); ++i) {
