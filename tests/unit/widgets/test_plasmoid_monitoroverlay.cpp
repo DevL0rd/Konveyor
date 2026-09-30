@@ -1,6 +1,7 @@
 #include "plasmoidharness.h"
 
 #include <QGuiApplication>
+#include <QPointer>
 #include <QQmlComponent>
 #include <QTest>
 #include <QWindow>
@@ -131,6 +132,42 @@ private Q_SLOTS:
         QVERIFY(loaded(popup)->property("overlayMode").toBool());
         QMetaObject::invokeMethod(loaded(popup), "overlayCloseRequested");
         QVERIFY(!popup->property("visible").toBool());
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
+    void keepsCardsAndPopupsOpenWhenOtherTargetsChange()
+    {
+        QObject *overlay = create(1, true);
+        QVERIFY(overlay);
+        const QByteArray alone
+            = R"([{"key": "game", "pid": 200, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600, "fullscreen": true}])";
+        QVERIFY(m_harness->deliver(statePath(), targets(alone), [overlay] { return overlay->property("targets").toList().size() == 1; }));
+        QTRY_VERIFY(dialogs(QStringLiteral("Overlay 3")).value(0) && loaded(dialogs(QStringLiteral("Overlay 3")).value(0)));
+        QPointer<QObject> card = dialogs(QStringLiteral("Overlay 3")).value(0);
+        QPointer<QObject> popup = dialogs(QStringLiteral("Panel 3")).value(0);
+        QPointer<QObject> compact = loaded(card);
+        QMetaObject::invokeMethod(compact, "overlayClicked");
+        QTRY_VERIFY(loaded(popup));
+        QVERIFY(m_harness->deliver(statePath(), targets(game), [overlay] { return overlay->property("targets").toList().size() == 2; }));
+        QTRY_COMPARE(dialogs(QStringLiteral("Overlay")).size(), 2);
+        QVERIFY(card && popup && compact);
+        QVERIFY(popup->property("visible").toBool());
+        QCOMPARE(compact->property("overlayBackgroundOpacity").toDouble(), 0.7);
+        QByteArray windowed = game;
+        windowed.replace("\"fullscreen\": true", "\"fullscreen\": false");
+        QVERIFY(m_harness->deliver(statePath(), targets(windowed),
+            [compact] { return compact && compact->property("overlayBackgroundOpacity").toDouble() == 1.0; }));
+        QVERIFY(card && popup && popup->property("visible").toBool());
+        const QByteArray moved
+            = R"([{"key": "game", "pid": 201, "windowId": 5, "x": 0, "y": 0, "width": 900, "height": 600, "fullscreen": false}])";
+        QVERIFY(m_harness->deliver(
+            statePath(), targets(moved), [overlay] { return overlay->property("pids").toList() == QVariantList {201}; }));
+        QTRY_COMPARE(dialogs(QStringLiteral("Overlay")).size(), 1);
+        QObject *current = dialogs(QStringLiteral("Overlay 5")).value(0);
+        QVERIFY(current);
+        QTRY_VERIFY(loaded(current));
+        QCOMPARE(loaded(current)->property("overlayTargetPid").toInt(), 201);
+        QVERIFY(dialogs(QStringLiteral("Overlay 3")).isEmpty());
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 

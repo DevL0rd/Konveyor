@@ -39,6 +39,31 @@ Item {
         onChanged: overlay.readState()
     }
 
+    ListModel { id: shownTargets }
+
+    function syncTargets() {
+        const wanted = (active ? targets : []).map(target => ({ key: target.key, pid: target.pid, windowId: target.windowId,
+                                                                windowWidth: target.width, fullscreen: Boolean(target.fullscreen) }))
+        const keys = wanted.map(target => target.key)
+        for (let row = shownTargets.count - 1; row >= 0; --row) {
+            if (keys.indexOf(shownTargets.get(row).key) < 0)
+                shownTargets.remove(row)
+        }
+        for (let position = 0; position < wanted.length; ++position) {
+            let row = position
+            while (row < shownTargets.count && shownTargets.get(row).key !== wanted[position].key)
+                ++row
+            if (row === shownTargets.count) {
+                shownTargets.insert(position, wanted[position])
+                continue
+            }
+            if (row !== position)
+                shownTargets.move(row, position, 1)
+            shownTargets.set(position, wanted[position])
+        }
+    }
+
+    onTargetsChanged: syncTargets()
     Component.onCompleted: readState()
     onActiveChanged: {
         if (active)
@@ -48,13 +73,15 @@ Item {
     }
 
     Repeater {
-        model: overlay.active ? overlay.targets : []
+        model: shownTargets
 
         delegate: Item {
             id: holder
 
-            required property var modelData
-            readonly property var target: modelData
+            required property int pid
+            required property int windowId
+            required property real windowWidth
+            required property bool fullscreen
             width: 0
             height: 0
 
@@ -80,7 +107,7 @@ Item {
                 property bool readyToShow: false
                 property real preparedWidth: 0
                 readonly property real desiredWidth: compactLoader.item
-                    ? Math.min(holder.target.width / 3, compactLoader.item.overlayPreferredWidth)
+                    ? Math.min(holder.windowWidth / 3, compactLoader.item.overlayPreferredWidth)
                     : 0
 
                 function prepareToShow() {
@@ -96,7 +123,7 @@ Item {
                 backgroundHints: PlasmaCore.Dialog.NoBackground
                 flags: Qt.FramelessWindowHint
                 hideOnWindowDeactivate: false
-                title: "Konveyor Monitor Overlay " + holder.target.windowId + " " + overlay.slot
+                title: "Konveyor Monitor Overlay " + holder.windowId + " " + overlay.slot
                 onDesiredWidthChanged: prepareToShow()
 
                 mainItem: Item {
@@ -114,16 +141,21 @@ Item {
                         onLoaded: {
                             if (item && "overlayMode" in item)
                                 item.overlayMode = true
-                            if (item && "overlayTargetPid" in item)
-                                item.overlayTargetPid = holder.target.pid
                             card.prepareToShow()
                         }
                     }
 
                     Binding {
                         target: compactLoader.item
+                        property: "overlayTargetPid"
+                        value: holder.pid
+                        when: compactLoader.item !== null && "overlayTargetPid" in compactLoader.item
+                    }
+
+                    Binding {
+                        target: compactLoader.item
                         property: "overlayBackgroundOpacity"
-                        value: overlay.slot === 1 ? (holder.target.fullscreen ? 0.7 : 1) : 0.97
+                        value: overlay.slot === 1 ? (holder.fullscreen ? 0.7 : 1) : 0.97
                         when: compactLoader.item !== null && "overlayBackgroundOpacity" in compactLoader.item
                     }
 
@@ -143,7 +175,7 @@ Item {
                         backgroundHints: PlasmaCore.Dialog.StandardBackground
                         flags: Qt.FramelessWindowHint
                         hideOnWindowDeactivate: false
-                        title: "Konveyor Monitor Panel " + holder.target.windowId + " " + overlay.slot
+                        title: "Konveyor Monitor Panel " + holder.windowId + " " + overlay.slot
 
                         function open() {
                             visible = true
