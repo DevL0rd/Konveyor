@@ -29,20 +29,11 @@ class TestLauncherWindowsQml : public LauncherTest::TestCase
 private:
     QObject *fixture() { return m_harness.singleton("org.kde.taskmanager", "TaskFixture"); }
 
-    bool search(const QString &text)
-    {
-        eval(QStringLiteral("field.text = '%1'; launcher.settleSearch()").arg(text));
-        return QTest::qWaitFor(
-            [this] { return eval(QStringLiteral("launcher.searchSettled && searchLoader.item !== null")).toBool(); }, 30000);
-    }
-
     QObject *openWithWindows(const QVariantMap &settings = {})
     {
         fixture()->setProperty("windows", openWindows);
         return m_harness.openHost(false, settings);
     }
-
-    QVariant results(const QString &expression) { return eval(QStringLiteral("searchLoader.item.") + expression); }
 
     QStringList shown()
     {
@@ -177,6 +168,17 @@ private Q_SLOTS:
         QVERIFY(windowSection().isEmpty());
         m_harness.config()->insert(QStringLiteral("searchWindows"), true);
         TRY_COMPARE(results(QStringLiteral("windowMatches.length")).toInt(), 1);
+    }
+
+    void theResultCountIncludesWindows()
+    {
+        QVERIFY(openWithWindows());
+        QVERIFY(search(QStringLiteral("editor")));
+        QVERIFY(windowRows(2));
+        TRY_VERIFY(!eval(QStringLiteral("launcherData.runner.querying")).toBool());
+        const int with = results(QStringLiteral("totalResults")).toInt();
+        m_harness.config()->insert(QStringLiteral("searchWindows"), false);
+        TRY_COMPARE(results(QStringLiteral("totalResults")).toInt(), with - 2);
     }
 
     void onlyTheAllModeListsWindows_data()

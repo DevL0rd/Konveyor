@@ -306,6 +306,15 @@ protected:
         return host;
     }
 
+    bool search(const QString &text)
+    {
+        eval(QStringLiteral("field.text = '%1'; launcher.settleSearch()").arg(text));
+        return QTest::qWaitFor(
+            [this] { return eval(QStringLiteral("launcher.searchSettled && searchLoader.item !== null")).toBool(); }, 30000);
+    }
+
+    QVariant results(const QString &expression) { return eval(QStringLiteral("searchLoader.item.") + expression); }
+
     bool goTo(const QString &key)
     {
         eval(QStringLiteral("launcher.goToPage('%1')").arg(key));
