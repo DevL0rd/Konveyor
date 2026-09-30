@@ -122,7 +122,10 @@ private Q_SLOTS:
         verifySameFrame(fixture, tabs, QRectF(36, 16, 916, 1048));
         config.layout.tabIndicator.placeWithinColumn = false;
         fixture.setConfig(config);
-        verifySameFrame(fixture, tabs, QRectF(16, 16, 936, 1048));
+        verifySameFrame(fixture, tabs, QRectF(30, 16, 922, 1048));
+        config.layout.tabIndicator.width = 1;
+        fixture.setConfig(config);
+        verifySameFrame(fixture, tabs, QRectF(21, 16, 931, 1048));
     }
 
     void hideWhenSingleTabReservesNothingForOneTab()

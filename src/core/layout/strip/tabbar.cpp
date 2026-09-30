@@ -45,6 +45,16 @@ struct TabLengths
     std::size_t onesLeft;
 };
 
+double thicknessOf(const Config::TabIndicator &config, double scale)
+{
+    return snapToPixelsAtLeastOne(scale, config.width);
+}
+
+double gapOf(const Config::TabIndicator &config, double scale)
+{
+    return std::copysign(snapToPixelsAtLeastOne(scale, std::abs(config.gap)), config.gap);
+}
+
 TabLengths computeLengths(const Config::TabIndicator &config, double side, std::size_t count, double scale, double progress)
 {
     const double pixel = 1.0 / scale;
@@ -85,8 +95,8 @@ QList<QRectF> TabBar::tabRects(QRectF area, std::size_t count, double scale) con
         return rects;
     }
     const double progress = m_openingAnimation ? std::max(m_openingAnimation->value(), 0.0) : 1.0;
-    const double width = snapToPixelsAtLeastOne(scale, m_config.width);
-    const double gap = std::copysign(snapToPixelsAtLeastOne(scale, std::abs(m_config.gap)), m_config.gap);
+    const double width = thicknessOf(m_config, scale);
+    const double gap = gapOf(m_config, scale);
     const bool vertical = isVertical(m_config.position);
     const double side = vertical ? area.height() : area.width();
     TabLengths lengths = computeLengths(m_config, side, count, scale, progress);
@@ -122,20 +132,22 @@ std::optional<std::size_t> TabBar::hit(QRectF area, std::size_t count, double sc
     return std::nullopt;
 }
 
-QSizeF TabBar::reservedSize(std::size_t count, double scale) const
+QSizeF TabBar::reservedSize(std::size_t count, double scale, double gaps) const
 {
-    if (!isShown(count) || !m_config.placeWithinColumn) {
+    if (!isShown(count)) {
         return {0.0, 0.0};
     }
-    const double size = std::max(0.0, snapToPixels(scale, m_config.width) + snapToPixels(scale, m_config.gap));
+    const double gap = gapOf(m_config, scale);
+    const double beside = std::max(0.0, thicknessOf(m_config, scale) + gap);
+    const double size = m_config.placeWithinColumn ? beside : std::max(0.0, beside + std::max(0.0, gap) - gaps);
     return isVertical(m_config.position) ? QSizeF(size, 0.0) : QSizeF(0.0, size);
 }
 
-QPointF TabBar::contentOffset(std::size_t count, double scale) const
+QPointF TabBar::contentOffset(std::size_t count, double scale, double gaps) const
 {
     const auto position = m_config.position;
     if (position == Config::TabIndicatorPosition::Left || position == Config::TabIndicatorPosition::Top) {
-        const QSizeF extra = reservedSize(count, scale);
+        const QSizeF extra = reservedSize(count, scale, gaps);
         return {extra.width(), extra.height()};
     }
     return {0.0, 0.0};

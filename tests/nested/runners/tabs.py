@@ -12,6 +12,9 @@ from kwinsession import active_title, frame, frames, konveyor_action, wait_for
 from screenshot import capture_workspace
 
 COLORS = {"A": (200, 0, 0), "B": (0, 200, 0), "C": (0, 0, 200), "D": (200, 200, 0)}
+ACTIVE = (255, 0, 255)
+INACTIVE = (0, 255, 255)
+GAPS = 16
 
 
 def write_config(position="left", width=8, gap=5):
@@ -28,6 +31,10 @@ def close(pixel, color, tolerance=40):
     return all(abs(a - b) <= tolerance for a, b in zip(pixel[:3], color))
 
 
+def is_tab(pixel):
+    return close(pixel, ACTIVE) or close(pixel, INACTIVE)
+
+
 def pixel(image, x, y):
     x, y = round(x), round(y)
     return image.getpixel((x, y)) if 0 <= x < image.width and 0 <= y < image.height else None
@@ -42,6 +49,20 @@ def shown(title):
 def tabs_share_frame(*titles):
     placed = frames()
     return len({placed.get(title) for title in titles}) == 1
+
+
+def tab_band(title, position, width, gap):
+    x, y, w, h = frame(title)
+    middle = gap + width / 2
+    along = (0.3, 0.4, 0.5, 0.6, 0.7)
+    points = {"left": [(x - middle, y + h * f) for f in along], "right": [(x + w + middle, y + h * f) for f in along],
+              "top": [(x + w * f, y - middle) for f in along], "bottom": [(x + w * f, y + h + middle) for f in along]}
+    return points[position]
+
+
+def band_painted(title, position, width, gap):
+    image = screenshot()
+    return all(value is not None and is_tab(value) for value in (pixel(image, *point) for point in tab_band(title, position, width, gap)))
 
 
 def make_tabs():
@@ -64,8 +85,25 @@ def switching_tabs_changes_the_shown_window(checks):
     checks.expect(wait_for(lambda: shown("B"), 30, 0.3), "switching back shows B")
 
 
+def room_beside(title, position):
+    x, y, w, h = frame(title)
+    rooms = {"left": x, "right": frame("C")[0] - (x + w), "top": y, "bottom": 1080 - (y + h)}
+    return rooms[position]
+
+
+def thick_tabs_get_room(checks):
+    for position in ("left", "right", "top", "bottom"):
+        write_config(position=position, width=32, gap=5)
+        painted = wait_for(lambda: band_painted("B", position, 32, 5), 30, 0.3)
+        checks.expect(painted, f"a 32 pixel {position} tab indicator is fully visible beside the window")
+        room = room_beside("B", position)
+        checks.expect(room >= 5 + 32 + 5, f"the window keeps room for a 32 pixel {position} indicator and its distance on both sides ({room})")
+    write_config()
+    checks.expect(wait_for(lambda: room_beside("B", "left") == GAPS, 30), "a thin indicator fits in the gap and moves nothing")
+
+
 def main():
-    Checks().run(switching_tabs_changes_the_shown_window)
+    Checks().run(switching_tabs_changes_the_shown_window, thick_tabs_get_room)
 
 
 if __name__ == "__main__":

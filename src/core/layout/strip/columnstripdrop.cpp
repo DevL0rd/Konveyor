@@ -171,7 +171,7 @@ QSize ColumnStrip::initialWindowSize(const std::optional<Config::PresetSize> &wi
     const auto display = rules.defaultColumnDisplay.value_or(m_options->layout.defaultColumnDisplay);
     QSizeF extra(0.0, 0.0);
     if (display == Config::ColumnDisplay::Tabbed) {
-        extra = TabBar(m_options->layout.tabIndicator).reservedSize(1, m_area.scale);
+        extra = TabBar(m_options->layout.tabIndicator).reservedSize(1, m_area.scale, m_options->layout.gaps);
     }
 
     const auto resolve = [&](const Config::PresetSize &preset, double available, double extent) {

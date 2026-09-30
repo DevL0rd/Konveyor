@@ -29,8 +29,8 @@ public:
     QList<QRectF> tabRects(QRectF area, std::size_t count, double scale) const;
     bool isShown(std::size_t count) const;
     std::optional<std::size_t> hit(QRectF area, std::size_t count, double scale, QPointF point) const;
-    QSizeF reservedSize(std::size_t count, double scale) const;
-    QPointF contentOffset(std::size_t count, double scale) const;
+    QSizeF reservedSize(std::size_t count, double scale, double gaps) const;
+    QPointF contentOffset(std::size_t count, double scale, double gaps) const;
 
 private:
     Config::TabIndicator m_config;

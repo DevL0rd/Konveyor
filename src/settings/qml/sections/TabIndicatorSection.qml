@@ -50,7 +50,7 @@ ColumnLayout {
             enabled: root.shown
             subPaths: ["position", "place-within-column"]
             label: "Placement"
-            description: "Click a side of the column. Inside the column puts the marks over the window instead of in the gap."
+            description: "Click a side of the column. Inside the column shrinks the window to make room for the marks. Outside, they sit in the gap, which widens when they do not fit."
             iconName: "align-vertical-center"
 
             ColumnLayout {

@@ -7,6 +7,8 @@ Q_DECLARE_METATYPE(Config::TabIndicatorPosition)
 namespace
 {
 
+const QRectF Screen(0, 0, 1920, 1080);
+
 Config::Config tabbedConfig(Config::TabIndicatorPosition position, double width, double gap)
 {
     Config::Config config = instantConfig();
@@ -36,6 +38,19 @@ int topmostTab(Fixture &fixture, const QList<Layout::WindowId> &tabs)
         }
     }
     return top;
+}
+
+double distance(const QRectF &a, const QRectF &b)
+{
+    const double dx = std::max({0.0, b.left() - a.right(), a.left() - b.right()});
+    const double dy = std::max({0.0, b.top() - a.bottom(), a.top() - b.bottom()});
+    return std::max(dx, dy);
+}
+
+bool beside(const QRectF &a, const QRectF &b, Config::TabIndicatorPosition position)
+{
+    const bool vertical = position == Config::TabIndicatorPosition::Left || position == Config::TabIndicatorPosition::Right;
+    return vertical ? a.top() < b.bottom() && b.top() < a.bottom() : a.left() < b.right() && b.left() < a.right();
 }
 
 }
@@ -70,6 +85,117 @@ private Q_SLOTS:
         fixture.engine().activateWindow(*clicked);
         fixture.settle();
         QCOMPARE(topmostTab(fixture, tabs), 0);
+    }
+
+    void outsideTabsKeepTheirDistanceFromEverything_data()
+    {
+        QTest::addColumn<Config::TabIndicatorPosition>("position");
+        QTest::addColumn<double>("width");
+        QTest::addColumn<double>("gap");
+        const QList<std::pair<const char *, Config::TabIndicatorPosition>> positions {{"left", Config::TabIndicatorPosition::Left},
+            {"right", Config::TabIndicatorPosition::Right}, {"top", Config::TabIndicatorPosition::Top},
+            {"bottom", Config::TabIndicatorPosition::Bottom}};
+        for (const auto &[name, position] : positions) {
+            for (const double width : {1.0, 4.0, 12.0, 32.0, 100.0}) {
+                for (const double gap : {0.0, 5.0, 20.0}) {
+                    QTest::addRow("%s width %g gap %g", name, width, gap) << position << width << gap;
+                }
+            }
+        }
+    }
+
+    void outsideTabsKeepTheirDistanceFromEverything()
+    {
+        QFETCH(Config::TabIndicatorPosition, position);
+        QFETCH(double, width);
+        QFETCH(double, gap);
+        Fixture fixture(tabbedConfig(position, width, gap));
+        const auto before = fixture.add(QStringLiteral("before"));
+        fixture.perform(QStringLiteral("toggle-column-tabbed-display"));
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
+        const auto after = fixture.add(QStringLiteral("after"));
+        fixture.perform(QStringLiteral("toggle-column-tabbed-display"));
+        fixture.perform(QStringLiteral("focus-column-left"));
+        fixture.advance(1);
+        const Layout::TabBarState bar = fixture.state(tabs[1]).tabBar;
+        QVERIFY(bar.visible);
+        const QRectF window = fixture.frame(tabs[1]);
+        for (const QRectF &rect : bar.tabRects) {
+            QVERIFY2(Screen.contains(rect), qPrintable(QStringLiteral("tab %1 leaves the output").arg(QDebug::toString(rect))));
+            QCOMPARE(distance(rect, window), gap);
+            QVERIFY(!rect.intersects(window));
+            for (const Layout::WindowId other : {before, after}) {
+                const QRectF otherFrame = fixture.frame(other);
+                if (beside(rect, otherFrame, position)) {
+                    QVERIFY2(distance(rect, otherFrame) >= gap,
+                        qPrintable(QStringLiteral("tab %1 is closer than %2 to %3")
+                                .arg(QDebug::toString(rect))
+                                .arg(gap)
+                                .arg(QDebug::toString(otherFrame))));
+                }
+            }
+        }
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void outsideTabsThatFitInTheGapMoveNothing()
+    {
+        Fixture fixture(tabbedConfig(Config::TabIndicatorPosition::Left, 4, 5));
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
+        QCOMPARE(fixture.frame(tabs[1]), QRectF(16, 16, 936, 1048));
+    }
+
+    void thickOutsideTabsMoveTheWindowAndItsNeighbours_data()
+    {
+        QTest::addColumn<Config::TabIndicatorPosition>("position");
+        QTest::addColumn<QRectF>("frame");
+        QTest::addColumn<QPointF>("nextOrigin");
+        QTest::newRow("left") << Config::TabIndicatorPosition::Left << QRectF(42, 16, 910, 1048) << QPointF(968, 16);
+        QTest::newRow("right") << Config::TabIndicatorPosition::Right << QRectF(16, 16, 910, 1048) << QPointF(968, 16);
+        QTest::newRow("top") << Config::TabIndicatorPosition::Top << QRectF(16, 42, 936, 1022) << QPointF(968, 16);
+        QTest::newRow("bottom") << Config::TabIndicatorPosition::Bottom << QRectF(16, 16, 936, 1022) << QPointF(968, 16);
+    }
+
+    void thickOutsideTabsMoveTheWindowAndItsNeighbours()
+    {
+        QFETCH(Config::TabIndicatorPosition, position);
+        QFETCH(QRectF, frame);
+        QFETCH(QPointF, nextOrigin);
+        Fixture fixture(tabbedConfig(position, 32, 5));
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
+        QCOMPARE(fixture.frame(tabs[0]), frame);
+        QCOMPARE(fixture.frame(tabs[1]), frame);
+        fixture.perform(QStringLiteral("toggle-column-tabbed-display"));
+        QCOMPARE(fixture.frame(tabs[0]).height() + fixture.frame(tabs[1]).height(), 1048.0 - 16.0);
+        fixture.perform(QStringLiteral("toggle-column-tabbed-display"));
+        const auto next = fixture.add(QStringLiteral("next"));
+        fixture.perform(QStringLiteral("toggle-column-tabbed-display"));
+        QCOMPARE(fixture.frame(next).topLeft(), nextOrigin);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void thicknessChangesMoveTheWindowLive()
+    {
+        Config::Config config = tabbedConfig(Config::TabIndicatorPosition::Left, 4, 5);
+        Fixture fixture(config);
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
+        QCOMPARE(fixture.frame(tabs[1]), QRectF(16, 16, 936, 1048));
+        config.layout.tabIndicator.width = 32;
+        fixture.setConfig(config);
+        QCOMPARE(fixture.frame(tabs[1]), QRectF(42, 16, 910, 1048));
+        config.layout.gaps = 50;
+        fixture.setConfig(config);
+        QCOMPARE(fixture.frame(tabs[1]), QRectF(50, 50, 885, 980));
+        config.layout.tabIndicator.enabled = false;
+        fixture.setConfig(config);
+        QCOMPARE(fixture.frame(tabs[1]), QRectF(50, 50, 885, 980));
+        config.layout.gaps = 16;
+        config.layout.tabIndicator.enabled = true;
+        config.layout.tabIndicator.hideWhenSingleTab = true;
+        fixture.setConfig(config);
+        QCOMPARE(fixture.frame(tabs[1]), QRectF(42, 16, 910, 1048));
+        fixture.remove(tabs[0]);
+        QCOMPARE(fixture.frame(tabs[1]), QRectF(16, 16, 936, 1048));
     }
 };
 
