@@ -96,6 +96,7 @@ public:
     bool moveLeft();
     bool moveRight();
     void placeColumnWithinPins(std::size_t from);
+    void placeColumnsWithinPins();
     void activateAfterRemovingActive(std::size_t removedIndex, const Config::AnimationParams &viewConfig);
     DropSlot unpinnedDropSlotAt(QPointF pos) const;
     std::size_t allowedColumnIndex(

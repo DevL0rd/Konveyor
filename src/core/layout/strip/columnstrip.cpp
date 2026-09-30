@@ -88,7 +88,24 @@ void ColumnStrip::refresh(bool isActive)
             window.setInteractiveResize(resizeData);
         }
     }
+    placeColumnsWithinPins();
     reconcileView();
+}
+
+void ColumnStrip::placeColumnsWithinPins()
+{
+    for (std::size_t moves = 0; moves < m_columns.size(); ++moves) {
+        std::optional<std::size_t> misplaced;
+        for (std::size_t idx = 0; idx < m_columns.size() && !misplaced; ++idx) {
+            if (allowedColumnIndex(m_columns[idx].pinnedPosition(), idx, idx) != idx) {
+                misplaced = idx;
+            }
+        }
+        if (!misplaced) {
+            return;
+        }
+        placeColumnWithinPins(*misplaced);
+    }
 }
 
 void ColumnStrip::tickAnimations()

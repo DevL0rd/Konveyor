@@ -108,10 +108,17 @@ QString ColumnStrip::verifyArea() const
 
 QString ColumnStrip::verifyColumns() const
 {
+    int previousRank = 0;
     for (const Column &column : m_columns) {
         if (const QString error = columnError(column); !error.isEmpty()) {
             return error;
         }
+        const std::optional<Config::ColumnPosition> pin = column.pinnedPosition();
+        const int rank = pin == Config::ColumnPosition::Start ? 0 : (pin == Config::ColumnPosition::End ? 2 : 1);
+        if (rank < previousRank) {
+            return QStringLiteral("scrolling: column %1 is outside its pinned end of the row").arg(column.id());
+        }
+        previousRank = rank;
     }
     return {};
 }

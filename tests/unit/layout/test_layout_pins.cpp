@@ -149,6 +149,25 @@ private Q_SLOTS:
         QCOMPARE(fixture.frame(later).x(), 16.0);
         QCOMPARE(fixture.focused(), std::optional(later));
     }
+    void columnThatLosesItsPinnedWindowLeavesThePinnedEnd()
+    {
+        Config::Config config = pinnedConfig(instantConfig(), QStringLiteral("pinned"), Config::ColumnPosition::End);
+        config.layout.newWindowPlacement = Config::NewWindowPlacement::Stack;
+        config.layout.maxRowsPerColumn = 2;
+        Fixture fixture(config);
+        const auto host = fixture.add(QStringLiteral("pinned"));
+        Client unchanging;
+        unchanging.fixedSize = QSizeF(500, 400);
+        const auto guest = fixture.addClient(makeWindow(QStringLiteral("guest")), unchanging);
+        const auto other = fixture.add(QStringLiteral("pinned"));
+        QCOMPARE(fixture.state(guest).columnIndex, fixture.state(host).columnIndex);
+        fixture.engine().activateWindow(host);
+        QVERIFY(fixture.perform(QStringLiteral("move-column-right")).ok);
+        QCOMPARE(rowOrder(fixture, {host, other}), (QList<Layout::WindowId> {other, host}));
+        fixture.remove(host);
+        QCOMPARE(rowOrder(fixture, {guest, other}), (QList<Layout::WindowId> {guest, other}));
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutPins)
