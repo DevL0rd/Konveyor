@@ -187,7 +187,7 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(s.fixture);
     }
 
-    void namedWorkspaceMovedToAnotherMonitorGoesHomeThereAfterAReplug()
+    void namedWorkspaceMovedToAnotherMonitorStillGoesHomeAfterAReplug()
     {
         OnSecondary s(namedOnSecondary());
         QVERIFY(s.fixture.perform(QStringLiteral("focus-workspace"), {QStringLiteral("mail")}).ok);
@@ -195,9 +195,76 @@ private Q_SLOTS:
         QVERIFY(namesOn(s.fixture, Primary).contains(QStringLiteral("mail")));
         s.fixture.removeOutput(Primary);
         s.fixture.addOutput(Primary, QRectF(0, 0, 1920, 1080));
+        QVERIFY(!namesOn(s.fixture, Primary).contains(QStringLiteral("mail")));
+        QVERIFY(namesOn(s.fixture, Secondary).contains(QStringLiteral("mail")));
+        QVERIFY(s.fixture.perform(QStringLiteral("focus-workspace"), {QStringLiteral("mail")}).ok);
+        QVERIFY(s.fixture.perform(QStringLiteral("move-workspace-to-monitor"), {Primary}).ok);
+        s.replug();
+        QVERIFY(namesOn(s.fixture, Secondary).contains(QStringLiteral("mail")));
+        QVERIFY(!namesOn(s.fixture, Primary).contains(QStringLiteral("mail")));
+        VERIFY_INVARIANTS(s.fixture);
+    }
+
+    void workspaceMovedToAnotherMonitorGoesHomeWhenItsMonitorReturns()
+    {
+        OnSecondary s;
+        QVERIFY(s.fixture.perform(QStringLiteral("move-workspace-to-monitor"), {Primary}).ok);
+        QCOMPARE(s.fixture.state(s.window).output, Primary);
+        s.replug();
+        QCOMPARE(s.fixture.state(s.window).output, Secondary);
+        VERIFY_INVARIANTS(s.fixture);
+    }
+
+    void movedWorkspaceGivenANewWindowKeepsItsHome()
+    {
+        OnSecondary s;
+        QVERIFY(s.fixture.perform(QStringLiteral("move-workspace-to-monitor"), {Primary}).ok);
+        const auto added = s.fixture.add(QStringLiteral("b"));
+        QCOMPARE(s.fixture.state(added).workspace, s.fixture.state(s.window).workspace);
+        s.replug();
+        QCOMPARE(s.fixture.state(s.window).output, Secondary);
+        QCOMPARE(s.fixture.state(added).output, Secondary);
+        VERIFY_INVARIANTS(s.fixture);
+    }
+
+    void workspaceMovedToAThirdMonitorGoesHomeFromThere()
+    {
+        OnSecondary s;
+        s.fixture.addOutput(QStringLiteral("DP-3"), QRectF(3840, 0, 1920, 1080));
+        QVERIFY(s.fixture.perform(QStringLiteral("move-workspace-to-monitor"), {QStringLiteral("DP-3")}).ok);
+        QCOMPARE(s.fixture.state(s.window).output, QStringLiteral("DP-3"));
+        s.replug();
+        QCOMPARE(s.fixture.state(s.window).output, Secondary);
+        VERIFY_INVARIANTS(s.fixture);
+    }
+
+    void changingOpenOnOutputMovesTheNamedWorkspaceHome()
+    {
+        Config::Config config = namedOnSecondary();
+        OnSecondary s(config);
+        QVERIFY(namesOn(s.fixture, Secondary).contains(QStringLiteral("mail")));
+        config.workspaces[1].openOnOutput = Primary;
+        s.fixture.setConfig(config);
+        QVERIFY(namesOn(s.fixture, Primary).contains(QStringLiteral("mail")));
+        QVERIFY(namesOn(s.fixture, Secondary).contains(QStringLiteral("chat")));
+        s.replug();
         QVERIFY(namesOn(s.fixture, Primary).contains(QStringLiteral("mail")));
         QVERIFY(!namesOn(s.fixture, Secondary).contains(QStringLiteral("mail")));
         VERIFY_INVARIANTS(s.fixture);
+    }
+
+    void namedWorkspaceWaitingForItsOutputFollowsANewOpenOnOutput()
+    {
+        Config::Config config = namedOnSecondary();
+        Fixture fixture(config);
+        config.workspaces[0].openOnOutput = QStringLiteral("DP-3");
+        fixture.setConfig(config);
+        fixture.addOutput(Secondary, SecondaryGeometry);
+        QVERIFY(!namesOn(fixture, Secondary).contains(QStringLiteral("chat")));
+        QVERIFY(namesOn(fixture, Secondary).contains(QStringLiteral("mail")));
+        fixture.addOutput(QStringLiteral("DP-3"), QRectF(3840, 0, 1920, 1080));
+        QVERIFY(namesOn(fixture, QStringLiteral("DP-3")).contains(QStringLiteral("chat")));
+        VERIFY_INVARIANTS(fixture);
     }
 };
 

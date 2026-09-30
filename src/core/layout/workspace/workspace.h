@@ -62,8 +62,11 @@ public:
     bool hasWindow(WindowId id) const;
     bool isUrgent() const;
 
-    const QString &homeOutput() const { return m_homeOutput; }
-    void setHomeOutput(const QString &outputId) { m_homeOutput = outputId; }
+    int homeAffinity(const OutputArea &area) const;
+    bool homeUnplugged() const { return m_homeUnplugged; }
+    void markHomeUnplugged() { m_homeUnplugged = true; }
+    void makeHome(const OutputArea &area);
+    void setConfiguredHome(const QString &reference);
     const QString &outputName() const { return m_area.outputName; }
     bool hasOutput() const { return !m_area.outputName.isEmpty(); }
     const OutputArea &area() const { return m_area; }
@@ -211,7 +214,11 @@ private:
     void rememberRestoreToFloating(WindowId window, bool wasNormal, bool restore);
     void storeFloatingPosition(std::optional<WindowId> window, PositionChange x, PositionChange y);
 
+    void resolveHomeByConnector();
+
     QString m_homeOutput;
+    QString m_homeConnector;
+    bool m_homeUnplugged = false;
     QString m_name;
     OutputArea m_area;
     Anim::Clock m_clock;

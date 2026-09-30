@@ -110,8 +110,8 @@ std::size_t Monitor::resolveAddWorkspace(const MonitorAddTarget &target, AddTarg
 
 void Monitor::ownWorkspace(std::size_t idx)
 {
-    if (m_workspaces[idx].name().isEmpty()) {
-        m_workspaces[idx].setHomeOutput(m_area.outputId);
+    if (m_workspaces[idx].name().isEmpty() && m_workspaces[idx].homeUnplugged()) {
+        m_workspaces[idx].makeHome(m_area);
     }
 }
 
@@ -121,7 +121,8 @@ std::vector<Workspace> Monitor::takeWorkspacesForOutput(const OutputArea &target
     bool stoppedSwitch = false;
     for (std::size_t i = m_workspaces.size(); i > 0; --i) {
         const std::size_t idx = i - 1;
-        if (!outputMatches(target, m_workspaces[idx].homeOutput()) || !m_workspaces[idx].isOccupiedOrNamed()) {
+        const Workspace &candidate = m_workspaces[idx];
+        if (candidate.homeAffinity(target) <= candidate.homeAffinity(m_area) || !candidate.isOccupiedOrNamed()) {
             continue;
         }
         Workspace workspace = std::move(m_workspaces[idx]);

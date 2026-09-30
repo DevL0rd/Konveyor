@@ -155,7 +155,6 @@ void Engine::Private::moveWorkspaceToMonitor(std::size_t monitorIndex)
     }
     const std::size_t sourceIndex = std::min(activeMonitorIndex, monitors.size() - 1);
     Workspace workspace = monitors[sourceIndex].detachWorkspaceAt(monitors[sourceIndex].activeWorkspaceIndex());
-    workspace.setHomeOutput(monitors[monitorIndex].area().outputId);
     const std::size_t insertAt = monitors[monitorIndex].workspaces().size();
     monitors[monitorIndex].insertWorkspace(std::move(workspace), insertAt, true);
     activeMonitorIndex = monitorIndex;

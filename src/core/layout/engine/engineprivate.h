@@ -126,6 +126,10 @@ struct Engine::Private
     bool resolveWorkspaceRules(Workspace &workspace, std::vector<WindowId> &changed);
     void ensureNamedWorkspaces();
     void applyNamedWorkspaceLayouts();
+    void applyNamedWorkspaceHomes(const QList<Config::NamedWorkspace> &previous);
+    std::optional<std::size_t> homeMonitorOf(const Workspace &workspace) const;
+    void sendHome(std::vector<Workspace> workspaces);
+    void moveHome(WorkspaceId id);
     void forgetRemovedWorkspaceNames(const QList<Config::NamedWorkspace> &previous);
     void applyOptions();
 

@@ -45,6 +45,7 @@ void Engine::setConfig(const Config::Config &config)
     d->forgetRemovedWorkspaceNames(previousNamed);
     d->applyOptions();
     d->applyNamedWorkspaceLayouts();
+    d->applyNamedWorkspaceHomes(previousNamed);
     for (std::size_t idx = 0; idx < previous.size(); ++idx) {
         d->reflowMonitorLayout(d->monitors[idx], previous[idx]);
     }
@@ -93,7 +94,9 @@ void Engine::addOutput(const OutputInfo &output)
         taken = std::move(d->orphanWorkspaces);
         d->orphanWorkspaces.clear();
     } else {
-        taken = d->monitors[0].takeWorkspacesForOutput(area);
+        for (Monitor &monitor : d->monitors) {
+            std::ranges::move(monitor.takeWorkspacesForOutput(area), std::back_inserter(taken));
+        }
     }
 
     std::optional<WorkspaceId> toActivate;
@@ -142,14 +145,7 @@ void Engine::removeOutput(const QString &name)
         d->activeMonitorIndex -= 1;
     }
 
-    if (d->monitors.empty()) {
-        for (Workspace &workspace : workspaces) {
-            workspace.updateConfig(d->options);
-        }
-        d->orphanWorkspaces = std::move(workspaces);
-    } else {
-        d->monitors[0].appendWorkspaces(std::move(workspaces));
-    }
+    d->sendHome(std::move(workspaces));
     if (draggedHere && d->windowDrag) {
         d->moveDragToActiveOutput();
     }

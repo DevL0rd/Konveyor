@@ -26,17 +26,10 @@ OptionsPtr resolveOptions(const OptionsPtr &base, const std::optional<Config::La
 
 }
 
-bool outputMatches(const OutputArea &area, const QString &reference)
-{
-    if (reference.isEmpty()) {
-        return false;
-    }
-    return reference.compare(area.outputName, Qt::CaseInsensitive) == 0 || reference.compare(area.outputId, Qt::CaseInsensitive) == 0;
-}
-
 Workspace::Workspace(
     const OutputArea &area, const Anim::Clock &clock, OptionsPtr globalOptions, std::optional<Config::NamedWorkspace> config)
     : m_homeOutput(config && config->openOnOutput ? *config->openOnOutput : area.outputId)
+    , m_homeConnector(config && config->openOnOutput ? QString() : area.outputName)
     , m_name(config ? config->name : QString())
     , m_area(area)
     , m_clock(clock)
@@ -46,7 +39,9 @@ Workspace::Workspace(
     , m_strip(area.viewSize, area.workingArea, area.scale, clock, m_options)
     , m_floating(area.viewSize, area.workingArea, area.scale, clock, m_options)
     , m_id(s_nextWorkspaceId++)
-{ }
+{
+    resolveHomeByConnector();
+}
 
 void Workspace::applyOptions()
 {
@@ -67,8 +62,9 @@ void Workspace::setOutput(const OutputArea &area)
         return;
     }
     m_area = area;
-    if (outputMatches(m_area, m_homeOutput)) {
-        m_homeOutput = m_area.outputId;
+    resolveHomeByConnector();
+    if (homeAffinity(m_area) == 2) {
+        m_homeUnplugged = false;
     }
     applyOptions();
 }
