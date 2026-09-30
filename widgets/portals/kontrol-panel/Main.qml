@@ -48,13 +48,15 @@ Item {
 
     onOpenChanged: service.setOpen(open)
 
-    Component.onCompleted: {
+    function openPageOnStart() {
         const page = config.openPageOnStart
         if (page !== "" && service.konveyorRunning()) {
             config.openPageOnStart = ""
             handleRequest(page)
         }
     }
+
+    Component.onCompleted: openPageOnStart()
 
     Connections {
         target: root.service
@@ -73,6 +75,9 @@ Item {
         }
         function onConfigureRequested() {
             root.configure()
+        }
+        function onKonveyorStarted() {
+            root.openPageOnStart()
         }
     }
 

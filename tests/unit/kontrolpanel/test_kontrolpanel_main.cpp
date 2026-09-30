@@ -203,6 +203,28 @@ private Q_SLOTS:
         QCOMPARE(config.group(QStringLiteral("General")).readEntry("appsCategory"), QStringLiteral("shortcuts"));
     }
 
+    void theRequestedPageOpensWhenKonveyorStartsAfterThePanelAndOnlyOnce()
+    {
+        useRealMainWithPageRecordingOverlay();
+        QVERIFY(writeFile(configPath(), "[General]\nopenPageOnStart=shortcuts\n"));
+        start();
+        QDBusInterface panel(busName, QStringLiteral("/KontrolPanel"), busName, QDBusConnection::sessionBus());
+        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), false);
+        const auto reply = [](const QDBusMessage &message) { return message.createReply(); };
+        auto konveyor = std::make_unique<FakeService>(QStringLiteral("org.kde.Konveyor"), QStringLiteral("/Konveyor"), reply);
+        QVERIFY(konveyor->start(m_session->address()));
+        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), true);
+        const KConfig config(configPath(), KConfig::SimpleConfig);
+        QCOMPARE(config.group(QStringLiteral("General")).readEntry("openPageOnStart"), QString());
+        QCOMPARE(config.group(QStringLiteral("General")).readEntry("appsCategory"), QStringLiteral("shortcuts"));
+
+        QCOMPARE(panel.call(QStringLiteral("Hide")).type(), QDBusMessage::ReplyMessage);
+        konveyor.reset();
+        konveyor = std::make_unique<FakeService>(QStringLiteral("org.kde.Konveyor"), QStringLiteral("/Konveyor"), reply);
+        QVERIFY(konveyor->start(m_session->address()));
+        QCOMPARE(QDBusReply<bool>(panel.call(QStringLiteral("IsOpen"))).value(), false);
+    }
+
     void portalLauncherStartsTheServiceAndItOpensOnThePage()
     {
         useRealMainWithPageRecordingOverlay();

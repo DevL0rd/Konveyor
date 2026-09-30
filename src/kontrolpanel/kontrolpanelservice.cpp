@@ -15,7 +15,10 @@ namespace Konveyor
 
 KontrolPanelService::KontrolPanelService(QObject *parent)
     : QObject(parent)
-{ }
+    , m_konveyor(QStringLiteral("org.kde.Konveyor"), QDBusConnection::sessionBus(), QDBusServiceWatcher::WatchForRegistration)
+{
+    connect(&m_konveyor, &QDBusServiceWatcher::serviceRegistered, this, &KontrolPanelService::konveyorStarted);
+}
 
 bool KontrolPanelService::registerOn(QDBusConnection bus)
 {

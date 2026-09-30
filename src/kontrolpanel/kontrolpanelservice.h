@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDBusConnection>
+#include <QDBusServiceWatcher>
 #include <QObject>
 #include <QRegion>
 #include <QStringList>
@@ -50,9 +51,11 @@ Q_SIGNALS:
     void pinRequested(const QStringList &files);
     void configureRequested();
     void openChanged();
+    void konveyorStarted();
 
 private:
     Plasma::Theme m_theme;
+    QDBusServiceWatcher m_konveyor;
     bool m_open = false;
 };
 
