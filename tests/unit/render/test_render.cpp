@@ -148,6 +148,45 @@ private Q_SLOTS:
         QVERIFY(qRed(image.pixel(10, 2)) < 20);
         QVERIFY(qRed(image.pixel(10, 97)) > 235);
     }
+
+    void gradientAnglePointsFromTheFromColorToTheToColor_data()
+    {
+        QTest::addColumn<double>("angle");
+        QTest::addColumn<QPoint>("dark");
+        QTest::addColumn<QPoint>("bright");
+        QTest::newRow("0 runs bottom to top") << 0.0 << QPoint(50, 97) << QPoint(50, 2);
+        QTest::newRow("45 runs to the top right") << 45.0 << QPoint(2, 97) << QPoint(97, 2);
+        QTest::newRow("135 runs to the bottom right") << 135.0 << QPoint(2, 2) << QPoint(97, 97);
+        QTest::newRow("225 runs to the bottom left") << 225.0 << QPoint(97, 2) << QPoint(2, 97);
+        QTest::newRow("270 runs right to left") << 270.0 << QPoint(97, 50) << QPoint(2, 50);
+        QTest::newRow("315 runs to the top left") << 315.0 << QPoint(97, 97) << QPoint(2, 2);
+    }
+
+    void gradientAnglePointsFromTheFromColorToTheToColor()
+    {
+        QFETCH(double, angle);
+        QFETCH(QPoint, dark);
+        QFETCH(QPoint, bright);
+        Render::BorderSpec spec;
+        spec.size = {100, 100};
+        spec.gradient = Config::Gradient {Qt::black, Qt::white, angle};
+        spec.gradientRect = {0, 0, 100, 100};
+        const QImage image = Render::renderBorder(spec);
+        QVERIFY2(qRed(image.pixel(dark)) < 20, qPrintable(QString::number(qRed(image.pixel(dark)))));
+        QVERIFY2(qRed(image.pixel(bright)) > 235, qPrintable(QString::number(qRed(image.pixel(bright)))));
+    }
+
+    void gradientRelativeToTheWorkspaceViewShowsTheWindowsSlice()
+    {
+        Render::BorderSpec spec;
+        spec.size = {100, 20};
+        spec.gradient = Config::Gradient {Qt::black, Qt::white, 90};
+        spec.gradientRect = {0, 0, 200, 20};
+        spec.geometryOffset = {100, 0};
+        const QImage image = Render::renderBorder(spec);
+        QVERIFY(std::abs(qRed(image.pixel(0, 10)) - 128) < 6);
+        QVERIFY(qRed(image.pixel(99, 10)) > 250);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestRender)
