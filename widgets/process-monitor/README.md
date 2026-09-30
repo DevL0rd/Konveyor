@@ -12,10 +12,10 @@ type to filter.
 A single resident helper (`bin/procmon-collect`) does all the work, exactly like
 the router/log collectors:
 
-* **One systemd `--user` service** (`linux-process-mon.service`) samples `/proc`
+* **One systemd `--user` service** (`konveyor-widgets.service`) samples `/proc`
   and the GPU once per interval and writes a JSON snapshot to
   `$XDG_RUNTIME_DIR/Linux-Process-Mon/data.json`.
-* **Pinned to the E-cores** (`CPUAffinity` from `bin/procmon-ecores`) and
+* **Pinned to the E-cores** (`CPUAffinity` from `service/konveyor-widgets-ecores`) and
   `Nice=19`, so it stays out of the way of foreground work.
 * **The widget reads the snapshot in-process** via `file://` XHR (needs
   `QML_XHR_ALLOW_FILE_READ=1`, set by `install.sh` via `environment.d`) -- no
