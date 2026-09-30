@@ -1,5 +1,6 @@
 #pragma once
 
+#include "anim/duration.h"
 #include "config/types.h"
 #include "layout/engine/windowmemory.h"
 
@@ -254,6 +255,8 @@ public:
     void setWindowMemory(const WindowMemory &memory);
     const WindowMemory &windowMemory() const;
     bool isOverviewOpen() const;
+    Anim::Duration timeUntilStartupEnds() const;
+    void refreshRules();
     void setOverviewOpen(bool open);
 
     QString checkConsistency() const;

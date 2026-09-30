@@ -82,6 +82,7 @@ struct Engine::Private
     std::optional<WindowId> resizeWindow;
     bool overviewOpen = false;
     Anim::Duration startupTime;
+    bool rulesAtStartup = true;
     WindowMemory windowMemory;
 
     bool atStartup() const;

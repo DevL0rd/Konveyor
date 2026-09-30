@@ -67,6 +67,16 @@ bool Engine::Private::atStartup() const
     return Anim::saturatingSub(clock.rawNow(), startupTime) < Anim::Duration(StartupWindow);
 }
 
+Anim::Duration Engine::timeUntilStartupEnds() const
+{
+    return Anim::saturatingSub(Anim::saturatingAdd(d->startupTime, Anim::Duration(StartupWindow)), d->clock.rawNow());
+}
+
+void Engine::refreshRules()
+{
+    d->refresh();
+}
+
 void Engine::addOutput(const OutputInfo &output)
 {
     if (d->monitorIndexByName(output.name)) {

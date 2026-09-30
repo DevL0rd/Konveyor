@@ -55,6 +55,14 @@ void Engine::Private::updateFocus()
 
 void Engine::Private::resolveRules()
 {
+    if (rulesAtStartup != atStartup()) {
+        rulesAtStartup = atStartup();
+        for (Workspace *workspace : allWorkspaces()) {
+            for (const TileRef &ref : workspace->renderedTilesMut(false)) {
+                ref.tile->window().markRulesDirty();
+            }
+        }
+    }
     for (Workspace *workspace : allWorkspaces()) {
         std::vector<WindowId> changed;
         const bool reapplyWidths = resolveWorkspaceRules(*workspace, changed);

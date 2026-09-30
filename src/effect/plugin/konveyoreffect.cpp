@@ -22,6 +22,10 @@ KonveyorEffect::KonveyorEffect()
     d->memorySaveTimer.setSingleShot(true);
     d->memorySaveTimer.setInterval(memorySaveDelayMs);
     connect(&d->memorySaveTimer, &QTimer::timeout, this, [this] { d->memoryStore.save(readEngine().windowMemory()); });
+    d->startupRulesTimer.setSingleShot(true);
+    d->startupRulesTimer.setTimerType(Qt::PreciseTimer);
+    connect(&d->startupRulesTimer, &QTimer::timeout, this, [this] { changeEngine().refreshRules(); });
+    d->startupRulesTimer.start(std::chrono::ceil<std::chrono::milliseconds>(readEngine().timeUntilStartupEnds()));
     d->engine.setWindowMemory(d->memoryStore.load());
     connect(&d->config, &ConfigManager::configChanged, this, &KonveyorEffect::applyConfig);
     connect(&d->accent, &AccentColor::changed, this, &KonveyorEffect::scheduleFlush);

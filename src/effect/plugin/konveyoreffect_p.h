@@ -102,6 +102,7 @@ struct KonveyorEffect::Private
     QTimer flushTimer;
     QTimer animationTimer;
     QTimer memorySaveTimer;
+    QTimer startupRulesTimer;
     WindowMemoryStore memoryStore;
     bool animating = false;
     QSet<KWin::ElectricBorder> reservedCorners;
