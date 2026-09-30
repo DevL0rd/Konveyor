@@ -1,5 +1,5 @@
+import os
 import subprocess
-import tempfile
 import time
 from functools import cache
 from pathlib import Path
@@ -9,7 +9,8 @@ CLIENTS = Path(__file__).resolve().parent.parent / "clients"
 
 @cache
 def binary():
-    build = Path(tempfile.mkdtemp(prefix="konveyor-fakepointer-"))
+    build = Path(os.environ["KONVEYOR_TEST_ROOT"]) / "fakepointer"
+    build.mkdir(exist_ok=True)
     protocol = CLIENTS / "fake-input.xml"
     subprocess.run(["wayland-scanner", "client-header", protocol, build / "fake-input-client-protocol.h"], check=True)
     subprocess.run(["wayland-scanner", "private-code", protocol, build / "fake-input-protocol.c"], check=True)
@@ -18,18 +19,20 @@ def binary():
     return output
 
 
-def move(x, y):
-    subprocess.run([binary(), "move", str(x), str(y)], check=True)
-    time.sleep(0.3)
+def fake(*arguments, settle=0.0):
+    subprocess.run([binary(), *(str(argument) for argument in arguments)], check=True)
+    time.sleep(settle)
 
 
-def click(x, y):
-    move(x, y)
-    subprocess.run([binary(), "click", str(x), str(y)], check=True)
-    time.sleep(0.5)
+def move(x, y, settle=True):
+    fake("move", x, y, settle=0.3 if settle else 0)
 
 
-def touch(fingers, x, y, dx=0, dy=0, radius=0, end_radius=None, hold_ms=0, steps=20):
+def click(x, y, settle=True):
+    move(x, y, settle)
+    fake("click", x, y, settle=0.5 if settle else 0)
+
+
+def touch(fingers, x, y, dx=0, dy=0, radius=0, end_radius=None, hold_ms=0, steps=20, settle=True):
     end = radius if end_radius is None else end_radius
-    subprocess.run([binary(), "touch", *(str(value) for value in (fingers, x, y, dx, dy, radius, end, hold_ms, steps))], check=True)
-    time.sleep(1.0)
+    fake("touch", fingers, x, y, dx, dy, radius, end, hold_ms, steps, settle=1.0 if settle else 0)
