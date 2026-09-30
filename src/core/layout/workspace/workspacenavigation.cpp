@@ -148,22 +148,22 @@ void Workspace::centerVisibleColumns()
 
 bool Workspace::moveLeft()
 {
-    return isFloatingFocused() || m_strip.moveLeft();
+    return !isFloatingFocused() && m_strip.moveLeft();
 }
 
 bool Workspace::moveRight()
 {
-    return isFloatingFocused() || m_strip.moveRight();
+    return !isFloatingFocused() && m_strip.moveRight();
 }
 
 bool Workspace::moveDown()
 {
-    return isFloatingFocused() || m_strip.moveDown();
+    return !isFloatingFocused() && m_strip.moveDown();
 }
 
 bool Workspace::moveUp()
 {
-    return isFloatingFocused() || m_strip.moveUp();
+    return !isFloatingFocused() && m_strip.moveUp();
 }
 
 void Workspace::moveColumnToFirst()
