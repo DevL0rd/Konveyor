@@ -40,9 +40,10 @@ Config::Config withSecondOutputHint(bool enabled, const QColor &color)
     config.layout.insertHint.paint.color = QColor(1, 2, 3);
     Config::OutputConfig second;
     second.name = QStringLiteral("DP-2");
-    second.layout = config.layout;
-    second.layout->insertHint.enabled = enabled;
-    second.layout->insertHint.paint.color = color;
+    Config::Paint paint = config.layout.insertHint.paint;
+    paint.color = color;
+    second.layout = Config::LayoutPart {};
+    second.layout->insertHint = Config::InsertHintPart {enabled, paint};
     config.outputs.append(second);
     return config;
 }
