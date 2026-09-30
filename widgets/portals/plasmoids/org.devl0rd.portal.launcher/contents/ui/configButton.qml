@@ -9,6 +9,7 @@ Kirigami.FormLayout {
     id: form
 
     readonly property string defaultIcon: "start-here-kde-plasma-symbolic"
+    property int calls: 0
     property string cfg_icon
     property alias cfg_label: labelField.text
     property alias cfg_showLabel: showLabel.checked
@@ -49,6 +50,6 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: i18n("Kontrol Panel:")
         text: i18n("Kontrol Panel settings…")
         icon.name: "configure"
-        onClicked: service.connectSource("busctl --user call org.devl0rd.KontrolPanel /KontrolPanel org.devl0rd.KontrolPanel Configure # " + Date.now())
+        onClicked: service.connectSource("busctl --user call org.devl0rd.KontrolPanel /KontrolPanel org.devl0rd.KontrolPanel Configure # " + (++form.calls))
     }
 }

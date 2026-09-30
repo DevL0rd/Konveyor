@@ -1,5 +1,6 @@
 #include "portalharness.h"
 
+#include <QSet>
 #include <QTest>
 
 using Konveyor::Test::FakePlasmoidAttached;
@@ -53,6 +54,16 @@ private Q_SLOTS:
         for (const QString &command : requested) {
             QVERIFY2(command.startsWith(busctl + QStringLiteral("Toggle # ")), qPrintable(command));
         }
+    }
+
+    void togglesInTheSameMillisecondAreBothSent()
+    {
+        for (int i = 0; i < 5; ++i) {
+            m_harness->call("toggle");
+        }
+        const QStringList requested = m_harness->requested();
+        QCOMPARE(requested.size(), 5);
+        QCOMPARE(QSet<QString>(requested.cbegin(), requested.cend()).size(), 5);
     }
 
     void droppedDesktopFilesArePinned()

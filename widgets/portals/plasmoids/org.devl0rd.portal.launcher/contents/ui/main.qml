@@ -12,12 +12,13 @@ PlasmoidItem {
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property string buttonIcon: Plasmoid.configuration.icon || "start-here-kde-plasma-symbolic"
     property string failure: ""
+    property int calls: 0
 
     function shq(text) {
         return "'" + String(text).replace(/'/g, "'\\''") + "'"
     }
     function call(method, argumentsText) {
-        panel.connectSource("busctl --user call org.devl0rd.KontrolPanel /KontrolPanel org.devl0rd.KontrolPanel " + method + (argumentsText ? " " + argumentsText : "") + " # " + Date.now())
+        panel.connectSource("busctl --user call org.devl0rd.KontrolPanel /KontrolPanel org.devl0rd.KontrolPanel " + method + (argumentsText ? " " + argumentsText : "") + " # " + (++calls))
     }
     function toggle() {
         call("Toggle")
