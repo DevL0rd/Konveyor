@@ -211,8 +211,8 @@ void Engine::Private::placeNewWindow(
 
     Tile tile = workspace->createTile(makeNewWindow(id, properties, plan, *workspace));
     const auto remembered = windowMemory.constFind(properties.appId);
-    if (plan.isFloating && workspace->options()->layout.rememberWindowPositions && remembered != windowMemory.constEnd() && remembered->floatingPosition
-        && !plan.rules.defaultFloatingPosition) {
+    if (plan.isFloating && workspace->options()->layout.rememberWindowPositions && remembered != windowMemory.constEnd()
+        && remembered->floatingPosition && !plan.rules.defaultFloatingPosition) {
         tile.savedFloatingPosition = remembered->floatingPosition;
     }
     const ColumnWidth width = workspace->tiledWidthFor(tile.window(), plan.width);

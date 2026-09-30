@@ -32,6 +32,14 @@ void verifySameFrame(Fixture &fixture, const QList<Layout::WindowId> &ids, QRect
     }
 }
 
+QList<Layout::WindowId> addShortTabs(Fixture &fixture)
+{
+    const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
+    fixture.perform(QStringLiteral("switch-preset-window-height"));
+    verifySameFrame(fixture, tabs, QRectF(16, 16, 936, 250));
+    return tabs;
+}
+
 }
 
 class TestLayoutTabbed : public QObject
@@ -146,12 +154,21 @@ private Q_SLOTS:
         QVERIFY(!fixture.state(tabs[1]).tabBar.visible);
     }
 
-    void heightPresetsApplyToEveryTab()
+    void clickingATabPicksItsWindow()
     {
         Fixture fixture(tabbedConfig());
         const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
-        fixture.perform(QStringLiteral("switch-preset-window-height"));
-        verifySameFrame(fixture, tabs, QRectF(16, 16, 936, 250));
+        fixture.advance(1);
+        const QList<QRectF> rects = fixture.state(tabs[1]).tabBar.tabRects;
+        QCOMPARE(fixture.engine().windowAt(rects[0].center()), std::optional(tabs[0]));
+        QCOMPARE(fixture.engine().windowAt(rects[1].center()), std::optional(tabs[1]));
+        QCOMPARE(fixture.engine().windowAt(QPointF(400, 500)), std::optional(tabs[1]));
+    }
+
+    void heightPresetsApplyToEveryTab()
+    {
+        Fixture fixture(tabbedConfig());
+        const QList<Layout::WindowId> tabs = addShortTabs(fixture);
         fixture.perform(QStringLiteral("switch-preset-window-height"));
         verifySameFrame(fixture, tabs, QRectF(16, 16, 936, 339));
         fixture.perform(QStringLiteral("focus-window-up"));
@@ -182,6 +199,31 @@ private Q_SLOTS:
         fixture.perform(QStringLiteral("toggle-column-tabbed-display"));
         QCOMPARE(fixture.frame(bottom).height(), 300.0);
         QCOMPARE(fixture.frame(top).height(), 732.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void aConsumedWindowLeavesItsFixedHeightBehind()
+    {
+        Fixture fixture(tabbedConfig());
+        const auto first = fixture.add(QStringLiteral("a"));
+        const auto second = fixture.add(QStringLiteral("b"));
+        fixture.perform(QStringLiteral("set-window-height"), {QStringLiteral("400")});
+        QCOMPARE(fixture.frame(second).height(), 400.0);
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        verifySameFrame(fixture, {first, second}, QRectF(16, 16, 936, 1048));
+        fixture.perform(QStringLiteral("set-window-height"), {QStringLiteral("400")});
+        verifySameFrame(fixture, {first, second}, QRectF(16, 16, 936, 400));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void anExpelledTabTakesTheTabHeightWithIt()
+    {
+        Fixture fixture(tabbedConfig());
+        const QList<Layout::WindowId> tabs = addShortTabs(fixture);
+        fixture.perform(QStringLiteral("consume-or-expel-window-right"));
+        QCOMPARE(fixture.state(tabs[1]).columnIndex, 1);
+        QCOMPARE(fixture.frame(tabs[1]).height(), 1048.0);
+        QCOMPARE(fixture.frame(tabs[0]).height(), 1048.0);
         VERIFY_INVARIANTS(fixture);
     }
 

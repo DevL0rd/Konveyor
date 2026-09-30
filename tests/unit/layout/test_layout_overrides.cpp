@@ -162,6 +162,19 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void gapsSnapToPhysicalPixelsOnAScaledOutput()
+    {
+        Config::Config config = instantConfig();
+        config.layout.gaps = 15;
+        Fixture fixture(config);
+        fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080), 1.5);
+        fixture.engine().focusOutput(QStringLiteral("DP-2"));
+        const auto scaled = fixture.add(QStringLiteral("b"));
+        QCOMPARE(fixture.frame(scaled).y(), 23.0 / 1.5);
+        QCOMPARE(fixture.frame(scaled).x(), 1920.0 + 23.0 / 1.5);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void placementSettingsFollowTheOutputLayout()
     {
         Config::Layout stacking = instantConfig().layout;

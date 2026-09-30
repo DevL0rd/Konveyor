@@ -1,5 +1,7 @@
 #include "helpers.h"
 
+#include <tuple>
+
 using namespace LayoutTest;
 
 namespace
@@ -19,6 +21,13 @@ Layout::WindowId addIntoColumn(Fixture &fixture, const QString &appId, const QSt
     const Layout::WindowId id = fixture.add(appId);
     fixture.perform(QStringLiteral("consume-or-expel-window-") + direction);
     return id;
+}
+
+std::tuple<Layout::WindowId, Layout::WindowId, Layout::WindowId> addEndPinnedStack(Fixture &fixture)
+{
+    const Layout::WindowId first = fixture.add(QStringLiteral("first"));
+    const Layout::WindowId pinned = fixture.add(QStringLiteral("pin"));
+    return {first, pinned, addIntoColumn(fixture, QStringLiteral("other"), QStringLiteral("right"))};
 }
 
 void verifyOnlyFullscreen(Fixture &fixture, Layout::WindowId window, const QList<Layout::WindowId> &others)
@@ -99,9 +108,7 @@ private Q_SLOTS:
     void fullscreenInAnEndPinnedStackStaysInsideTheRow()
     {
         Fixture fixture(pinConfig(QStringLiteral("pin"), Config::ColumnPosition::End));
-        const auto first = fixture.add(QStringLiteral("first"));
-        const auto pinned = fixture.add(QStringLiteral("pin"));
-        const auto stacked = addIntoColumn(fixture, QStringLiteral("other"), QStringLiteral("right"));
+        const auto [first, pinned, stacked] = addEndPinnedStack(fixture);
         QCOMPARE(fixture.state(stacked).columnIndex, 1);
         fixture.perform(QStringLiteral("fullscreen-window"));
         verifyOnlyFullscreen(fixture, stacked, {first, pinned});
@@ -113,9 +120,7 @@ private Q_SLOTS:
     void maximizeToEdgesInAPinnedStackHitsTheRightWindow()
     {
         Fixture fixture(pinConfig(QStringLiteral("pin"), Config::ColumnPosition::End));
-        const auto first = fixture.add(QStringLiteral("first"));
-        const auto pinned = fixture.add(QStringLiteral("pin"));
-        const auto stacked = addIntoColumn(fixture, QStringLiteral("other"), QStringLiteral("right"));
+        const auto [first, pinned, stacked] = addEndPinnedStack(fixture);
         fixture.perform(QStringLiteral("maximize-window-to-edges"));
         QCOMPARE(fixture.state(stacked).sizingMode, Layout::WindowMode::Maximized);
         QCOMPARE(fixture.frame(stacked), QRectF(0, 0, 1920, 1080));

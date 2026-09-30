@@ -20,6 +20,16 @@ Layout::WindowProperties fixedSize(const QString &appId, QSizeF size)
     return properties;
 }
 
+std::pair<Layout::WindowId, Layout::WindowId> narrowTheFirstOfTwoWithoutAnswer(Fixture &fixture)
+{
+    const Layout::WindowId a = fixture.add(QStringLiteral("a"));
+    const Layout::WindowId b = fixture.add(QStringLiteral("b"));
+    fixture.engine().activateWindow(a);
+    fixture.holdCommits(true);
+    fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("400")});
+    return {a, b};
+}
+
 void consumeLeft(Fixture &fixture)
 {
     fixture.perform(QStringLiteral("consume-or-expel-window-left"));
@@ -149,11 +159,7 @@ private Q_SLOTS:
     void aLateAnswerKeepsTheRowLaidOutForTheRequest()
     {
         Fixture fixture;
-        const auto a = fixture.add(QStringLiteral("a"));
-        const auto b = fixture.add(QStringLiteral("b"));
-        fixture.engine().activateWindow(a);
-        fixture.holdCommits(true);
-        fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("400")});
+        const auto [a, b] = narrowTheFirstOfTwoWithoutAnswer(fixture);
         QCOMPARE(fixture.frame(a).width(), 400.0);
         QCOMPARE(fixture.frame(b).x(), 432.0);
         fixture.holdCommits(false);
@@ -165,11 +171,7 @@ private Q_SLOTS:
     void aDifferentAnswerMovesTheNeighbours()
     {
         Fixture fixture;
-        const auto a = fixture.add(QStringLiteral("a"));
-        const auto b = fixture.add(QStringLiteral("b"));
-        fixture.engine().activateWindow(a);
-        fixture.holdCommits(true);
-        fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("400")});
+        const auto [a, b] = narrowTheFirstOfTwoWithoutAnswer(fixture);
         fixture.commitAs(a, QSizeF(450, 1048));
         QCOMPARE(fixture.frame(a).width(), 400.0);
         QCOMPARE(fixture.frame(b).x(), 16.0 + 450.0 + 16.0);

@@ -56,6 +56,40 @@ void applyExactConstraints(std::vector<WindowHeight> &heights, const std::vector
     }
 }
 
+struct HeightLimits
+{
+    const std::vector<QSizeF> &minSizes;
+    const std::vector<QSizeF> &maxSizes;
+};
+
+std::optional<double> limitedHeight(const HeightLimits &limits, std::size_t i, double autoHeight)
+{
+    if (limits.minSizes[i].height() > autoHeight) {
+        return limits.minSizes[i].height();
+    }
+    if (limits.maxSizes[i].height() > 0.0 && limits.maxSizes[i].height() < autoHeight) {
+        return limits.maxSizes[i].height();
+    }
+    return std::nullopt;
+}
+
+std::optional<std::pair<std::size_t, double>> firstUnsatisfiedHeight(
+    const std::vector<Tile> &tiles, const std::vector<WindowHeight> &heights, const HeightLimits &limits, double left, double weightLeft)
+{
+    for (std::size_t i = 0; i < heights.size(); ++i) {
+        if (!heights[i].isAuto()) {
+            continue;
+        }
+        const double autoHeight = left * (heights[i].value / weightLeft);
+        if (const std::optional<double> limited = limitedHeight(limits, i, autoHeight)) {
+            return std::pair(i, *limited);
+        }
+        left -= autoHeightFor(tiles[i], autoHeight);
+        weightLeft -= heights[i].value;
+    }
+    return std::nullopt;
+}
+
 }
 
 void Column::layoutTiles(bool animate)
@@ -186,27 +220,8 @@ void Column::distributeHeights(
     }
     double totalWeight = totalAutoWeight(heights);
 
-    const auto findUnsatisfied = [&]() -> std::optional<std::pair<std::size_t, double>> {
-        double left = heightLeft;
-        double weightLeft = totalWeight;
-        for (std::size_t i = 0; i < heights.size(); ++i) {
-            if (!heights[i].isAuto()) {
-                continue;
-            }
-            const double autoHeight = left * (heights[i].value / weightLeft);
-            if (minSizes[i].height() > autoHeight) {
-                return std::pair(i, minSizes[i].height());
-            }
-            if (maxSizes[i].height() > 0.0 && maxSizes[i].height() < autoHeight) {
-                return std::pair(i, maxSizes[i].height());
-            }
-            left -= autoHeightFor(tiles[i], autoHeight);
-            weightLeft -= heights[i].value;
-        }
-        return std::nullopt;
-    };
-
-    while (const auto unsatisfied = findUnsatisfied()) {
+    const HeightLimits limits {minSizes, maxSizes};
+    while (const auto unsatisfied = firstUnsatisfiedHeight(tiles, heights, limits, heightLeft, totalWeight)) {
         const auto [i, height] = *unsatisfied;
         totalWeight -= heights[i].value;
         heights[i] = WindowHeight::fixed(height);

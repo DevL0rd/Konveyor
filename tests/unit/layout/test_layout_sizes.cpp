@@ -5,6 +5,15 @@ using namespace LayoutTest;
 namespace
 {
 
+Config::Config borderedFixedPresetConfig()
+{
+    Config::Config config = instantConfig();
+    config.layout.border.enabled = true;
+    config.layout.border.width = 4;
+    config.layout.presetColumnWidths = {Config::PresetSize(Config::Fixed {500}), Config::PresetSize(Config::Proportion {0.5})};
+    return config;
+}
+
 void verifyHeights(Fixture &fixture, Layout::WindowId top, Layout::WindowId bottom, double topHeight, double bottomHeight)
 {
     QCOMPARE(fixture.frame(top).height(), topHeight);
@@ -213,10 +222,7 @@ private Q_SLOTS:
 
     void fixedPresetsAreWindowSizesAndProportionsAreTileSizes()
     {
-        Config::Config config = instantConfig();
-        config.layout.border.enabled = true;
-        config.layout.border.width = 4;
-        config.layout.presetColumnWidths = {Config::PresetSize(Config::Fixed {500}), Config::PresetSize(Config::Proportion {0.5})};
+        Config::Config config = borderedFixedPresetConfig();
         Fixture fixture(config);
         const auto a = fixture.add(QStringLiteral("a"));
         QCOMPARE(fixture.frame(a), QRectF(20, 20, 928, 1040));
@@ -229,10 +235,7 @@ private Q_SLOTS:
 
     void fixedDefaultWidthWithABorderKnowsItsPreset()
     {
-        Config::Config config = instantConfig();
-        config.layout.border.enabled = true;
-        config.layout.border.width = 4;
-        config.layout.presetColumnWidths = {Config::PresetSize(Config::Fixed {500}), Config::PresetSize(Config::Proportion {0.5})};
+        Config::Config config = borderedFixedPresetConfig();
         config.layout.defaultColumnWidth = Config::Fixed {500};
         Fixture fixture(config);
         const auto a = fixture.add(QStringLiteral("a"));

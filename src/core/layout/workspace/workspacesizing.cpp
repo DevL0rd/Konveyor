@@ -9,6 +9,15 @@
 namespace Konveyor::Layout
 {
 
+void Workspace::setLayoutOverride(std::optional<Config::Layout> layoutOverride)
+{
+    if (m_layoutOverride == layoutOverride) {
+        return;
+    }
+    m_layoutOverride = std::move(layoutOverride);
+    applyOptions();
+}
+
 void Workspace::addToAppStack(const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows)
 {
     tile.returnsToFloating = false;

@@ -55,15 +55,6 @@ void Workspace::applyOptions()
     m_floating.updateConfig(m_area.viewSize, m_area.workingArea, m_area.scale, m_options);
 }
 
-void Workspace::setLayoutOverride(std::optional<Config::Layout> layoutOverride)
-{
-    if (m_layoutOverride == layoutOverride) {
-        return;
-    }
-    m_layoutOverride = std::move(layoutOverride);
-    applyOptions();
-}
-
 void Workspace::updateConfig(OptionsPtr globalOptions)
 {
     m_globalOptions = std::move(globalOptions);

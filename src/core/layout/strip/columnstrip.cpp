@@ -52,8 +52,8 @@ void ColumnStrip::applyDefaultColumnWidths()
         const std::optional<std::optional<Config::PresetSize>> rule = ruleWidthFor(column);
         const std::optional<Config::PresetSize> preset = rule ? *rule : m_options->layout.defaultColumnWidth;
         const Tile &first = column.tiles.front();
-        const bool resizedByHand = rule ? column.widthSetting != column.defaultedWidth
-                                        : replaced && column.widthSetting != first.columnWidthFor(*replaced);
+        const bool resizedByHand
+            = rule ? column.widthSetting != column.defaultedWidth : replaced && column.widthSetting != first.columnWidthFor(*replaced);
         if (!preset || column.fillsWidth || resizedByHand) {
             continue;
         }

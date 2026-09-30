@@ -21,6 +21,16 @@ Layout::WindowId reopen(Fixture &fixture, Layout::WindowId id, const QString &ap
     return restored;
 }
 
+void verifyReopensTwiceAt(Fixture &fixture, Layout::WindowId window, double width)
+{
+    const QString appId = QStringLiteral("app");
+    fixture.remove(window);
+    const Layout::WindowId second = fixture.add(appId);
+    QCOMPARE(fixture.frame(second).width(), width);
+    fixture.remove(second);
+    QCOMPARE(fixture.frame(fixture.add(appId)).width(), width);
+}
+
 Layout::WindowProperties floatingWindow(const QString &appId)
 {
     Layout::WindowProperties properties = makeWindow(appId, appId, QSizeF(400, 300));
@@ -115,11 +125,7 @@ private Q_SLOTS:
         fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("700")});
         QCOMPARE(fixture.frame(first).width(), 700.0);
         QCOMPARE(fixture.engine().windowMemory().value(QStringLiteral("app")).columnWidth, Layout::ColumnWidth::fixed(708));
-        fixture.remove(first);
-        const auto second = fixture.add(QStringLiteral("app"));
-        QCOMPARE(fixture.frame(second).width(), 700.0);
-        fixture.remove(second);
-        QCOMPARE(fixture.frame(fixture.add(QStringLiteral("app"))).width(), 700.0);
+        verifyReopensTwiceAt(fixture, first, 700.0);
     }
 
     void fixedRememberedWidthUsesTheBorderOfTheOutputLayout()
@@ -134,11 +140,7 @@ private Q_SLOTS:
         Fixture fixture(config);
         const auto first = fixture.add(QStringLiteral("app"));
         fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("700")});
-        fixture.remove(first);
-        const auto second = fixture.add(QStringLiteral("app"));
-        QCOMPARE(fixture.frame(second).width(), 700.0);
-        fixture.remove(second);
-        QCOMPARE(fixture.frame(fixture.add(QStringLiteral("app"))).width(), 700.0);
+        verifyReopensTwiceAt(fixture, first, 700.0);
     }
 
     void rememberingFollowsTheOutputLayout()
