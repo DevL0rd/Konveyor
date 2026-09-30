@@ -7,7 +7,7 @@ import org.kde.coreaddons as KCoreAddons
 import "lib"
 
 Item {
-    id: data
+    id: launcherData
 
     required property var applet
     readonly property var config: applet.launcherConfig
@@ -16,8 +16,8 @@ Item {
     property string searchMode: "all"
 
     readonly property string portalBin: "$HOME/.local/bin/portal-games"
-    readonly property bool gamesEnabled: data.config.showGames
-    readonly property bool friendsEnabled: data.config.showFriends
+    readonly property bool gamesEnabled: launcherData.config.showGames
+    readonly property bool friendsEnabled: launcherData.config.showFriends
 
     readonly property alias rootModel: rootModel
     readonly property alias favorites: rootModel.favoritesModel
@@ -48,14 +48,14 @@ Item {
     property string packagesQuery: ""
     property bool packagesBusy: false
     property int packagesRequest: 0
-    readonly property bool packagesEnabled: data.config.searchPackages
+    readonly property bool packagesEnabled: launcherData.config.searchPackages
 
     Timer {
-        running: data.live
+        running: launcherData.live
         repeat: true
         triggeredOnStart: true
         interval: 10000
-        onTriggered: data.now = new Date()
+        onTriggered: launcherData.now = new Date()
     }
 
     function shq(text) {
@@ -69,7 +69,7 @@ Item {
     Kicker.RootModel {
         id: rootModel
         autoPopulate: true
-        appletInterface: data.applet.kickerApplet
+        appletInterface: launcherData.applet.kickerApplet
         flat: true
         sorted: true
         showSeparators: false
@@ -79,23 +79,23 @@ Item {
         showRecentDocs: false
         showPowerSession: false
         highlightNewlyInstalledApps: true
-        Component.onCompleted: favoritesModel.initForClient(data.applet.favoritesClient)
+        Component.onCompleted: favoritesModel.initForClient(launcherData.applet.favoritesClient)
     }
 
     readonly property var allRunners: {
         const list = ["krunner_services"]
-        if (data.config.searchSettings)
+        if (launcherData.config.searchSettings)
             list.push("krunner_systemsettings")
-        if (data.config.searchCalculator)
+        if (launcherData.config.searchCalculator)
             list.push("calculator", "unitconverter")
-        if (data.config.searchCommands)
+        if (launcherData.config.searchCommands)
             list.push("krunner_shell")
-        if (data.config.searchFiles)
+        if (launcherData.config.searchFiles)
             list.push("krunner_placesrunner", "krunner_recentdocuments", "baloosearch", "locations")
         list.push("krunner_sessions", "krunner_powerdevil")
-        if (data.config.searchWindows)
+        if (launcherData.config.searchWindows)
             list.push("windows")
-        if (data.config.searchWeb)
+        if (launcherData.config.searchWeb)
             list.push("krunner_webshortcuts")
         return list
     }
@@ -111,11 +111,11 @@ Item {
 
     Kicker.RunnerModel {
         id: runnerModel
-        appletInterface: data.applet.kickerApplet
+        appletInterface: launcherData.applet.kickerApplet
         favoritesModel: rootModel.favoritesModel
         mergeResults: false
-        runners: data.modeRunners[data.searchMode] || data.allRunners
-        query: data.live && (data.modeRunners[data.searchMode] || []).length > 0 ? data.query : ""
+        runners: launcherData.modeRunners[launcherData.searchMode] || launcherData.allRunners
+        query: launcherData.live && (launcherData.modeRunners[launcherData.searchMode] || []).length > 0 ? launcherData.query : ""
     }
 
     Kicker.SystemModel {
@@ -128,9 +128,9 @@ Item {
     }
     property var recentRank: ({})
     property var popularRank: ({})
-    readonly property bool popularWanted: live && data.config.appsSort === "popular"
+    readonly property bool popularWanted: live && launcherData.config.appsSort === "popular"
     Loader {
-        active: data.popularWanted
+        active: launcherData.popularWanted
         sourceComponent: Item {
             Kicker.RecentUsageModel {
                 id: popularModel
@@ -155,9 +155,9 @@ Item {
                     for (let i = 0; i < popularProbe.count; ++i) {
                         const object = popularProbe.objectAt(i)
                         if (object && object.favoriteId)
-                            rank[data.desktopKey(object.favoriteId)] = i
+                            rank[launcherData.desktopKey(object.favoriteId)] = i
                     }
-                    data.popularRank = rank
+                    launcherData.popularRank = rank
                 }
             }
         }
@@ -180,9 +180,9 @@ Item {
             for (let i = 0; i < recentProbe.count; ++i) {
                 const object = recentProbe.objectAt(i)
                 if (object && object.favoriteId)
-                    rank[data.desktopKey(object.favoriteId)] = i
+                    rank[launcherData.desktopKey(object.favoriteId)] = i
             }
-            data.recentRank = rank
+            launcherData.recentRank = rank
         }
     }
 
@@ -193,7 +193,7 @@ Item {
 
     Kicker.ComputerModel {
         id: placesModel
-        appletInterface: data.applet.kickerApplet
+        appletInterface: launcherData.applet.kickerApplet
         systemApplications: []
     }
 
@@ -221,14 +221,14 @@ Item {
             disconnectSource(source)
             if (result["exit code"] !== 0) {
                 const lines = (result.stderr || "").trim().split("\n")
-                data.shortcutsError = lines[lines.length - 1] || i18n("konveyor-cheatsheet exited with code %1", result["exit code"])
+                launcherData.shortcutsError = lines[lines.length - 1] || i18n("konveyor-cheatsheet exited with code %1", result["exit code"])
                 return
             }
             try {
-                data.shortcuts = JSON.parse(result.stdout)
-                data.shortcutsError = ""
+                launcherData.shortcuts = JSON.parse(result.stdout)
+                launcherData.shortcutsError = ""
             } catch (error) {
-                data.shortcutsError = error.message
+                launcherData.shortcutsError = error.message
             }
         }
     }
@@ -276,10 +276,10 @@ Item {
             const byDesktop = {}
             for (const game of list)
                 byDesktop[game.id] = game
-            data.gameByDesktop = byDesktop
-            data.games = list
-            data.recentGames = list.filter(game => game.last > 0).sort((a, b) => b.last - a.last).slice(0, 12)
-            data.gamesLoadedAt = Date.now()
+            launcherData.gameByDesktop = byDesktop
+            launcherData.games = list
+            launcherData.recentGames = list.filter(game => game.last > 0).sort((a, b) => b.last - a.last).slice(0, 12)
+            launcherData.gamesLoadedAt = Date.now()
         }
     }
     function refreshGames(force) {
@@ -292,7 +292,7 @@ Item {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
-            data.refreshGames(true)
+            launcherData.refreshGames(true)
         }
     }
     property var artGame: null
@@ -304,8 +304,8 @@ Item {
             nameFilters: [i18n("Images (*.png *.jpg *.jpeg *.webp)")]
             onAccepted: {
                 const path = decodeURIComponent(String(selectedFile).replace(/^file:\/\//, ""))
-                if (data.artGame)
-                    artSource.connectSource(data.portalBin + " --set-art " + data.shq(data.artGame.id) + " " + data.shq(path))
+                if (launcherData.artGame)
+                    artSource.connectSource(launcherData.portalBin + " --set-art " + launcherData.shq(launcherData.artGame.id) + " " + launcherData.shq(path))
                 artDialogLoader.active = false
             }
             onRejected: artDialogLoader.active = false
@@ -360,8 +360,8 @@ Item {
         id: packagesDebounce
         interval: 450
         onTriggered: {
-            const request = data.packagesRequest
-            packagesSource.connectSource("$HOME/.local/bin/portal-packages " + data.shq(data.packageTerm) + " " + (data.searchMode === "packages" ? 30 : 6) + " # " + request)
+            const request = launcherData.packagesRequest
+            packagesSource.connectSource("$HOME/.local/bin/portal-packages " + launcherData.shq(launcherData.packageTerm) + " " + (launcherData.searchMode === "packages" ? 30 : 6) + " # " + request)
         }
     }
     P5Support.DataSource {
@@ -370,18 +370,18 @@ Item {
         onNewData: function(source, result) {
             disconnectSource(source)
             const request = parseInt(source.substring(source.lastIndexOf("# ") + 2))
-            if (request !== data.packagesRequest)
+            if (request !== launcherData.packagesRequest)
                 return
             let parsed = null
             try {
                 parsed = JSON.parse(result.stdout || "{}")
             } catch (error) {
-                data.packagesBusy = false
+                launcherData.packagesBusy = false
                 return
             }
-            data.packages = parsed.packages || []
-            data.packagesQuery = parsed.query || ""
-            data.packagesBusy = false
+            launcherData.packages = parsed.packages || []
+            launcherData.packagesQuery = parsed.query || ""
+            launcherData.packagesBusy = false
         }
     }
     function installPackage(pkg) {
@@ -438,13 +438,13 @@ Item {
             } catch (error) {
                 return
             }
-            data.hiddenList = Array.isArray(parsed) ? parsed : []
+            launcherData.hiddenList = Array.isArray(parsed) ? parsed : []
         }
         xhr.send()
     }
     FileWatcher {
-        path: data.statePath + "/hidden.json"
-        onChanged: data.readHidden()
+        path: launcherData.statePath + "/hidden.json"
+        onChanged: launcherData.readHidden()
     }
     Component.onCompleted: {
         readHidden()
@@ -459,7 +459,7 @@ Item {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
-            if (data.sidebarWrites > 0)
+            if (launcherData.sidebarWrites > 0)
                 return
             let parsed = []
             try {
@@ -468,8 +468,8 @@ Item {
                 return
             }
             const list = Array.isArray(parsed) ? parsed : []
-            if (JSON.stringify(list) !== JSON.stringify(data.sidebarPins))
-                data.sidebarPins = list
+            if (JSON.stringify(list) !== JSON.stringify(launcherData.sidebarPins))
+                launcherData.sidebarPins = list
         }
     }
     P5Support.DataSource {
@@ -477,22 +477,22 @@ Item {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
-            if (data.sidebarQueued !== "") {
-                const next = data.sidebarQueued
-                data.sidebarQueued = ""
+            if (launcherData.sidebarQueued !== "") {
+                const next = launcherData.sidebarQueued
+                launcherData.sidebarQueued = ""
                 connectSource(next)
                 return
             }
-            data.sidebarWrites = 0
-            data.readSidebar()
+            launcherData.sidebarWrites = 0
+            launcherData.readSidebar()
         }
     }
     function readSidebar() {
         sidebarSource.connectSource(portalBin + " --sidebar # " + Date.now())
     }
     FileWatcher {
-        path: data.statePath + "/sidebar.json"
-        onChanged: if (data.sidebarWrites === 0) data.readSidebar()
+        path: launcherData.statePath + "/sidebar.json"
+        onChanged: if (launcherData.sidebarWrites === 0) launcherData.readSidebar()
     }
     function sidebarKey(pin) {
         return pin ? pin.kind + ":" + pin.id : ""
@@ -585,7 +585,7 @@ Item {
     property string pinnedSignature: ""
     Instantiator {
         id: favoriteRows
-        model: data.favorites
+        model: launcherData.favorites
         delegate: QtObject {
             required property var model
             required property int index
@@ -596,14 +596,14 @@ Item {
             readonly property bool hasActionList: model.hasActionList === true
             readonly property var actionList: model.actionList
         }
-        onObjectAdded: Qt.callLater(data.rebuildPinned)
-        onObjectRemoved: Qt.callLater(data.rebuildPinned)
+        onObjectAdded: Qt.callLater(launcherData.rebuildPinned)
+        onObjectRemoved: Qt.callLater(launcherData.rebuildPinned)
     }
     Connections {
-        target: data.favorites
-        function onRowsMoved() { Qt.callLater(data.rebuildPinned) }
-        function onModelReset() { Qt.callLater(data.rebuildPinned) }
-        function onDataChanged() { Qt.callLater(data.rebuildPinned) }
+        target: launcherData.favorites
+        function onRowsMoved() { Qt.callLater(launcherData.rebuildPinned) }
+        function onModelReset() { Qt.callLater(launcherData.rebuildPinned) }
+        function onDataChanged() { Qt.callLater(launcherData.rebuildPinned) }
     }
     onFoldersChanged: Qt.callLater(rebuildPinned)
     function favoriteRow(index) {
@@ -661,14 +661,14 @@ Item {
                 return
             }
             const list = Array.isArray(parsed) ? parsed.filter(entry => entry && entry.id && Array.isArray(entry.apps)) : []
-            if (JSON.stringify(list) !== JSON.stringify(data.folders))
-                data.folders = list
+            if (JSON.stringify(list) !== JSON.stringify(launcherData.folders))
+                launcherData.folders = list
         }
         xhr.send()
     }
     FileWatcher {
-        path: data.statePath + "/folders.json"
-        onChanged: data.readFolders()
+        path: launcherData.statePath + "/folders.json"
+        onChanged: launcherData.readFolders()
     }
     function withoutApps(list, apps) {
         return list.map(folder => ({ id: folder.id, name: folder.name, apps: folder.apps.filter(app => apps.indexOf(app) < 0) })).filter(folder => folder.apps.length > 0)
@@ -713,7 +713,7 @@ Item {
 
     property var learned: {
         try {
-            return JSON.parse(data.config.learnedRanking || "{}")
+            return JSON.parse(launcherData.config.learnedRanking || "{}")
         } catch (error) {
             return {}
         }
@@ -730,7 +730,7 @@ Item {
             next[prefix] = counts
         }
         learned = next
-        data.config.learnedRanking = JSON.stringify(next)
+        launcherData.config.learnedRanking = JSON.stringify(next)
     }
     function learnedFor(query) {
         const term = String(query || "").trim().toLowerCase()
@@ -767,11 +767,11 @@ Item {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
-            data.steamKeyBusy = false
+            launcherData.steamKeyBusy = false
             const failed = Number(result["exit code"] || 0) !== 0
-            data.steamKeyError = failed
-            data.steamKeyResult = String(failed ? (result.stderr || result.stdout) : i18n("Steam API key saved")).trim()
-            data.readFriends()
+            launcherData.steamKeyError = failed
+            launcherData.steamKeyResult = String(failed ? (result.stderr || result.stdout) : i18n("Steam API key saved")).trim()
+            launcherData.readFriends()
         }
     }
     function setSteamApiKey(key) {
@@ -788,8 +788,8 @@ Item {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
-            data.friendsPath = (result.stdout || "").trim()
-            data.readFriends()
+            launcherData.friendsPath = (result.stdout || "").trim()
+            launcherData.readFriends()
         }
     }
     function readFriends() {
@@ -806,35 +806,35 @@ Item {
             } catch (error) {
                 return
             }
-            data.friendsError = parsed.error || ""
-            data.friendsNeedsApiKey = parsed.needs_api_key === true || data.friendsError.indexOf("steam_api_key") >= 0
+            launcherData.friendsError = parsed.error || ""
+            launcherData.friendsNeedsApiKey = parsed.needs_api_key === true || launcherData.friendsError.indexOf("steam_api_key") >= 0
             const list = (parsed.friends || []).slice().sort((a, b) => {
                 const rank = f => f.ingame ? 0 : f.state > 0 ? 1 : 2
                 const diff = rank(a) - rank(b)
                 return diff !== 0 ? diff : String(a.name).toLowerCase().localeCompare(String(b.name).toLowerCase())
             })
-            data.friends = list
-            data.friendsByAppid = parsed.by_appid || {}
+            launcherData.friends = list
+            launcherData.friendsByAppid = parsed.by_appid || {}
             const byGame = {}
             for (const friend of list) {
                 if (!friend.ingame)
                     continue
                 const key = friend.appid || friend.game
                 if (!byGame[key]) {
-                    const owned = data.games.find(game => friend.appid && game.appid === friend.appid) || null
+                    const owned = launcherData.games.find(game => friend.appid && game.appid === friend.appid) || null
                     byGame[key] = { key: key, appid: friend.appid || "", name: friend.game, header: friend.header || "", game: owned, friends: [] }
                 }
                 byGame[key].friends.push(friend)
             }
-            data.playingNow = Object.values(byGame).sort((a, b) => b.friends.length - a.friends.length || String(a.name).localeCompare(String(b.name)))
-            data.friendsOnline = list.filter(f => f.state > 0).length
-            data.friendsInGame = list.filter(f => f.ingame).length
+            launcherData.playingNow = Object.values(byGame).sort((a, b) => b.friends.length - a.friends.length || String(a.name).localeCompare(String(b.name)))
+            launcherData.friendsOnline = list.filter(f => f.state > 0).length
+            launcherData.friendsInGame = list.filter(f => f.ingame).length
         }
         xhr.send()
     }
     FileWatcher {
-        path: data.live && data.friendsEnabled ? data.friendsPath : ""
-        onChanged: data.readFriends()
+        path: launcherData.live && launcherData.friendsEnabled ? launcherData.friendsPath : ""
+        onChanged: launcherData.readFriends()
     }
 
     onLiveChanged: {
