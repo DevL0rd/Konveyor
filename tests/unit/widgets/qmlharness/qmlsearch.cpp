@@ -78,7 +78,10 @@ QList<QQuickItem *> shownDelegates(QQuickItem *view)
     const QRectF viewport = view->mapRectToScene(view->boundingRect());
     const QList<QQuickItem *> children = view->property("contentItem").value<QQuickItem *>()->childItems();
     for (QQuickItem *child : children) {
-        const QVariant index = child->property("index");
+        QVariant index = child->property("index");
+        if (auto *model = child->property("model").value<QObject *>(); !index.isValid() && model) {
+            index = model->property("index");
+        }
         QQuickItem *placed = nullptr;
         if (index.isValid()) {
             QMetaObject::invokeMethod(view, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, placed), Q_ARG(int, index.toInt()));

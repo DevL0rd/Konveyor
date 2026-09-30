@@ -60,7 +60,6 @@ ColumnLayout {
             displaced: Transition { NumberAnimation { properties: "y"; duration: 220; easing.type: Easing.OutCubic } }
 
             delegate: ClientRow {
-                id: clientDelegate
                 required property var model
                 width: list.width - (list.QQC2.ScrollBar.vertical && list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
                 mac: model.mac
@@ -77,7 +76,7 @@ ColumnLayout {
                 phyMbps: model.phyMbps
                 pinned: model.pinned
                 onMenuRequested: {
-                    clientMenu.row = clientDelegate
+                    clientMenu.client = { mac: mac, name: name, ip: ip, pinned: pinned, blocked: blocked, wireless: wireless }
                     clientMenu.popup()
                 }
             }
@@ -95,34 +94,34 @@ ColumnLayout {
 
     QQC2.Menu {
         id: clientMenu
-        property var row: null
+        property var client: null
         QQC2.MenuItem {
-            text: clientMenu.row && clientMenu.row.pinned ? i18n("Unpin") : i18n("Pin to top")
-            icon.name: clientMenu.row && clientMenu.row.pinned ? "window-unpin" : "window-pin"
-            onTriggered: root.togglePin(clientMenu.row.mac)
+            text: clientMenu.client && clientMenu.client.pinned ? i18n("Unpin") : i18n("Pin to top")
+            icon.name: clientMenu.client && clientMenu.client.pinned ? "window-unpin" : "window-pin"
+            onTriggered: root.togglePin(clientMenu.client.mac)
         }
         QQC2.MenuSeparator {}
-        QQC2.MenuItem { text: i18n("SSH"); icon.name: "utilities-terminal"; onTriggered: root.launch("konsole -e ssh " + root.sshTarget(clientMenu.row.ip)) }
-        QQC2.MenuItem { text: i18n("Browse files (SMB)"); icon.name: "folder-remote"; onTriggered: root.launch("xdg-open smb://" + clientMenu.row.ip + "/") }
-        QQC2.MenuItem { text: i18n("Ping"); icon.name: "network-connect"; onTriggered: root.launch("konsole -e bash -c \"ping " + clientMenu.row.ip + "; read -n1 -p Done\"") }
-        QQC2.MenuItem { text: i18n("Port scan (nmap)"); icon.name: "system-search"; onTriggered: root.launch("konsole -e bash -c \"nmap " + clientMenu.row.ip + " || echo nmap-not-installed; read -n1 -p Done\"") }
+        QQC2.MenuItem { text: i18n("SSH"); icon.name: "utilities-terminal"; onTriggered: root.launch("konsole -e ssh " + root.sshTarget(clientMenu.client.ip)) }
+        QQC2.MenuItem { text: i18n("Browse files (SMB)"); icon.name: "folder-remote"; onTriggered: root.launch("xdg-open smb://" + clientMenu.client.ip + "/") }
+        QQC2.MenuItem { text: i18n("Ping"); icon.name: "network-connect"; onTriggered: root.launch("konsole -e bash -c \"ping " + clientMenu.client.ip + "; read -n1 -p Done\"") }
+        QQC2.MenuItem { text: i18n("Port scan (nmap)"); icon.name: "system-search"; onTriggered: root.launch("konsole -e bash -c \"nmap " + clientMenu.client.ip + " || echo nmap-not-installed; read -n1 -p Done\"") }
         QQC2.MenuSeparator {}
-        QQC2.MenuItem { text: i18n("Copy IP"); icon.name: "edit-copy"; onTriggered: root.copy(clientMenu.row.ip) }
-        QQC2.MenuItem { text: i18n("Copy MAC"); icon.name: "network-card"; onTriggered: root.copy(clientMenu.row.mac) }
-        QQC2.MenuItem { text: i18n("Rename…"); icon.name: "edit-rename"; onTriggered: root.promptRequested("rename", clientMenu.row.mac, clientMenu.row.name) }
-        QQC2.MenuItem { text: i18n("Reserve IP…"); icon.name: "bookmark-new"; onTriggered: root.promptRequested("reserve", clientMenu.row.mac, clientMenu.row.ip) }
+        QQC2.MenuItem { text: i18n("Copy IP"); icon.name: "edit-copy"; onTriggered: root.copy(clientMenu.client.ip) }
+        QQC2.MenuItem { text: i18n("Copy MAC"); icon.name: "network-card"; onTriggered: root.copy(clientMenu.client.mac) }
+        QQC2.MenuItem { text: i18n("Rename…"); icon.name: "edit-rename"; onTriggered: root.promptRequested("rename", clientMenu.client.mac, clientMenu.client.name) }
+        QQC2.MenuItem { text: i18n("Reserve IP…"); icon.name: "bookmark-new"; onTriggered: root.promptRequested("reserve", clientMenu.client.mac, clientMenu.client.ip) }
         QQC2.MenuSeparator {}
         QQC2.MenuItem {
-            visible: clientMenu.row && clientMenu.row.wireless
+            visible: clientMenu.client && clientMenu.client.wireless
             height: visible ? implicitHeight : 0
             text: i18n("Disconnect (WiFi)")
             icon.name: "network-disconnect"
-            onTriggered: root.ctlRun("disconnect " + clientMenu.row.mac)
+            onTriggered: root.ctlRun("disconnect " + clientMenu.client.mac)
         }
         QQC2.MenuItem {
-            text: clientMenu.row && clientMenu.row.blocked ? i18n("Unblock internet") : i18n("Block internet")
-            icon.name: clientMenu.row && clientMenu.row.blocked ? "dialog-ok-apply" : "dialog-cancel"
-            onTriggered: root.ctlRun((clientMenu.row.blocked ? "unblock " : "block ") + clientMenu.row.mac)
+            text: clientMenu.client && clientMenu.client.blocked ? i18n("Unblock internet") : i18n("Block internet")
+            icon.name: clientMenu.client && clientMenu.client.blocked ? "dialog-ok-apply" : "dialog-cancel"
+            onTriggered: root.ctlRun((clientMenu.client.blocked ? "unblock " : "block ") + clientMenu.client.mac)
         }
     }
 }
