@@ -1,5 +1,8 @@
 #include "launcherharness.h"
 
+#include <QImage>
+#include <QSignalSpy>
+
 namespace
 {
 
@@ -20,6 +23,27 @@ class TestLauncherGamesQml : public LauncherTest::TestCase
     Q_OBJECT
 
 private:
+    QVariantMap sampleIcon()
+    {
+        QImage icon(48, 48, QImage::Format_ARGB32);
+        icon.fill(QColor(200, 40, 40));
+        const QString path = m_harness.path(QStringLiteral("home/sample-%1.png").arg(++m_icons));
+        return icon.save(path) ? QVariantMap {{QStringLiteral("icon"), QUrl::fromLocalFile(path).toString()}} : QVariantMap();
+    }
+
+    static QObject *iconSampler(QObject *host)
+    {
+        QObject *art = host->property("art").value<QObject *>();
+        const QList<QObject *> children = art ? art->findChildren<QObject *>() : QList<QObject *>();
+        const auto found = std::find_if(children.cbegin(), children.cend(), [](const QObject *object) {
+            return QString::fromLatin1(object->metaObject()->className()) == QLatin1String("QQuickLoader")
+                && object->property("width").toInt() == 48;
+        });
+        return found == children.cend() ? nullptr : *found;
+    }
+
+    int m_icons = 0;
+
     QStringList shownGames() { return page(QStringLiteral("shown.map(g => g.id)")).toStringList(); }
 
 private Q_SLOTS:
@@ -201,6 +225,44 @@ private Q_SLOTS:
         TRY_VERIFY(page(QStringLiteral("needsApiKey")).toBool());
         eval(QStringLiteral("launcher.currentView().saveApiKey()"));
         QVERIFY(!m_harness.commands().join(QLatin1Char('\n')).contains(QStringLiteral("--set-key")));
+    }
+
+    void gameArtSamplesItsIconOnce()
+    {
+        QObject *host = m_harness.create(QStringLiteral("ArtHost.qml"), {{QStringLiteral("game"), sampleIcon()}});
+        QVERIFY(host);
+        QObject *sampler = iconSampler(host);
+        QVERIFY(sampler);
+        QSignalSpy loaded(sampler, SIGNAL(loaded()));
+        TRY_COMPARE(loaded.count(), 1);
+        TRY_VERIFY(!sampler->property("active").toBool());
+        QCOMPARE(loaded.count(), 1);
+        QCOMPARE(sampler->parent()->property("tint").value<QColor>(), QColor(200, 40, 40));
+    }
+
+    void gameArtSurvivesBeingRemovedMidSample()
+    {
+        QObject *host = m_harness.create(QStringLiteral("ArtHost.qml"), {{QStringLiteral("game"), sampleIcon()}});
+        QVERIFY(host);
+        QObject *sampler = iconSampler(host);
+        QVERIFY(sampler);
+        const QJSValue install = m_harness.engine().evaluate(
+            QStringLiteral("(function(sampler, host) {"
+                           "  const probe = Qt.createQmlObject('import QtQuick; QtObject { property bool settled: false }', host);"
+                           "  sampler.loaded.connect(function() {"
+                           "    const colors = sampler.item.data.find(o => o.dominant !== undefined);"
+                           "    colors.paletteChanged.connect(function() {"
+                           "      if (host.count === 0 || colors.dominant.a === 0) return;"
+                           "      host.count = 0;"
+                           "      Qt.callLater(() => Qt.callLater(() => probe.settled = true));"
+                           "    });"
+                           "  });"
+                           "  return probe;"
+                           "})"));
+        const QJSValue probe = install.call({m_harness.engine().toScriptValue(sampler), m_harness.engine().toScriptValue(host)});
+        QVERIFY(probe.isQObject());
+        TRY_VERIFY(probe.toQObject()->property("settled").toBool());
+        QCOMPARE(host->property("art").value<QObject *>(), nullptr);
     }
 
     void friendsPillSummarisesAndOpensTheFriendsPage()

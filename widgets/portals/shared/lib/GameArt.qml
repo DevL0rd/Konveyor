@@ -75,6 +75,7 @@ Item {
             id: wash
             readonly property string key: art.game ? (art.game.icon || "applications-games") : "applications-games"
             property color tint: ArtColors.get(key) || "transparent"
+            property bool sampling: false
 
             Rectangle {
                 anchors.fill: parent
@@ -89,11 +90,10 @@ Item {
             Timer {
                 interval: 60
                 running: wash.tint.a === 0
-                onTriggered: sampler.active = true
+                onTriggered: wash.sampling = true
             }
             Loader {
-                id: sampler
-                active: false
+                active: wash.sampling && wash.tint.a === 0
                 width: 48
                 height: 48
                 opacity: 0
@@ -111,7 +111,6 @@ Item {
                             if (dominant.a > 0) {
                                 ArtColors.put(wash.key, dominant.toString())
                                 wash.tint = dominant
-                                Qt.callLater(() => sampler.active = false)
                             }
                         }
                     }
