@@ -163,7 +163,6 @@ ColumnLayout {
         delegate: Tile {
             id: appTile
             required property var model
-            required property int index
             readonly property var view: GridView.view
             readonly property string favoriteId: model.favoriteId || ""
             sidebarEntry: launcherData.sidebarEntryFor(favoriteId, "", model.display)
@@ -181,10 +180,10 @@ ColumnLayout {
             function openMenu() {
                 launcher.openMenu(launcher.kickerEntries(page.categoryModel, model.index, model.hasActionList ? model.actionList : [], favoriteId), appTile)
             }
-            onHovered: launcher.select(view, index)
+            onHovered: launcher.select(view, appTile.DelegateModel.shownIndex)
             onClicked: activate()
             onRightClicked: {
-                launcher.select(view, index)
+                launcher.select(view, appTile.DelegateModel.shownIndex)
                 openMenu()
             }
         }
@@ -203,7 +202,6 @@ ColumnLayout {
         delegate: RowTile {
             id: appRow
             required property var model
-            required property int index
             readonly property var view: GridView.view
             readonly property string favoriteId: model.favoriteId || ""
             readonly property var gameEntry: launcherData.gameForApp(favoriteId)
@@ -223,10 +221,10 @@ ColumnLayout {
             function openMenu() {
                 launcher.openMenu(launcher.kickerEntries(page.categoryModel, model.index, model.hasActionList ? model.actionList : [], favoriteId), appRow)
             }
-            onHovered: launcher.select(view, index)
+            onHovered: launcher.select(view, appRow.DelegateModel.shownIndex)
             onClicked: activate()
             onRightClicked: {
-                launcher.select(view, index)
+                launcher.select(view, appRow.DelegateModel.shownIndex)
                 openMenu()
             }
         }

@@ -118,6 +118,11 @@ protected:
         QTest::mouseClick(m_harness.window(), button, {}, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
     }
 
+    void hover(QQuickItem *item)
+    {
+        QTest::mouseMove(m_harness.window(), item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+    }
+
     QQuickItem *tile(int position)
     {
         return qvariant_cast<QQuickItem *>(eval(QStringLiteral("%1.itemAtIndex(%2)").arg(m_grid).arg(position)));
