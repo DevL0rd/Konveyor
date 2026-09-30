@@ -11,13 +11,15 @@
 namespace Konveyor
 {
 
+using PointerBind = std::function<bool(Config::BindTrigger, Config::BindModifiers, Config::MouseButton, Config::ScrollDirection)>;
+
 struct InputHandlers
 {
-    std::function<bool(Config::BindTrigger, Qt::KeyboardModifiers, Config::MouseButton, Config::ScrollDirection)> pointerBind;
+    PointerBind pointerBind;
     std::function<void(const QPointF &, qint64)> pointerMoved;
     std::function<void()> pointerReleased;
     std::function<bool(const QPointF &)> tabClicked;
-    std::function<bool(quint32, Qt::KeyboardModifiers, bool)> keyPositionBind;
+    std::function<bool(quint32, Config::BindModifiers, bool)> keyPositionBind;
     std::function<void()> escapePressed;
 };
 
@@ -42,8 +44,6 @@ private:
 class AxisFilter : public KWin::InputEventFilter
 {
 public:
-    using PointerBind = std::function<bool(Config::BindTrigger, Qt::KeyboardModifiers, Config::MouseButton, Config::ScrollDirection)>;
-
     explicit AxisFilter(PointerBind pointerBind);
 
     bool pointerAxis(KWin::PointerAxisEvent *event) override;

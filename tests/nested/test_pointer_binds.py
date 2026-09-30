@@ -10,7 +10,8 @@ sys.path.insert(0, str(HERE / "harness"))
 def main():
     from nested import run_runner
 
-    return run_runner(HERE / "runners" / "pointer_binds.py", timeout=500, global_shortcuts=True)
+    return run_runner(HERE / "runners" / "pointer_binds.py", timeout=500, global_shortcuts=True,
+                      extra_kwinrc="konveyor_test_touchpadEnabled=true")
 
 
 if __name__ == "__main__":

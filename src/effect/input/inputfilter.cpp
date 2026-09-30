@@ -1,8 +1,12 @@
 #include "input/inputfilter.h"
 
 #include <input_event.h>
+#include <keyboard_input.h>
 #include <wayland/seat.h>
 #include <wayland_server.h>
+#include <xkb.h>
+
+#include <xkbcommon/xkbcommon-names.h>
 
 #include <optional>
 
@@ -40,6 +44,35 @@ std::optional<Config::MouseButton> buttonOf(Qt::MouseButton button)
     default:
         return std::nullopt;
     }
+}
+
+bool levelActive(xkb_state *state, const char *name)
+{
+    return state && xkb_state_mod_name_is_active(state, name, XKB_STATE_MODS_EFFECTIVE) > 0;
+}
+
+Config::BindModifiers bindModifiersOf(Qt::KeyboardModifiers modifiers)
+{
+    Config::BindModifiers result;
+    const QList<std::pair<Qt::KeyboardModifier, Config::BindModifier>> mapping {
+        {Qt::ControlModifier, Config::BindModifier::Ctrl},
+        {Qt::ShiftModifier, Config::BindModifier::Shift},
+        {Qt::AltModifier, Config::BindModifier::Alt},
+        {Qt::MetaModifier, Config::BindModifier::Super},
+    };
+    for (const auto &[qtModifier, bindModifier] : mapping) {
+        if (modifiers.testFlag(qtModifier)) {
+            result |= bindModifier;
+        }
+    }
+    xkb_state *state = KWin::input()->keyboard()->xkb()->state();
+    if (levelActive(state, XKB_VMOD_NAME_LEVEL3)) {
+        result |= Config::BindModifier::IsoLevel3Shift;
+    }
+    if (levelActive(state, XKB_VMOD_NAME_LEVEL5)) {
+        result |= Config::BindModifier::IsoLevel5Shift;
+    }
+    return result;
 }
 
 Config::BindTrigger scrollTriggerOf(const KWin::PointerAxisEvent *event)
@@ -83,10 +116,11 @@ AxisFilter::AxisFilter(PointerBind pointerBind)
 bool AxisFilter::pointerAxis(KWin::PointerAxisEvent *event)
 {
     const std::optional<Config::ScrollDirection> direction = directionOf(event);
-    if (!direction || event->modifiersRelevantForGlobalShortcuts == Qt::NoModifier) {
+    if (!direction) {
         return false;
     }
-    return m_pointerBind(scrollTriggerOf(event), event->modifiersRelevantForGlobalShortcuts, Config::MouseButton::Left, *direction);
+    return m_pointerBind(
+        scrollTriggerOf(event), bindModifiersOf(event->modifiersRelevantForGlobalShortcuts), Config::MouseButton::Left, *direction);
 }
 
 bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
@@ -97,18 +131,15 @@ bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
         m_handlers.pointerReleased();
         return m_swallowedButtons.remove(event->button);
     }
-    if (event->modifiersRelevantForShortcuts == Qt::NoModifier) {
-        const bool onTab = event->button == Qt::LeftButton && m_handlers.tabClicked(event->position);
-        if (onTab) {
-            m_swallowedButtons.insert(event->button);
-        }
-        return onTab;
+    const Config::BindModifiers modifiers = bindModifiersOf(event->modifiersRelevantForShortcuts);
+    if (!modifiers && event->button == Qt::LeftButton && m_handlers.tabClicked(event->position)) {
+        m_swallowedButtons.insert(event->button);
+        return true;
     }
     if (!button) {
         return false;
     }
-    return m_handlers.pointerBind(
-        Config::BindTrigger::MouseButton, event->modifiersRelevantForShortcuts, *button, Config::ScrollDirection::Down);
+    return m_handlers.pointerBind(Config::BindTrigger::MouseButton, modifiers, *button, Config::ScrollDirection::Down);
 }
 
 bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
@@ -134,11 +165,12 @@ bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
 
 bool InputFilter::triggersBind(const KWin::KeyboardKeyEvent *event)
 {
-    if (event->modifiersRelevantForGlobalShortcuts == Qt::NoModifier) {
+    const Config::BindModifiers modifiers = bindModifiersOf(event->modifiersRelevantForGlobalShortcuts);
+    if (!modifiers) {
         return false;
     }
     const bool repeat = event->state == KWin::KeyboardKeyState::Repeated;
-    return m_handlers.keyPositionBind(event->nativeScanCode + 8, event->modifiersRelevantForGlobalShortcuts, repeat);
+    return m_handlers.keyPositionBind(event->nativeScanCode + 8, modifiers, repeat);
 }
 
 }

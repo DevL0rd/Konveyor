@@ -77,7 +77,7 @@ void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
     m_binds = binds;
     QList<QKeySequence> wanted;
     for (const Config::Bind &bind : m_binds) {
-        if (bind.trigger == Config::BindTrigger::Key && bind.key != 0) {
+        if (registersWithKde(bind)) {
             wanted.append(keySequences(bind));
         }
     }
@@ -87,7 +87,7 @@ void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
     m_released = ShortcutConflicts::restoreUnwanted(m_released, wanted);
     ShortcutConflicts::save(m_released);
     for (const Config::Bind &bind : m_binds) {
-        if (bind.trigger == Config::BindTrigger::Key) {
+        if (registersWithKde(bind)) {
             registerKeyBind(bind);
         }
     }
@@ -99,10 +99,10 @@ const QList<Config::Bind> &ShortcutManager::binds() const
 }
 
 bool ShortcutManager::triggerPointerBind(
-    Config::BindTrigger trigger, Qt::KeyboardModifiers modifiers, Config::MouseButton button, Config::ScrollDirection direction)
+    Config::BindTrigger trigger, Config::BindModifiers modifiers, Config::MouseButton button, Config::ScrollDirection direction)
 {
     for (const Config::Bind &bind : m_binds) {
-        const bool matchesTrigger = bind.trigger == trigger && toQtModifiers(bind.resolvedModifiers) == modifiers;
+        const bool matchesTrigger = bind.trigger == trigger && bind.resolvedModifiers == modifiers;
         const bool matchesButton = trigger != Config::BindTrigger::MouseButton || bind.mouseButton == button;
         const bool matchesDirection = trigger == Config::BindTrigger::MouseButton || bind.scrollDirection == direction;
         if (matchesTrigger && matchesButton && matchesDirection) {
@@ -114,11 +114,10 @@ bool ShortcutManager::triggerPointerBind(
 }
 
 bool ShortcutManager::triggerKeyPosition(
-    quint32 keycode, Qt::KeyboardModifiers modifiers, bool repeat, xkb_keymap *keymap, xkb_layout_index_t layout)
+    quint32 keycode, Config::BindModifiers modifiers, bool repeat, xkb_keymap *keymap, xkb_layout_index_t layout)
 {
     for (const Config::Bind &bind : m_binds) {
-        if (bind.trigger != Config::BindTrigger::Key || toQtModifiers(bind.resolvedModifiers) != modifiers
-            || Config::usKeycode(bind.keysym) != keycode || Config::layoutTypesKeysym(keymap, layout, bind.keysym)) {
+        if (bind.trigger != Config::BindTrigger::Key || bind.resolvedModifiers != modifiers || !keyMatches(bind, keycode, keymap, layout)) {
             continue;
         }
         if (!repeat || bind.repeat) {
@@ -127,6 +126,21 @@ bool ShortcutManager::triggerKeyPosition(
         return true;
     }
     return false;
+}
+
+bool ShortcutManager::registersWithKde(const Config::Bind &bind)
+{
+    const Config::BindModifiers levels = Config::BindModifier::IsoLevel3Shift | Config::BindModifier::IsoLevel5Shift;
+    return bind.trigger == Config::BindTrigger::Key && bind.key != 0 && !(bind.resolvedModifiers & levels);
+}
+
+bool ShortcutManager::keyMatches(const Config::Bind &bind, quint32 keycode, xkb_keymap *keymap, xkb_layout_index_t layout)
+{
+    if (registersWithKde(bind)) {
+        return Config::usKeycode(bind.keysym) == keycode && !Config::layoutTypesKeysym(keymap, layout, bind.keysym);
+    }
+    const std::optional<quint32> typed = Config::keycodeOnLayout(keymap, layout, bind.keysym);
+    return (typed ? typed : Config::usKeycode(bind.keysym)) == keycode;
 }
 
 QString ShortcutManager::actionName(const Config::Bind &bind)
@@ -148,9 +162,6 @@ QList<QKeySequence> ShortcutManager::keySequences(const Config::Bind &bind)
 
 void ShortcutManager::registerKeyBind(const Config::Bind &bind)
 {
-    if (bind.key == 0) {
-        return;
-    }
     const QString name = actionName(bind);
     if (m_actions.contains(name)) {
         return;

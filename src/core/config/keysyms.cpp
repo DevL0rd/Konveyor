@@ -64,6 +64,8 @@ QString bindKeyLabel(const Bind &bind)
         {BindModifier::Ctrl, QStringLiteral("Ctrl")},
         {BindModifier::Alt, QStringLiteral("Alt")},
         {BindModifier::Shift, QStringLiteral("Shift")},
+        {BindModifier::IsoLevel3Shift, QStringLiteral("ISO_Level3_Shift")},
+        {BindModifier::IsoLevel5Shift, QStringLiteral("ISO_Level5_Shift")},
     };
     QStringList parts;
     for (const auto &[modifier, name] : names) {

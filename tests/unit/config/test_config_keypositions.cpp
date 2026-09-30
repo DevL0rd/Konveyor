@@ -65,6 +65,33 @@ private Q_SLOTS:
         xkb_keymap_unref(compiled);
     }
 
+    void findsTheKeyThatTypesASymbolOnALayout_data()
+    {
+        QTest::addColumn<QByteArray>("layout");
+        QTest::addColumn<quint32>("index");
+        QTest::addColumn<quint32>("keysym");
+        QTest::addColumn<std::optional<quint32>>("keycode");
+        QTest::newRow("us h") << QByteArrayLiteral("us") << quint32(0) << quint32(XKB_KEY_h) << std::optional<quint32>(43);
+        QTest::newRow("us upper case H") << QByteArrayLiteral("us") << quint32(0) << quint32(XKB_KEY_H) << std::optional<quint32>(43);
+        QTest::newRow("ru has no h") << QByteArrayLiteral("ru") << quint32(0) << quint32(XKB_KEY_h) << std::optional<quint32>();
+        QTest::newRow("second layout") << QByteArrayLiteral("ru,us") << quint32(1) << quint32(XKB_KEY_h) << std::optional<quint32>(43);
+        QTest::newRow("de y and z swap") << QByteArrayLiteral("de") << quint32(0) << quint32(XKB_KEY_y) << std::optional<quint32>(52);
+        QTest::newRow("only at a higher level") << QByteArrayLiteral("de") << quint32(0) << quint32(XKB_KEY_at) << std::optional<quint32>();
+    }
+
+    void findsTheKeyThatTypesASymbolOnALayout()
+    {
+        QFETCH(QByteArray, layout);
+        QFETCH(quint32, index);
+        QFETCH(quint32, keysym);
+        QFETCH(std::optional<quint32>, keycode);
+        xkb_keymap *compiled = keymap(layout.constData());
+        QVERIFY(compiled);
+        QCOMPARE(keycodeOnLayout(compiled, index, keysym), keycode);
+        xkb_keymap_unref(compiled);
+        QCOMPARE(keycodeOnLayout(nullptr, 0, keysym), std::nullopt);
+    }
+
     void readsTheActiveLayoutOfAMultiLayoutKeymap()
     {
         xkb_keymap *compiled = keymap("us,de");

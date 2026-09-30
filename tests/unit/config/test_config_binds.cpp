@@ -29,6 +29,8 @@ private Q_SLOTS:
     void parsesKeysymTriggers();
     void parsesModifiers_data();
     void parsesModifiers();
+    void labelsEveryModifier_data();
+    void labelsEveryModifier();
     void parsesMouseTriggers_data();
     void parsesMouseTriggers();
     void parsesScrollTriggers_data();
@@ -91,6 +93,24 @@ void TestConfigBinds::parsesModifiers()
     QFETCH(int, flags);
     const Bind bind = firstBind(key + QStringLiteral(" { close-window; }"));
     QCOMPARE(int(bind.keyModifiers.toInt()), flags);
+}
+
+void TestConfigBinds::labelsEveryModifier_data()
+{
+    QTest::addColumn<QString>("key");
+    QTest::addColumn<QString>("label");
+    QTest::newRow("mod is super") << QStringLiteral("Mod+A") << QStringLiteral("Super+A");
+    QTest::newRow("fixed order") << QStringLiteral("Shift+Alt+Ctrl+Super+A") << QStringLiteral("Super+Ctrl+Alt+Shift+A");
+    QTest::newRow("level 3") << QStringLiteral("Mod5+Mod+WheelScrollDown") << QStringLiteral("Super+ISO_Level3_Shift+WheelScrollDown");
+    QTest::newRow("level 5") << QStringLiteral("ISO_Level5_Shift+Ctrl+MouseLeft") << QStringLiteral("Ctrl+ISO_Level5_Shift+MouseLeft");
+    QTest::newRow("no modifier") << QStringLiteral("Print") << QStringLiteral("Print");
+}
+
+void TestConfigBinds::labelsEveryModifier()
+{
+    QFETCH(QString, key);
+    QFETCH(QString, label);
+    QCOMPARE(bindKeyLabel(firstBind(key + QStringLiteral(" { close-window; }"))), label);
 }
 
 void TestConfigBinds::parsesMouseTriggers_data()

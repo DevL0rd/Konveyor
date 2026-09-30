@@ -10,6 +10,8 @@
 #include <memory>
 
 using Konveyor::ShortcutManager;
+using Konveyor::Config::BindModifier;
+using Konveyor::Config::BindModifiers;
 using Konveyor::Config::BindTrigger;
 using Konveyor::Config::MouseButton;
 using Konveyor::Config::ScrollDirection;
@@ -20,7 +22,10 @@ namespace
 {
 
 constexpr quint32 keycodeH = 43;
+constexpr quint32 keycodeJ = 44;
 constexpr quint32 keycodeL = 46;
+constexpr quint32 keycodeY = 29;
+constexpr quint32 keycodeZ = 52;
 const QStringList overview {QStringLiteral("kwin"), QStringLiteral("Overview"), QStringLiteral("KWin"), QStringLiteral("Toggle Overview")};
 
 QList<Konveyor::Config::Bind> binds(const QString &body, const QString &input = QString())
@@ -39,6 +44,13 @@ QList<Konveyor::Config::Bind> binds(const QString &body, const QString &input = 
 class TestShortcutManager : public QObject
 {
     Q_OBJECT
+
+public:
+    static void initMain()
+    {
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+        qputenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/konveyor-test-bus");
+    }
 
 private:
     std::unique_ptr<PrivateSession> m_session;
@@ -109,6 +121,27 @@ private Q_SLOTS:
         QCOMPARE(shortcuts->binds().size(), 6);
     }
 
+    void leavesIsoLevelBindsOutOfKde()
+    {
+        auto shortcuts = manager();
+        shortcuts->setBinds(
+            binds(QStringLiteral("Mod+H { focus-column-left; }\nISO_Level5_Shift+K { focus-window-up; }\nSuper+J { focus-window-down; }"),
+                QStringLiteral("input { mod-key \"ISO_Level3_Shift\"; }\n")));
+        FakeKGlobalAccel::settle();
+        QVERIFY(keys(QStringLiteral("konveyor-ISO_Level3_Shift+H")).isEmpty());
+        QVERIFY(keys(QStringLiteral("konveyor-H")).isEmpty());
+        QVERIFY(keys(QStringLiteral("konveyor-ISO_Level5_Shift+K")).isEmpty());
+        QCOMPARE(keys(QStringLiteral("konveyor-Super+J")), QList<QKeySequence> {QKeySequence(QStringLiteral("Meta+J"))});
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 1);
+        xkb_keymap *map = keymap("us");
+        QVERIFY(shortcuts->triggerKeyPosition(keycodeH, BindModifier::IsoLevel3Shift, false, map, 0));
+        QVERIFY(!shortcuts->triggerKeyPosition(keycodeH, BindModifiers(), false, map, 0));
+        QVERIFY(shortcuts->triggerKeyPosition(45, BindModifier::IsoLevel5Shift, false, map, 0));
+        xkb_keymap_unref(map);
+        QCOMPARE(m_fired,
+            (QStringList {QStringLiteral("ISO_Level3_Shift+H focus-column-left"), QStringLiteral("ISO_Level5_Shift+K focus-window-up")}));
+    }
+
     void aKdeShortcutRunsTheBind()
     {
         auto shortcuts = manager();
@@ -154,8 +187,9 @@ private Q_SLOTS:
         QTest::addColumn<int>("button");
         QTest::addColumn<int>("direction");
         QTest::addColumn<QString>("fired");
-        const int meta = Qt::MetaModifier;
-        const int metaShift = Qt::MetaModifier | Qt::ShiftModifier;
+        const int meta = int(BindModifier::Super);
+        const int metaShift = int(BindModifier::Super) | int(BindModifier::Shift);
+        const int level3 = int(BindModifier::IsoLevel3Shift);
         const int wheel = int(BindTrigger::Wheel);
         const int touchpad = int(BindTrigger::TouchpadScroll);
         const int mouse = int(BindTrigger::MouseButton);
@@ -167,14 +201,20 @@ private Q_SLOTS:
         QTest::newRow("wheel up has no bind") << wheel << meta << left << up << QString();
         QTest::newRow("shift wheel down") << wheel << metaShift << left << down
                                           << QStringLiteral("Super+Shift+WheelScrollDown focus-column-right");
-        QTest::newRow("extra modifier") << wheel << int(metaShift | Qt::ControlModifier) << left << down << QString();
-        QTest::newRow("missing modifier") << wheel << int(Qt::ShiftModifier) << left << down << QString();
+        QTest::newRow("extra modifier") << wheel << int(metaShift | int(BindModifier::Ctrl)) << left << down << QString();
+        QTest::newRow("missing modifier") << wheel << int(BindModifier::Shift) << left << down << QString();
         QTest::newRow("touchpad is not the wheel") << touchpad << metaShift << left << down << QString();
         QTest::newRow("touchpad down") << touchpad << meta << left << down << QStringLiteral("Super+TouchpadScrollDown focus-column-left");
         QTest::newRow("middle button") << mouse << meta << middle << down << QStringLiteral("Super+MouseMiddle focus-workspace-up");
         QTest::newRow("middle button ignores direction")
             << mouse << meta << middle << up << QStringLiteral("Super+MouseMiddle focus-workspace-up");
         QTest::newRow("left button has no bind") << mouse << meta << left << down << QString();
+        QTest::newRow("level3 wheel") << wheel << level3 << left << down
+                                      << QStringLiteral("ISO_Level3_Shift+WheelScrollDown focus-column-first");
+        QTest::newRow("level3 is not meta") << wheel << int(level3 | meta) << left << down << QString();
+        QTest::newRow("plain back button") << mouse << 0 << int(MouseButton::Back) << down
+                                           << QStringLiteral("MouseBack focus-workspace-previous");
+        QTest::newRow("back with meta has no bind") << mouse << meta << int(MouseButton::Back) << down << QString();
         QTest::newRow("forward with shift") << mouse << metaShift << int(MouseButton::Forward) << down
                                             << QStringLiteral("Super+Shift+MouseForward focus-column-last");
     }
@@ -191,8 +231,10 @@ private Q_SLOTS:
                                                  "Mod+Shift+WheelScrollDown { focus-column-right; }\n"
                                                  "Mod+TouchpadScrollDown { focus-column-left; }\n"
                                                  "Mod+MouseMiddle { focus-workspace-up; }\n"
-                                                 "Mod+Shift+MouseForward { focus-column-last; }")));
-        const bool matched = shortcuts->triggerPointerBind(static_cast<BindTrigger>(trigger), Qt::KeyboardModifiers(modifiers),
+                                                 "Mod+Shift+MouseForward { focus-column-last; }\n"
+                                                 "ISO_Level3_Shift+WheelScrollDown { focus-column-first; }\n"
+                                                 "MouseBack { focus-workspace-previous; }")));
+        const bool matched = shortcuts->triggerPointerBind(static_cast<BindTrigger>(trigger), BindModifiers::fromInt(modifiers),
             static_cast<MouseButton>(button), static_cast<ScrollDirection>(direction));
         QCOMPARE(matched, !fired.isEmpty());
         QCOMPARE(m_fired, fired.isEmpty() ? QStringList {} : QStringList {fired});
@@ -203,8 +245,8 @@ private Q_SLOTS:
         auto shortcuts = manager();
         shortcuts->setBinds(
             binds(QStringLiteral("Mod+WheelScrollDown { focus-workspace-down; }"), QStringLiteral("input { mod-key \"Alt\"; }\n")));
-        QVERIFY(!shortcuts->triggerPointerBind(BindTrigger::Wheel, Qt::MetaModifier, MouseButton::Left, ScrollDirection::Down));
-        QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, Qt::AltModifier, MouseButton::Left, ScrollDirection::Down));
+        QVERIFY(!shortcuts->triggerPointerBind(BindTrigger::Wheel, BindModifier::Super, MouseButton::Left, ScrollDirection::Down));
+        QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, BindModifier::Alt, MouseButton::Left, ScrollDirection::Down));
         QCOMPARE(m_fired, QStringList {QStringLiteral("Alt+WheelScrollDown focus-workspace-down")});
     }
 
@@ -214,13 +256,13 @@ private Q_SLOTS:
         shortcuts->setBinds(binds(QStringLiteral("Mod+WheelScrollDown cooldown-ms=60000 { focus-workspace-down; }\n"
                                                  "Mod+WheelScrollUp cooldown-ms=0 { focus-workspace-up; }")));
         for (int turn = 0; turn < 3; ++turn) {
-            QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, Qt::MetaModifier, MouseButton::Left, ScrollDirection::Down));
-            QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, Qt::MetaModifier, MouseButton::Left, ScrollDirection::Up));
+            QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, BindModifier::Super, MouseButton::Left, ScrollDirection::Down));
+            QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, BindModifier::Super, MouseButton::Left, ScrollDirection::Up));
         }
         QCOMPARE(m_fired.count(QStringLiteral("Super+WheelScrollDown focus-workspace-down")), 1);
         QCOMPARE(m_fired.count(QStringLiteral("Super+WheelScrollUp focus-workspace-up")), 3);
         shortcuts->setBinds(shortcuts->binds());
-        QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, Qt::MetaModifier, MouseButton::Left, ScrollDirection::Down));
+        QVERIFY(shortcuts->triggerPointerBind(BindTrigger::Wheel, BindModifier::Super, MouseButton::Left, ScrollDirection::Down));
         QCOMPARE(m_fired.count(QStringLiteral("Super+WheelScrollDown focus-workspace-down")), 2);
     }
 
@@ -232,7 +274,8 @@ private Q_SLOTS:
         QTest::addColumn<bool>("repeat");
         QTest::addColumn<bool>("matched");
         QTest::addColumn<QString>("fired");
-        const int meta = Qt::MetaModifier;
+        const int meta = int(BindModifier::Super);
+        const int level3 = int(BindModifier::IsoLevel3Shift);
         QTest::newRow("ru h") << QByteArrayLiteral("ru") << keycodeH << meta << false << true
                               << QStringLiteral("Super+H focus-column-left");
         QTest::newRow("ru h held without repeat") << QByteArrayLiteral("ru") << keycodeH << meta << true << true << QString();
@@ -241,6 +284,14 @@ private Q_SLOTS:
         QTest::newRow("ru h with shift") << QByteArrayLiteral("ru") << keycodeH << int(Qt::MetaModifier | Qt::ShiftModifier) << false
                                          << false << QString();
         QTest::newRow("ru other key") << QByteArrayLiteral("ru") << quint32(44) << meta << false << false << QString();
+        QTest::newRow("us level3 j") << QByteArrayLiteral("us") << keycodeJ << level3 << false << true
+                                     << QStringLiteral("ISO_Level3_Shift+J focus-window-down");
+        QTest::newRow("de level3 y where de types it")
+            << QByteArrayLiteral("de") << keycodeZ << level3 << false << true << QStringLiteral("ISO_Level3_Shift+Y focus-window-up");
+        QTest::newRow("de level3 not at the us y") << QByteArrayLiteral("de") << keycodeY << level3 << false << false << QString();
+        QTest::newRow("ru level3 j by us position")
+            << QByteArrayLiteral("ru") << keycodeJ << level3 << false << true << QStringLiteral("ISO_Level3_Shift+J focus-window-down");
+        QTest::newRow("level3 j without level3") << QByteArrayLiteral("us") << keycodeJ << meta << false << false << QString();
         QTest::newRow("us types h itself") << QByteArrayLiteral("us") << keycodeH << meta << false << false << QString();
     }
 
@@ -255,10 +306,12 @@ private Q_SLOTS:
         auto shortcuts = manager();
         shortcuts->setBinds(binds(QStringLiteral("Mod+H repeat=false { focus-column-left; }\n"
                                                  "Mod+L { focus-column-right; }\n"
+                                                 "ISO_Level3_Shift+J { focus-window-down; }\n"
+                                                 "ISO_Level3_Shift+Y { focus-window-up; }\n"
                                                  "Mod+WheelScrollDown { focus-workspace-down; }")));
         xkb_keymap *map = keymap(layout.constData());
         QVERIFY(map);
-        QCOMPARE(shortcuts->triggerKeyPosition(keycode, Qt::KeyboardModifiers(modifiers), repeat, map, 0), matched);
+        QCOMPARE(shortcuts->triggerKeyPosition(keycode, BindModifiers::fromInt(modifiers), repeat, map, 0), matched);
         QCOMPARE(m_fired, fired.isEmpty() ? QStringList {} : QStringList {fired});
         xkb_keymap_unref(map);
     }

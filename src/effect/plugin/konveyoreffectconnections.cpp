@@ -87,14 +87,14 @@ void KonveyorEffect::installInputFilter()
         return !output || QRectF(output->geometryF()).contains(position);
     });
     const auto pointerBind
-        = [this](Config::BindTrigger trigger, Qt::KeyboardModifiers modifiers, Config::MouseButton button,
+        = [this](Config::BindTrigger trigger, Config::BindModifiers modifiers, Config::MouseButton button,
               Config::ScrollDirection direction) { return d->shortcuts.triggerPointerBind(trigger, modifiers, button, direction); };
     d->input = std::make_unique<InputFilter>(InputHandlers {
         pointerBind,
         [this](const QPointF &position, qint64 timestamp) { handlePointerMotion(position, timestamp); },
         [this] { endTitlebarDrag(); },
         [this](const QPointF &position) { return switchToTabUnderPointer(position); },
-        [this](quint32 keycode, Qt::KeyboardModifiers modifiers, bool repeat) {
+        [this](quint32 keycode, Config::BindModifiers modifiers, bool repeat) {
             const KWin::Xkb *xkb = KWin::input()->keyboard()->xkb();
             return d->shortcuts.triggerKeyPosition(keycode, modifiers, repeat, xkb->keymap(), xkb->currentLayout());
         },

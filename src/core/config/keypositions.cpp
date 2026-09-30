@@ -37,13 +37,18 @@ bool levelProduces(xkb_keymap *keymap, xkb_keycode_t keycode, xkb_layout_index_t
 
 std::optional<quint32> usKeycode(quint32 keysym)
 {
-    xkb_keymap *keymap = usKeymap();
+    return keycodeOnLayout(usKeymap(), 0, keysym);
+}
+
+std::optional<quint32> keycodeOnLayout(xkb_keymap *keymap, xkb_layout_index_t layout, quint32 keysym)
+{
     if (!keymap) {
         return std::nullopt;
     }
     const xkb_keysym_t wanted = xkb_keysym_to_lower(keysym);
     for (xkb_keycode_t keycode = xkb_keymap_min_keycode(keymap); keycode <= xkb_keymap_max_keycode(keymap); ++keycode) {
-        if (levelProduces(keymap, keycode, 0, 0, wanted)) {
+        const xkb_layout_index_t layouts = xkb_keymap_num_layouts_for_key(keymap, keycode);
+        if (layouts != 0 && levelProduces(keymap, keycode, layout < layouts ? layout : 0, 0, wanted)) {
             return keycode;
         }
     }

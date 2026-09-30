@@ -10,6 +10,7 @@ namespace Konveyor::Config
 {
 
 std::optional<quint32> usKeycode(quint32 keysym);
+std::optional<quint32> keycodeOnLayout(xkb_keymap *keymap, xkb_layout_index_t layout, quint32 keysym);
 bool layoutTypesKeysym(xkb_keymap *keymap, xkb_layout_index_t layout, quint32 keysym);
 
 }
