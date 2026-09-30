@@ -38,7 +38,7 @@ const std::map<QString, QueryCommand> &queryCommands()
         {QStringLiteral("focused-window"),
             {QStringLiteral("FocusedWindow"), Konveyor::Cli::formatFocusedWindow, QStringLiteral("Print the focused window")}},
         {QStringLiteral("focused-output"),
-            {QStringLiteral("FocusedOutput"), Konveyor::Cli::formatOutputs, QStringLiteral("Print the focused output")}},
+            {QStringLiteral("FocusedOutput"), Konveyor::Cli::formatFocusedOutput, QStringLiteral("Print the focused output")}},
         {QStringLiteral("binds"), {QStringLiteral("Binds"), Konveyor::Cli::formatBinds, QStringLiteral("List configured key binds")}},
     };
     return commands;
@@ -104,8 +104,13 @@ int runQuery(const QueryCommand &command, bool json)
     if (!reply) {
         return 1;
     }
-    const QJsonDocument document = QJsonDocument::fromJson(reply->toUtf8());
-    out() << (json ? QString::fromUtf8(document.toJson(QJsonDocument::Compact)) : command.formatter(document)) << "\n";
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(reply->toUtf8(), &error);
+    if (!reply->isEmpty() && error.error != QJsonParseError::NoError) {
+        return fail(QStringLiteral("Konveyor sent invalid JSON: %1").arg(error.errorString()));
+    }
+    const QString raw = document.isNull() ? QStringLiteral("null") : QString::fromUtf8(document.toJson(QJsonDocument::Compact));
+    out() << (json ? raw : command.formatter(document)) << "\n";
     out().flush();
     return 0;
 }
@@ -186,10 +191,15 @@ int runValidateCommand(const QStringList &arguments)
 int runRestoreShortcuts()
 {
     const QList<Konveyor::ReleasedShortcut> released = Konveyor::ShortcutConflicts::load();
-    Konveyor::ShortcutConflicts::restore(released);
-    Konveyor::ShortcutConflicts::save({});
-    out() << "Restored " << released.size() << " KDE shortcuts\n";
+    const QList<Konveyor::ReleasedShortcut> failed = Konveyor::ShortcutConflicts::restore(released);
+    Konveyor::ShortcutConflicts::save(failed);
+    out() << "Restored " << released.size() - failed.size() << " KDE shortcuts\n";
     out().flush();
+    if (!failed.isEmpty()) {
+        return fail(QStringLiteral(
+            "could not restore %1 KDE shortcuts; they are kept in konveyorstaterc, run this again once kglobalaccel is running")
+                .arg(failed.size()));
+    }
     return 0;
 }
 

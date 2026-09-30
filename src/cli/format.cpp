@@ -125,6 +125,11 @@ QString formatFocusedWindow(const QJsonDocument &document)
     return document.isObject() ? formatWindow(document.object()) : QStringLiteral("No window is focused.");
 }
 
+QString formatFocusedOutput(const QJsonDocument &document)
+{
+    return document.array().isEmpty() ? QStringLiteral("No output is focused.") : formatOutputs(document);
+}
+
 QString formatBinds(const QJsonDocument &document)
 {
     return joinArray(document, formatBind, QStringLiteral("\n"));

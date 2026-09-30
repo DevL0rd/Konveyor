@@ -8,6 +8,7 @@
 #include <KSharedConfig>
 
 #include <QDBusConnection>
+#include <QDBusMetaType>
 
 #include <algorithm>
 
@@ -38,8 +39,10 @@ QList<QKeySequence> keysFromStrings(const QStringList &strings)
     return keys;
 }
 
-void setForeignKeys(const ReleasedShortcut &shortcut, const QList<QKeySequence> &keys)
+bool setForeignKeys(const ReleasedShortcut &shortcut, const QList<QKeySequence> &keys)
 {
+    qDBusRegisterMetaType<QKeySequence>();
+    qDBusRegisterMetaType<QList<QKeySequence>>();
     OrgKdeKGlobalAccelInterface kglobalaccel(
         QStringLiteral("org.kde.kglobalaccel"), QStringLiteral("/kglobalaccel"), QDBusConnection::sessionBus());
     const QStringList actionId {shortcut.component, shortcut.action, shortcut.componentFriendlyName, shortcut.actionFriendlyName};
@@ -47,7 +50,9 @@ void setForeignKeys(const ReleasedShortcut &shortcut, const QList<QKeySequence> 
     reply.waitForFinished();
     if (reply.isError()) {
         qWarning() << "konveyor: could not restore" << shortcut.component << shortcut.action << reply.error().message();
+        return false;
     }
+    return true;
 }
 
 }
@@ -93,11 +98,15 @@ QList<ReleasedShortcut> ShortcutConflicts::releaseSuperseded()
     return released;
 }
 
-void ShortcutConflicts::restore(const QList<ReleasedShortcut> &released)
+QList<ReleasedShortcut> ShortcutConflicts::restore(const QList<ReleasedShortcut> &released)
 {
+    QList<ReleasedShortcut> failed;
     for (const ReleasedShortcut &entry : released) {
-        setForeignKeys(entry, entry.keys);
+        if (!setForeignKeys(entry, entry.keys)) {
+            failed.append(entry);
+        }
     }
+    return failed;
 }
 
 QList<ReleasedShortcut> ShortcutConflicts::load()
