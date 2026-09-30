@@ -72,12 +72,109 @@ protected:
 
     QVariant grid(const QString &expression) { return eval(m_grid + QLatin1Char('.') + expression); }
 
-    QStringList tiles(const QString &property)
+    QStringList tilesMapped(const QString &grid, const QString &mapping)
     {
-        return eval(QStringLiteral("(g => { const out = []; for (let i = 0; i < g.count; ++i) { const item = g.itemAtIndex(i); "
-                                   "out.push(item ? String(item.%1) : '') } return out })(%2)")
-                        .arg(property, m_grid))
+        return eval(QStringLiteral("(g => { const out = []; for (let i = 0; i < g.shownCount; ++i) { const item = g.itemAtIndex(i); "
+                                   "out.push(item ? String((%1)(item)) : '') } return out })(%2)")
+                        .arg(mapping, grid))
             .toStringList();
+    }
+
+    QStringList tilesOf(const QString &grid, const QString &property)
+    {
+        return tilesMapped(grid, QStringLiteral("item => item.") + property);
+    }
+
+    QString staleTiles(const QString &grid)
+    {
+        const QStringList shown = tilesMapped(grid, QStringLiteral("t => [t.label, t.iconSource, t.favoriteId]"));
+        const QStringList current = tilesMapped(grid,
+            QStringLiteral("t => t.model ? [t.model.display || '', t.model.decoration, t.model.favoriteId || ''] : [t.label, t.iconSource, "
+                           "t.favoriteId]"));
+        QStringList stale;
+        for (qsizetype i = 0; i < shown.size(); ++i) {
+            if (shown.at(i) != current.value(i)) {
+                stale.append(QStringLiteral("%1 shows %2").arg(current.value(i), shown.at(i)));
+            }
+        }
+        return stale.join(QStringLiteral(", "));
+    }
+
+    QStringList tiles(const QString &property) { return tilesOf(m_grid, property); }
+
+    QQuickItem *tileOf(const QString &grid, int position)
+    {
+        return qvariant_cast<QQuickItem *>(eval(QStringLiteral("%1.itemAtIndex(%2)").arg(grid).arg(position)));
+    }
+
+    QList<int> selectedIn(const QString &grid)
+    {
+        const QStringList flags = tilesOf(grid, QStringLiteral("selected"));
+        QList<int> selected;
+        for (qsizetype i = 0; i < flags.size(); ++i) {
+            if (flags.at(i) == QLatin1String("true")) {
+                selected.append(int(i));
+            }
+        }
+        return selected;
+    }
+
+    static QQuickItem *clickTarget(QQuickItem *item, const QPointF &scene, const QQuickItem *content)
+    {
+        if (!item->isVisible() || !item->isEnabled()) {
+            return nullptr;
+        }
+        QList<QQuickItem *> children = item->childItems();
+        std::stable_sort(children.begin(), children.end(), [](QQuickItem *a, QQuickItem *b) { return a->z() < b->z(); });
+        for (auto it = children.crbegin(); it != children.crend(); ++it) {
+            if (QQuickItem *found = clickTarget(*it, scene, content)) {
+                return found;
+            }
+        }
+        const bool clickable = item->inherits("QQuickMouseArea") || item->inherits("QQuickAbstractButton")
+            || ((item->acceptedMouseButtons() & Qt::LeftButton) && content->isAncestorOf(item));
+        return clickable && item->contains(item->mapFromScene(scene)) ? item : nullptr;
+    }
+
+    QString hitsOtherTiles(const QString &grid)
+    {
+        QStringList wrong;
+        const auto *view = qvariant_cast<QQuickItem *>(eval(grid));
+        const auto *content = view ? view->property("contentItem").value<QQuickItem *>() : nullptr;
+        const int shown = eval(grid + QStringLiteral(".shownCount")).toInt();
+        for (int position = 0; position < shown; ++position) {
+            QQuickItem *expected = tileOf(grid, position);
+            if (!expected || !content) {
+                wrong.append(QStringLiteral("no tile at %1").arg(position));
+                continue;
+            }
+            QQuickItem *hit = clickTarget(
+                m_harness.window()->contentItem(), expected->mapToScene(QPointF(expected->width() / 2, expected->height() / 2)), content);
+            while (hit && hit->parentItem() != content) {
+                hit = hit->parentItem();
+            }
+            if (hit != expected) {
+                wrong.append(QStringLiteral("%1 under %2")
+                        .arg(hit ? hit->property("label").toString() : QStringLiteral("nothing"), expected->property("label").toString()));
+            }
+        }
+        return wrong.join(QStringLiteral(", "));
+    }
+
+    bool hoverLightsOnlyThat(const QString &grid, int position)
+    {
+        QQuickItem *item = tileOf(grid, position);
+        if (!item) {
+            return false;
+        }
+        const bool flagged = item->property("selected").isValid();
+        hover(item);
+        return QTest::qWaitFor(
+            [this, &grid, position, flagged] {
+                return eval(grid + QStringLiteral(".currentIndex")).toInt() == position
+                    && eval(grid + QStringLiteral(".sectionActive")).toBool() && (!flagged || selectedIn(grid) == QList<int> {position});
+            },
+            30000);
     }
 
     QStringList shownLabels() { return tiles(QStringLiteral("label")); }
@@ -120,13 +217,11 @@ protected:
 
     void hover(QQuickItem *item)
     {
-        QTest::mouseMove(m_harness.window(), item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+        const QPoint target = item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
+        QTest::mouseMove(m_harness.window(), target);
     }
 
-    QQuickItem *tile(int position)
-    {
-        return qvariant_cast<QQuickItem *>(eval(QStringLiteral("%1.itemAtIndex(%2)").arg(m_grid).arg(position)));
-    }
+    QQuickItem *tile(int position) { return tileOf(m_grid, position); }
 
     bool showCategory(const QString &name)
     {

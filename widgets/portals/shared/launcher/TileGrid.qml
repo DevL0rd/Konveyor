@@ -29,7 +29,6 @@ GridView {
     clip: scrolling || limit >= 0
     onCountChanged: if (visible) Qt.callLater(launcher.ensureSelection)
     onCurrentItemChanged: if (currentItem && launcher.activationPending) Qt.callLater(launcher.activatePending)
-    reuseItems: true
     cacheBuffer: scrolling ? cellHeight * 2 : 0
 
     function reset() {
