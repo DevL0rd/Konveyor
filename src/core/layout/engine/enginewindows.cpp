@@ -87,8 +87,12 @@ NewWindowPlan Engine::Private::planNewWindow(
     auto &self = const_cast<Private &>(*this);
     NewWindowPlan plan;
     plan.rules = resolveWindowRules(config.windowRules, contextFor(properties, false), atStartup());
+    plan.monitorIndex = monitorForNewWindow(plan, properties, preferredOutput).value_or(activeMonitorIndex);
+    NewWindowPlan probe = plan;
+    const Workspace *target = self.workspaceForNewWindow(probe);
+    const Config::Layout &layout = target ? target->options()->layout : options->layout;
 
-    const bool childWindow = plan.rules.floatChildWindows.value_or(config.layout.floatChildWindows) && appHasWindow(properties.appId);
+    const bool childWindow = plan.rules.floatChildWindows.value_or(layout.floatChildWindows) && appHasWindow(properties.appId);
     const bool autoFloat = properties.parent.has_value() || properties.isDialog || childWindow;
     plan.isFloating = plan.rules.openFloating.value_or(autoFloat);
     plan.rules = resolveWindowRules(config.windowRules, contextFor(properties, plan.isFloating), atStartup());

@@ -101,7 +101,6 @@ struct Engine::Private
     void applyRememberedSize(NewWindowPlan &plan, const QString &appId) const;
     bool appHasWindow(const QString &appId) const;
     bool placeInAppGroup(Tile &tile, const NewWindowPlan &plan, Workspace &workspace, MonitorAddRequest &request);
-    const Config::Layout &layoutForMonitor(std::size_t monitorIndex) const;
     struct AppStackRequest
     {
         bool activate = false;
@@ -122,6 +121,7 @@ struct Engine::Private
     void resolveRules();
     bool resolveWorkspaceRules(Workspace &workspace, std::vector<WindowId> &changed);
     void ensureNamedWorkspaces();
+    void applyNamedWorkspaceLayouts();
     void applyOptions();
 
     NewWindowPlan planNewWindow(const WindowProperties &properties, const QString &preferredOutput, ActivationPolicy policy) const;

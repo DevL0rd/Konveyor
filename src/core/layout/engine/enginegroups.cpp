@@ -26,14 +26,6 @@ bool Engine::Private::appHasWindow(const QString &appId) const
     return std::ranges::any_of(orphanWorkspaces, ownsWindow);
 }
 
-const Config::Layout &Engine::Private::layoutForMonitor(std::size_t monitorIndex) const
-{
-    if (monitorIndex < monitors.size() && monitors[monitorIndex].layoutOverride()) {
-        return *monitors[monitorIndex].layoutOverride();
-    }
-    return config.layout;
-}
-
 namespace
 {
 
@@ -68,7 +60,7 @@ bool Engine::Private::placeInAppGroup(Tile &tile, const NewWindowPlan &plan, Wor
     if (plan.isFloating || plan.parent || plan.workspace || plan.fillsWidth || plan.wantsFullscreen || plan.wantsMaximized) {
         return false;
     }
-    const Config::Layout &layout = layoutForMonitor(plan.monitorIndex);
+    const Config::Layout &layout = workspace.options()->layout;
     const Config::GroupAppWindows mode = plan.rules.groupAppWindows.value_or(layout.groupAppWindows);
     const bool stackPlacement = plan.rules.newWindowPlacement.value_or(layout.newWindowPlacement) == Config::NewWindowPlacement::Stack;
     const std::vector<std::size_t> columns = stackTargets(workspace.scrolling(), tile.window().properties().appId, mode, stackPlacement);

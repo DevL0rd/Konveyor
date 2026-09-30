@@ -42,6 +42,7 @@ void Engine::setConfig(const Config::Config &config)
     }
     d->config = config;
     d->applyOptions();
+    d->applyNamedWorkspaceLayouts();
     for (std::size_t idx = 0; idx < previous.size(); ++idx) {
         d->reflowMonitorLayout(d->monitors[idx], previous[idx]);
     }

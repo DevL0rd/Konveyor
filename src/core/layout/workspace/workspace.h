@@ -73,6 +73,7 @@ public:
     void updateConfig(OptionsPtr globalOptions);
     const OptionsPtr &options() const { return m_options; }
     const std::optional<Config::Layout> &layoutOverride() const { return m_layoutOverride; }
+    void setLayoutOverride(std::optional<Config::Layout> layoutOverride);
     const Anim::Clock &clock() const { return m_clock; }
 
     void tickAnimations();
