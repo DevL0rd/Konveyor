@@ -99,8 +99,7 @@ def serve():
     if extra:
         cmd += extra
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                            text=True, bufsize=1)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, bufsize=1)
 
     ring = deque(maxlen=MAX_LINES)
     state = {"dead": False}
@@ -137,6 +136,7 @@ def serve():
             changed.clear()
         if state["dead"]:
             write_cache(list(ring), alive=False)
+            sys.stderr.write(f"logmon-collect: journalctl exited with status {proc.wait()}\n")
             return 1
         write_cache(list(ring))
         last = time.monotonic()
