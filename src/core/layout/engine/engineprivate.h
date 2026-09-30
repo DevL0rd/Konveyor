@@ -153,6 +153,8 @@ struct Engine::Private
     void placeNewWindow(
         WindowId id, const WindowProperties &properties, const NewWindowPlan &plan, const std::optional<RestorePlacement> &restore);
     bool placeRestored(Tile &tile, const NewWindowPlan &plan, const RestorePlacement &restore, MonitorAddRequest &request);
+    QRectF floatingFrameOf(const Workspace &workspace, WindowId id) const;
+    void restoreFloatingFrame(WindowId id, const QRectF &frame);
 
     std::optional<std::size_t> monitorInDirection(const QString &direction) const;
 

@@ -23,7 +23,7 @@ void Engine::addWindow(WindowId id, const WindowProperties &properties, const QS
     }
     d->placeNewWindow(id, properties, plan, restoring ? restore : std::nullopt);
     if (restoring && restore->isFloating) {
-        setFloatingFrame(id, restore->floatingFrame);
+        d->restoreFloatingFrame(id, restore->floatingFrame);
     }
     d->refresh();
 }
@@ -71,7 +71,7 @@ std::optional<RestorePlacement> Engine::placementOf(WindowId id) const
     placement.workspace = workspace->id();
     if (workspace->isFloating(id)) {
         placement.isFloating = true;
-        placement.floatingFrame = windowState(id).value_or(WindowState()).targetFrame;
+        placement.floatingFrame = d->floatingFrameOf(*workspace, id);
         return placement;
     }
     const std::vector<Column> &columns = workspace->scrolling().columns();
@@ -88,6 +88,25 @@ std::optional<RestorePlacement> Engine::placementOf(WindowId id) const
         return placement;
     }
     return std::nullopt;
+}
+
+QRectF Engine::Private::floatingFrameOf(const Workspace &workspace, WindowId id) const
+{
+    for (const ConstTileRef &ref : workspace.placedTiles(false)) {
+        if (ref.tile->id() == id) {
+            return QRectF(ref.pos + ref.tile->targetWindowOffset(), ref.tile->targetWindowSize());
+        }
+    }
+    return {};
+}
+
+void Engine::Private::restoreFloatingFrame(WindowId id, const QRectF &frame)
+{
+    Workspace *workspace = workspaceOf(id);
+    const Tile *tile = workspace ? workspace->tileFor(id) : nullptr;
+    if (tile && workspace->isFloating(id)) {
+        workspace->setFloatingFrame(id, frame.topLeft() - tile->windowOffset(), frame.size());
+    }
 }
 
 bool Engine::Private::placeRestored(Tile &tile, const NewWindowPlan &plan, const RestorePlacement &restore, MonitorAddRequest &request)
