@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Obsidian
+Comment=Knowledge base
+Icon=application-x-executable
+Exec=konveyor-test-launch md.obsidian.Obsidian
+Categories=Office;

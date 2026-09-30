@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=KCalc
+Comment=Scientific calculator
+Icon=application-x-executable
+Exec=konveyor-test-launch org.kde.kcalc
+Categories=Utility;Calculator;

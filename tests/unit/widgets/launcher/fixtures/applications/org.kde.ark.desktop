@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Ark
+Comment=Archiving tool
+Icon=application-x-executable
+Exec=konveyor-test-launch org.kde.ark
+Categories=Utility;Archiving;

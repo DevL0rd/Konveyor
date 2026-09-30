@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Konsole
+Comment=Terminal
+Icon=application-x-executable
+Exec=konveyor-test-launch org.kde.konsole
+Categories=System;TerminalEmulator;

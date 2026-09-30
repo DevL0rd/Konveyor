@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Elisa
+Comment=Music player
+Icon=application-x-executable
+Exec=konveyor-test-launch org.kde.elisa
+Categories=AudioVideo;Audio;Player;

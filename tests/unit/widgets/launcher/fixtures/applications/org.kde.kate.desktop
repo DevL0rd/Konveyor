@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Kate
+Comment=Advanced text editor
+Icon=application-x-executable
+Exec=konveyor-test-launch org.kde.kate
+Categories=Development;Utility;TextEditor;

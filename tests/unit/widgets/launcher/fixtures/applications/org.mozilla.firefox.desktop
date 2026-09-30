@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Firefox
+Comment=Web browser
+Icon=application-x-executable
+Exec=konveyor-test-launch org.mozilla.firefox
+Categories=Network;WebBrowser;

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=GNU Image Manipulation Program
+Comment=Image editor
+Icon=application-x-executable
+Exec=konveyor-test-launch org.gimp.GIMP
+Categories=Graphics;2DGraphics;

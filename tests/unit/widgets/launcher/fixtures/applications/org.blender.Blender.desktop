@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Blender
+Comment=3D creation suite
+Icon=application-x-executable
+Exec=konveyor-test-launch org.blender.Blender
+Categories=Graphics;3DGraphics;

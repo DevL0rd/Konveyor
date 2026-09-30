@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Krita
+Comment=Digital painting
+Icon=application-x-executable
+Exec=konveyor-test-launch org.kde.krita
+Categories=Graphics;2DGraphics;RasterGraphics;

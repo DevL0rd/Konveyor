@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Heroic Games Launcher
+Comment=Game launcher
+Icon=application-x-executable
+Exec=konveyor-test-launch com.heroicgameslauncher.hgl
+Categories=Game;

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hidden Helper
+Comment=Never shown
+Icon=application-x-executable
+Exec=konveyor-test-launch org.example.hidden
+Categories=Utility;
+NoDisplay=true

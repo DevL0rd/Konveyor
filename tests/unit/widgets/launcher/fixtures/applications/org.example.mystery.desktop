@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Mystery Tool
+Comment=Tool without categories
+Icon=application-x-executable
+Exec=konveyor-test-launch org.example.mystery

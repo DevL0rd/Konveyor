@@ -57,7 +57,8 @@ public:
             return false;
         }
         const QDir root(m_root.path());
-        for (const char *name : {"home", "config", "data", "state", "cache", "runtime", "dirs/konveyor", "qml/org/kde/konveyor"}) {
+        for (const char *name :
+            {"home", "config/menus", "data", "state", "cache", "runtime", "dirs/konveyor", "qml/org/kde/konveyor", "bin"}) {
             if (!root.mkpath(QLatin1String(name))) {
                 return false;
             }
@@ -71,6 +72,8 @@ public:
         qputenv("XDG_CACHE_HOME", root.filePath(QStringLiteral("cache")).toUtf8());
         qputenv("XDG_RUNTIME_DIR", root.filePath(QStringLiteral("runtime")).toUtf8());
         qputenv("XDG_DATA_DIRS", root.filePath(QStringLiteral("dirs")).toUtf8() + ":/usr/local/share:/usr/share");
+        qputenv("XDG_MENU_PREFIX", "konveyor-test-");
+        qputenv("PATH", root.filePath(QStringLiteral("bin")).toUtf8() + ':' + qgetenv("PATH"));
         const QString ui = root.filePath(QStringLiteral("ui"));
         const QString lib = QDir(ui).filePath(QStringLiteral("lib"));
         return QFile::copy(source("data/default-config.kdl"), root.filePath(QStringLiteral("dirs/konveyor/default-config.kdl")))
@@ -80,8 +83,51 @@ public:
             && copyTree(source("widgets/portals/shared/launcher"), ui) && copyTree(source("widgets/portals/shared/lib"), lib)
             && copyTree(source("widgets/shared/common"), lib)
             && QFile::copy(source("widgets/shared/MonitorOverlay.qml"), QDir(lib).filePath(QStringLiteral("MonitorOverlay.qml")))
-            && copyTree(source("widgets/portals/kontrol-panel"), ui) && copyTree(source("tests/unit/widgets/launcher"), ui);
+            && copyTree(source("widgets/portals/kontrol-panel"), ui) && copyTree(source("tests/unit/widgets/launcher"), ui)
+            && stageApplications() && stageDoublesWithoutKicker();
     }
+
+    bool stageApplications()
+    {
+        const QDir root(m_root.path());
+        QFile menu(source("tests/unit/widgets/launcher/fixtures/konveyor-test-applications.menu"));
+        QFile staged(root.filePath(QStringLiteral("config/menus/konveyor-test-applications.menu")));
+        QFile launch(root.filePath(QStringLiteral("bin/konveyor-test-launch")));
+        if (!menu.open(QIODevice::ReadOnly) || !staged.open(QIODevice::WriteOnly) || !launch.open(QIODevice::WriteOnly)) {
+            return false;
+        }
+        const QString text = QString::fromUtf8(menu.readAll())
+                                 .replace(QStringLiteral("@APPS@"), applicationsDir())
+                                 .replace(QStringLiteral("@DIRECTORIES@"), root.filePath(QStringLiteral("data/desktop-directories")));
+        return staged.write(text.toUtf8()) > 0 && launch.write("#!/bin/sh\nprintf '%s\\n' \"$1\" >> \"$HOME/launched\"\n") > 0
+            && launch.setPermissions(launch.permissions() | QFileDevice::ExeOwner)
+            && copyTree(source("tests/unit/widgets/launcher/fixtures/applications"), applicationsDir())
+            && copyTree(source("tests/unit/widgets/launcher/fixtures/desktop-directories"),
+                root.filePath(QStringLiteral("data/desktop-directories")));
+    }
+
+    bool stageDoublesWithoutKicker()
+    {
+        const QString doubles = source("tests/unit/widgets/launcher/doubles");
+        for (const char *module : {"org/kde/plasma/plasma5support", "org/kde/plasma/plasmoid"}) {
+            if (!copyTree(
+                    QDir(doubles).filePath(QLatin1String(module)), QDir(path(QStringLiteral("doubles"))).filePath(QLatin1String(module)))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    QString applicationsDir() const { return path(QStringLiteral("data/applications")); }
+
+    QStringList launched() const
+    {
+        QFile file(path(QStringLiteral("home/launched")));
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts)
+                                              : QStringList();
+    }
+
+    void useSystemKicker() { m_systemKicker = true; }
 
     QString path(const QString &relative) const { return QDir(m_root.path()).filePath(relative); }
 
@@ -91,7 +137,7 @@ public:
     {
         if (!m_engine) {
             m_engine = std::make_unique<QQmlEngine>();
-            m_engine->addImportPath(source("tests/unit/widgets/launcher/doubles"));
+            m_engine->addImportPath(m_systemKicker ? path(QStringLiteral("doubles")) : source("tests/unit/widgets/launcher/doubles"));
             m_engine->addImportPath(path(QStringLiteral("qml")));
             KLocalizedString::setApplicationDomain("plasma_applet_org.devl0rd.portal.launcher");
             m_engine->rootContext()->setContextObject(new KLocalizedQmlContext(m_engine.get()));
@@ -261,6 +307,7 @@ public:
         }
         QDir(path(QStringLiteral("data/Plasma-App-Portal"))).removeRecursively();
         QDir(path(QStringLiteral("runtime/Plasma-App-Portal"))).removeRecursively();
+        QFile::remove(path(QStringLiteral("home/launched")));
         urls().opened.clear();
     }
 
@@ -272,6 +319,7 @@ private:
     std::unique_ptr<KConfigPropertyMap> m_config;
     std::unique_ptr<QQuickWindow> m_window;
     std::unique_ptr<QObject> m_object;
+    bool m_systemKicker = false;
 };
 
 inline Harness &harness()

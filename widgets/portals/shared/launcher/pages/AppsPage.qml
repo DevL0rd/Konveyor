@@ -357,6 +357,7 @@ ColumnLayout {
             TileGrid {
                 id: grid
                 anchors.fill: parent
+                reuseItems: false
                 scrolling: true
                 cellWidth: page.listView ? Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 22))))
                                          : Math.floor(width / Math.max(1, Math.floor(width / (page.tileSize + Kirigami.Units.gridUnit * 4))))

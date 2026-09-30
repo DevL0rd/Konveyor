@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Zed
+Comment=Code editor
+Icon=application-x-executable
+Exec=konveyor-test-launch dev.zed.Zed
+Categories=Development;TextEditor;

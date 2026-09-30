@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Asteroid Blaster
+Comment=Arcade shooter
+Icon=application-x-executable
+Exec=konveyor-test-launch org.example.blaster
+Categories=Game;ArcadeGame;

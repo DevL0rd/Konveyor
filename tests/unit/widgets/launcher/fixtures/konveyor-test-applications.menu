@@ -1,0 +1,65 @@
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+ "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">
+
+<Menu>
+	<Name>Applications</Name>
+	<Directory>konveyor-test-main.directory</Directory>
+	<AppDir>@APPS@</AppDir>
+	<DirectoryDir>@DIRECTORIES@</DirectoryDir>
+	<Menu>
+		<Name>Development</Name>
+		<Directory>konveyor-test-development.directory</Directory>
+		<Include><Category>Development</Category></Include>
+	</Menu>
+	<Menu>
+		<Name>Games</Name>
+		<Directory>konveyor-test-games.directory</Directory>
+		<Include>
+			<And>
+				<Category>Game</Category>
+				<Not><Category>ArcadeGame</Category></Not>
+			</And>
+		</Include>
+		<Menu>
+			<Name>Arcade</Name>
+			<Directory>konveyor-test-games-arcade.directory</Directory>
+			<Include><Category>ArcadeGame</Category></Include>
+		</Menu>
+	</Menu>
+	<Menu>
+		<Name>Graphics</Name>
+		<Directory>konveyor-test-graphics.directory</Directory>
+		<Include><Category>Graphics</Category></Include>
+	</Menu>
+	<Menu>
+		<Name>Internet</Name>
+		<Directory>konveyor-test-internet.directory</Directory>
+		<Include><Category>Network</Category></Include>
+	</Menu>
+	<Menu>
+		<Name>Multimedia</Name>
+		<Directory>konveyor-test-multimedia.directory</Directory>
+		<Include><Category>AudioVideo</Category></Include>
+	</Menu>
+	<Menu>
+		<Name>Office</Name>
+		<Directory>konveyor-test-office.directory</Directory>
+		<Include><Category>Office</Category></Include>
+	</Menu>
+	<Menu>
+		<Name>System</Name>
+		<Directory>konveyor-test-system.directory</Directory>
+		<Include><Category>System</Category></Include>
+	</Menu>
+	<Menu>
+		<Name>Utilities</Name>
+		<Directory>konveyor-test-utilities.directory</Directory>
+		<Include><Category>Utility</Category></Include>
+	</Menu>
+	<Menu>
+		<Name>Lost &amp; Found</Name>
+		<Directory>konveyor-test-unknown.directory</Directory>
+		<OnlyUnallocated/>
+		<Include><All/></Include>
+	</Menu>
+</Menu>

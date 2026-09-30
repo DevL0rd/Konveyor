@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Dolphin
+Comment=File manager
+Icon=application-x-executable
+Exec=konveyor-test-launch org.kde.dolphin
+Categories=System;FileManager;

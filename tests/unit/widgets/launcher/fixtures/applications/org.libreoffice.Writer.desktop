@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=LibreOffice Writer
+Comment=Word processor
+Icon=application-x-executable
+Exec=konveyor-test-launch org.libreoffice.Writer
+Categories=Office;WordProcessor;

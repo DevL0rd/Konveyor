@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Chess Master
+Comment=Board game
+Icon=application-x-executable
+Exec=konveyor-test-launch org.example.chess
+Categories=Game;BoardGame;

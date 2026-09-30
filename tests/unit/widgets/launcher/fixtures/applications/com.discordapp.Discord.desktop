@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Discord
+Comment=Voice and text chat
+Icon=application-x-executable
+Exec=konveyor-test-launch com.discordapp.Discord
+Categories=Network;InstantMessaging;

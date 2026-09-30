@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Steam
+Comment=Game store
+Icon=application-x-executable
+Exec=konveyor-test-launch com.valvesoftware.Steam
+Categories=Game;Network;
