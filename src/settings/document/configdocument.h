@@ -8,6 +8,7 @@
 
 #include <expected>
 #include <string>
+#include <utility>
 
 namespace Konveyor::Settings
 {
@@ -45,7 +46,11 @@ private:
     char32_t at(qsizetype index) const;
     qsizetype entryEnd(qsizetype position) const;
     qsizetype attachedCommentStart(qsizetype start, qsizetype lineEnd) const;
+    qsizetype commentBlockStart(qsizetype start) const;
+    std::pair<qsizetype, qsizetype> ownedRange(const Kdl::Span &span) const;
     QString indentAt(qsizetype position) const;
+    QString indentFor(const NodePath &path) const;
+    bool usesCrlf() const;
     qsizetype lineStart(qsizetype position) const;
     void replace(std::u32string &text, qsizetype from, qsizetype to, const QString &replacement) const;
     void reparse();

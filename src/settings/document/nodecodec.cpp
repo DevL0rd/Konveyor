@@ -136,6 +136,26 @@ QString writeValue(const QVariant &value)
     }
 }
 
+QVariantMap withPropertyOrder(QVariantMap node, const Kdl::Node &existing)
+{
+    const QVariant properties = node.value(QStringLiteral("props"));
+    if (properties.typeId() != QMetaType::QVariantMap) {
+        return node;
+    }
+    QVariantMap remaining = properties.toMap();
+    QVariantList ordered;
+    for (const Kdl::Property &property : existing.properties) {
+        if (remaining.contains(property.name)) {
+            ordered.append(QVariant(QVariantList {property.name, remaining.take(property.name)}));
+        }
+    }
+    for (auto it = remaining.cbegin(); it != remaining.cend(); ++it) {
+        ordered.append(QVariant(QVariantList {it.key(), it.value()}));
+    }
+    node.insert(QStringLiteral("props"), ordered);
+    return node;
+}
+
 QString writeNodeHead(const QVariantMap &node)
 {
     QString text = writeIdentifier(node.value(QStringLiteral("name")).toString());

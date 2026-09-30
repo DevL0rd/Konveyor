@@ -2,9 +2,7 @@ find_package(KF6 REQUIRED COMPONENTS CoreAddons Service)
 find_package(Qt6 REQUIRED COMPONENTS Quick GuiPrivate DBus)
 include(ECMQmlModule)
 
-ecm_add_qml_module(konveyor_settings URI "org.kde.konveyor.settings" GENERATE_PLUGIN_SOURCE NO_CACHEGEN)
-
-target_sources(konveyor_settings PRIVATE
+add_library(konveyor_settings_model STATIC
     document/configdocument.cpp
     document/configdocument.h
     document/nodecodec.cpp
@@ -15,6 +13,21 @@ target_sources(konveyor_settings PRIVATE
     store/configfile.h
     store/edithistory.cpp
     store/edithistory.h
+    values/configvalues.h
+    values/globalvalues.cpp
+    values/layoutvalues.cpp
+    values/livematching.cpp
+    values/livematching.h
+    values/paintvalues.cpp
+)
+target_include_directories(konveyor_settings_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(konveyor_settings_model PUBLIC konveyor_config konveyor_layout Qt6::Core Qt6::Gui)
+target_compile_options(konveyor_settings_model PRIVATE -Wall -Wextra -Wpedantic -Werror)
+set_target_properties(konveyor_settings_model PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+ecm_add_qml_module(konveyor_settings URI "org.kde.konveyor.settings" GENERATE_PLUGIN_SOURCE NO_CACHEGEN)
+
+target_sources(konveyor_settings PRIVATE
     store/settingsnavigation.cpp
     store/settingsnavigation.h
     store/settingsstore.cpp
@@ -23,12 +36,6 @@ target_sources(konveyor_settings PRIVATE
     system/keynames.h
     system/livesession.cpp
     system/livesession.h
-    values/configvalues.h
-    values/globalvalues.cpp
-    values/layoutvalues.cpp
-    values/livematching.cpp
-    values/livematching.h
-    values/paintvalues.cpp
 )
 
 ecm_target_qml_sources(konveyor_settings SOURCES qml/PageFactory.js)
@@ -180,6 +187,7 @@ target_include_directories(konveyor_settings PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 target_compile_options(konveyor_settings PRIVATE -Wall -Wextra -Werror)
 target_link_options(konveyor_settings PRIVATE LINKER:--no-undefined)
 target_link_libraries(konveyor_settings PRIVATE
+    konveyor_settings_model
     konveyor_config
     konveyor_layout
     KF6::CoreAddons

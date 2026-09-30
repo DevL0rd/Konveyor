@@ -84,13 +84,14 @@ EditResult ConfigDocument::setNode(const QString &path, const QVariantMap &node)
         return insertChild(parent, node);
     }
     const Kdl::Span &span = located->node->span;
+    const QVariantMap ordered = withPropertyOrder(node, *located->node);
     std::u32string text = m_text;
-    if (node.contains(QStringLiteral("children"))) {
-        replace(text, span.start, span.end, writeNode(node, indentAt(span.start)));
+    if (ordered.contains(QStringLiteral("children"))) {
+        replace(text, span.start, span.end, writeNode(ordered, indentFor(located->path)));
     } else if (span.childrenOpen >= 0) {
-        replace(text, span.start, span.childrenOpen, writeNodeHead(node) + QLatin1Char(' '));
+        replace(text, span.start, span.childrenOpen, writeNodeHead(ordered) + QLatin1Char(' '));
     } else {
-        replace(text, span.start, span.end, writeNodeHead(node));
+        replace(text, span.start, span.end, writeNodeHead(ordered));
     }
     return commit(std::move(text), path);
 }
@@ -158,8 +159,13 @@ qsizetype ConfigDocument::attachedCommentStart(qsizetype start, qsizetype lineEn
     if (!nextLine.isEmpty() && !nextLine.startsWith(QLatin1Char('}'))) {
         return start;
     }
+    return commentBlockStart(start);
+}
+
+qsizetype ConfigDocument::commentBlockStart(qsizetype start) const
+{
     while (start > 0) {
-        const qsizetype previous = lineStart(start - 1);
+        const qsizetype previous = lineStart(start - ((start > 1 && at(start - 1) == U'\n' && at(start - 2) == U'\r') ? 2 : 1));
         if (!slice(previous, start).trimmed().startsWith(QLatin1String("//"))) {
             break;
         }
@@ -168,16 +174,31 @@ qsizetype ConfigDocument::attachedCommentStart(qsizetype start, qsizetype lineEn
     return start;
 }
 
+std::pair<qsizetype, qsizetype> ConfigDocument::ownedRange(const Kdl::Span &span) const
+{
+    const qsizetype line = lineStart(span.start);
+    if (!slice(line, span.start).trimmed().isEmpty()) {
+        return {span.start, span.end};
+    }
+    qsizetype start = commentBlockStart(line);
+    while (isInlineSpace(at(start))) {
+        ++start;
+    }
+    const qsizetype end = entryEnd(span.end);
+    const bool trailingComment = (end >= size() || Kdl::isNewline(at(end))) && !slice(span.end, end).contains(QLatin1Char(';'));
+    return {start, trailingComment ? end : span.end};
+}
+
 EditResult ConfigDocument::append(const QString &parentPath, const QVariantMap &node)
 {
-    const auto parent = parsePath(parentPath);
+    const auto parent = locate(parentPath);
     if (!parent) {
         return std::unexpected(parent.error());
     }
-    if (const EditResult ensured = ensure(*parent); !ensured) {
+    if (const EditResult ensured = ensure(parent->path); !ensured) {
         return ensured;
     }
-    return insertChild(*parent, node);
+    return insertChild(parent->path, node);
 }
 
 EditResult ConfigDocument::move(const QString &path, int delta)
@@ -197,11 +218,13 @@ EditResult ConfigDocument::move(const QString &path, int delta)
     }
     const Kdl::Node *first = delta < 0 ? other : located->node;
     const Kdl::Node *second = delta < 0 ? located->node : other;
-    const QString firstText = slice(first->span.start, first->span.end);
-    const QString secondText = slice(second->span.start, second->span.end);
+    const auto [firstStart, firstEnd] = ownedRange(first->span);
+    const auto [secondStart, secondEnd] = ownedRange(second->span);
+    const QString firstText = slice(firstStart, firstEnd);
+    const QString secondText = slice(secondStart, secondEnd);
     std::u32string text = m_text;
-    replace(text, second->span.start, second->span.end, firstText);
-    replace(text, first->span.start, first->span.end, secondText);
+    replace(text, secondStart, secondEnd, firstText);
+    replace(text, firstStart, firstEnd, secondText);
     return commit(std::move(text), formatPath(target));
 }
 
@@ -249,7 +272,7 @@ EditResult ConfigDocument::insertChild(const NodePath &parentPath, const QVarian
         return commit(std::move(text), formatPath(resultPath));
     }
     const Kdl::Span &span = parent->span;
-    const QString parentIndent = indentAt(span.start);
+    const QString parentIndent = indentFor(parentPath);
     const QString indent = parentIndent + IndentStep;
     const QString nodeText = writeNode(node, indent);
     if (span.childrenOpen < 0) {
@@ -307,9 +330,28 @@ qsizetype ConfigDocument::lineStart(qsizetype position) const
     return position;
 }
 
+QString ConfigDocument::indentFor(const NodePath &path) const
+{
+    const Kdl::Node *node = findNode(m_document, path);
+    const qsizetype start = lineStart(node->span.start);
+    if (path.size() > 1 && !slice(start, node->span.start).trimmed().isEmpty()) {
+        return indentFor(parentOf(path)) + IndentStep;
+    }
+    return indentAt(node->span.start);
+}
+
+bool ConfigDocument::usesCrlf() const
+{
+    const auto newline = m_text.find(U'\n');
+    return newline != std::u32string::npos && newline > 0 && m_text[newline - 1] == U'\r';
+}
+
 void ConfigDocument::replace(std::u32string &text, qsizetype from, qsizetype to, const QString &replacement) const
 {
-    text.replace(static_cast<std::size_t>(from), static_cast<std::size_t>(to - from), toCodePoints(replacement));
+    const QString written = usesCrlf()
+        ? QString(replacement).replace(QLatin1String("\r\n"), QLatin1String("\n")).replace(QLatin1Char('\n'), QLatin1String("\r\n"))
+        : replacement;
+    text.replace(static_cast<std::size_t>(from), static_cast<std::size_t>(to - from), toCodePoints(written));
 }
 
 void ConfigDocument::reparse()
