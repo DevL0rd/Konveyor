@@ -172,6 +172,10 @@ inline Config::Config randomConfig(quint32 seed, bool animated)
     config.layout = randomLayout(dice);
     config.animations = randomAnimations(dice, animated);
     config.windowRules = randomRules(dice);
+    config.input.workspaceAutoBackAndForth = dice.chance(50);
+    config.gestures.dndEdgeViewScroll
+        = Config::DndEdgeScroll {dice.pick({1.0, 30.0, 400.0}), dice.pick({0.0, 100.0}), dice.pick({1.0, 1500.0, 20000.0})};
+    config.gestures.dndEdgeWorkspaceSwitch = Config::DndEdgeScroll {dice.pick({1.0, 50.0}), dice.pick({0.0, 100.0}), 1500.0};
     if (dice.chance(60)) {
         Config::NamedWorkspace web {QStringLiteral("web"), std::nullopt, std::nullopt, std::nullopt};
         Config::NamedWorkspace chat {QStringLiteral("chat"), QStringLiteral("DP-2"), std::nullopt, std::nullopt};

@@ -36,8 +36,9 @@ inline QString overlappingTiles(const QList<Layout::WindowState> &states)
             if (!isVisibleTile(b) || a.workspace != b.workspace) {
                 continue;
             }
-            const QRectF shared = settledRect(a).intersected(settledRect(b));
-            if (!shared.isEmpty()) {
+            const QRectF first = settledRect(a);
+            const QRectF second = settledRect(b);
+            if (first.isValid() && second.isValid() && first.intersects(second)) {
                 return QStringLiteral("tiles %1 and %2 overlap on workspace %3").arg(a.id).arg(b.id).arg(a.workspace);
             }
         }

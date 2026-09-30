@@ -109,7 +109,7 @@ private Q_SLOTS:
     void randomEventsKeepInvariants_data()
     {
         QTest::addColumn<quint32>("seed");
-        for (quint32 seed = 1; seed <= 48; ++seed) {
+        for (quint32 seed = 1; seed <= 64; ++seed) {
             QTest::newRow(qPrintable(QStringLiteral("seed-%1").arg(seed))) << seed;
         }
     }
