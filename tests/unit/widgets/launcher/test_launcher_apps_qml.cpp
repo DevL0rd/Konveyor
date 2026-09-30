@@ -138,6 +138,29 @@ private Q_SLOTS:
         TRY_COMPARE(shownLabels(), categories().at(2).second);
         QCOMPARE(launchedAfterClicking(3), QStringList {QStringLiteral("com.valvesoftware.Steam")});
     }
+
+    void theOnlyMatchingAppIsShownOnceAsTheBestMatch()
+    {
+        QVERIFY(openApps());
+        const QList<QPair<QString, QString>> steps = {{QStringLiteral("b"), QStringLiteral("Blender")},
+            {QStringLiteral("blend"), QString()}, {QStringLiteral("bl"), QStringLiteral("Blender")}, {QStringLiteral("blende"), QString()}};
+        for (const auto &step : steps) {
+            eval(QStringLiteral("launcher.setQuery('%1')").arg(step.first));
+            TRY_COMPARE(eval(QStringLiteral("launcher.presentedTerm")).toString(), step.first);
+            TRY_COMPARE(eval(QStringLiteral("launcher.currentView().hero.kind")).toString(), QStringLiteral("app"));
+            const QString header = QStringLiteral("(v => { const found = []; const walk = item => { for (const child of item.children) { "
+                                                  "if (child.title === 'Applications' && child.grid === undefined && child.visible) "
+                                                  "found.push(child.trailing); walk(child) } }; "
+                                                  "walk(v); return found })(launcher.currentView())");
+            if (step.second.isEmpty()) {
+                TRY_COMPARE(eval(header).toStringList(), QStringList());
+                TRY_COMPARE(eval(QStringLiteral("launcher.currentView().totalResults")).toInt(), 1);
+            } else {
+                TRY_COMPARE(eval(header).toStringList().size(), 1);
+                QVERIFY(eval(header).toStringList().constFirst().toInt() > 0);
+            }
+        }
+    }
 };
 
 LAUNCHER_TEST_MAIN(TestLauncherAppsQml)

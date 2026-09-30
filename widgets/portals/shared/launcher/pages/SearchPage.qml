@@ -185,13 +185,14 @@ PopScroll {
     component ResultGroup: ColumnLayout {
         id: group
         property string title
-        property string trailing: resultGrid.count + ""
+        property int rows: resultGrid.count
+        property string trailing: rows + ""
         property alias grid: resultGrid
         property alias model: resultGrid.model
         property alias delegate: resultGrid.delegate
         property alias cellHeight: resultGrid.cellHeight
         property alias cellWidth: resultGrid.cellWidth
-        readonly property bool hasContent: resultGrid.count > 0
+        readonly property bool hasContent: rows > 0
         visible: hasContent
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
@@ -439,10 +440,12 @@ PopScroll {
                 return [grid]
             }
             title: i18n("Applications")
+            rows: shownRows.count
             model: DelegateModel {
                 id: appRows
                 model: page.appGroup
                 groups: DelegateModelGroup {
+                    id: shownRows
                     name: "shown"
                     includeByDefault: false
                 }
