@@ -23,6 +23,7 @@ RowLayout {
     }
 
     function writeGradient(changes) {
+        SettingsStore.remove(blockPath + "/" + colorName);
         SettingsStore.setValue(blockPath + "/" + gradientName, [], Kdl.gradientProps(Object.assign({}, gradient, changes)));
     }
 
