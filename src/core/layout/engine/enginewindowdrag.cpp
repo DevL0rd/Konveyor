@@ -309,11 +309,10 @@ void Engine::Private::interactiveMoveFinish()
     }
 
     windowDrag = std::move(move);
-    Monitor *monitor = monitorByName(windowDrag->output);
-    if (!monitor) {
-        monitor = activeMonitor();
+    if (const auto idx = monitorIndexByName(windowDrag->output)) {
+        activeMonitorIndex = *idx;
     }
-    if (monitor) {
+    if (Monitor *monitor = activeMonitor()) {
         dropInteractiveTile(*monitor, monitor->insertTargetAt(windowDrag->pointerPos));
     }
     windowDrag.reset();
