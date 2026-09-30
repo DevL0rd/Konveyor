@@ -9,7 +9,7 @@
 namespace Konveyor::Layout
 {
 
-void Engine::Private::refresh()
+void Engine::Private::refreshWorkspaces()
 {
     for (std::size_t idx = 0; idx < monitors.size(); ++idx) {
         monitors[idx].refresh(layoutFocused && idx == activeMonitorIndex);
@@ -17,8 +17,15 @@ void Engine::Private::refresh()
     for (Workspace &workspace : orphanWorkspaces) {
         workspace.refresh(false);
     }
+}
+
+void Engine::Private::refresh()
+{
+    refreshWorkspaces();
     updateFocus();
-    resolveRules();
+    if (resolveRules()) {
+        refreshWorkspaces();
+    }
     rememberWindows();
 }
 
@@ -53,7 +60,7 @@ void Engine::Private::updateFocus()
     }
 }
 
-void Engine::Private::resolveRules()
+bool Engine::Private::resolveRules()
 {
     if (rulesAtStartup != atStartup()) {
         rulesAtStartup = atStartup();
@@ -63,6 +70,7 @@ void Engine::Private::resolveRules()
             }
         }
     }
+    bool anyChanged = false;
     for (Workspace *workspace : allWorkspaces()) {
         std::vector<WindowId> changed;
         const bool reapplyWidths = resolveWorkspaceRules(*workspace, changed);
@@ -72,7 +80,9 @@ void Engine::Private::resolveRules()
         if (reapplyWidths) {
             workspace->applyDefaultColumnWidths();
         }
+        anyChanged = anyChanged || reapplyWidths || !changed.empty();
     }
+    return anyChanged;
 }
 
 bool Engine::Private::resolveWorkspaceRules(Workspace &workspace, std::vector<WindowId> &changed)

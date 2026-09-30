@@ -120,6 +120,16 @@ private Q_SLOTS:
         QCOMPARE(rowOrder(fixture, {first, later}), (QList<Layout::WindowId> {later, first}));
         VERIFY_INVARIANTS(fixture);
     }
+
+    void pinningOnReloadKeepsTheRowInView()
+    {
+        Fixture fixture(instantConfig());
+        fixture.add(QStringLiteral("a"));
+        const auto later = fixture.add(QStringLiteral("pinned"));
+        fixture.setConfig(leftConfig());
+        QCOMPARE(fixture.frame(later).x(), 16.0);
+        QCOMPARE(fixture.focused(), std::optional(later));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutPins)

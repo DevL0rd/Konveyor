@@ -116,10 +116,11 @@ struct Engine::Private
     Workspace *workspaceForTarget(std::optional<WindowId> requested);
 
     void refresh();
+    void refreshWorkspaces();
     bool focusWindow(WindowId id);
     void takeLayoutFocus();
     void updateFocus();
-    void resolveRules();
+    bool resolveRules();
     bool resolveWorkspaceRules(Workspace &workspace, std::vector<WindowId> &changed);
     void ensureNamedWorkspaces();
     void applyNamedWorkspaceLayouts();
