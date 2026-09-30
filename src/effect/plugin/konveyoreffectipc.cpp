@@ -45,7 +45,12 @@ void KonveyorEffect::startDBusService()
         [this] { return focusedOutputJson(); },
         [this] { return bindsJson(); },
         [this](const QString &json) { return performActionJson(json); },
-        [this](const QString &path) { return d->config.load(path); },
+        [this](const QString &path) {
+            if (QDir::isRelativePath(path) && !path.isEmpty()) {
+                return QStringLiteral("LoadConfigFile needs an absolute path, got %1").arg(path);
+            }
+            return d->config.load(path);
+        },
         [this] { return readEngine().isOverviewOpen(); },
         [this] { return lastBindJson(); },
         [this] { return QJsonDocument(Ipc::gesturesToJson(d->gestures.config())); },

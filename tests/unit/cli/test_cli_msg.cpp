@@ -1,5 +1,6 @@
 #include "fakekonveyor.h"
 
+#include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -184,6 +185,16 @@ private Q_SLOTS:
         const ProgramResult failed = konveyor({QStringLiteral("msg"), QStringLiteral("load-config-file")});
         QCOMPARE(failed.exitCode, 1);
         QCOMPARE(failed.err, QStringLiteral("Error: config.kdl:3:1: unexpected token\n"));
+    }
+
+    void loadConfigFileSendsARelativePathFromWhereItRuns()
+    {
+        m_konveyor->reply(QStringLiteral("LoadConfigFile"), QString());
+        QCOMPARE(konveyor({QStringLiteral("msg"), QStringLiteral("load-config-file"), QStringLiteral("sub/other.kdl")}).exitCode, 0);
+        const QList<QDBusMessage> calls = m_konveyor->calls(QStringLiteral("LoadConfigFile"));
+        QCOMPARE(calls.size(), 1);
+        QCOMPARE(calls.at(0).arguments().value(0).toString(),
+            QDir(m_session->dir(QStringLiteral("home"))).filePath(QStringLiteral("sub/other.kdl")));
     }
 
     void unknownRequestFails()

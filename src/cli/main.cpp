@@ -12,6 +12,7 @@
 #include <QDBusConnectionInterface>
 #include <QDBusInterface>
 #include <QDBusReply>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QTextStream>
 
@@ -163,7 +164,10 @@ int runMsg(const QStringList &arguments)
     const std::map<QString, std::function<int()>> handlers {
         {QStringLiteral("action"), [&] { return runAction(positional); }},
         {QStringLiteral("load-config-file"),
-            [&] { return runErrorReturningCall(QStringLiteral("LoadConfigFile"), {positional.value(0)}); }},
+            [&] {
+                const QString path = positional.isEmpty() ? QString() : QFileInfo(positional.constFirst()).absoluteFilePath();
+                return runErrorReturningCall(QStringLiteral("LoadConfigFile"), {path});
+            }},
         {QStringLiteral("version"),
             [&] {
                 return runQuery({QStringLiteral("Version"),

@@ -101,6 +101,8 @@ def load_config_file(checks):
     checks.expect(wait_for(lambda: len(bind_keys()) == 3), f"editing the main config does not switch back to it ({bind_keys()})")
     checks.equal(konveyor("LoadConfigFile", ""), "", "LoadConfigFile with no path")
     checks.equal(len(bind_keys()), 3, "LoadConfigFile with no path reloads the file in use")
+    relative = konveyor("LoadConfigFile", "other/config.kdl")
+    checks.expect("absolute" in relative, f"LoadConfigFile refuses a relative path, which KWin would resolve from its own directory ({relative!r})")
     before = len(failures())
     missing = konveyor("LoadConfigFile", str(ROOT / "missing.kdl"))
     checks.expect("missing.kdl" in missing, f"LoadConfigFile of a missing file reports it ({missing!r})")
