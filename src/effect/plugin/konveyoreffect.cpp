@@ -50,9 +50,9 @@ KonveyorEffect::~KonveyorEffect()
         d->memoryStore.save(d->engine.windowMemory());
     }
     MinimizeRule::apply(false);
-    Config::HotCorners disabled;
-    disabled.enabled = false;
-    applyHotCorners(disabled);
+    for (const KWin::ElectricBorder border : std::as_const(d->reservedCorners)) {
+        KWin::effects->unreserveElectricBorder(border, this);
+    }
 }
 
 bool KonveyorEffect::isActive() const
@@ -224,17 +224,19 @@ void KonveyorEffect::applyConfig(const Config::Config &config)
     d->gestures.setConfig(config.gestures);
     d->windows.reevaluate();
     d->shortcuts.setBinds(config.binds);
-    applyHotCorners(config.gestures.hotCorners);
+    applyHotCorners(config);
     d->plasmaShell.setHideDesktopWidgets(config.hideDesktopWidgets);
     d->plasmaShell.setFillPanels(config.fillPanelsOnMaximize);
     MinimizeRule::apply(config.disableMinimize);
     d->fullscreenGuard.setExperiments(config.experiments.preventFullscreenMinimize, config.experiments.preventFullscreenExit);
 }
 
-void KonveyorEffect::applyHotCorners(const Config::HotCorners &corners)
+void KonveyorEffect::applyHotCorners(const Config::Config &config)
 {
     for (const auto &[border, flag] : hotCornerFlags()) {
-        const bool wanted = corners.enabled && corners.*flag;
+        const bool wanted = cornerOn(config.gestures.hotCorners, flag)
+            || std::ranges::any_of(config.outputs,
+                [flag](const Config::OutputConfig &output) { return output.hotCorners && cornerOn(*output.hotCorners, flag); });
         if (wanted == d->reservedCorners.contains(border)) {
             continue;
         }
@@ -250,7 +252,11 @@ void KonveyorEffect::applyHotCorners(const Config::HotCorners &corners)
 
 bool KonveyorEffect::borderActivated(KWin::ElectricBorder border)
 {
-    if (!d->reservedCorners.contains(border)) {
+    const auto flags = hotCornerFlags();
+    const auto corner = std::ranges::find(flags, border, &std::pair<KWin::ElectricBorder, bool Config::HotCorners::*>::first);
+    const QString output = outputNameAt(KWin::effects->cursorPos());
+    const Config::HotCorners &corners = hotCornersOn(d->config.config(), output);
+    if (!d->reservedCorners.contains(border) || corner == flags.end() || !cornerOn(corners, corner->second)) {
         return false;
     }
     changeEngine().setOverviewOpen(!readEngine().isOverviewOpen());

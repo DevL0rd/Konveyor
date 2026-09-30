@@ -62,7 +62,7 @@ private:
     QJsonDocument focusedOutputJson() const;
     QJsonDocument bindsJson() const;
     QJsonDocument lastBindJson() const;
-    void applyHotCorners(const Config::HotCorners &corners);
+    void applyHotCorners(const Config::Config &config);
     void handlePointerMotion(const QPointF &position, qint64 timestampMs);
     QPointF interactionPoint() const;
     bool routeGesture(bool consumed);

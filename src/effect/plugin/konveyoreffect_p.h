@@ -78,6 +78,19 @@ inline QList<std::pair<KWin::ElectricBorder, bool Config::HotCorners::*>> hotCor
     };
 }
 
+inline bool cornerOn(const Config::HotCorners &corners, bool Config::HotCorners::*flag)
+{
+    return corners.enabled && corners.*flag;
+}
+
+inline const Config::HotCorners &hotCornersOn(const Config::Config &config, const QString &output)
+{
+    const auto entry = std::ranges::find_if(config.outputs, [&output](const Config::OutputConfig &candidate) {
+        return candidate.hotCorners && candidate.name.compare(output, Qt::CaseInsensitive) == 0;
+    });
+    return entry == config.outputs.end() ? config.gestures.hotCorners : *entry->hotCorners;
+}
+
 struct KonveyorEffect::Private
 {
     Anim::Clock clock;
