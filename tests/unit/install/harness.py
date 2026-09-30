@@ -22,7 +22,7 @@ STUBS = ("sudo", "runuser", "systemctl", "systemd-run", "busctl", "gdbus", "kwri
 MANAGERS = ("pacman", "dnf", "zypper", "apt-get")
 TOOLS = ("bash", "sh", "cat", "cp", "mv", "rm", "rmdir", "mkdir", "ln", "chmod", "find", "sed", "grep", "sort", "comm", "basename",
          "dirname", "tee", "install", "touch", "head", "cut", "tr", "awk", "join", "xargs", "sha256sum", "readlink", "env", "mktemp",
-         "ls", "python3", "git", "wc", "uname")
+         "ls", "python3", "git", "wc", "uname", "tar", "gzip")
 OS_RELEASE = {
     "arch": "ID=arch\n",
     "fedora-atomic": "ID=fedora\nVERSION_ID=42\nOSTREE_VERSION=42.20250101.0\n",
@@ -76,7 +76,7 @@ class Harness:
         }
         if not self.atomic:
             self.environment["KONVEYOR_PREFIX"] = str(self.prefix)
-        (self.root / "gitconfig").write_text("[user]\n\tname = t\n\temail = t@t\n[safe]\n\tdirectory = *\n[init]\n\tdefaultBranch = main\n")
+        (self.root / "gitconfig").write_text("[user]\n\tname = t\n\temail = t@t\n[safe]\n\tdirectory = *\n[init]\n\tdefaultBranch = main\n[protocol \"file\"]\n\tallow = always\n")
         self.make_source(checkout)
         self.write(self.home / ".config" / "kwinrc", "[Plugins]\nblurEnabled=true\n")
         self.set_shortcut("plasmashell", "activate application launcher", ["Meta", "Alt+F1"], "Plasma", "Activate Application Launcher")

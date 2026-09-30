@@ -157,11 +157,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Create the source archive
         run: |
           version="${GITHUB_REF_NAME#v}"
-          git archive --format=tar.gz --prefix="konveyor-${version}/" -o "konveyor-${version}.tar.gz" HEAD
+          tools/source-archive.sh "$version"
           sha256sum "konveyor-${version}.tar.gz" > "konveyor-${version}.tar.gz.sha256"
 
       - name: Publish the release

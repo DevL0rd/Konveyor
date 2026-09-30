@@ -85,7 +85,7 @@ add_test(NAME test_kontrol_panel_install COMMAND python3 ${CMAKE_CURRENT_SOURCE_
 set_tests_properties(test_kontrol_panel_install PROPERTIES LABELS "unit;install")
 
 foreach(name test_install_harness test_install_options test_install_prefix test_update_hooks test_update_modes test_rebuild test_atomic
-             test_uninstall test_shortcut_takeovers)
+             test_uninstall test_shortcut_takeovers test_release_archive)
     add_test(NAME ${name} COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/install/${name}.py)
     set_tests_properties(${name} PROPERTIES LABELS "unit;install")
 endforeach()
