@@ -34,14 +34,19 @@ void collectMessage(QtMsgType type, const QMessageLogContext &context, const QSt
     }
 }
 
+void replaceFile(const QString &source, const QString &target)
+{
+    QDir().mkpath(QFileInfo(target).absolutePath());
+    QFile::remove(target);
+    QFile::copy(source, target);
+}
+
 void copyTree(const QString &from, const QString &to)
 {
     QDirIterator it(from, QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         const QString source = it.next();
-        const QString target = to + source.mid(from.size());
-        QDir().mkpath(QFileInfo(target).absolutePath());
-        QFile::copy(source, target);
+        replaceFile(source, to + source.mid(from.size()));
     }
 }
 
@@ -155,9 +160,9 @@ void PlasmoidHarness::stage()
     QDir().mkpath(ui + QStringLiteral("/lib"));
     const QDir common(widgetsDir() + QStringLiteral("/shared/common"));
     for (const QString &name : common.entryList({QStringLiteral("*.qml"), QStringLiteral("*.js")}, QDir::Files)) {
-        QFile::copy(common.filePath(name), ui + QStringLiteral("/lib/") + name);
+        replaceFile(common.filePath(name), ui + QStringLiteral("/lib/") + name);
     }
-    QFile::copy(widgetsDir() + QStringLiteral("/shared/MonitorOverlay.qml"), ui + QStringLiteral("/lib/MonitorOverlay.qml"));
+    replaceFile(widgetsDir() + QStringLiteral("/shared/MonitorOverlay.qml"), ui + QStringLiteral("/lib/MonitorOverlay.qml"));
     for (const QString &lib : std::as_const(m_spec.libs)) {
         copyTree(widgetsDir() + QLatin1Char('/') + lib, ui + QStringLiteral("/lib"));
     }
