@@ -143,3 +143,11 @@ target_compile_definitions(test_kontrolpanel_main PRIVATE KONVEYOR_SOURCE_DIR="$
 add_dependencies(test_kontrolpanel_main konveyor-kontrol-panel)
 add_test(NAME test_kontrolpanel_main COMMAND test_kontrolpanel_main)
 set_tests_properties(test_kontrolpanel_main PROPERTIES LABELS "unit;kontrolpanel" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+
+find_package(KF6 REQUIRED COMPONENTS I18n)
+add_executable(test_kontrolpanel_windows_qml unit/kontrolpanel/test_kontrolpanel_windows_qml.cpp)
+target_link_libraries(test_kontrolpanel_windows_qml PRIVATE konveyor_kontrolpanel Qt6::Qml Qt6::Test KF6::I18n KF6::I18nQml)
+target_compile_options(test_kontrolpanel_windows_qml PRIVATE -Wall -Wextra -Werror)
+target_compile_definitions(test_kontrolpanel_windows_qml PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+add_test(NAME test_kontrolpanel_windows_qml COMMAND test_kontrolpanel_windows_qml)
+set_tests_properties(test_kontrolpanel_windows_qml PROPERTIES LABELS "unit;kontrolpanel" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")

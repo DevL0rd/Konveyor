@@ -19,7 +19,7 @@ QQC2.ApplicationWindow {
         return values
     }
     function apply() {
-        const form = page.item
+        const form = page.form
         for (const key of root.config.keys()) {
             const name = "cfg_" + key
             if (name in form && form[name] !== root.config[key])
@@ -32,10 +32,15 @@ QQC2.ApplicationWindow {
         anchors.bottomMargin: buttons.height
         contentWidth: availableWidth
 
-        Loader {
+        Item {
             id: page
+            property Item form: null
             width: parent.width
-            Component.onCompleted: setSource("configGeneral.qml", window.initialValues())
+            implicitHeight: form ? form.implicitHeight : 0
+            Component.onCompleted: {
+                form = root.service.createForm(Qt.resolvedUrl("configGeneral.qml"), window.initialValues(), page)
+                form.width = Qt.binding(() => page.width)
+            }
         }
     }
 

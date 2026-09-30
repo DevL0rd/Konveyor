@@ -4,6 +4,10 @@
 
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
+#include <QQmlComponent>
+#include <QQmlContext>
+#include <QQmlEngine>
+#include <QQuickItem>
 #include <QWindow>
 
 namespace Konveyor
@@ -42,6 +46,29 @@ bool KontrolPanelService::konveyorRunning() const
 {
     const QDBusConnectionInterface *bus = QDBusConnection::sessionBus().interface();
     return bus && bus->isServiceRegistered(QStringLiteral("org.kde.Konveyor"));
+}
+
+QQuickItem *KontrolPanelService::createForm(const QUrl &url, const QVariantMap &values, QQuickItem *parent) const
+{
+    QQmlComponent component(qmlEngine(parent), url);
+    QObject *object = component.beginCreate(qmlContext(parent));
+    auto *form = qobject_cast<QQuickItem *>(object);
+    if (!form) {
+        qWarning().noquote() << "konveyor-kontrol-panel: could not create" << url.toString() << component.errorString();
+        delete object;
+        return nullptr;
+    }
+    QVariantMap known;
+    for (auto it = values.cbegin(); it != values.cend(); ++it) {
+        if (form->metaObject()->indexOfProperty(it.key().toUtf8().constData()) >= 0) {
+            known.insert(it.key(), it.value());
+        }
+    }
+    component.setInitialProperties(form, known);
+    form->setParent(parent);
+    form->setParentItem(parent);
+    component.completeCreate();
+    return form;
 }
 
 void KontrolPanelService::Toggle()
