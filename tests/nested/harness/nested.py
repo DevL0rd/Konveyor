@@ -39,7 +39,7 @@ def build_dir():
 
 class NestedSession:
     def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1,
-                 input_method=None, files=None, notifications=False):
+                 input_method=None, files=None, notifications=False, hidden_data=()):
         self.output_count = output_count
         self.width = width
         self.height = height
@@ -65,6 +65,7 @@ class NestedSession:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text)
         (self.root / "bus.conf").write_text(BUS_CONFIG)
+        self.data_dirs = self.hide_data(hidden_data) if hidden_data else None
         self.global_shortcuts = global_shortcuts
         self.xwayland = xwayland
         self.input_method = input_method
@@ -73,12 +74,25 @@ class NestedSession:
         self.proc = None
         self.log_path = self.root / "kwin.log"
 
+    def hide_data(self, hidden):
+        overlays = []
+        for index, directory in enumerate(os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":")):
+            overlay = self.root / "data-dirs" / str(index)
+            overlay.mkdir(parents=True)
+            for entry in Path(directory).glob("*"):
+                if entry.name not in hidden:
+                    (overlay / entry.name).symlink_to(entry)
+            overlays.append(str(overlay))
+        return ":".join(overlays)
+
     def env(self):
         env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "QT_QPA_PLATFORM", "KDE_FULL_SESSION", "XDG_CURRENT_DESKTOP", "SESSION_MANAGER")}
         env["HOME"] = str(self.home)
         env["XDG_CONFIG_HOME"] = str(self.config_home)
         env["XDG_DATA_HOME"] = str(self.data_home)
         env["XDG_STATE_HOME"] = str(self.state_home)
+        if self.data_dirs:
+            env["XDG_DATA_DIRS"] = self.data_dirs
         env["KONVEYOR_TEST_ROOT"] = str(self.root)
         env["KONVEYOR_NOTIFICATIONS_LOG"] = str(self.notifications_log)
         env["QT_PLUGIN_PATH"] = f"{build_dir() / 'bin'}:{os.environ.get('QT_PLUGIN_PATH', '/usr/lib/qt6/plugins')}"
@@ -138,9 +152,9 @@ def run_runner(runner, timeout, extra_config="", client="client.qml", arguments=
     return run_script(script, timeout, extra_config, **session)
 
 
-def run_script(script, timeout, extra_config="", config_kdl=None, **session):
+def run_script(script, timeout, extra_config="", config_kdl=None, write_config=True, **session):
     config = (REPO / "data" / "default-config.kdl").read_text() + extra_config if config_kdl is None else config_kdl
-    session = NestedSession(config_kdl=config, **session)
+    session = NestedSession(config_kdl=config if write_config else None, **session)
     report = session.root / "report.txt"
     session.start(f'export KONVEYOR_REPORT="{report}"\nexport KONVEYOR_KWIN_LOG="{session.log_path}"\n' + script)
     try:

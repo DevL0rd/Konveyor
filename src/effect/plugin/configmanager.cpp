@@ -10,6 +10,9 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 
+#include <memory>
+#include <vector>
+
 namespace Konveyor
 {
 
@@ -36,15 +39,21 @@ std::expected<QString, QString> readText(const QString &path, bool allowMissing)
     return QString::fromUtf8(file.readAll());
 }
 
-std::expected<void, QString> writeText(const QString &path, const QString &text)
+std::expected<void, QString> writeTexts(const QList<std::pair<QString, QString>> &files)
 {
-    QDir().mkpath(QFileInfo(path).absolutePath());
-    QSaveFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        return std::unexpected(QStringLiteral("Could not write %1: %2").arg(path, file.errorString()));
+    std::vector<std::unique_ptr<QSaveFile>> pending;
+    for (const auto &[path, text] : files) {
+        QDir().mkpath(QFileInfo(path).absolutePath());
+        auto file = std::make_unique<QSaveFile>(path);
+        if (!file->open(QIODevice::WriteOnly | QIODevice::Text) || file->write(text.toUtf8()) < 0) {
+            return std::unexpected(QStringLiteral("Could not write %1: %2").arg(path, file->errorString()));
+        }
+        pending.push_back(std::move(file));
     }
-    if (file.write(text.toUtf8()) < 0 || !file.commit()) {
-        return std::unexpected(QStringLiteral("Could not write %1: %2").arg(path, file.errorString()));
+    for (const std::unique_ptr<QSaveFile> &file : pending) {
+        if (!file->commit()) {
+            return std::unexpected(QStringLiteral("Could not write %1: %2").arg(file->fileName(), file->errorString()));
+        }
     }
     return {};
 }
@@ -120,13 +129,12 @@ std::expected<void, QString> ConfigManager::setForceResizable(const QString &app
     if (!updatedMain) {
         return std::unexpected(updatedMain.error());
     }
-    if (const auto written = writeText(overridePath, *updatedOverride); !written) {
-        return written;
-    }
+    QList<std::pair<QString, QString>> files {{overridePath, *updatedOverride}};
     if (*updatedMain != *mainText) {
-        if (const auto written = writeText(m_path, *updatedMain); !written) {
-            return written;
-        }
+        files.append({m_path, *updatedMain});
+    }
+    if (const auto written = writeTexts(files); !written) {
+        return written;
     }
     const QString error = load();
     if (!error.isEmpty()) {

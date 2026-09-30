@@ -18,7 +18,7 @@ class Checks:
         return condition
 
     def equal(self, actual, expected, message):
-        return self.expect(actual == expected, f"{message}: expected {expected!r}, got {actual!r}")
+        return self.expect(actual == expected, message if actual == expected else f"{message}: expected {expected!r}, got {actual!r}")
 
     def run(self, *steps):
         for step in steps:
