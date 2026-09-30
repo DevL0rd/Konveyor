@@ -67,9 +67,39 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void cycleExpansionOfALoneExpandedColumnFillsTheScreenOnTheFirstPress()
+    {
+        Config::Config config = instantConfig();
+        config.layout.alwaysExpandSingleColumn = true;
+        Fixture fixture(config);
+        const auto id = fixture.add();
+        QCOMPARE(fixture.frame(id), QRectF(16, 16, 1888, 1048));
+
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+        QCOMPARE(fixture.frame(id), QRectF(0, 0, 1920, 1080));
+
+        fixture.perform(QStringLiteral("cycle-window-expansion"));
+        QCOMPARE(fixture.frame(id), QRectF(16, 16, 1888, 1048));
+        QCOMPARE(fixture.state(id).sizingMode, Layout::WindowMode::Normal);
+
+        fixture.add();
+        QCOMPARE(fixture.frame(id).width(), 936.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void cycleExpansionTemporarilyResizesFixedWindowThenRestoresNativeSize_data()
+    {
+        QTest::addColumn<bool>("alwaysExpand");
+        QTest::newRow("always-expand-single-column off") << false;
+        QTest::newRow("always-expand-single-column on") << true;
+    }
+
     void cycleExpansionTemporarilyResizesFixedWindowThenRestoresNativeSize()
     {
-        Fixture fixture;
+        QFETCH(bool, alwaysExpand);
+        Config::Config config = instantConfig();
+        config.layout.alwaysExpandSingleColumn = alwaysExpand;
+        Fixture fixture(config);
         Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(300, 200));
         properties.isResizable = false;
         const auto id = fixture.addWith(properties);

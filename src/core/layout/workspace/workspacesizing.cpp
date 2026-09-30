@@ -133,6 +133,12 @@ void Workspace::cycleExpansion(WindowId window)
         setMaximized(window, false);
         return;
     }
+    const bool expandedAlone
+        = column->expandedAlone && column->tileAreaWidth() + 0.5 >= column->widthInPixels(ColumnWidth::proportion(1.0));
+    if (!column->fillsWidth && expandedAlone) {
+        setMaximized(window, true);
+        return;
+    }
     const bool wasFullWidth = column->fillsWidth;
     m_strip.toggleFillWidth();
     if (wasFullWidth) {
