@@ -201,20 +201,20 @@ private Q_SLOTS:
     void focusMonitorFollowsTheOutputLayout_data()
     {
         QTest::addColumn<QString>("from");
-        QTest::addColumn<QString>("direction");
+        QTest::addColumn<QString>("name");
         QTest::addColumn<QString>("expected");
         const QList<QStringList> rows {
-            {"DP-1", "right", "DP-2"},
-            {"DP-1", "down", "DP-3"},
-            {"DP-1", "left", "DP-1"},
-            {"DP-1", "up", "DP-1"},
-            {"DP-1", "next", "DP-2"},
-            {"DP-1", "previous", "DP-3"},
-            {"DP-3", "next", "DP-1"},
-            {"DP-3", "up", "DP-1"},
-            {"DP-3", "right", "DP-3"},
-            {"DP-2", "left", "DP-1"},
-            {"DP-2", "down", "DP-2"},
+            {"DP-1", "focus-monitor-right", "DP-2"},
+            {"DP-1", "focus-monitor-down", "DP-3"},
+            {"DP-1", "focus-monitor-left", "DP-1"},
+            {"DP-1", "focus-monitor-up", "DP-1"},
+            {"DP-1", "focus-monitor-next", "DP-2"},
+            {"DP-1", "focus-monitor-previous", "DP-3"},
+            {"DP-3", "focus-monitor-next", "DP-1"},
+            {"DP-3", "focus-monitor-up", "DP-1"},
+            {"DP-3", "focus-monitor-right", "DP-3"},
+            {"DP-2", "focus-monitor-left", "DP-1"},
+            {"DP-2", "focus-monitor-down", "DP-2"},
         };
         for (const QStringList &row : rows) {
             QTest::newRow(qPrintable(row[0] + QLatin1Char(' ') + row[1])) << row[0] << row[1] << row[2];
@@ -224,11 +224,11 @@ private Q_SLOTS:
     void focusMonitorFollowsTheOutputLayout()
     {
         QFETCH(QString, from);
-        QFETCH(QString, direction);
+        QFETCH(QString, name);
         QFETCH(QString, expected);
         Monitors monitors(lShapedOutputs());
         monitors.fixture.engine().focusOutput(from);
-        QVERIFY(monitors.fixture.perform(QStringLiteral("focus-monitor-") + direction).ok);
+        QVERIFY(monitors.fixture.perform(name).ok);
         QCOMPARE(monitors.focusedOutput(), expected);
     }
 

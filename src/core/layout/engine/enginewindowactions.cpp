@@ -77,9 +77,9 @@ ActionResult toggleWindowedFullscreen(Engine::Private &d, const Config::Action &
 void registerSizeActions(ActionTable &table)
 {
     registerPresetActions(table);
-    for (const char *name : {"set-column-width", "set-window-width"}) {
-        addSizeAction(table, name, +[](Workspace &ws, std::optional<WindowId> id, SizeChange change) { ws.setWindowWidth(id, change); });
-    }
+    const SizeSetter setWidth = +[](Workspace &ws, std::optional<WindowId> id, SizeChange change) { ws.setWindowWidth(id, change); };
+    addSizeAction(table, "set-column-width", setWidth);
+    addSizeAction(table, "set-window-width", setWidth);
     addSizeAction(
         table, "set-window-height", +[](Workspace &ws, std::optional<WindowId> id, SizeChange change) { ws.setWindowHeight(id, change); });
     addTargetAction(

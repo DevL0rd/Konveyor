@@ -62,6 +62,47 @@ class TestLayoutMonitorTargets : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void directionalMovesFollowTheOutputLayout_data()
+    {
+        QTest::addColumn<QString>("from");
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<QString>("expected");
+        const QList<QStringList> rows {
+            {"DP-1", "move-window-to-monitor-down", "DP-3"},
+            {"DP-3", "move-window-to-monitor-up", "DP-1"},
+            {"DP-1", "move-window-to-monitor-previous", "DP-3"},
+            {"DP-1", "move-window-to-monitor-up", "DP-1"},
+            {"DP-1", "move-column-to-monitor-down", "DP-3"},
+            {"DP-1", "move-column-to-monitor-next", "DP-2"},
+            {"DP-1", "move-column-to-monitor-previous", "DP-3"},
+            {"DP-2", "move-column-to-monitor-down", "DP-2"},
+            {"DP-1", "move-workspace-to-monitor-next", "DP-2"},
+            {"DP-1", "move-workspace-to-monitor-previous", "DP-3"},
+            {"DP-3", "move-workspace-to-monitor-up", "DP-1"},
+            {"DP-3", "move-workspace-to-monitor-next", "DP-1"},
+        };
+        for (const QStringList &row : rows) {
+            QTest::newRow(qPrintable(row[0] + QLatin1Char(' ') + row[1])) << row[0] << row[1] << row[2];
+        }
+    }
+
+    void directionalMovesFollowTheOutputLayout()
+    {
+        QFETCH(QString, from);
+        QFETCH(QString, name);
+        QFETCH(QString, expected);
+        Fixture fixture;
+        fixture.addOutput(Middle, outputGeometry(1));
+        fixture.addOutput(Right, QRectF(0, 1080, 1920, 1080));
+        fixture.engine().focusOutput(from);
+        const auto id = fixture.add(QStringLiteral("a"));
+        QVERIFY(fixture.perform(name).ok);
+        QCOMPARE(fixture.state(id).output, expected);
+        QCOMPARE(fixture.engine().focusedOutput(), std::optional(expected));
+        QCOMPARE(fixture.focused(), std::optional(id));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void moveWindowToNamedWorkspaceOnAnotherMonitorLandsInThatWorkspace()
     {
         TwoOutputs t;

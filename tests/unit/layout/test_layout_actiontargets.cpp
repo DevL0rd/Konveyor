@@ -272,6 +272,18 @@ private Q_SLOTS:
         QVERIFY(fixture.state(first).isUrgent);
     }
 
+    void hotkeyOverlayIsForwardedToTheCompositor()
+    {
+        QStringList forwarded;
+        Layout::Hooks hooks;
+        hooks.compositorAction = [&forwarded](const QString &name) { forwarded.append(name); };
+        Fixture fixture(instantConfig(), QRectF(0, 0, 1920, 1080), hooks);
+        const auto id = fixture.add(QStringLiteral("a"));
+        QVERIFY(fixture.perform(QStringLiteral("show-hotkey-overlay")).ok);
+        QCOMPARE(forwarded, QStringList {QStringLiteral("show-hotkey-overlay")});
+        QCOMPARE(fixture.focused(), std::optional(id));
+    }
+
     void idPropertyWinsOverTheTargetArgument()
     {
         TargetFixture f;
