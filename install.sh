@@ -51,6 +51,7 @@ parse_arguments() {
 }
 
 update_checkout() {
+    git -C "$SOURCE_DIR" rev-parse --git-dir >/dev/null 2>&1 || return 0
     if ! $SKIP_PULL && git -C "$SOURCE_DIR" rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1; then
         say "Updating source checkout"
         git -C "$SOURCE_DIR" pull --ff-only
