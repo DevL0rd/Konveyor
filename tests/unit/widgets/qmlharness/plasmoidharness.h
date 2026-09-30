@@ -33,13 +33,13 @@ public:
 
     static void prepareEnvironment();
     static QString widgetsDir();
+    static QByteArray fixture(const QString &name);
     static QStringList &messages();
     static QString report();
 
     void setUp(int formFactor, const QVariantMap &config = {});
     QObject *create(const QString &relative, const QVariantMap &properties = {});
     QObject *load(int formFactor, const QVariantMap &config = {});
-    QObject *loadFile(const QString &relative, const QVariantMap &properties = {});
     QQuickItem *show(const char *representation);
     QQuickItem *showItem(QObject *object);
     QString command(const QString &prefix) const;
@@ -75,7 +75,6 @@ private:
     QList<QObject *> m_shown;
 };
 
-QQuickItem *findItem(QQuickItem *item, const std::function<bool(QQuickItem *)> &match);
 QStringList visibleTexts(QQuickItem *item);
 QList<QObject *> findByType(QObject *root, const char *type);
 bool watching(QObject *root, const QString &path);

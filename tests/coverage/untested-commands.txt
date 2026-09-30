@@ -1,5 +1,4 @@
 procmon-collect --once
-procmon-collect --set-interval
 procmon-collect --snapshot
 routermon-collect all
 sysmon-collect --once

@@ -108,7 +108,7 @@ foreach(name test_routermon_ctl test_routermon_config test_routermon_speedtest t
 endforeach()
 
 find_package(KF6 REQUIRED COMPONENTS I18n)
-add_library(konveyor_plasmoid_harness STATIC unit/widgets/qmlharness/plasmadoubles.cpp unit/widgets/qmlharness/plasmoidharness.cpp)
+add_library(konveyor_plasmoid_harness STATIC unit/widgets/qmlharness/plasmadoubles.cpp unit/widgets/qmlharness/plasmoidharness.cpp unit/widgets/qmlharness/qmlsearch.cpp)
 target_link_libraries(konveyor_plasmoid_harness PUBLIC Qt6::Qml Qt6::Quick Qt6::Test KF6::I18n KF6::I18nQml)
 target_include_directories(konveyor_plasmoid_harness PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/qmlharness)
 target_compile_options(konveyor_plasmoid_harness PRIVATE -Wall -Wextra -Werror)

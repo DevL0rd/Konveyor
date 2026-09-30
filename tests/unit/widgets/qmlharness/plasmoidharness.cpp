@@ -118,6 +118,12 @@ QString PlasmoidHarness::widgetsDir()
     return QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets");
 }
 
+QByteArray PlasmoidHarness::fixture(const QString &name)
+{
+    QFile file(QStringLiteral(KONVEYOR_SOURCE_DIR "/tests/unit/widgets/fixtures/") + name);
+    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
+
 QStringList &PlasmoidHarness::messages()
 {
     static QStringList list;
@@ -208,19 +214,6 @@ QObject *PlasmoidHarness::load(int formFactor, const QVariantMap &config)
 {
     setUp(formFactor, config);
     return create(QStringLiteral("contents/ui/main.qml"));
-}
-
-QObject *PlasmoidHarness::loadFile(const QString &relative, const QVariantMap &properties)
-{
-    QQmlComponent component(m_engine.get(), QUrl::fromLocalFile(stagedPath(relative)));
-    QObject *object = component.createWithInitialProperties(properties, qmlContext(m_root.get()));
-    if (!object) {
-        error = component.errorString();
-        return nullptr;
-    }
-    m_shown.append(object);
-    showItem(object);
-    return object;
 }
 
 QQuickItem *PlasmoidHarness::showItem(QObject *object)
@@ -344,50 +337,6 @@ void PlasmoidHarness::setConfig(const QString &key, const QVariant &value)
     m_plasmoid->configuration()->insert(key, value);
 }
 
-QQuickItem *findItem(QQuickItem *item, const std::function<bool(QQuickItem *)> &match)
-{
-    if (match(item)) {
-        return item;
-    }
-    const QList<QQuickItem *> children = item->childItems();
-    for (QQuickItem *child : children) {
-        if (QQuickItem *found = findItem(child, match)) {
-            return found;
-        }
-    }
-    return nullptr;
-}
-
-QStringList visibleTexts(QQuickItem *item)
-{
-    QStringList texts;
-    if (!item->isVisible()) {
-        return texts;
-    }
-    if (item->inherits("QQuickText")) {
-        texts.append(item->property("text").toString());
-    }
-    const QList<QQuickItem *> children = item->childItems();
-    for (QQuickItem *child : children) {
-        texts += visibleTexts(child);
-    }
-    return texts;
-}
-
-QList<QObject *> findByType(QObject *root, const char *type)
-{
-    QList<QObject *> found;
-    const QString prefix = QLatin1String(type) + QLatin1Char('_');
-    const QList<QObject *> children = root->findChildren<QObject *>();
-    for (QObject *child : children) {
-        const QString name = QLatin1String(child->metaObject()->className());
-        if (name == QLatin1String(type) || name.startsWith(prefix)) {
-            found.append(child);
-        }
-    }
-    return found;
-}
-
 QList<QObject *> PlasmoidHarness::findAll(const char *type) const
 {
     QList<QObject *> found = findByType(m_root.get(), type);
@@ -395,17 +344,6 @@ QList<QObject *> PlasmoidHarness::findAll(const char *type) const
         found += findByType(shown, type);
     }
     return found;
-}
-
-bool watching(QObject *root, const QString &path)
-{
-    const QFileInfo file(path);
-    const QUrl folder = QUrl::fromLocalFile(file.absolutePath());
-    const QList<QAbstractItemModel *> models = root->findChildren<QAbstractItemModel *>();
-    return std::any_of(models.cbegin(), models.cend(), [&](QAbstractItemModel *model) {
-        return model->inherits("QQuickFolderListModel") && model->property("folder").toUrl() == folder
-            && model->property("status").toInt() == 1 && model->property("nameFilters").toStringList().contains(file.fileName());
-    });
 }
 
 bool PlasmoidHarness::watching(const QString &path) const

@@ -5,18 +5,9 @@
 namespace
 {
 
-const QByteArray snapshot = R"({"ts": 100, "host": "box", "cpu_model": "13th Gen Intel(R) Core(TM) i9-13980HX", "uptime": 90061,
- "load": [1, 2, 3], "ncpu": 4,
- "cpu": {"total": 42.5, "hybrid": false, "temp": 71, "cores": [10, 20, 90, 50], "freq": 3.21, "fan": 2400,
-         "clock_max": 5.6, "power_max": 157, "fan_max": 6000, "watts": 35.2},
- "mem": {"total": 34359738368, "used": 17179869184, "pct": 50, "swap_total": 8589934592, "swap_used": 1073741824, "swap_pct": 12.5},
- "gpu": {"name": "NVIDIA GeForce RTX 4090 Laptop GPU", "util": 97, "vram_used": 4294967296, "vram_total": 17179869184, "vram_pct": 25,
-         "temp": 66, "power": 80.5, "clock_gr": 2100, "clock_mem": 9000, "fan": 45, "clock_max": 3000, "power_max": 175}})";
+const QByteArray snapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon.json"));
 
-const QByteArray hybridSnapshot = R"({"ts": 1, "host": "box", "cpu_model": "AMD Ryzen 9", "uptime": 59, "ncpu": 3,
- "cpu": {"total": 5, "hybrid": true, "temp": 40, "p": [10, 20], "e": [30], "p_total": 15, "e_total": 30, "p_freq": 4.2, "e_freq": 3.1,
-         "freq": 3.9, "fan": 0, "clock_max": 0, "power_max": 0, "fan_max": 0, "watts": 0},
- "mem": {"total": 1024, "used": 512, "pct": 50, "swap_total": 0, "swap_used": 0, "swap_pct": 0}, "gpu": null})";
+const QByteArray hybridSnapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon-hybrid.json"));
 
 const QByteArray emptySnapshot = R"({"ts":0,"cpu":{},"mem":{},"gpu":null})";
 

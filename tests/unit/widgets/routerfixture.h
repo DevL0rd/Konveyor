@@ -17,8 +17,7 @@ inline QString runtime()
 
 inline QByteArray snapshot()
 {
-    QFile file(QStringLiteral(KONVEYOR_SOURCE_DIR "/tests/unit/widgets/fixtures/router.json"));
-    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+    return PlasmoidHarness::fixture(QStringLiteral("router.json"));
 }
 
 inline QByteArray changed(const QVariantMap &changes)

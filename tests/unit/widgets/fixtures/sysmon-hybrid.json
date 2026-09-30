@@ -1,0 +1,38 @@
+{
+  "ts": 1,
+  "host": "box",
+  "cpu_model": "AMD Ryzen 9",
+  "uptime": 59,
+  "ncpu": 3,
+  "cpu": {
+    "total": 5,
+    "hybrid": true,
+    "temp": 40,
+    "p": [
+      10,
+      20
+    ],
+    "e": [
+      30
+    ],
+    "p_total": 15,
+    "e_total": 30,
+    "p_freq": 4.2,
+    "e_freq": 3.1,
+    "freq": 3.9,
+    "fan": 0,
+    "clock_max": 0,
+    "power_max": 0,
+    "fan_max": 0,
+    "watts": 0
+  },
+  "mem": {
+    "total": 1024,
+    "used": 512,
+    "pct": 50,
+    "swap_total": 0,
+    "swap_used": 0,
+    "swap_pct": 0
+  },
+  "gpu": null
+}
