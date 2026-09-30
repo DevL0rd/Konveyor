@@ -122,7 +122,9 @@ public:
 private:
     static void handle(QtMsgType type, const QMessageLogContext &context, const QString &message)
     {
-        if (s_current && type != QtDebugMsg && type != QtInfoMsg) {
+        static const QString kf6I18nThreadWarning
+            = QStringLiteral("QObject::installEventFilter(): Cannot filter events for objects in a different thread.");
+        if (s_current && type != QtDebugMsg && type != QtInfoMsg && message != kf6I18nThreadWarning) {
             s_current->m_messages.append(message);
         }
         if (s_current && s_current->m_previous) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config/loader.h"
 #include "document/configdocument.h"
 #include "store/edithistory.h"
 #include "system/livesession.h"
@@ -90,6 +91,7 @@ private:
     QString m_savedText;
     QString m_defaultText;
     QString m_configError;
+    Config::Config m_config = Config::defaultConfig();
     QVariantMap m_values;
     LiveSession *m_live = nullptr;
     int m_revision = 0;

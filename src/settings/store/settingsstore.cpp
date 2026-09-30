@@ -201,16 +201,12 @@ QVariantList SettingsStore::children(const QString &parentPath, const QString &n
 
 QVariantMap SettingsStore::scope(const QString &layoutPath) const
 {
-    auto loaded = Config::loadString(m_document.text(), configPath());
-    if (!loaded) {
-        return {};
-    }
     const QString owner = layoutPath.section(QLatin1Char('/'), 0, -2);
     const Kdl::Node *ownerNode = owner.isEmpty() ? nullptr : m_document.find(owner);
     const QString ownerName = ownerNode && !ownerNode->arguments.isEmpty() && ownerNode->arguments.first().isString()
         ? ownerNode->arguments.first().toString()
         : QString();
-    return layoutValues(scopedLayout(loaded->config, owner.section(QLatin1Char('#'), 0, 0), ownerName));
+    return layoutValues(scopedLayout(m_config, owner.section(QLatin1Char('#'), 0, 0), ownerName));
 }
 
 bool SettingsStore::setNode(const QString &path, const QVariantMap &node)
@@ -291,8 +287,7 @@ QVariantMap SettingsStore::checkRule(const QVariantMap &ruleNode) const
 
 QString SettingsStore::profileForOutput(const QVariantMap &output) const
 {
-    const auto current = Config::loadString(m_document.text(), configPath());
-    return current ? profileNameFor(current->config, output) : QString();
+    return profileNameFor(m_config, output);
 }
 
 void SettingsStore::openConfigFile() const
@@ -327,13 +322,14 @@ void SettingsStore::refresh()
     auto loaded = Config::loadString(m_document.text(), configPath());
     m_configError = loaded ? QString() : loaded.error().toString();
     if (loaded) {
-        m_values = globalValues(loaded->config);
+        m_config = loaded->config;
         for (const QString &file : loaded->files) {
             if (!m_watcher.files().contains(file) && QFileInfo::exists(file)) {
                 m_watcher.addPath(file);
             }
         }
     }
+    m_values = globalValues(m_config);
     ++m_revision;
     Q_EMIT documentChanged();
 }

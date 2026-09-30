@@ -286,8 +286,13 @@ void TestSettingsStoreQml::scopeFollowsRuntimeNames()
     QCOMPARE(gaps(QStringLiteral("workspace/layout")), 1);
     QCOMPARE(gaps(QStringLiteral("monitor-profile/layout")), 4);
     QCOMPARE(gaps(QStringLiteral("output#4/layout")), 1);
-    Session broken = open(QStringLiteral("layout { gaps \"x\"; }\n"));
-    QVERIFY(call<QVariantMap>(broken.store, "scope", QStringLiteral("layout")).isEmpty());
+    QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {QStringLiteral("x")}, QVariantMap {}));
+    QVERIFY(!session.store->property("configError").toString().isEmpty());
+    QCOMPARE(gaps(QStringLiteral("layout")), 1);
+    QCOMPARE(gaps(QStringLiteral("output/layout")), 2);
+    Session broken = open(QStringLiteral("layout { gaps \"x\"; }\ninput { focus-follows-mouse; }\n"));
+    QCOMPARE(call<QVariantMap>(broken.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 16);
+    QCOMPARE(broken.store->property("values").toMap().value(QStringLiteral("input/focus-follows-mouse")), QVariant(false));
 }
 
 void TestSettingsStoreQml::helpersForPages()
