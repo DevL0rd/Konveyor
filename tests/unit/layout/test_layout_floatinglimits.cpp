@@ -2,6 +2,8 @@
 
 using namespace LayoutTest;
 
+Q_DECLARE_METATYPE(Konveyor::Config::FloatingRelativeTo)
+
 namespace
 {
 
@@ -69,6 +71,35 @@ private Q_SLOTS:
         fixture.setConfig(floatingConfig(600));
         fixture.settle();
         QCOMPARE(fixture.frame(id).width(), 600.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void defaultFloatingPositionRule_data()
+    {
+        QTest::addColumn<Config::FloatingRelativeTo>("relativeTo");
+        QTest::addColumn<QPointF>("topLeft");
+        QTest::newRow("top-left") << Config::FloatingRelativeTo::TopLeft << QPointF(10, 20);
+        QTest::newRow("top-right") << Config::FloatingRelativeTo::TopRight << QPointF(1610, 20);
+        QTest::newRow("bottom-left") << Config::FloatingRelativeTo::BottomLeft << QPointF(10, 860);
+        QTest::newRow("bottom-right") << Config::FloatingRelativeTo::BottomRight << QPointF(1610, 860);
+        QTest::newRow("top") << Config::FloatingRelativeTo::Top << QPointF(820, 20);
+        QTest::newRow("bottom") << Config::FloatingRelativeTo::Bottom << QPointF(820, 860);
+        QTest::newRow("left") << Config::FloatingRelativeTo::Left << QPointF(10, 460);
+        QTest::newRow("right") << Config::FloatingRelativeTo::Right << QPointF(1610, 460);
+    }
+
+    void defaultFloatingPositionRule()
+    {
+        QFETCH(Config::FloatingRelativeTo, relativeTo);
+        QFETCH(QPointF, topLeft);
+        Config::Config config = instantConfig();
+        Config::WindowRule rule = ruleFor(QStringLiteral("corner"));
+        rule.openFloating = true;
+        rule.defaultFloatingPosition = Config::FloatingPosition {10, 20, relativeTo};
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        const auto id = fixture.add(QStringLiteral("corner"), QSizeF(300, 200));
+        QCOMPARE(fixture.frame(id).topLeft(), topLeft);
         VERIFY_INVARIANTS(fixture);
     }
 };

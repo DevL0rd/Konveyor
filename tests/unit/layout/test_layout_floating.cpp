@@ -340,22 +340,6 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void defaultFloatingPositionRule()
-    {
-        Config::Config config = instantConfig();
-        Config::WindowRule rule;
-        Config::Match match;
-        match.appId = QRegularExpression(QStringLiteral("^corner$"));
-        rule.matches.append(match);
-        rule.openFloating = true;
-        rule.defaultFloatingPosition = Config::FloatingPosition {10, 20, Config::FloatingRelativeTo::TopLeft};
-        config.windowRules.append(rule);
-        Fixture fixture(config);
-        const auto id = fixture.add(QStringLiteral("corner"), QSizeF(300, 200));
-        QCOMPARE(fixture.frame(id).topLeft(), QPointF(10, 20));
-        VERIFY_INVARIANTS(fixture);
-    }
-
     void floatingWindowsKeepPositionAcrossTilingRoundTrip()
     {
         Fixture fixture;
