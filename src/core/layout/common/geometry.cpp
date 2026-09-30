@@ -74,6 +74,13 @@ QSizeF roundSize(QSizeF size, double scale)
     return {snapToPixels(scale, size.width()), snapToPixels(scale, size.height())};
 }
 
+namespace
+{
+
+constexpr double FloorTolerance = 1e-6;
+
+}
+
 int saturatingInt(double value)
 {
     if (std::isnan(value)) {
@@ -84,7 +91,7 @@ int saturatingInt(double value)
 
 int floorToInt(double value)
 {
-    return saturatingInt(std::floor(value));
+    return saturatingInt(std::floor(value + FloorTolerance));
 }
 
 int roundToInt(double value)

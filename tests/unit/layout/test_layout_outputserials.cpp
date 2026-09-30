@@ -84,6 +84,20 @@ private Q_SLOTS:
         QCOMPARE(fixture.state(id).output, QStringLiteral("DP-1"));
         VERIFY_INVARIANTS(fixture);
     }
+    void fixedSizeWindowWithABorderKeepsItsHeightAtAFractionalScale()
+    {
+        Config::Config config = instantConfig();
+        config.layout.border.enabled = true;
+        config.layout.border.width = 9.5;
+        Fixture fixture(config);
+        fixture.removeOutput(QStringLiteral("DP-1"));
+        fixture.addOutput(makeOutput(QStringLiteral("DP-1"), QRectF(0, 0, 1280, 720), 1.25));
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("fixed"), QStringLiteral("fixed"), QSizeF(573, 110));
+        properties.isResizable = false;
+        const auto id = fixture.addWith(properties);
+        QVERIFY2(fixture.frame(id).height() >= 110.0 - 1.0 / 1.25, qPrintable(QString::number(fixture.frame(id).height())));
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutOutputSerials)
