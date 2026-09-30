@@ -291,6 +291,36 @@ private Q_SLOTS:
         QCOMPARE(portalWarnings().join(QLatin1Char('\n')), QString());
     }
 
+    void thePanelCountFollowsItsSettingsAndErrors()
+    {
+        std::unique_ptr<QObject> compact(create("compactRepresentation"));
+        QVERIFY(compact);
+        QObject *chip = findByType(compact.get(), "PopChip_");
+        QVERIFY(chip);
+        QCOMPARE(chip->property("value").toString(), QStringLiteral("–"));
+        process(snapshot(crowd));
+        QCOMPARE(chip->property("value").toString(), QStringLiteral("5"));
+        QCOMPARE(chip->property("lockedStage").toString(), QString());
+        process(snapshot(crowd, false, QStringLiteral("HTTP Error 403: Forbidden")));
+        QCOMPARE(chip->property("value").toString(), QStringLiteral("–"));
+        m_harness->config()->insert(QStringLiteral("showCountBadge"), false);
+        QCOMPARE(chip->property("value").toString(), QString());
+        m_harness->config()->insert(QStringLiteral("panelDetail"), QStringLiteral("tiny"));
+        QCOMPARE(chip->property("lockedStage").toString(), QStringLiteral("tiny"));
+    }
+
+    void playingNowFollowsItsSetting()
+    {
+        process(snapshot(crowd));
+        std::unique_ptr<QObject> full(create("fullRepresentation"));
+        QVERIFY(full);
+        QObject *playing = findByType(full.get(), "PlayingNow_");
+        QVERIFY(playing);
+        QVERIFY(playing->property("visible").toBool());
+        m_harness->config()->insert(QStringLiteral("showPlayingNow"), false);
+        QVERIFY(!playing->property("visible").toBool());
+    }
+
     void chatOpensSteamAndClosesThePopup()
     {
         root()->setProperty("expanded", true);
@@ -301,6 +331,27 @@ private Q_SLOTS:
 
 private:
     QObject *root() const { return m_harness->root(); }
+
+    QObject *create(const char *representation) const
+    {
+        auto *component = root()->property(representation).value<QQmlComponent *>();
+        QObject *view = component->create(qmlContext(root()));
+        if (auto *item = qobject_cast<QQuickItem *>(view)) {
+            item->setSize(QSizeF(600, 500));
+        }
+        return view;
+    }
+
+    static QObject *findByType(QObject *parent, const char *prefix)
+    {
+        const QList<QObject *> all = parent->findChildren<QObject *>();
+        for (QObject *child : all) {
+            if (QByteArrayView(child->metaObject()->className()).startsWith(prefix)) {
+                return child;
+            }
+        }
+        return nullptr;
+    }
 
     void answerPath(const QString &path) const
     {
