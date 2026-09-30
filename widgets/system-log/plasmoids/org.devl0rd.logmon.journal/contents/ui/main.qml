@@ -114,7 +114,10 @@ PlasmoidItem {
             return
         let errors = 0
         let warnings = 0
-        for (let i = lines.length - 1; i >= 0 && lines[i].t > root.countedT; i--) {
+        let counted = lines.length - 1
+        while (counted >= 0 && lines[counted].t !== root.countedT)
+            counted--
+        for (let i = lines.length - 1; i > counted && (counted >= 0 || lines[i].t > root.countedT); i--) {
             const r = lines[i]
             if (isMuted(r))
                 continue
@@ -123,7 +126,7 @@ PlasmoidItem {
             else if (r.p === 4)
                 warnings++
         }
-        root.countedT = Math.max(root.countedT, lines[lines.length - 1].t)
+        root.countedT = lines[lines.length - 1].t
         if (root.watching)
             return
         if (errors)
@@ -331,12 +334,32 @@ PlasmoidItem {
                  app: r.id, unit: r.u || "", pid: r.pid, msg: r.m.replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, ""), prio: r.p, expanded: false }
     }
 
+    function decodeUtf8(bytes) {
+        let out = ""
+        let i = 0
+        while (i < bytes.length) {
+            const lead = bytes[i]
+            const size = lead < 0x80 ? 1 : lead >= 0xc2 && lead < 0xe0 ? 2 : lead >= 0xe0 && lead < 0xf0 ? 3 : lead >= 0xf0 && lead < 0xf5 ? 4 : 0
+            let code = size === 1 ? lead : lead & (0xff >> (size + 1))
+            let used = 1
+            while (size > 1 && used < size && (bytes[i + used] & 0xc0) === 0x80) {
+                code = (code << 6) | (bytes[i + used] & 0x3f)
+                used++
+            }
+            const valid = size > 0 && used === size && !(size === 3 && (code < 0x800 || (code >= 0xd800 && code < 0xe000)))
+                && !(size === 4 && (code < 0x10000 || code > 0x10ffff))
+            out += valid ? String.fromCodePoint(code) : "\ufffd"
+            i += valid ? used : Math.max(1, used)
+        }
+        return out
+    }
+
     function parseRec(line) {
         let j
         try { j = JSON.parse(line) } catch (e) { return null }
         let m = j.MESSAGE
         if (Array.isArray(m))
-            m = m.map(c => String.fromCharCode(c)).join("")
+            m = decodeUtf8(m)
         const unit = j._SYSTEMD_UNIT || j.UNIT || ""
         let id = j.SYSLOG_IDENTIFIER || j._COMM
         if (!id)

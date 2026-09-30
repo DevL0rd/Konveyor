@@ -60,6 +60,20 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
+    void keepsCountingNewProblemsAfterTheClockIsSetBack()
+    {
+        auto harness = started(Form::Horizontal);
+        QVERIFY(harness);
+        QObject *root = harness->root();
+        const QJsonObject before = Logmon::line(-3600000, 6, QStringLiteral("kernel"), QStringLiteral("before the clock went back"));
+        QVERIFY(feed(*harness, Logmon::journalOf({before})));
+        QCOMPARE(root->property("newErrors").toInt(), 0);
+        QVERIFY(feed(*harness,
+            Logmon::journalOf({before, Logmon::line(1000, 3, QStringLiteral("sshd"), QStringLiteral("after the clock went back"))})));
+        QCOMPARE(root->property("newErrors").toInt(), 1);
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
     void summarizesSourcesAndActivity()
     {
         auto harness = started(Form::Planar);
@@ -117,6 +131,13 @@ private Q_SLOTS:
             rowField(*harness, "prio"), (QStringList {QStringLiteral("2"), QStringLiteral("3"), QStringLiteral("6"), QStringLiteral("6")}));
         QCOMPARE(rowField(*harness, "time").first(), QStringLiteral("00:00:01"));
         QVERIFY(!harness->root()->property("querying").toBool());
+        harness->root()->setProperty("level", 2);
+        QTRY_VERIFY(harness->command(journalPrefix).endsWith(QLatin1String(" -p 4 -n 5000")));
+        const QString encoded
+            = QStringLiteral("{\"__REALTIME_TIMESTAMP\": \"5000000\", \"PRIORITY\": \"3\", \"MESSAGE\": "
+                             "[226, 156, 147, 32, 111, 108, 195, 169, 32, 27, 91, 49, 109, 98, 27, 91, 48, 109, 32, 255, 33]}\n");
+        QVERIFY(harness->reply(journalPrefix, encoded));
+        QCOMPARE(rowField(*harness, "msg").constLast(), QStringLiteral("\u2713 ol\u00e9 b \ufffd!"));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
