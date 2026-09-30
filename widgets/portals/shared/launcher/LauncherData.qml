@@ -34,7 +34,20 @@ Item {
     property var recentGames: []
     property var friends: []
     property var friendsByAppid: ({})
-    property var playingNow: []
+    readonly property var playingNow: {
+        const byGame = {}
+        for (const friend of friends) {
+            if (!friend.ingame)
+                continue
+            const key = friend.appid || friend.game
+            if (!byGame[key]) {
+                const owned = games.find(game => friend.appid && game.appid === friend.appid) || null
+                byGame[key] = { key: key, appid: friend.appid || "", name: friend.game, header: friend.header || "", game: owned, friends: [] }
+            }
+            byGame[key].friends.push(friend)
+        }
+        return Object.values(byGame).sort((a, b) => b.friends.length - a.friends.length || String(a.name).localeCompare(String(b.name)))
+    }
     property int friendsOnline: 0
     property int friendsInGame: 0
     property string friendsError: ""
@@ -815,18 +828,6 @@ Item {
             })
             launcherData.friends = list
             launcherData.friendsByAppid = parsed.by_appid || {}
-            const byGame = {}
-            for (const friend of list) {
-                if (!friend.ingame)
-                    continue
-                const key = friend.appid || friend.game
-                if (!byGame[key]) {
-                    const owned = launcherData.games.find(game => friend.appid && game.appid === friend.appid) || null
-                    byGame[key] = { key: key, appid: friend.appid || "", name: friend.game, header: friend.header || "", game: owned, friends: [] }
-                }
-                byGame[key].friends.push(friend)
-            }
-            launcherData.playingNow = Object.values(byGame).sort((a, b) => b.friends.length - a.friends.length || String(a.name).localeCompare(String(b.name)))
             launcherData.friendsOnline = list.filter(f => f.state > 0).length
             launcherData.friendsInGame = list.filter(f => f.ingame).length
         }
