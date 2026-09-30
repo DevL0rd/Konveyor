@@ -39,12 +39,14 @@ bool Engine::beginWindowDrag(WindowId id, const QPointF &pointer)
     }
     const Tile *tile = workspace->tileFor(id);
     const auto tilePos = workspace->tileRenderPosition(id);
-    if (!tile || !tilePos) {
+    const std::optional<RestorePlacement> origin = placementOf(id);
+    if (!tile || !tilePos || !origin) {
         return false;
     }
 
     WindowDrag move;
     move.window = id;
+    move.origin = {*origin, monitor->outputName(), *monitor->indexOfWorkspace(workspace->id()), tile->window().requestedMode()};
     move.output = monitor->outputName();
     move.pointerPos = pointer - d->originOf(move.output);
     move.lastPointer = pointer;
@@ -286,6 +288,63 @@ void Engine::Private::dropDraggedWindow(std::optional<WindowId> window)
 void Engine::endWindowDrag()
 {
     d->interactiveMoveFinish();
+    d->refresh();
+}
+
+void Engine::Private::returnDraggedTile(WindowDrag &move)
+{
+    DragOrigin origin = move.origin;
+    Monitor *monitor = monitorByName(origin.output);
+    if (!monitor) {
+        monitor = activeMonitor();
+    }
+    if (!monitor) {
+        return;
+    }
+    if (!workspaceById(origin.placement.workspace)) {
+        const std::size_t last = monitor->workspaces().size() - 1;
+        const std::size_t index = std::min(origin.workspaceIndex, last);
+        if (index < last) {
+            monitor->insertEmptyWorkspace(index);
+        }
+        origin.placement.workspace = monitor->workspaces()[index].id();
+    }
+    Tile tile = std::move(*move.tile);
+    tile.fadeOpacity(tile.alpha(), 1.0, options->animations.windowMovement);
+    NewWindowPlan plan;
+    plan.activate = Activation::Always;
+    MonitorAddRequest request;
+    request.activate = Activation::Always;
+    request.width = move.width;
+    request.fillsWidth = move.fillsWidth;
+    request.isFloating = origin.placement.isFloating;
+    if (placeRestored(tile, plan, origin.placement, request)) {
+        return;
+    }
+    for (Monitor &each : monitors) {
+        if (each.indexOfWorkspace(origin.placement.workspace)) {
+            each.addTile(std::move(tile), request);
+            return;
+        }
+    }
+}
+
+void Engine::cancelWindowDrag()
+{
+    if (!d->windowDrag || !d->windowDrag->moving || !d->windowDrag->tile) {
+        endWindowDrag();
+        return;
+    }
+    d->stopEdgeScroll();
+    WindowDrag move = std::move(*d->windowDrag);
+    d->windowDrag.reset();
+    d->returnDraggedTile(move);
+    Workspace *workspace = d->workspaceOf(move.window);
+    if (workspace && move.origin.mode == WindowMode::Fullscreen) {
+        workspace->setFullscreen(move.window, true);
+    } else if (workspace && move.origin.mode == WindowMode::Maximized) {
+        workspace->setMaximized(move.window, true);
+    }
     d->refresh();
 }
 

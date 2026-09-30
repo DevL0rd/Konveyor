@@ -129,6 +129,7 @@ struct KonveyorEffect::Private
     QPointer<KWin::Window> followedWindow;
     std::optional<Layout::WindowId> titlebarDrag;
     std::optional<Layout::WindowId> windowedMove;
+    std::optional<Layout::WindowId> cancelledMove;
     std::optional<std::pair<Layout::WindowId, double>> draggedOpacity;
     std::optional<Layout::WindowId> touchLift;
     std::optional<Layout::WindowId> touchMovePending;

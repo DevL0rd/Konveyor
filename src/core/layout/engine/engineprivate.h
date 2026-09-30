@@ -14,6 +14,14 @@ namespace Konveyor::Layout
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area);
 
+struct DragOrigin
+{
+    RestorePlacement placement;
+    QString output;
+    std::size_t workspaceIndex = 0;
+    WindowMode mode = WindowMode::Normal;
+};
+
 struct WindowDrag
 {
     bool moving = false;
@@ -27,6 +35,7 @@ struct WindowDrag
     ColumnWidth width;
     bool fillsWidth = false;
     bool isFloating = false;
+    DragOrigin origin;
 
     QPointF renderLocation() const;
 };
@@ -167,6 +176,7 @@ struct Engine::Private
     void updateDropHint();
     void interactiveMoveFinish();
     void dropDraggedWindow(std::optional<WindowId> window);
+    void returnDraggedTile(WindowDrag &move);
     void dropInteractiveTile(Monitor &monitor, const Monitor::InsertTarget &insertTarget);
 };
 

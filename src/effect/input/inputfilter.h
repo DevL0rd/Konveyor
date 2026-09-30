@@ -18,6 +18,7 @@ struct InputHandlers
     std::function<void()> pointerReleased;
     std::function<bool(const QPointF &)> tabClicked;
     std::function<bool(quint32, Qt::KeyboardModifiers, bool)> keyPositionBind;
+    std::function<void()> escapePressed;
 };
 
 class InputFilter : public KWin::InputEventFilter
@@ -32,6 +33,8 @@ public:
     bool keyboardKey(KWin::KeyboardKeyEvent *event) override;
 
 private:
+    bool triggersBind(const KWin::KeyboardKeyEvent *event);
+
     InputHandlers m_handlers;
     QSet<quint32> m_swallowedKeys;
     QSet<Qt::MouseButton> m_swallowedButtons;

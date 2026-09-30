@@ -116,15 +116,23 @@ bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
     if (event->state == KWin::KeyboardKeyState::Released) {
         return m_swallowedKeys.remove(event->nativeScanCode);
     }
+    if (triggersBind(event)) {
+        m_swallowedKeys.insert(event->nativeScanCode);
+        return true;
+    }
+    if (event->state == KWin::KeyboardKeyState::Pressed && event->key == Qt::Key_Escape) {
+        m_handlers.escapePressed();
+    }
+    return false;
+}
+
+bool InputFilter::triggersBind(const KWin::KeyboardKeyEvent *event)
+{
     if (event->modifiersRelevantForGlobalShortcuts == Qt::NoModifier) {
         return false;
     }
     const bool repeat = event->state == KWin::KeyboardKeyState::Repeated;
-    if (!m_handlers.keyPositionBind(event->nativeScanCode + 8, event->modifiersRelevantForGlobalShortcuts, repeat)) {
-        return false;
-    }
-    m_swallowedKeys.insert(event->nativeScanCode);
-    return true;
+    return m_handlers.keyPositionBind(event->nativeScanCode + 8, event->modifiersRelevantForGlobalShortcuts, repeat);
 }
 
 }

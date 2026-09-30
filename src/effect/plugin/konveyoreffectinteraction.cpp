@@ -100,6 +100,7 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
 void KonveyorEffect::trackWindowedMove(Layout::WindowId id, int phase)
 {
     if (phase == interactivePhaseStart) {
+        d->cancelledMove.reset();
         const std::optional<Layout::WindowState> state = readEngine().windowState(id);
         d->windowedMove = state && !isFullscreenLike(*state) ? std::optional(id) : std::nullopt;
     } else if (phase == interactivePhaseEnd && d->windowedMove == id) {
@@ -148,9 +149,17 @@ void KonveyorEffect::handleWindowMove(Layout::WindowId id, KWin::Window *window,
         changeEngine().beginWindowDrag(id, pointer);
     } else if (phase == interactivePhaseStep) {
         changeEngine().updateWindowDrag(pointer, outputNameOf(window));
+    } else if (std::exchange(d->cancelledMove, std::nullopt) == id) {
+        changeEngine().cancelWindowDrag();
     } else {
         changeEngine().endWindowDrag();
     }
+}
+
+void KonveyorEffect::markMoveCancelled()
+{
+    KWin::Window *window = KWin::workspace()->moveResizeWindow();
+    d->cancelledMove = window && window->isInteractiveMove() ? d->windows.idOf(window) : std::nullopt;
 }
 
 void KonveyorEffect::handleWindowResize(Layout::WindowId id, KWin::Window *window, int phase)

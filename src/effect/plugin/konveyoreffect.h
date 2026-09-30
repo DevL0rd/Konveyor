@@ -85,6 +85,7 @@ private:
     void handleTitlebarDrag(Layout::WindowId id, KWin::Window *window, int phase);
     void endTitlebarDrag();
     void handleWindowMove(Layout::WindowId id, KWin::Window *window, int phase);
+    void markMoveCancelled();
     void handleWindowResize(Layout::WindowId id, KWin::Window *window, int phase);
     void connectDesktopSync();
     void applyConfig(const Config::Config &config);

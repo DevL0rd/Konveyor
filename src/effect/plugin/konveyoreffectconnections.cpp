@@ -96,6 +96,7 @@ void KonveyorEffect::installInputFilter()
             const KWin::Xkb *xkb = KWin::input()->keyboard()->xkb();
             return d->shortcuts.triggerKeyPosition(keycode, modifiers, repeat, xkb->keymap(), xkb->currentLayout());
         },
+        [this] { markMoveCancelled(); },
     });
     d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {
         changeEngine().dataDragEdgeScroll(outputNameAt(position), position, timestampMs);
