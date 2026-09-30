@@ -46,9 +46,12 @@ class TestCheatsheetMain(unittest.TestCase):
         path.chmod(0o755)
 
     def sleeper(self, *arguments):
-        process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", *arguments])
+        process = subprocess.Popen([sys.executable, "-c", "import time; print('ready', flush=True); time.sleep(60)", *arguments],
+                                   stdout=subprocess.PIPE, text=True)
+        self.addCleanup(process.stdout.close)
         self.addCleanup(process.wait)
         self.addCleanup(process.kill)
+        self.assertEqual(process.stdout.readline(), "ready\n")
         return process
 
     def calls(self):
@@ -174,10 +177,12 @@ class TestCheatsheetMain(unittest.TestCase):
         self.assertFalse(self.module.PID_FILE.exists())
 
     def test_the_viewer_keeps_a_newer_pid_file(self):
-        self.viewer.write_text(f"#!/bin/sh\necho 999999 > {self.module.PID_FILE}\n")
-        self.viewer.chmod(0o755)
-        self.assertEqual(self.main()[0], 0)
-        self.assertEqual(self.module.PID_FILE.read_text().strip(), "999999")
+        pid_file = self.module.PID_FILE
+        replaced = mock.Mock(pid=4242)
+        replaced.wait.side_effect = lambda: pid_file.write_text("999999") and 0
+        with mock.patch.object(self.module.subprocess, "Popen", return_value=replaced):
+            self.assertEqual(self.main()[0], 0)
+        self.assertEqual(pid_file.read_text().strip(), "999999")
 
     def test_notify_reports_an_unreachable_bus(self):
         stderr = io.StringIO()
