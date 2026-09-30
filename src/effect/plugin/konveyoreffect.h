@@ -86,6 +86,7 @@ private:
     bool adoptFloatingGeometry(Layout::WindowId id, KWin::Window *window);
     void handleTitlebarDrag(Layout::WindowId id, KWin::Window *window, int phase);
     void endTitlebarDrag();
+    void cancelTouchMoveResize();
     void handleWindowMove(Layout::WindowId id, KWin::Window *window, int phase);
     void followFloatingWindow(Layout::WindowId id, KWin::Window *window, bool isMove, int phase);
     void markMoveCancelled();

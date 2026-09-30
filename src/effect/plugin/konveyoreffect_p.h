@@ -145,6 +145,7 @@ struct KonveyorEffect::Private
     std::optional<HeldQuickTiling> quickTiling;
     std::optional<std::pair<Layout::WindowId, double>> draggedOpacity;
     std::optional<Layout::WindowId> touchLift;
+    QPointer<KWin::Window> touchMoveResize;
     std::optional<Layout::WindowId> touchMovePending;
     QHash<Layout::WindowId, QString> homeOutputs;
     QHash<KWin::Window *, Layout::RestorePlacement> hiddenPlacements;

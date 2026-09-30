@@ -260,6 +260,41 @@ def multi_touch_active():
     return qdbus("org.kde.Konveyor", "/Konveyor", "org.kde.Konveyor.MultiTouchActive") == "true"
 
 
+def interactive_resizes():
+    return run_script('for (const w of workspace.windowList()) { if (!w.deleted && w.resize) print("MARK|" + w.caption); }')
+
+
+def stacked_border():
+    frames = sorted(tuple(float(value) for value in line.split("|")[1:]) for line in run_script(
+        'for (const w of workspace.windowList()) { if (!w.deleted && w.normalWindow) { const g = w.frameGeometry; '
+        'print("MARK|" + w.caption + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); } }'))
+    upper, lower = next((a, b) for a, b in zip(frames, frames[1:]) if a[0] == b[0])
+    return upper[0] + upper[2] * 0.8, (upper[1] + upper[3] + lower[1]) / 2
+
+
+def check_gesture_ends_touch_resize(problems):
+    set_widths("80%")
+    x, y = stacked_border()
+    with Held() as held:
+        held.send(f"touchdown:0:{x}:{y}")
+        started = wait_for(interactive_resizes, 30)
+        held.send(*(f"touchdown:{finger}:{x - finger * 60}:{y}" for finger in (1, 2)))
+        ended = wait_for(lambda: not interactive_resizes(), 30)
+        held.send("touchcancel")
+    settle()
+    before = columns()
+    touch(3, 1300, 540, dx=-900, radius=50, steps=40, settle=False)
+    scrolled = wait_for(lambda: columns()[0][0] < before[0][0] - 100, 60)
+    print(f"touch resize taken over by a 3-finger gesture: started {started}, ended {ended}, row {before} -> {columns()}")
+    if not started:
+        problems.append("a touch on the border between stacked windows did not start a resize")
+    if not ended:
+        problems.append(f"the resize kept running after two more fingers turned the touch into a gesture ({interactive_resizes()})")
+    if not scrolled:
+        problems.append(f"a 3-finger swipe after a gesture took over a touch resize did not scroll the row ({before} -> {columns()})")
+    settle()
+
+
 def check_cancelled_touch(problems):
     set_widths("80%")
     before = columns()
@@ -284,7 +319,7 @@ def check_cancelled_touch(problems):
 
 def main():
     problems = []
-    for check in (check_swipe, check_workspace_swipe, check_pinch, check_window_swipes, check_tap, check_three_finger_tap, check_quick_drag_scrolls, check_long_press, check_floating_drag, check_cancelled_touch):
+    for check in (check_swipe, check_workspace_swipe, check_pinch, check_window_swipes, check_tap, check_three_finger_tap, check_quick_drag_scrolls, check_long_press, check_floating_drag, check_gesture_ends_touch_resize, check_cancelled_touch):
         check(problems)
     capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
     for problem in problems:

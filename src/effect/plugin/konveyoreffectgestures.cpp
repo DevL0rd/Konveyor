@@ -56,6 +56,7 @@ bool KonveyorEffect::handleTouchDown(qint32 id, const QPointF &position, qint64 
     if (!routeGesture(d->gestures.touchDown(id, position, timestampMs, outputNameAt(position)))) {
         return false;
     }
+    cancelTouchMoveResize();
     endTitlebarDrag();
     return true;
 }
