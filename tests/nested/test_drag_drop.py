@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Drag windows with a real pointer on two outputs and cancel the drags with Escape."""
+"""Drag windows with a real pointer across columns, stacks, tabs, workspaces and two outputs, cancel with Escape and close one mid-drag."""
 import sys
 from pathlib import Path
 
