@@ -97,14 +97,17 @@ int main(int argc, char **argv)
             unsigned int code = 0;
             unsigned int state = 0;
             double value = 0;
-            if (sscanf(argv[i], "axis:%u:%lf", &code, &value) == 2) {
+            double y = 0;
+            if (sscanf(argv[i], "move:%lf:%lf", &value, &y) == 2) {
+                org_kde_kwin_fake_input_pointer_motion_absolute(fake, wl_fixed_from_double(value), wl_fixed_from_double(y));
+            } else if (sscanf(argv[i], "axis:%u:%lf", &code, &value) == 2) {
                 org_kde_kwin_fake_input_axis(fake, code, wl_fixed_from_double(value));
             } else if (sscanf(argv[i], "button:%u:%u", &code, &state) == 2) {
                 org_kde_kwin_fake_input_button(fake, code, state);
             } else if (sscanf(argv[i], "%u:%u", &code, &state) == 2) {
                 org_kde_kwin_fake_input_keyboard_key(fake, code, state);
             } else {
-                fprintf(stderr, "fakepointer: keys take CODE:STATE, button:CODE:STATE or axis:AXIS:VALUE\n");
+                fprintf(stderr, "fakepointer: keys take CODE:STATE, button:CODE:STATE, axis:AXIS:VALUE or move:X:Y\n");
                 return 2;
             }
             wl_display_roundtrip(display);

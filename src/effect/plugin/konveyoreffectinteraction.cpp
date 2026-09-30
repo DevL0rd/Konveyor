@@ -132,11 +132,10 @@ void KonveyorEffect::handleWindowResize(Layout::WindowId id, KWin::Window *windo
         return;
     }
     if (phase == interactivePhaseStart) {
-        d->resizeOrigin = window->moveResizeGeometry().size();
+        d->resizeOrigin = interactionPoint();
         changeEngine().beginResize(id, resizeEdgesFor(window->interactiveMoveResizeGravity()));
     } else if (phase == interactivePhaseStep) {
-        const QSizeF size = window->moveResizeGeometry().size();
-        changeEngine().updateResize(QPointF(size.width() - d->resizeOrigin.width(), size.height() - d->resizeOrigin.height()));
+        changeEngine().updateResize(interactionPoint() - d->resizeOrigin);
     } else {
         changeEngine().endResize();
     }

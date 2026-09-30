@@ -120,7 +120,7 @@ struct KonveyorEffect::Private
     bool animating = false;
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;
-    QSizeF resizeOrigin;
+    QPointF resizeOrigin;
     quint64 bindCount = 0;
     QString lastBindKey;
     QString lastBindAction;
