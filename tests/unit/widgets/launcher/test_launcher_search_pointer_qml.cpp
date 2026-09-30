@@ -27,9 +27,7 @@ private Q_SLOTS:
         for (const char *term : {"a", "al", "p", "portal", "@a", "@e", "celeste", "e", "kon", "dol", "o"}) {
             eval(QStringLiteral("launcher.setQuery('%1')").arg(QLatin1String(term)));
             TRY_COMPARE(eval(QStringLiteral("launcher.presentedTerm")).toString(), eval(QStringLiteral("launcher.term")).toString());
-            QTRY_VERIFY2_WITH_TIMEOUT(
-                eval(QStringLiteral("launcher.searchSettled && launcher.liveSections().length > 0")).toBool(), term, 30000);
-            QTest::qWait(200);
+            QVERIFY2(searchLaidOut(), term);
             const int sections = eval(QStringLiteral("launcher.liveSections().length")).toInt();
             QString expected = QStringLiteral("0");
             for (int section = 1; section < sections; ++section) {
@@ -47,8 +45,7 @@ private Q_SLOTS:
             {"a", "al", "p", "portal", "@a", "@e", "celeste", "e", "kon", "dol", "fire", "k", "o", "zz", "o", "dolphin", "d"}) {
             eval(QStringLiteral("launcher.setQuery('%1')").arg(QLatin1String(term)));
             TRY_COMPARE(eval(QStringLiteral("launcher.presentedTerm")).toString(), eval(QStringLiteral("launcher.term")).toString());
-            QTRY_VERIFY2_WITH_TIMEOUT(
-                eval(QStringLiteral("launcher.searchSettled && launcher.liveSections().length > 0")).toBool(), term, 30000);
+            QVERIFY2(searchLaidOut(), term);
             const int sections = eval(QStringLiteral("launcher.liveSections().length")).toInt();
             QVERIFY2(sections > 0, term);
             for (int section = 0; section < sections; ++section) {

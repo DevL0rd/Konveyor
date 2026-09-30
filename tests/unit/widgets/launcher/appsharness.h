@@ -2,6 +2,8 @@
 
 #include "launcherharness.h"
 
+#include <QSignalSpy>
+
 namespace AppsTest
 {
 
@@ -175,6 +177,31 @@ protected:
                     && eval(grid + QStringLiteral(".sectionActive")).toBool() && (!flagged || selectedIn(grid) == QList<int> {position});
             },
             30000);
+    }
+
+    bool framesDrawn(int frames)
+    {
+        QSignalSpy swapped(m_harness.window(), &QQuickWindow::frameSwapped);
+        while (swapped.count() < frames) {
+            m_harness.window()->update();
+            if (!swapped.wait(30000)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool searchLaidOut()
+    {
+        return QTest::qWaitFor(
+                   [this] {
+                       return eval(QStringLiteral("launcher.searchSettled && launcher.liveSections().length > 0 && "
+                                                  "launcher.liveSections().every(s => { for (let i = 0; i < s.shownCount; ++i) { if "
+                                                  "(!s.itemAtIndex(i)) return false } return true })"))
+                           .toBool();
+                   },
+                   30000)
+            && framesDrawn(2);
     }
 
     QStringList shownLabels() { return tiles(QStringLiteral("label")); }
