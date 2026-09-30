@@ -8,6 +8,8 @@ trap 'chown -R "$owner" .' EXIT
 pacman -Syu --noconfirm --needed git cmake ninja ccache clang llvm wayland-protocols typos nodejs npm shellcheck ruff dbus mesa xorg-xwayland \
     qt6-wayland qt6-declarative python python-dbus python-gobject python-pillow python-xlib plasma-workspace plasma-desktop plasma5support \
     plasma-keyboard breeze libkscreen kcmutils chromium
+sed -i "s/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/" /etc/locale.gen
+locale-gen
 git clone https://github.com/mgehre/xunused.git /tmp/xunused
 git -C /tmp/xunused checkout b81e0ef
 if [[ ! -f /usr/include/clang/Driver/Options.h ]]; then

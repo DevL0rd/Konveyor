@@ -262,3 +262,12 @@ target_compile_definitions(test_kcm_plugin PRIVATE KONVEYOR_SOURCE_DIR="${PROJEC
 add_dependencies(test_kcm_plugin kcm_konveyor konveyor_settings)
 add_test(NAME test_kcm_plugin COMMAND test_kcm_plugin)
 set_tests_properties(test_kcm_plugin PROPERTIES LABELS "unit;settings" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+
+get_property(konveyor_tests DIRECTORY PROPERTY TESTS)
+foreach(test ${konveyor_tests})
+    get_test_property(${test} LABELS labels)
+    if("unit" IN_LIST labels)
+        set_property(TEST ${test} APPEND PROPERTY ENVIRONMENT
+            "XDG_CURRENT_DESKTOP=KDE" "KDE_FULL_SESSION=true" "XDG_CONFIG_DIRS=/etc/xdg" "QML_XHR_ALLOW_FILE_READ=1" "LC_ALL=en_US.UTF-8")
+    endif()
+endforeach()
