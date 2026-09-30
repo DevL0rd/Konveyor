@@ -78,6 +78,7 @@ Q_SIGNALS:
 private:
     bool apply(const EditResult &result, const QString &before);
     void replaceText(const QString &text);
+    std::optional<QString> readSaved();
     void refresh();
     void watch();
     void fileChanged();
@@ -91,6 +92,7 @@ private:
     QString m_savedText;
     QString m_defaultText;
     QString m_configError;
+    QString m_readError;
     Config::Config m_config = Config::defaultConfig();
     QVariantMap m_values;
     LiveSession *m_live = nullptr;

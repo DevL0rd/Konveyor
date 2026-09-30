@@ -108,7 +108,7 @@ void SettingsStore::load()
     const QString defaultPath = QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("konveyor/default-config.kdl"));
     m_defaultText = defaultPath.isEmpty() ? QString() : readConfigText(defaultPath).value_or(QString());
     m_defaults = ConfigDocument(m_defaultText);
-    m_savedText = readConfigText(configPath()).value_or(m_defaultText);
+    m_savedText = readSaved().value_or(m_defaultText);
     m_history.clear();
     replaceText(m_savedText);
     watch();
@@ -317,10 +317,19 @@ void SettingsStore::replaceText(const QString &text)
     refresh();
 }
 
+std::optional<QString> SettingsStore::readSaved()
+{
+    const QString path = configPath();
+    std::optional<QString> text = readConfigText(path);
+    m_readError
+        = !text && QFileInfo::exists(path) ? QStringLiteral("Could not read %1, so Settings will not save over it.").arg(path) : QString();
+    return text;
+}
+
 void SettingsStore::refresh()
 {
     auto loaded = Config::loadString(m_document.text(), configPath());
-    m_configError = loaded ? QString() : loaded.error().toString();
+    m_configError = !m_readError.isEmpty() ? m_readError : loaded ? QString() : loaded.error().toString();
     if (loaded) {
         m_config = loaded->config;
     }
@@ -349,7 +358,7 @@ void SettingsStore::watch()
 void SettingsStore::fileChanged()
 {
     watch();
-    const std::optional<QString> disk = readConfigText(configPath());
+    const std::optional<QString> disk = readSaved();
     if (!disk || *disk == m_savedText) {
         refresh();
         return;

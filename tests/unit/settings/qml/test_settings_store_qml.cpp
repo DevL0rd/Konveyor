@@ -27,6 +27,7 @@ private Q_SLOTS:
     void reloadsWhenFileChangesUnderneath();
     void warnsWhenFileChangesWithUnsavedEdits();
     void loadsAFixFromDiskOverEditsBlockedByAConfigError();
+    void neverSavesOverAConfigItCannotRead();
     void scopeFollowsRuntimeNames();
     void helpersForPages();
 
@@ -292,6 +293,27 @@ void TestSettingsStoreQml::loadsAFixFromDiskOverEditsBlockedByAConfigError()
     QCOMPARE(call<QVariantMap>(session.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 11);
     QCOMPARE(session.store->property("needsSave").toBool(), false);
     QCOMPARE(session.store->property("canUndo").toBool(), false);
+}
+
+void TestSettingsStoreQml::neverSavesOverAConfigItCannotRead()
+{
+    const QString text = QStringLiteral("layout {\n    gaps 4\n}\n");
+    m_home.resetConfig(text);
+    const QFileDevice::Permissions readable = QFile::permissions(m_home.configPath());
+    QVERIFY(QFile::setPermissions(m_home.configPath(), QFileDevice::WriteOwner));
+    Session session;
+    m_home.create(*session.engine, "QtObject {}");
+    session.store = SettingsHome::store(*session.engine);
+    const QString unreadable = QStringLiteral("Could not read %1, so Settings will not save over it.").arg(m_home.configPath());
+    QCOMPARE(session.store->property("configError").toString(), unreadable);
+    QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {6}, QVariantMap {}));
+    QSignalSpy failed(session.store, SIGNAL(editFailed(QString)));
+    QVERIFY(QMetaObject::invokeMethod(session.store, "save"));
+    QCOMPARE(failed.last().first().toString(), QStringLiteral("Not saved, the config has an error: ") + unreadable);
+    QVERIFY(QFile::setPermissions(m_home.configPath(), readable));
+    QCOMPARE(SettingsHome::read(m_home.configPath()), text);
+    QTRY_COMPARE_WITH_TIMEOUT(session.store->property("configError").toString(), QString(), SignalTimeoutMs);
+    QCOMPARE(call<QVariantMap>(session.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 4);
 }
 
 void TestSettingsStoreQml::scopeFollowsRuntimeNames()
