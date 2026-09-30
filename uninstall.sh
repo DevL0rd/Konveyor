@@ -62,7 +62,9 @@ disable_in_kwin() {
     fi
     remove_misplaced_plugins
     kwin_dbus /KWin org.kde.KWin.reconfigure
+}
 
+restore_shortcuts() {
     say "Restoring the KDE shortcuts Konveyor had taken over"
     "$KONVEYOR_PREFIX/bin/konveyor" restore-shortcuts
 }
@@ -143,9 +145,15 @@ remove_update_unit() {
 }
 
 remove_state() {
-    rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/konveyor" "${XDG_STATE_HOME:-$HOME/.local/state}/konveyorstaterc"
-    local directory
-    for directory in "$(dirname "$KONVEYOR_SESSION_ENV")" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd" "$HOME/.local/bin"; do
+    local state="${XDG_STATE_HOME:-$HOME/.local/state}" directory directories
+    rm -f "$state/konveyorstaterc"
+    if $WIDGETS; then
+        rm -rf "$state/konveyor"
+    else
+        rm -f "$state/konveyor/install-options" "$state/konveyor/update-pending" "$state/konveyor/window-memory.json" "$KONVEYOR_DISABLED_SCRIPTS"
+    fi
+    directories=("$state/konveyor" "$(dirname "$KONVEYOR_SESSION_ENV")" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd" "$HOME/.local/bin")
+    for directory in "${directories[@]}"; do
         [[ -d $directory ]] && rmdir --ignore-fail-on-non-empty "$directory"
     done
     return 0
@@ -167,6 +175,7 @@ main() {
         [[ -x $widget_uninstaller ]] || widget_uninstaller="$SOURCE_DIR/widgets/uninstall.sh"
         "$widget_uninstaller"
     fi
+    restore_shortcuts
     remove_atomic_setup
     remove_files
     remove_update_unit

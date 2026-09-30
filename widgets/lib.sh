@@ -20,6 +20,10 @@ KONTROL_PANEL_DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$KONTRO
 PLASMA_LAUNCHER_ACTION=(plasmashell "activate application launcher" plasmashell "Activate Application Launcher")
 KONTROL_PANEL_KEYS=(16777250 150994992)
 LAUNCHER_KEYS_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/launcher-keys"
+GAMES_ACTION=("$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games")
+GRID_VIEW_ACTION=(kwin "Grid View" KWin "Toggle Grid View")
+GAMES_KEYS_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/games-keys"
+META_G=268435527
 
 link_command() {
     chmod +x "$WIDGETS_DIR/$1"
@@ -185,27 +189,37 @@ kglobalaccel() {
     busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel "$@"
 }
 
-take_launcher_keys() {
-    [[ -e $LAUNCHER_KEYS_STATE ]] && return 0
-    local reply codes kept=() code
-    reply=$(kglobalaccel shortcut as 4 "${PLASMA_LAUNCHER_ACTION[@]}")
-    mkdir -p "$(dirname "$LAUNCHER_KEYS_STATE")"
-    printf '%s\n' "$reply" >"$LAUNCHER_KEYS_STATE"
+release_foreign_keys() {
+    local state="$1" taken="$2" reply codes kept=() code
+    shift 2
+    reply=$(kglobalaccel shortcut as 4 "$@")
+    mkdir -p "$(dirname "$state")"
+    printf '%s\n' "$reply" >"$state"
     read -r -a codes <<<"${reply#ai }"
     for code in "${codes[@]:1}"; do
-        [[ " ${KONTROL_PANEL_KEYS[*]} " == *" $code "* ]] || kept+=("$code")
+        [[ " $taken " == *" $code "* ]] || kept+=("$code")
     done
-    kglobalaccel setForeignShortcut asai 4 "${PLASMA_LAUNCHER_ACTION[@]}" "${#kept[@]}" "${kept[@]}" >/dev/null
+    kglobalaccel setForeignShortcut asai 4 "$@" "${#kept[@]}" "${kept[@]}" >/dev/null
+}
+
+give_back_foreign_keys() {
+    local state="$1" codes
+    shift
+    [[ -f $state ]] || return 0
+    read -r -a codes <<<"$(sed 's/^ai //' "$state")"
+    kglobalaccel setForeignShortcut asai 4 "$@" "${codes[@]}" >/dev/null 2>&1 || true
+    rm -f "${state:?}"
+}
+
+take_launcher_keys() {
+    [[ -e $LAUNCHER_KEYS_STATE ]] && return 0
+    release_foreign_keys "$LAUNCHER_KEYS_STATE" "${KONTROL_PANEL_KEYS[*]}" "${PLASMA_LAUNCHER_ACTION[@]}"
     say "Meta and Alt+F1 open the Kontrol Panel"
 }
 
 restore_launcher_keys() {
     kglobalaccel unregister ss konveyor-kontrol-panel toggle >/dev/null 2>&1 || true
-    [[ -f $LAUNCHER_KEYS_STATE ]] || return 0
-    local codes
-    read -r -a codes <<<"$(sed 's/^ai //' "$LAUNCHER_KEYS_STATE")"
-    kglobalaccel setForeignShortcut asai 4 "${PLASMA_LAUNCHER_ACTION[@]}" "${codes[@]}" >/dev/null 2>&1 || true
-    rm -f "${LAUNCHER_KEYS_STATE:?}"
+    give_back_foreign_keys "$LAUNCHER_KEYS_STATE" "${PLASMA_LAUNCHER_ACTION[@]}"
 }
 
 install_plasmoid() {
@@ -290,15 +304,18 @@ StartupNotify=false
 X-KDE-Shortcuts=Meta+G
 DESKTOP
     kbuildsycoca6 >/dev/null 2>&1 || true
-    local meta_g=268435527 grid_keys
-    grid_keys=$(busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel shortcut as 4 kwin "Grid View" KWin "Toggle Grid View" 2>/dev/null || true)
-    if [[ " $grid_keys " == *" $meta_g "* ]]; then
-        busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setForeignShortcut asai 4 kwin "Grid View" KWin "Toggle Grid View" 0 >/dev/null
-        say "Freed Meta+G from KWin's Grid View"
-    fi
-    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel doRegister as 4 "$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games" >/dev/null
-    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel setShortcut asaiu 4 "$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games" 1 "$meta_g" 2 >/dev/null
+    kglobalaccel doRegister as 4 "${GAMES_ACTION[@]}" >/dev/null
+    [[ -e $GAMES_KEYS_STATE ]] && return 0
+    release_foreign_keys "$GAMES_KEYS_STATE" "$META_G" "${GRID_VIEW_ACTION[@]}"
+    kglobalaccel setShortcut asaiu 4 "${GAMES_ACTION[@]}" 1 "$META_G" 2 >/dev/null
     say "Meta+G opens the Kontrol Panel on Games"
+}
+
+remove_games_shortcut() {
+    kglobalaccel unregister ss "$GAMES_DESKTOP_ID" _launch >/dev/null 2>&1 || true
+    give_back_foreign_keys "$GAMES_KEYS_STATE" "${GRID_VIEW_ACTION[@]}"
+    rm -f "${XDG_DATA_HOME:-$HOME/.local/share}/applications/$GAMES_DESKTOP_ID"
+    kbuildsycoca6 >/dev/null 2>&1 || true
 }
 
 remove_keyboard_toggle() {

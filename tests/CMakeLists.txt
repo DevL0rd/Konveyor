@@ -84,7 +84,8 @@ set_tests_properties(test_update_source PROPERTIES LABELS "unit;install")
 add_test(NAME test_kontrol_panel_install COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/install/test_kontrol_panel_install.py)
 set_tests_properties(test_kontrol_panel_install PROPERTIES LABELS "unit;install")
 
-foreach(name test_install_harness test_install_options test_install_prefix test_update_hooks test_update_modes test_rebuild test_atomic)
+foreach(name test_install_harness test_install_options test_install_prefix test_update_hooks test_update_modes test_rebuild test_atomic
+             test_shortcut_takeovers)
     add_test(NAME ${name} COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/install/${name}.py)
     set_tests_properties(${name} PROPERTIES LABELS "unit;install")
 endforeach()

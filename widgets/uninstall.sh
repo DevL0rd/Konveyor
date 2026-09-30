@@ -45,12 +45,6 @@ remove_router_collector() {
         && say "Removed the Router Monitor collector from $host" || true
 }
 
-remove_games_shortcut() {
-    busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel unregister ss "$GAMES_DESKTOP_ID" _launch >/dev/null 2>&1 || true
-    rm -f "${XDG_DATA_HOME:-$HOME/.local/share}/applications/$GAMES_DESKTOP_ID"
-    kbuildsycoca6 >/dev/null 2>&1 || true
-}
-
 main() {
     say "Stopping $SERVICE"
     systemctl --user disable --now "$SERVICE" >/dev/null 2>&1 || true
@@ -87,7 +81,7 @@ main() {
 
     rm -rf "$WIDGETS_RUNTIME_DIR"
     systemctl --user unset-environment QML_XHR_ALLOW_FILE_READ
-    for item in "$(dirname "$WIDGETS_RUNTIME_DIR")" "$BIN_DIR" "${XDG_DATA_HOME:-$HOME/.local/share}/applications" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma/plasmoids" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma"; do
+    for item in "$(dirname "$WIDGETS_RUNTIME_DIR")" "$(dirname "$LAUNCHER_SET_UP")" "$BIN_DIR" "${XDG_DATA_HOME:-$HOME/.local/share}/applications" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma/plasmoids" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma"; do
         [[ -d $item ]] && rmdir --ignore-fail-on-non-empty "$item"
     done
     say "Widget configs in ~/.config (router and Steam credentials) were kept"
