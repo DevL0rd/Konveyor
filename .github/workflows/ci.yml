@@ -44,6 +44,28 @@ jobs:
       - name: Run the full check suite
         run: ./tools/check.sh
 
+  sanitizers:
+    name: Layout tests under sanitizers
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install the build tools
+        run: pacman -Syu --noconfirm --needed git cmake ninja wayland-protocols
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Mark checkout as safe
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install Konveyor's dependencies
+        run: extras/packaging/dependencies.sh
+
+      - name: Run the layout tests with AddressSanitizer, UndefinedBehaviorSanitizer and libstdc++ assertions
+        run: ./tools/sanitize.sh layout
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
