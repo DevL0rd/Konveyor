@@ -55,6 +55,7 @@ public:
     FakeAction action;
 
 Q_SIGNALS:
+    void activated();
     void formFactorChanged();
     void iconChanged();
     void titleChanged();
@@ -72,6 +73,7 @@ class FakePlasmoidItem : public QQuickItem
 {
     Q_OBJECT
     Q_PROPERTY(bool expanded MEMBER m_expanded NOTIFY expandedChanged)
+    Q_PROPERTY(bool activationTogglesExpanded MEMBER m_activationTogglesExpanded NOTIFY activationTogglesExpandedChanged)
     Q_PROPERTY(QQmlComponent *compactRepresentation MEMBER m_compact NOTIFY compactRepresentationChanged)
     Q_PROPERTY(QQmlComponent *fullRepresentation MEMBER m_full NOTIFY fullRepresentationChanged)
     Q_PROPERTY(QQmlComponent *preferredRepresentation MEMBER m_preferred NOTIFY preferredRepresentationChanged)
@@ -83,6 +85,7 @@ public:
 
 Q_SIGNALS:
     void expandedChanged();
+    void activationTogglesExpandedChanged();
     void compactRepresentationChanged();
     void fullRepresentationChanged();
     void preferredRepresentationChanged();
@@ -90,6 +93,7 @@ Q_SIGNALS:
 
 private:
     bool m_expanded = false;
+    bool m_activationTogglesExpanded = true;
     QQmlComponent *m_compact = nullptr;
     QQmlComponent *m_full = nullptr;
     QQmlComponent *m_preferred = nullptr;

@@ -156,7 +156,7 @@ add_test(NAME test_portal_friends_modes COMMAND python3 ${CMAKE_CURRENT_SOURCE_D
 set_tests_properties(test_portal_friends_modes PROPERTIES LABELS "unit;widgets")
 
 find_package(KF6 REQUIRED COMPONENTS Config)
-foreach(name test_portal_plasmoid_qml test_portal_friends_qml)
+foreach(name test_portal_plasmoid_qml test_portal_friends_qml test_portal_button_qml)
     add_executable(${name} unit/widgets/portal/${name}.cpp unit/widgets/portal/fakeplasmoid.h)
     target_link_libraries(${name} PRIVATE Qt6::Qml Qt6::Quick Qt6::Test KF6::ConfigGui KF6::ConfigQml KF6::I18n KF6::I18nQml)
     target_compile_options(${name} PRIVATE -Wall -Wextra -Werror)
