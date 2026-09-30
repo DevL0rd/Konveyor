@@ -55,6 +55,7 @@ struct WindowProperties
     bool isResizable = true;
     bool wantsFullscreen = false;
     bool wantsMaximized = false;
+    bool onAllDesktops = false;
     QSizeF frameSize;
     bool operator==(const WindowProperties &) const = default;
 };
@@ -127,6 +128,7 @@ struct WindowState
     bool isActive = false;
     bool isFocused = false;
     bool isUrgent = false;
+    bool onAllDesktops = false;
     WindowMode sizingMode = WindowMode::Normal;
     WindowMode requestedSizingMode = WindowMode::Normal;
     bool isWindowedFullscreen = false;

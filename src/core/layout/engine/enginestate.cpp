@@ -136,6 +136,7 @@ WindowState buildWindowState(
     state.isActive = window.isActivated();
     state.isFocused = window.isFocused();
     state.isUrgent = window.isUrgent();
+    state.onAllDesktops = window.properties().onAllDesktops;
     state.sizingMode = tile.sizingMode();
     state.requestedSizingMode = window.requestedMode();
     state.isWindowedFullscreen = window.windowedFullscreenRequested();

@@ -21,6 +21,7 @@ void Engine::Private::refreshWorkspaces()
 
 void Engine::Private::refresh()
 {
+    followWindowsOnAllDesktops();
     refreshWorkspaces();
     updateFocus();
     if (resolveRules()) {

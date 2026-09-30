@@ -7,13 +7,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
-from kwinsession import CLIENTS, for_window, konveyor_windows, managed_titles, run_script, wait_for
+from kwinsession import CLIENTS, for_window, frame, intersects, konveyor, konveyor_action, konveyor_windows, managed_titles, run_script, wait_for
 
-MANAGED_X11 = ["X-Normal", "X-Dialog", "X-Transient", "X-Modal"]
+MANAGED_X11 = ["X-Normal", "X-Dialog", "X-Transient", "X-Modal", "X-Sticky"]
 UNMANAGED_X11 = ["X-Utility:UTILITY", "X-Splash:SPLASH", "X-Toolbar:TOOLBAR", "X-Menu:MENU", "X-Dropdown:DROPDOWN_MENU:override",
                  "X-PopupMenu:POPUP_MENU:override", "X-Tooltip:TOOLTIP:override", "X-Notification:NOTIFICATION", "X-Dock:DOCK", "X-Desktop:DESKTOP", "X-OSD:ON_SCREEN_DISPLAY",
-                 "X-Critical:CRITICAL_NOTIFICATION", "X-AppletPopup:APPLET_POPUP", "X-SkipTaskbar:NORMAL:skip-taskbar", "X-Sticky:NORMAL"]
-X11_SPECS = ["X-Normal:NORMAL", "X-Dialog:DIALOG", "X-Transient:NORMAL:transient", "X-Modal:DIALOG:transient:modal", *UNMANAGED_X11]
+                 "X-Critical:CRITICAL_NOTIFICATION", "X-AppletPopup:APPLET_POPUP", "X-SkipTaskbar:NORMAL:skip-taskbar"]
+X11_SPECS = ["X-Normal:NORMAL", "X-Sticky:NORMAL", "X-Dialog:DIALOG", "X-Transient:NORMAL:transient", "X-Modal:DIALOG:transient:modal", *UNMANAGED_X11]
 DESCRIBE = ('print("MARK|" + JSON.stringify({title: w.caption, popup: w.popupWindow, dialog: w.dialog, normal: w.normalWindow, '
             'skip: w.skipTaskbar, sticky: w.onAllDesktops, transient: w.transient, app: w.resourceClass}));')
 
@@ -46,14 +46,41 @@ def managed_types(checks):
                  "dialogs and transient windows float")
 
 
+def konveyor_window(title):
+    return next((window for window in konveyor_windows() if window["title"] == title), None)
+
+
+def active_workspace():
+    return next(workspace["id"] for workspace in json.loads(konveyor("Workspaces")) if workspace["is_active"])
+
+
+def on_all_desktops(title):
+    return run_script(for_window(title, 'print("MARK|" + w.onAllDesktops);')) == ["true"]
+
+
+def shows_on_the_active_workspace(title):
+    window = konveyor_window(title)
+    return window is not None and not window["is_floating"] and window["workspace_id"] == active_workspace() and on_all_desktops(title)
+
+
 def pinned_to_all_desktops(checks):
+    checks.expect(wait_for(lambda: shows_on_the_active_workspace("X-Sticky")), "a window that opened on all desktops is tiled")
     run_script(for_window("X-Normal", "w.onAllDesktops = true;"))
-    checks.expect(wait_for(lambda: "X-Normal" not in managed_titles()), "a window pinned to all desktops leaves the layout")
-    checks.expect(run_script(for_window("X-Normal", 'print("MARK|" + w.onAllDesktops);')) == ["true"], "it stays on all desktops")
-    checks.expect(run_script(for_window("X-Sticky", "w.onAllDesktops = false;")) == [], "unpinning a window that started pinned")
-    checks.expect(wait_for(lambda: "X-Sticky" in managed_titles()), "a window unpinned from all desktops joins the layout")
+    for action in ("focus-workspace-down", "focus-workspace-down", "focus-workspace-up"):
+        konveyor_action(action)
+        checks.expect(wait_for(lambda: shows_on_the_active_workspace("X-Normal") and shows_on_the_active_workspace("X-Sticky")),
+                      f"windows pinned to all desktops stay tiled on all desktops and follow {action}")
+        if action == "focus-workspace-down":
+            checks.expect(wait_for(lambda: all(intersects(frame(title), (0, 0, 1920, 1080)) for title in ("X-Normal", "X-Sticky"))),
+                          "both pinned windows are on screen on the workspace below")
     run_script(for_window("X-Normal", "w.onAllDesktops = false;"))
-    checks.expect(wait_for(lambda: "X-Normal" in managed_titles()), "unpinning brings the window back")
+    checks.expect(wait_for(lambda: not on_all_desktops("X-Normal")), "unpinning takes the window off the other desktops")
+    pinned_workspace = konveyor_window("X-Normal")["workspace_id"]
+    konveyor_action("focus-workspace-down")
+    checks.expect(wait_for(lambda: active_workspace() != pinned_workspace), "the workspace switch after unpinning happened")
+    checks.expect(wait_for(lambda: konveyor_window("X-Normal")["workspace_id"] == pinned_workspace and not on_all_desktops("X-Normal")),
+                  "an unpinned window stays on its own workspace")
+    checks.expect(shows_on_the_active_workspace("X-Sticky"), "the window still pinned follows the switch")
 
 
 def main():

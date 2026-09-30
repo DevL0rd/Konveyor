@@ -130,6 +130,7 @@ struct Engine::Private
     std::optional<std::size_t> homeMonitorOf(const Workspace &workspace) const;
     void sendHome(std::vector<Workspace> workspaces);
     void moveHome(WorkspaceId id);
+    void followWindowsOnAllDesktops();
     void forgetRemovedWorkspaceNames(const QList<Config::NamedWorkspace> &previous);
     void applyOptions();
 

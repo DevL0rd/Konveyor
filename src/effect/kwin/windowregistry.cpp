@@ -69,6 +69,7 @@ Layout::WindowProperties WindowRegistry::propertiesOf(KWin::Window *window) cons
     properties.isResizable = window->isResizable();
     properties.wantsFullscreen = window->isFullScreen() && !m_adopting;
     properties.wantsMaximized = isMaximizeRequested(window) && !m_adopting;
+    properties.onAllDesktops = window->isOnAllDesktops();
     properties.frameSize = window->frameGeometry().size();
     return properties;
 }
@@ -119,7 +120,7 @@ void WindowRegistry::forget(KWin::Window *window)
 void WindowRegistry::refresh(KWin::Window *window)
 {
     const bool tracked = m_ids.contains(window);
-    const bool wanted = !window->isMinimized() && !window->isOnAllDesktops() && (!m_wantsWindow || m_wantsWindow(propertiesOf(window)));
+    const bool wanted = !window->isMinimized() && (!m_wantsWindow || m_wantsWindow(propertiesOf(window)));
     if (!wanted && tracked) {
         if (window->isMinimized()) {
             Q_EMIT windowMinimizing(m_ids.value(window), window);
@@ -158,7 +159,6 @@ void WindowRegistry::connectObserved(KWin::Window *window)
 {
     const auto refreshWindow = [this, window]() { refresh(window); };
     connect(window, &KWin::Window::minimizedChanged, this, refreshWindow);
-    connect(window, &KWin::Window::desktopsChanged, this, refreshWindow);
     connect(window, &KWin::Window::captionChanged, this, refreshWindow);
     connect(window, &KWin::Window::desktopFileNameChanged, this, refreshWindow);
     connect(window, &KWin::Window::windowClassChanged, this, refreshWindow);
@@ -171,6 +171,7 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
     connect(window, &KWin::Window::desktopFileNameChanged, this, emitProperties);
     connect(window, &KWin::Window::windowClassChanged, this, emitProperties);
     connect(window, &KWin::Window::transientChanged, this, emitProperties);
+    connect(window, &KWin::Window::desktopsChanged, this, emitProperties);
     connect(window, &KWin::Window::demandsAttentionChanged, this,
         [this, window, id]() { Q_EMIT urgencyChanged(id, window->isDemandingAttention()); });
     connect(

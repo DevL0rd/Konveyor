@@ -133,6 +133,9 @@ void DesktopSync::applyCurrentDesktops(const QList<Layout::WorkspaceState> &work
 void DesktopSync::applyWindowDesktops(const QList<Layout::WindowState> &windows)
 {
     for (const Layout::WindowState &state : windows) {
+        if (state.onAllDesktops) {
+            continue;
+        }
         KWin::Window *window = m_windows.windowOf(state.id);
         KWin::VirtualDesktop *desktop = desktopAt(state.workspaceIndex);
         if (window && desktop && window->desktops() != QList<KWin::VirtualDesktop *> {desktop}) {
