@@ -4,28 +4,35 @@
 
 set -euo pipefail
 
-enabled_outputs() {
-    kscreen-doctor -j | jq -r '.outputs[] | select(.enabled == true) | .name'
-}
-
-current_rotation() {
-    kscreen-doctor -j | jq -r '[.outputs[] | select(.enabled == true) | .rotation] | first'
+fail() {
+    printf '%s: %s\n' "${0##*/}" "$1" >&2
+    exit 1
 }
 
 case "${1:-state}" in
-    state)
-        if [[ "$(current_rotation)" == "1" ]]; then printf 'landscape\n'; else printf 'portrait\n'; fi
-        ;;
-    toggle)
-        if [[ "$(current_rotation)" == "1" ]]; then rotation=left; else rotation=none; fi
-        while read -r output; do
-            [[ -n "$output" ]] || continue
-            kscreen-doctor "output.${output}.rotation.${rotation}" >/dev/null
-        done < <(enabled_outputs)
-        printf 'done\n'
-        ;;
+    state | toggle) ;;
     *)
         printf 'Usage: %s [state|toggle]\n' "${0##*/}" >&2
         exit 2
+        ;;
+esac
+
+screens=$(kscreen-doctor -j) || fail "kscreen-doctor could not read the screens"
+outputs=$(jq -r '.outputs[] | select(.enabled == true) | .name' <<<"$screens") || fail "kscreen-doctor returned unreadable screen data"
+[[ -n "$outputs" ]] || fail "no enabled screen was found"
+rotation=$(jq -r '[.outputs[] | select(.enabled == true) | .rotation] | first' <<<"$screens")
+landscape=false
+if [[ "$rotation" == "1" || "$rotation" == "4" ]]; then landscape=true; fi
+
+case "${1:-state}" in
+    state)
+        if $landscape; then printf 'landscape\n'; else printf 'portrait\n'; fi
+        ;;
+    toggle)
+        if $landscape; then target=left; else target=none; fi
+        while read -r output; do
+            kscreen-doctor "output.${output}.rotation.${target}" >/dev/null
+        done <<<"$outputs"
+        printf 'done\n'
         ;;
 esac

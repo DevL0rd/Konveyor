@@ -1,5 +1,3 @@
-linux-plasma-screen-rotate state
-linux-plasma-screen-rotate toggle
 overlay-hosts install
 overlay-hosts uninstall
 procmon-collect --once
