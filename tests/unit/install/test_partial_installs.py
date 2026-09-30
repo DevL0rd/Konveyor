@@ -45,6 +45,26 @@ class TestPartialInstalls(HarnessTest):
         result = self.assertSucceeded(self.harness.uninstall())
         self.assertIn("nothing to remove", result.stdout)
 
+    def test_widgets_from_before_the_merge_are_stopped_and_removed(self):
+        home = self.harness.home
+        units = home / ".config" / "systemd" / "user"
+        legacy = ["linux-system-monitor.service", "linux-process-mon.service", "linux-router-monitor.service",
+                  "linux-log-monitor.service", "portal-friends.service"]
+        for unit in legacy:
+            self.harness.write(units / unit, "[Service]\n")
+        self.harness.set_stub_state("systemd", {"environment": {}, "enabled": legacy})
+        leftovers = [units / "plasma-plasmashell.service.d" / "linux-log-monitor.conf",
+                     home / ".config" / "environment.d" / "linux-router-monitor.conf",
+                     home / ".config" / "plasma-workspace" / "env" / "linux-process-mon.sh",
+                     home / ".local" / "bin" / "linux-plasma-keyboard-toggle",
+                     home / ".local" / "state" / "linux-plasma-keyboard-toggle" / "state"]
+        for path in leftovers:
+            self.harness.write(path, "")
+        self.assertSucceeded(self.widgets("--no-restart"))
+        self.assertEqual(self.harness.stub_state("systemd")["enabled"], ["konveyor-kontrol-panel.service", "konveyor-widgets.service"])
+        for path in [units / unit for unit in legacy] + leftovers:
+            self.assertFalse(path.exists(), path)
+
 
 if __name__ == "__main__":
     unittest.main()
