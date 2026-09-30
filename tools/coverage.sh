@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 BUILD_DIR="${KONVEYOR_COVERAGE_BUILD_DIR:-build-coverage}"
-OUTPUT="$BUILD_DIR/coverage"
+OUTPUT="$(realpath -m "$BUILD_DIR")/coverage"
 THRESHOLDS=tests/coverage/thresholds.json
 LABELS=(unit)
 [[ "${1:-}" == "--nested" ]] && LABELS+=(nested)
@@ -27,8 +27,8 @@ python3 tools/coverage/pycoverage.py prepare --data "$OUTPUT/python"
 
 for label in "${LABELS[@]}"; do
     step "$label tests with coverage"
-    LLVM_PROFILE_FILE="$PWD/$OUTPUT/profiles/%p-%m.profraw" \
-        KONVEYOR_PYCOVERAGE_DIR="$PWD/$OUTPUT/python" \
+    LLVM_PROFILE_FILE="$OUTPUT/profiles/%p-%m.profraw" \
+        KONVEYOR_PYCOVERAGE_DIR="$OUTPUT/python" \
         PYTHONPATH="$PWD/tools/coverage/site${PYTHONPATH:+:$PYTHONPATH}" \
         ctest --test-dir "$BUILD_DIR" --output-on-failure -L "^${label}\$"
 done
