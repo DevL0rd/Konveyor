@@ -97,6 +97,9 @@ public:
         environment.insert(QStringLiteral("XDG_STATE_HOME"), dir(QStringLiteral("state")));
         environment.insert(QStringLiteral("XDG_CACHE_HOME"), dir(QStringLiteral("cache")));
         environment.insert(QStringLiteral("XDG_RUNTIME_DIR"), dir(QStringLiteral("runtime")));
+        if (qEnvironmentVariableIsSet("LLVM_PROFILE_FILE")) {
+            environment.insert(QStringLiteral("LLVM_PROFILE_FILE"), qEnvironmentVariable("LLVM_PROFILE_FILE"));
+        }
         return environment;
     }
 
