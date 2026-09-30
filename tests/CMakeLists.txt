@@ -221,3 +221,10 @@ foreach(name test_portal_plasmoid_qml test_portal_friends_qml test_portal_button
     add_test(NAME ${name} COMMAND ${name})
     set_tests_properties(${name} PROPERTIES LABELS "unit;widgets" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
 endforeach()
+
+find_package(Qt6 REQUIRED COMPONENTS Widgets DBus)
+find_package(KWin 6.7 REQUIRED COMPONENTS kwineffects)
+add_library(konveyor_test_touchpad MODULE nested/plugins/touchpad/touchpadplugin.cpp)
+target_link_libraries(konveyor_test_touchpad PRIVATE KWin::kwin Qt6::DBus)
+target_compile_options(konveyor_test_touchpad PRIVATE -Wall -Wextra -Werror)
+set_target_properties(konveyor_test_touchpad PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/kwin/plugins)

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from checks import Checks, config_path, default_config
+from checks import Checks, default_config, load_config
 from fakepointer import chord, move
 from keycodes import MODIFIER_CODES
 from kwinsession import konveyor, qdbus, run_script, wait_for
@@ -39,12 +39,6 @@ def zoomed():
 
 def current_desktop():
     return run_script('print("MARK|" + workspace.currentDesktop.id);')[0]
-
-
-def load_config(text):
-    before = konveyor("Binds")
-    config_path().write_text(text)
-    return wait_for(lambda: konveyor("Binds") != before, 30)
 
 
 def set_zoom_modifiers(modifiers):

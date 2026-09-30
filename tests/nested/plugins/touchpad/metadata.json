@@ -1,0 +1,8 @@
+{
+    "KPlugin": {
+        "Description": "Adds a virtual touchpad that the nested tests drive over D-Bus",
+        "EnabledByDefault": false,
+        "Id": "konveyor_test_touchpad",
+        "Name": "Konveyor test touchpad"
+    }
+}

@@ -4,6 +4,7 @@ import subprocess
 import traceback
 from pathlib import Path
 
+from kwinsession import konveyor
 from nested import REPO, build_dir
 
 
@@ -43,6 +44,11 @@ def config_path():
 
 def default_config():
     return (REPO / "data" / "default-config.kdl").read_text()
+
+
+def load_config(text):
+    config_path().write_text(text)
+    return konveyor("LoadConfigFile", "") == ""
 
 
 def notifications():
