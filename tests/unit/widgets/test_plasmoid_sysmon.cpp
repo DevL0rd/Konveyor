@@ -1,5 +1,6 @@
 #include "plasmoidharness.h"
 
+#include <QJsonDocument>
 #include <QTest>
 
 namespace
@@ -288,6 +289,49 @@ private Q_SLOTS:
         popup->setProperty("searchText", QStringLiteral("e-core 1"));
         QCOMPARE(harness->eval(QStringLiteral("coreQuery"), popup).toMap(),
             (QVariantMap {{QStringLiteral("group"), QStringLiteral("e")}, {QStringLiteral("index"), 1}}));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
+    void coreBarsFollowTheirCore()
+    {
+        auto harness = started(Form::Planar);
+        QVERIFY(harness);
+        QVERIFY(feed(*harness, snapshot));
+        QObject *popup = shell(*harness);
+        QVERIFY(popup);
+        const auto bars = [&] {
+            QList<QQuickItem *> found;
+            const QList<QQuickItem *> items = visibleItems(harness->scene(), "QQuickItem");
+            std::copy_if(items.cbegin(), items.cend(), std::back_inserter(found),
+                [](QQuickItem *item) { return item->property("marked").isValid(); });
+            return found;
+        };
+        const auto marked = [&] {
+            QStringList out;
+            for (QQuickItem *bar : bars()) {
+                if (bar->property("marked").toBool()) {
+                    out.append(QStringLiteral("%1:%2").arg(bar->property("index").toInt()).arg(bar->property("value").toDouble()));
+                }
+            }
+            return out;
+        };
+        const auto withCores = [](const QVariantList &cores) {
+            QVariantMap map = QJsonDocument::fromJson(snapshot).toVariant().toMap();
+            QVariantMap cpu = map.value(QStringLiteral("cpu")).toMap();
+            cpu.insert(QStringLiteral("cores"), cores);
+            map.insert(QStringLiteral("cpu"), cpu);
+            return QJsonDocument::fromVariant(map).toJson(QJsonDocument::Compact);
+        };
+        popup->setProperty("searchText", QStringLiteral("core 3"));
+        QTRY_COMPARE(marked(), QStringList {QStringLiteral("2:90")});
+        QVERIFY(feed(*harness, withCores({5, 95, 15, 60, 70, 80})));
+        QTRY_COMPARE(bars().size(), 6);
+        QCOMPARE(marked(), QStringList {QStringLiteral("2:15")});
+        popup->setProperty("searchText", QStringLiteral("core 6"));
+        QCOMPARE(marked(), QStringList {QStringLiteral("5:80")});
+        QVERIFY(feed(*harness, snapshot));
+        QTRY_COMPARE(bars().size(), 4);
+        QCOMPARE(marked(), QStringList());
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
