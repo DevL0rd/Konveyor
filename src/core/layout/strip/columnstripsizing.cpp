@@ -80,7 +80,6 @@ void ColumnStrip::toggleFillWidthAt(std::size_t idx)
     Column &column = m_columns[idx];
     column.toggleFillWidth();
     cancelResizeForColumn(column);
-    if (idx == m_activeColumnIndex) { }
 }
 
 void ColumnStrip::setWindowWidth(std::optional<WindowId> window, SizeChange change)
