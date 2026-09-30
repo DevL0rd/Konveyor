@@ -1,29 +1,11 @@
 #!/usr/bin/env python3
-import importlib.machinery
-import importlib.util
-import tempfile
 import unittest
 from pathlib import Path
 
-
-REPO = Path(__file__).resolve().parents[3]
-SCRIPT = REPO / "widgets" / "service" / "overlay-hosts"
+from appletsrc_harness import SERVICE, AppletsrcCase
 
 
-def load_module():
-    loader = importlib.machinery.SourceFileLoader("overlay_hosts", str(SCRIPT))
-    spec = importlib.util.spec_from_loader(loader.name, loader)
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
-
-
-class TestOverlayHosts(unittest.TestCase):
-    def setUp(self):
-        self.module = load_module()
-        self.temporary = tempfile.TemporaryDirectory()
-        self.path = Path(self.temporary.name) / "appletsrc"
-        self.path.write_text("""[Containments][1][Applets][2]
+FIXTURE = """[Containments][1][Applets][2]
 plugin=org.kde.plasma.systemtray
 
 [Containments][1][Applets][2][General]
@@ -43,10 +25,12 @@ plugin=org.devl0rd.sysmon.overlay
 
 [Containments][3][Applets][4][Applets][9][Configuration]
 test=true
-""")
+"""
 
-    def tearDown(self):
-        self.temporary.cleanup()
+
+class TestOverlayHosts(AppletsrcCase):
+    script = SERVICE / "overlay-hosts"
+    fixture = FIXTURE
 
     def configure(self, install):
         groups = self.module.read_groups(self.path)
@@ -76,6 +60,76 @@ test=true
         self.assertTrue(changed)
         for host in self.module.HOSTS:
             self.assertNotIn(host, text)
+
+    def test_usage(self):
+        usage = "usage: overlay-hosts install|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n"
+        for arguments in ((), ("install",), ("remove", str(self.path)), ("install", str(self.path), "extra")):
+            self.assertEqual(self.main(*arguments, code=2).stderr, usage)
+
+    def test_a_missing_file_is_left_alone(self):
+        missing = Path(self.temporary.name) / "missing"
+        for mode in ("install", "uninstall"):
+            self.assertEqual(self.main(mode, str(missing)).stdout, "")
+        self.assertFalse(missing.exists())
+
+    def test_install_needs_a_tray(self):
+        self.path.write_text("[Containments][1]\nplugin=org.kde.panel\n")
+        result = self.main("install", str(self.path), code=1)
+        self.assertEqual(result.stderr, "overlay-hosts: no Plasma system tray was found\n")
+        self.assertEqual(self.main("uninstall", str(self.path)).stdout, "")
+        self.assertEqual(self.path.read_text(), "[Containments][1]\nplugin=org.kde.panel\n")
+
+    def test_main_reports_changes_only(self):
+        self.assertEqual(self.main("install", str(self.path)).stdout, "Konveyor monitor overlay hosts installed\n")
+        installed = self.path.read_text()
+        self.assertEqual(self.main("install", str(self.path)).stdout, "")
+        self.assertEqual(self.path.read_text(), installed)
+        self.assertEqual(self.main("uninstall", str(self.path)).stdout, "Konveyor monitor overlay hosts removed\n")
+        self.assertEqual(self.main("uninstall", str(self.path)).stdout, "")
+
+    def test_install_keeps_other_items_in_place(self):
+        _, text = self.configure(True)
+        hosts = ",".join(self.module.HOSTS)
+        self.assertIn("[Containments][1][Applets][2][General]\nextraItems=org.kde.plasma.volume," + hosts + "\nhiddenItems="
+                      "org.kde.plasma.clipboard," + hosts + "\nknownItems=org.kde.plasma.volume," + hosts + "\n\n", text)
+        self.assertIn("[Containments][3][Applets][4][General]\nextraItems=org.kde.plasma.networkmanagement\n\n", text)
+
+    def test_a_tray_without_settings_gets_them(self):
+        self.path.write_text("[Containments][1][Applets][2]\nplugin=org.kde.plasma.systemtray\n")
+        _, text = self.configure(True)
+        hosts = ",".join(self.module.HOSTS)
+        self.assertEqual(text, "[Containments][1][Applets][2]\nplugin=org.kde.plasma.systemtray\n[Containments][1][Applets][2]"
+                         f"[General]\nextraItems={hosts}\nhiddenItems={hosts}\nknownItems={hosts}\n")
+        changed, text = self.configure(False)
+        self.assertTrue(changed)
+        self.assertEqual(text, "[Containments][1][Applets][2]\nplugin=org.kde.plasma.systemtray\n[Containments][1][Applets][2]"
+                         "[General]\n")
+
+    def test_only_the_host_applets_are_dropped(self):
+        self.path.write_text(self.path.read_text() + "\n[Containments][3][Applets][4][Applets][91]\nplugin=org.kde.plasma.battery\n"
+                             "\n[Containments][3][Applets][4][Applets][91][Configuration]\nkept=true\n")
+        _, text = self.configure(False)
+        self.assertNotIn("[Applets][9]\n", text)
+        self.assertNotIn("test=true", text)
+        self.assertIn("[Containments][3][Applets][4][Applets][91]\nplugin=org.kde.plasma.battery", text)
+        self.assertIn("kept=true", text)
+
+    def test_hosts_in_the_first_tray_are_kept_on_install(self):
+        self.path.write_text(self.path.read_text().replace("[Containments][3][Applets][4][Applets][9]",
+                                                           "[Containments][1][Applets][2][Applets][9]"))
+        _, text = self.configure(True)
+        self.assertIn("[Containments][1][Applets][2][Applets][9]\nplugin=org.devl0rd.sysmon.overlay", text)
+        _, text = self.configure(False)
+        self.assertNotIn("[Applets][9]", text)
+
+    def test_uninstall_cleans_every_tray(self):
+        self.configure(True)
+        self.path.write_text(self.path.read_text().replace("extraItems=org.kde.plasma.networkmanagement",
+                                                           "extraItems=org.devl0rd.procmon.overlay,org.kde.plasma.networkmanagement"))
+        _, text = self.configure(False)
+        self.assertIn("extraItems=org.kde.plasma.volume\n", text)
+        self.assertIn("extraItems=org.kde.plasma.networkmanagement\n", text)
+        self.assertNotIn("overlay", text)
 
 
 if __name__ == "__main__":
