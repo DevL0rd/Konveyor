@@ -109,6 +109,28 @@ private Q_SLOTS:
         TRY_COMPARE(page(QStringLiteral("letters.length")).toInt(), sort == QLatin1String("name") ? 27 : 0);
     }
 
+    void appsSortSwitchesBackToNameOrder()
+    {
+        QVERIFY(m_harness.openHost(false));
+        QVERIFY(goTo(QStringLiteral("apps")));
+        const QString labels
+            = QStringLiteral("(g => { const out = []; for (let i = 0; i < g.count; ++i) out.push(g.get(i).model.display); return out })"
+                             "(launcher.currentView().activeGroup)");
+        const QStringList byName
+            = {QStringLiteral("Dolphin"), QStringLiteral("Firefox"), QStringLiteral("Konsole"), QStringLiteral("Portal 2")};
+        const QStringList newFirst
+            = {QStringLiteral("Firefox"), QStringLiteral("Dolphin"), QStringLiteral("Konsole"), QStringLiteral("Portal 2")};
+        TRY_COMPARE(eval(labels).toStringList(), byName);
+        for (const char *sort : {"installed", "name", "recent", "name", "popular", "installed", "name"}) {
+            m_harness.config()->insert(QStringLiteral("appsSort"), QString::fromLatin1(sort));
+            TRY_COMPARE(eval(labels).toStringList(), qstrcmp(sort, "name") == 0 ? byName : newFirst);
+            TRY_COMPARE(page(QStringLiteral("letters.filter(l => l.row >= 0).map(l => l.key + l.row)")).toStringList(),
+                qstrcmp(sort, "name") == 0
+                    ? QStringList({QStringLiteral("D0"), QStringLiteral("F1"), QStringLiteral("K2"), QStringLiteral("P3")})
+                    : QStringList());
+        }
+    }
+
     void appsHideHiddenAppsAndSwitchViews()
     {
         QVERIFY(m_harness.openHost(false));

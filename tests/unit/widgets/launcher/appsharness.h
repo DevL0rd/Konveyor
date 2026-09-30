@@ -164,6 +164,8 @@ protected:
         }
         return m_harness.launched().mid(before);
     }
+
+    void setSort(const QString &sort) { m_harness.config()->insert(QStringLiteral("appsSort"), sort); }
 };
 
 }

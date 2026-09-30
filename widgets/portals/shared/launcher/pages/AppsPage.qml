@@ -102,19 +102,19 @@ ColumnLayout {
         }
         const group = activeGroup
         page.hiddenShown = items.count - group.count
-        if (page.sort !== "name") {
-            const order = []
-            for (let i = 0; i < group.count; ++i)
-                order.push({ rank: page.rankOf(group.get(i)), label: String(group.get(i).model.display || "").toLowerCase(), row: group.get(i).model.index })
-            const sorted = order.slice().sort((a, b) => (a.rank - b.rank) || a.label.localeCompare(b.label))
-            for (let target = 0; target < sorted.length; ++target) {
-                if (group.get(target).model.index === sorted[target].row)
-                    continue
-                for (let i = target + 1; i < group.count; ++i) {
-                    if (group.get(i).model.index === sorted[target].row) {
-                        group.move(i, target, 1)
-                        break
-                    }
+        const order = []
+        for (let i = 0; i < group.count; ++i) {
+            const entry = group.get(i)
+            order.push({ rank: page.sort === "name" ? entry.model.index : page.rankOf(entry), label: String(entry.model.display || "").toLowerCase(), row: entry.model.index })
+        }
+        const sorted = order.slice().sort((a, b) => (a.rank - b.rank) || a.label.localeCompare(b.label))
+        for (let target = 0; target < sorted.length; ++target) {
+            if (group.get(target).model.index === sorted[target].row)
+                continue
+            for (let i = target + 1; i < group.count; ++i) {
+                if (group.get(i).model.index === sorted[target].row) {
+                    group.move(i, target, 1)
+                    break
                 }
             }
         }
