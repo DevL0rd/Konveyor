@@ -1,4 +1,4 @@
-#include "plasmoidharness.h"
+#include "qmlsearch.h"
 
 #include <QAbstractItemModel>
 #include <QFileInfo>
@@ -72,20 +72,22 @@ QList<QQuickItem *> visibleItems(QQuickItem *item, const char *type)
     return found;
 }
 
+int delegateIndex(QQuickItem *view, QQuickItem *delegate)
+{
+    int index = -1;
+    QMetaObject::invokeMethod(view, "indexAt", Q_RETURN_ARG(int, index), Q_ARG(qreal, delegate->x() + delegate->width() / 2),
+        Q_ARG(qreal, delegate->y() + delegate->height() / 2));
+    return index;
+}
+
 QList<QQuickItem *> shownDelegates(QQuickItem *view)
 {
     QList<QQuickItem *> shown;
     const QRectF viewport = view->mapRectToScene(view->boundingRect());
     const QList<QQuickItem *> children = view->property("contentItem").value<QQuickItem *>()->childItems();
     for (QQuickItem *child : children) {
-        QVariant index = child->property("index");
-        if (auto *model = child->property("model").value<QObject *>(); !index.isValid() && model) {
-            index = model->property("index");
-        }
         QQuickItem *placed = nullptr;
-        if (index.isValid()) {
-            QMetaObject::invokeMethod(view, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, placed), Q_ARG(int, index.toInt()));
-        }
+        QMetaObject::invokeMethod(view, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, placed), Q_ARG(int, delegateIndex(view, child)));
         if (placed == child && child->isVisible() && child->mapRectToScene(child->boundingRect()).intersects(viewport)) {
             shown.append(child);
         }

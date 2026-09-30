@@ -1,6 +1,7 @@
 #pragma once
 
 #include "plasmadoubles.h"
+#include "qmlsearch.h"
 
 #include <QQmlEngine>
 #include <QQuickWindow>
@@ -76,12 +77,3 @@ private:
     std::unique_ptr<QObject> m_root;
     QList<QObject *> m_shown;
 };
-
-QStringList visibleTexts(QQuickItem *item);
-QStringList plainTexts(QQuickItem *item);
-QList<QObject *> findByType(QObject *root, const char *type);
-QList<QQuickItem *> visibleItems(QQuickItem *item, const char *type);
-bool watching(QObject *root, const QString &path);
-QList<QQuickItem *> shownDelegates(QQuickItem *view);
-QObject *withText(const QList<QObject *> &objects, const QString &text);
-void clickAt(QQuickItem *item, Qt::MouseButton button, QPointF local = {-1, -1});
