@@ -184,6 +184,22 @@ private Q_SLOTS:
         QCOMPARE(pathHelper(harness)->property("connectedSources").toStringList().isEmpty(), !wanted);
     }
 
+    void theCompactButtonShowsTheBadge()
+    {
+        PortalHarness harness;
+        QVERIFY(load(harness, PortalHarness::Horizontal));
+        QObject *root = harness.root();
+        auto *component = root->property("compactRepresentation").value<QQmlComponent *>();
+        std::unique_ptr<QObject> button(component->create(qmlContext(root)));
+        QVERIFY2(button, qPrintable(component->errorString()));
+        QVERIFY(!button->property("showBadge").toBool());
+        root->setProperty("friendsPlaying", 12);
+        QVERIFY(button->property("showBadge").toBool());
+        harness.config()->insert(QStringLiteral("showFriendsBadge"), false);
+        QVERIFY(!button->property("showBadge").toBool());
+        QCOMPARE(portalWarnings().join(QLatin1Char('\n')), QString());
+    }
+
 private:
     static bool load(PortalHarness &harness, PortalHarness::FormFactor formFactor, const QVariantMap &settings = {})
     {

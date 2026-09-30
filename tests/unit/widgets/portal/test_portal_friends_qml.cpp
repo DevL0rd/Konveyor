@@ -267,6 +267,30 @@ private Q_SLOTS:
         QCOMPARE(root()->property("error").toString(), QStringLiteral("Could not save the Steam Web API key"));
     }
 
+    void theRepresentationsLoadWithoutWarnings_data()
+    {
+        QTest::addColumn<QByteArray>("representation");
+        QTest::addColumn<bool>("withFriends");
+        QTest::newRow("compact") << QByteArray("compactRepresentation") << true;
+        QTest::newRow("full") << QByteArray("fullRepresentation") << true;
+        QTest::newRow("full before setup") << QByteArray("fullRepresentation") << false;
+    }
+
+    void theRepresentationsLoadWithoutWarnings()
+    {
+        QFETCH(QByteArray, representation);
+        QFETCH(bool, withFriends);
+        process(withFriends ? snapshot(crowd) : snapshot({}, false, QStringLiteral("no steam_api_key in config")));
+        auto *component = root()->property(representation.constData()).value<QQmlComponent *>();
+        std::unique_ptr<QObject> view(component->create(qmlContext(root())));
+        QVERIFY2(view, qPrintable(component->errorString()));
+        if (auto *item = qobject_cast<QQuickItem *>(view.get())) {
+            item->setSize(QSizeF(600, 500));
+        }
+        QCoreApplication::processEvents();
+        QCOMPARE(portalWarnings().join(QLatin1Char('\n')), QString());
+    }
+
     void chatOpensSteamAndClosesThePopup()
     {
         root()->setProperty("expanded", true);
