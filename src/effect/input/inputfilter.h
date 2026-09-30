@@ -35,4 +35,15 @@ private:
     QSet<quint32> m_swallowedKeys;
 };
 
+class DragMotionFilter : public KWin::InputEventFilter
+{
+public:
+    explicit DragMotionFilter(std::function<void(const QPointF &, qint64)> moved);
+
+    bool pointerMotion(KWin::PointerMotionEvent *event) override;
+
+private:
+    std::function<void(const QPointF &, qint64)> m_moved;
+};
+
 }

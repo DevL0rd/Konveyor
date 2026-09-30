@@ -1,6 +1,8 @@
 #include "input/inputfilter.h"
 
 #include <input_event.h>
+#include <wayland/seat.h>
+#include <wayland_server.h>
 
 #include <optional>
 
@@ -55,6 +57,21 @@ InputFilter::InputFilter(InputHandlers handlers)
 }
 
 InputFilter::~InputFilter() = default;
+
+DragMotionFilter::DragMotionFilter(std::function<void(const QPointF &, qint64)> moved)
+    : KWin::InputEventFilter(KWin::InputFilterOrder::DragAndDrop)
+    , m_moved(std::move(moved))
+{
+    KWin::input()->installInputEventFilter(this);
+}
+
+bool DragMotionFilter::pointerMotion(KWin::PointerMotionEvent *event)
+{
+    if (KWin::waylandServer()->seat()->isDragPointer()) {
+        m_moved(event->position, event->timestamp.count() / 1000);
+    }
+    return false;
+}
 
 bool InputFilter::pointerAxis(KWin::PointerAxisEvent *event)
 {

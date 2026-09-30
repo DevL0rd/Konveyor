@@ -23,10 +23,6 @@ void KonveyorEffect::handlePointerMotion(const QPointF &position, qint64 timesta
         d->dragOrigin = position.x();
         return;
     }
-    const std::optional<QString> output = readEngine().focusedOutput();
-    if (output && KWin::waylandServer()->seat()->isDrag()) {
-        changeEngine().dataDragEdgeScroll(*output, position, timestampMs);
-    }
     if (d->config.config().input.focusFollowsMouse) {
         focusWindowUnderPointer(position);
     }

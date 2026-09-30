@@ -158,6 +158,11 @@ target_include_directories(fullscreen_guard_client PRIVATE ${CMAKE_CURRENT_BINAR
 target_link_libraries(fullscreen_guard_client PRIVATE PkgConfig::WAYLAND_CLIENT)
 target_compile_options(fullscreen_guard_client PRIVATE -Wall -Wextra -Werror)
 
+add_executable(drag_source_client nested/clients/drag_source_client.cpp ${XDG_SHELL_HEADER} ${XDG_SHELL_CODE})
+target_include_directories(drag_source_client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(drag_source_client PRIVATE PkgConfig::WAYLAND_CLIENT)
+target_compile_options(drag_source_client PRIVATE -Wall -Wextra -Werror)
+
 file(GLOB KONVEYOR_NESTED_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/nested/test_*.py)
 foreach(test_script ${KONVEYOR_NESTED_TESTS})
     get_filename_component(name ${test_script} NAME_WE)

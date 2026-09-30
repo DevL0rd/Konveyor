@@ -68,10 +68,32 @@ static void touch_gesture(struct wl_display *display, int fingers, double x, dou
     touch_frame(display);
 }
 
+static int send_event(struct wl_display *display, const char *token)
+{
+    unsigned int code = 0;
+    unsigned int state = 0;
+    double value = 0;
+    double y = 0;
+    if (sscanf(token, "move:%lf:%lf", &value, &y) == 2) {
+        org_kde_kwin_fake_input_pointer_motion_absolute(fake, wl_fixed_from_double(value), wl_fixed_from_double(y));
+    } else if (sscanf(token, "axis:%u:%lf", &code, &value) == 2) {
+        org_kde_kwin_fake_input_axis(fake, code, wl_fixed_from_double(value));
+    } else if (sscanf(token, "button:%u:%u", &code, &state) == 2) {
+        org_kde_kwin_fake_input_button(fake, code, state);
+    } else if (sscanf(token, "%u:%u", &code, &state) == 2) {
+        org_kde_kwin_fake_input_keyboard_key(fake, code, state);
+    } else {
+        fprintf(stderr, "fakepointer: events are CODE:STATE, button:CODE:STATE, axis:AXIS:VALUE or move:X:Y\n");
+        return 0;
+    }
+    wl_display_roundtrip(display);
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
-    if (argc < 3) {
-        fprintf(stderr, "usage: fakepointer move|click|press|release X Y | keys CODE:STATE... | touch FINGERS X Y DX DY R0 R1 HOLD_MS STEPS\n");
+    if (argc < 2 || (argc < 3 && strcmp(argv[1], "stdin") != 0)) {
+        fprintf(stderr, "usage: fakepointer move|click|press|release X Y | keys EVENT... | stdin | touch FINGERS X Y DX DY R0 R1 HOLD_MS STEPS\n");
         return 2;
     }
     const int touch = strcmp(argv[1], "touch") == 0;
@@ -94,23 +116,22 @@ int main(int argc, char **argv)
     org_kde_kwin_fake_input_authenticate(fake, "konveyor-tests", "nested input");
     if (strcmp(argv[1], "keys") == 0) {
         for (int i = 2; i < argc; ++i) {
-            unsigned int code = 0;
-            unsigned int state = 0;
-            double value = 0;
-            double y = 0;
-            if (sscanf(argv[i], "move:%lf:%lf", &value, &y) == 2) {
-                org_kde_kwin_fake_input_pointer_motion_absolute(fake, wl_fixed_from_double(value), wl_fixed_from_double(y));
-            } else if (sscanf(argv[i], "axis:%u:%lf", &code, &value) == 2) {
-                org_kde_kwin_fake_input_axis(fake, code, wl_fixed_from_double(value));
-            } else if (sscanf(argv[i], "button:%u:%u", &code, &state) == 2) {
-                org_kde_kwin_fake_input_button(fake, code, state);
-            } else if (sscanf(argv[i], "%u:%u", &code, &state) == 2) {
-                org_kde_kwin_fake_input_keyboard_key(fake, code, state);
-            } else {
-                fprintf(stderr, "fakepointer: keys take CODE:STATE, button:CODE:STATE, axis:AXIS:VALUE or move:X:Y\n");
+            if (!send_event(display, argv[i])) {
                 return 2;
             }
-            wl_display_roundtrip(display);
+        }
+        wl_display_disconnect(display);
+        return 0;
+    }
+    if (strcmp(argv[1], "stdin") == 0) {
+        char line[256];
+        while (fgets(line, sizeof line, stdin)) {
+            line[strcspn(line, "\n")] = 0;
+            if (!send_event(display, line)) {
+                return 2;
+            }
+            printf("done\n");
+            fflush(stdout);
         }
         wl_display_disconnect(display);
         return 0;

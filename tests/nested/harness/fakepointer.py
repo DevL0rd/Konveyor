@@ -56,3 +56,23 @@ def chord(modifiers, *events):
 
 def tap(modifiers, key):
     chord(modifiers, (key, 1), (key, 0))
+
+
+class Held:
+    def __enter__(self):
+        self.process = subprocess.Popen([binary(), "stdin"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+        return self
+
+    def send(self, *events):
+        for event in events:
+            self.process.stdin.write((event if isinstance(event, str) else f"{event[0]}:{event[1]}") + "\n")
+            self.process.stdin.flush()
+            if self.process.stdout.readline().strip() != "done":
+                raise RuntimeError(f"the fake input client did not take {event}")
+
+    def glide(self, start, end, steps=12):
+        self.send(*(f"move:{start[0] + (end[0] - start[0]) * step / steps}:{start[1] + (end[1] - start[1]) * step / steps}" for step in range(steps + 1)))
+
+    def __exit__(self, *exc):
+        self.process.stdin.close()
+        self.process.wait(timeout=30)

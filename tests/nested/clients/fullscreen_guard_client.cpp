@@ -1,14 +1,8 @@
-#include "xdg-shell-client-protocol.h"
+#include "xdgclient.h"
 
 #include <poll.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <wayland-client.h>
 
-#include <algorithm>
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 
 namespace
 {
@@ -22,9 +16,7 @@ enum class Request
 struct Client
 {
     wl_display *display = nullptr;
-    wl_compositor *compositor = nullptr;
-    wl_shm *shm = nullptr;
-    xdg_wm_base *shell = nullptr;
+    XdgGlobals globals;
     wl_surface *surface = nullptr;
     xdg_surface *xdgSurface = nullptr;
     xdg_toplevel *toplevel = nullptr;
@@ -40,54 +32,6 @@ struct Client
     bool windowedMinimizeSent = false;
     int phaseRequests = 0;
 };
-
-void registryGlobal(void *data, wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
-{
-    auto *client = static_cast<Client *>(data);
-    if (std::strcmp(interface, wl_compositor_interface.name) == 0) {
-        client->compositor
-            = static_cast<wl_compositor *>(wl_registry_bind(registry, name, &wl_compositor_interface, std::min(version, 4u)));
-    } else if (std::strcmp(interface, wl_shm_interface.name) == 0) {
-        client->shm = static_cast<wl_shm *>(wl_registry_bind(registry, name, &wl_shm_interface, 1));
-    } else if (std::strcmp(interface, xdg_wm_base_interface.name) == 0) {
-        client->shell = static_cast<xdg_wm_base *>(wl_registry_bind(registry, name, &xdg_wm_base_interface, std::min(version, 6u)));
-    }
-}
-
-void registryRemove(void *, wl_registry *, uint32_t) { }
-
-constexpr wl_registry_listener registryListener {registryGlobal, registryRemove};
-
-void shellPing(void *, xdg_wm_base *shell, uint32_t serial)
-{
-    xdg_wm_base_pong(shell, serial);
-}
-
-constexpr xdg_wm_base_listener shellListener {shellPing};
-
-wl_buffer *makeBuffer(Client *client)
-{
-    constexpr int width = 600;
-    constexpr int height = 400;
-    constexpr int stride = width * 4;
-    constexpr int size = stride * height;
-    const int descriptor = memfd_create("konveyor-fullscreen-guard", MFD_CLOEXEC);
-    if (descriptor < 0 || ftruncate(descriptor, size) < 0) {
-        return nullptr;
-    }
-    void *mapping = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, descriptor, 0);
-    if (mapping == MAP_FAILED) {
-        close(descriptor);
-        return nullptr;
-    }
-    std::fill_n(static_cast<uint32_t *>(mapping), width * height, 0xffb03030u);
-    munmap(mapping, size);
-    wl_shm_pool *pool = wl_shm_create_pool(client->shm, descriptor, size);
-    wl_buffer *buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, WL_SHM_FORMAT_XRGB8888);
-    wl_shm_pool_destroy(pool);
-    close(descriptor);
-    return buffer;
-}
 
 void requestState(Client *client)
 {
@@ -105,7 +49,7 @@ void surfaceConfigure(void *data, xdg_surface *surface, uint32_t serial)
     auto *client = static_cast<Client *>(data);
     xdg_surface_ack_configure(surface, serial);
     if (!client->mapped) {
-        client->buffer = makeBuffer(client);
+        client->buffer = makeSolidBuffer(client->globals.shm, 600, 400, 0xffb03030u);
         wl_surface_attach(client->surface, client->buffer, 0, 0);
         wl_surface_damage_buffer(client->surface, 0, 0, 600, 400);
         xdg_toplevel_set_fullscreen(client->toplevel, nullptr);
@@ -200,15 +144,11 @@ int main(int argc, char **argv)
     if (!client.display) {
         return 3;
     }
-    wl_registry *registry = wl_display_get_registry(client.display);
-    wl_registry_add_listener(registry, &registryListener, &client);
-    wl_display_roundtrip(client.display);
-    if (!client.compositor || !client.shm || !client.shell) {
+    if (!bindGlobals(client.display, client.globals)) {
         return 4;
     }
-    xdg_wm_base_add_listener(client.shell, &shellListener, &client);
-    client.surface = wl_compositor_create_surface(client.compositor);
-    client.xdgSurface = xdg_wm_base_get_xdg_surface(client.shell, client.surface);
+    client.surface = wl_compositor_create_surface(client.globals.compositor);
+    client.xdgSurface = xdg_wm_base_get_xdg_surface(client.globals.shell, client.surface);
     xdg_surface_add_listener(client.xdgSurface, &surfaceListener, &client);
     client.toplevel = xdg_surface_get_toplevel(client.xdgSurface);
     xdg_toplevel_add_listener(client.toplevel, &toplevelListener, &client);

@@ -96,6 +96,9 @@ void KonveyorEffect::installInputFilter()
             return d->shortcuts.triggerKeyPosition(keycode, modifiers, repeat, xkb->keymap(), xkb->currentLayout());
         },
     });
+    d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {
+        changeEngine().dataDragEdgeScroll(outputNameAt(position), position, timestampMs);
+    });
     d->gestureInput = std::make_unique<GestureFilter>(GestureHandlers {
         [this](int fingers) { return routeGesture(d->gestures.touchpadSwipeBegin(fingers, outputNameAt(KWin::effects->cursorPos()))); },
         [this](const QPointF &delta, qint64 timestamp) { return routeGesture(d->gestures.touchpadSwipeUpdate(delta, timestamp)); },
@@ -127,24 +130,6 @@ void KonveyorEffect::installInputFilter()
         [this] { d->gestures.touchpadPhysicalClick(); },
         [this] { d->gestures.touchpadContactsReset(); },
     });
-}
-
-void KonveyorEffect::startDBusService()
-{
-    d->dbus = std::make_unique<DBusService>(DBusHandlers {
-        [this] { return windowsJson(); },
-        [this] { return workspacesJson(); },
-        [this] { return outputsJson(); },
-        [this] { return focusedWindowJson(); },
-        [this] { return focusedOutputJson(); },
-        [this] { return bindsJson(); },
-        [this](const QString &json) { return performActionJson(json); },
-        [this](const QString &path) { return d->config.load(path); },
-        [this] { return readEngine().isOverviewOpen(); },
-        [this] { return lastBindJson(); },
-        [this] { return QJsonDocument(Ipc::gesturesToJson(d->gestures.config())); },
-    });
-    d->dbus->registerService();
 }
 
 void KonveyorEffect::connectRegistries()

@@ -35,6 +35,24 @@ void notifyForceResizable(KWin::Window *window, const QString &appId, bool enabl
 
 }
 
+void KonveyorEffect::startDBusService()
+{
+    d->dbus = std::make_unique<DBusService>(DBusHandlers {
+        [this] { return windowsJson(); },
+        [this] { return workspacesJson(); },
+        [this] { return outputsJson(); },
+        [this] { return focusedWindowJson(); },
+        [this] { return focusedOutputJson(); },
+        [this] { return bindsJson(); },
+        [this](const QString &json) { return performActionJson(json); },
+        [this](const QString &path) { return d->config.load(path); },
+        [this] { return readEngine().isOverviewOpen(); },
+        [this] { return lastBindJson(); },
+        [this] { return QJsonDocument(Ipc::gesturesToJson(d->gestures.config())); },
+    });
+    d->dbus->registerService();
+}
+
 QJsonDocument KonveyorEffect::windowsJson() const
 {
     QJsonArray array;
