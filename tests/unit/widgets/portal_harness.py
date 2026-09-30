@@ -25,6 +25,7 @@ if os.path.isfile(replies + ".err"):
     sys.stderr.write(open(replies + ".err").read())
 sys.exit(int(open(replies + ".code").read()) if os.path.isfile(replies + ".code") else 0)
 """ % sys.executable
+COVERAGE_VARIABLES = ("KONVEYOR_PYCOVERAGE_DIR", "PYTHONPATH")
 
 
 class Sandbox:
@@ -56,6 +57,7 @@ class Sandbox:
             "XDG_RUNTIME_DIR": str(self.runtime),
             "STUB_LOG": str(self.log),
             "STUB_REPLIES": str(self.replies),
+            **{name: os.environ[name] for name in COVERAGE_VARIABLES if name in os.environ},
         }
 
     def cleanup(self):
