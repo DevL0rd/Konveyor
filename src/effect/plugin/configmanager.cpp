@@ -77,7 +77,9 @@ QString ConfigManager::load(const QString &path)
     if (!result) {
         const QString message = result.error().toString();
         notifyFailure(message);
-        watch({target});
+        if (target == m_path) {
+            watch({target});
+        }
         if (!m_loadedOnce) {
             Q_EMIT configChanged(m_config);
         }
@@ -85,6 +87,7 @@ QString ConfigManager::load(const QString &path)
         return message;
     }
     m_loadedOnce = true;
+    m_path = target;
     watch(result->files);
     notifyWarnings(result->warnings);
     m_config = std::move(result->config);
