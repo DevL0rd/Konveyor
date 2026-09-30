@@ -70,8 +70,13 @@ disable_in_kwin() {
 }
 
 restore_shortcuts() {
+    local program="$KONVEYOR_PREFIX/bin/konveyor"
+    if [[ ! -x $program ]]; then
+        say "$program is missing, so it could not restore the KDE shortcuts Konveyor had taken over; set them again in System Settings > Shortcuts"
+        return 0
+    fi
     say "Restoring the KDE shortcuts Konveyor had taken over"
-    "$KONVEYOR_PREFIX/bin/konveyor" restore-shortcuts
+    "$program" restore-shortcuts
 }
 
 remove_files() {

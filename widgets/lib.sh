@@ -338,9 +338,15 @@ remove_keyboard_toggle() {
     rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/linux-plasma-keyboard-toggle"
 }
 
+start_plasma() {
+    systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
+    systemctl --user start "$PLASMA_SERVICE"
+}
+
 take_over_launcher_and_restart() {
     say "Restarting Plasma"
     systemctl --user stop "$PLASMA_SERVICE"
+    trap start_plasma EXIT
     python3 "$WIDGETS_DIR/service/overlay-hosts" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     if [[ ! -e $LAUNCHER_SET_UP ]]; then
         python3 "$WIDGETS_DIR/service/panel-launcher" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
@@ -349,6 +355,6 @@ take_over_launcher_and_restart() {
         kwriteconfig6 --file "$KONTROL_PANEL_CONFIG" --group General --key openPageOnStart shortcuts
         systemctl --user restart "$KONTROL_PANEL_UNIT"
     fi
-    systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
-    systemctl --user start "$PLASMA_SERVICE"
+    trap - EXIT
+    start_plasma
 }

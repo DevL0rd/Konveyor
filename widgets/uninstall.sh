@@ -69,6 +69,7 @@ main() {
 
     say "Restoring the application launcher and removing the widgets"
     systemctl --user stop "$PLASMA_SERVICE" 2>/dev/null || true
+    trap start_plasma EXIT
     python3 "$WIDGETS_DIR/service/overlay-hosts" uninstall "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     python3 "$WIDGETS_DIR/service/panel-launcher" uninstall "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
     rm -f "$LAUNCHER_SET_UP"
@@ -76,8 +77,8 @@ main() {
     for item in "${PLASMOIDS[@]}"; do
         kpackagetool6 -t Plasma/Applet -r "$item" >/dev/null 2>&1 && say "  removed $item" || true
     done
-    systemctl --user reset-failed "$PLASMA_SERVICE" 2>/dev/null || true
-    systemctl --user start "$PLASMA_SERVICE" 2>/dev/null || true
+    trap - EXIT
+    start_plasma 2>/dev/null || true
 
     rm -rf "$WIDGETS_RUNTIME_DIR"
     systemctl --user unset-environment QML_XHR_ALLOW_FILE_READ
