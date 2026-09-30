@@ -16,6 +16,7 @@ Window {
     MouseArea {
         anchors.fill: parent
         onClicked: console.warn("konveyor-test-clicked:" + root.label)
+        onWheel: wheel => console.warn("konveyor-test-wheel:" + root.label)
     }
 
     Text {

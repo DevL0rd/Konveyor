@@ -126,9 +126,11 @@ bool SpillInputFilter::pointerButton(KWin::PointerButtonEvent *event)
 
 bool SpillInputFilter::pointerAxis(KWin::PointerAxisEvent *event)
 {
-    if (!m_redirecting || !isStolen(KWin::input()->pointer()->pos())) {
+    const QPointF position = KWin::input()->pointer()->pos();
+    if (!m_redirecting || !isStolen(position)) {
         return false;
     }
+    redirectTo(ownerAt(position), position);
     KWin::SeatInterface *seat = KWin::waylandServer()->seat();
     seat->setTimestamp(event->timestamp);
     seat->notifyPointerAxis(event->orientation, event->delta, event->deltaV120, event->source, event->inverted);

@@ -17,7 +17,8 @@ def main():
 
     report = '> "$KONVEYOR_REPORT" 2>&1'
     return run_script(f'export QT_QPA_PLATFORM=wayland\npython3 {HERE / "runners" / "multimonitor.py"} {report}\n', timeout=240,
-                      extra_config=HALF_WIDTH_COLUMNS, output_count=2)
+                      extra_config=HALF_WIDTH_COLUMNS, output_count=2,
+                      extra_kwinrc="konveyor_test_touchpadEnabled=true")
 
 
 if __name__ == "__main__":

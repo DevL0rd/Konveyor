@@ -6,7 +6,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from fakepointer import click, move
+import virtualtouchpad
+from fakepointer import Held, click, move
 from kwinsession import activate, active_title, for_window, frames, intersects, konveyor_action, konveyor_windows, open_client, run_script, wait_for
 from screenshot import capture_workspace
 
@@ -87,8 +88,8 @@ def check_clicks(problems):
     check_click_reaches_window_below(problems)
 
 
-def clicks_in(log, label):
-    return log.read_text(errors="replace").count(f"konveyor-test-clicked:{label}")
+def clicks_in(log, label, kind="clicked"):
+    return log.read_text(errors="replace").count(f"konveyor-test-{kind}:{label}")
 
 
 def check_click_reaches_window_below(problems):
@@ -121,6 +122,34 @@ def check_click_reaches_window_below(problems):
     print(f"click on D under the hidden part of B: D received {d_received}, B received {b_received}")
     if d_received != 1 or b_received:
         problems.append(f"a click on D under the hidden part of B reached D {d_received} times and B {b_received} times")
+    if not wait_for(lambda: active_title() == "D", 30):
+        problems.append(f"a click on D under the hidden part of B did not activate D (active: {active_title()})")
+    check_wheel_and_drag_reach_window_below(problems, d_log, y)
+
+
+def check_wheel_and_drag_reach_window_below(problems, d_log, y):
+    activate("B")
+    activate("A")
+    run_script(for_window("B", "workspace.raiseWindow(w);"))
+    b_wheels = clicks_in(Path(os.environ["KONVEYOR_KWIN_LOG"]), "B", "wheel")
+    virtualtouchpad.add()
+    move(1945, y)
+    virtualtouchpad.scroll(False, 15)
+    wait_for(lambda: clicks_in(d_log, "D", "wheel") > 0, 30)
+    d_wheels = clicks_in(d_log, "D", "wheel")
+    b_wheeled = clicks_in(Path(os.environ["KONVEYOR_KWIN_LOG"]), "B", "wheel") - b_wheels
+    print(f"wheel over D under the hidden part of B: D received {d_wheels}, B received {b_wheeled}")
+    if d_wheels < 1 or b_wheeled:
+        problems.append(f"a wheel over D under the hidden part of B reached D {d_wheels} times and B {b_wheeled} times")
+    clicks = clicks_in(d_log, "D")
+    with Held() as held:
+        held.send(f"move:1945:{y}", "button:272:1")
+        held.glide((1945, y), (2100, y), steps=6)
+        held.send("button:272:0")
+    wait_for(lambda: clicks_in(d_log, "D") > clicks, 30)
+    print(f"press, drag and release over D: D clicks {clicks} -> {clicks_in(d_log, 'D')}")
+    if clicks_in(d_log, "D") != clicks + 1:
+        problems.append(f"a press, drag and release over D under the hidden part of B did not reach D once ({clicks} -> {clicks_in(d_log, 'D')})")
 
 
 def main():
