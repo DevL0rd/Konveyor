@@ -106,6 +106,40 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(row.fixture);
     }
 
+    void windowDragHeldStillAtTheEdgeKeepsScrolling()
+    {
+        Row row;
+        QVERIFY(startMove(row.fixture, row.last, QPointF(960, 500)));
+        row.fixture.passTime(100);
+        row.fixture.engine().updateWindowDrag(QPointF(5, 500), Primary);
+        const double before = row.fixture.frame(row.first).left();
+        QVERIFY(row.fixture.engine().isAnimating());
+        for (int frame = 0; frame < 10; ++frame) {
+            row.fixture.advance(50);
+        }
+        QVERIFY2(row.fixture.frame(row.first).left() > before, "holding the pointer still at the edge stopped the scroll");
+        row.fixture.engine().endWindowDrag();
+        row.fixture.advance(1000);
+        QVERIFY(!row.fixture.engine().isAnimating());
+        VERIFY_INVARIANTS(row.fixture);
+    }
+
+    void dataDragHeldStillAtTheEdgeKeepsScrolling()
+    {
+        Row row;
+        const double before = row.fixture.frame(row.first).left();
+        row.fixture.engine().beginDataDrag();
+        row.fixture.engine().dataDragEdgeScroll(Primary, QPointF(5, 500), row.fixture.elapsed());
+        for (int frame = 0; frame < 10; ++frame) {
+            row.fixture.advance(50);
+        }
+        QVERIFY2(row.fixture.frame(row.first).left() > before, "holding a file still at the edge stopped the scroll");
+        row.fixture.engine().endDataDrag();
+        row.fixture.advance(1000);
+        QVERIFY(!row.fixture.engine().isAnimating());
+        VERIFY_INVARIANTS(row.fixture);
+    }
+
     void floatingWindowDragAtTheEdgeDoesNotScrollTheRow()
     {
         Row row(Primary, animatedWideColumns());

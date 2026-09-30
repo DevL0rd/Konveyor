@@ -206,6 +206,7 @@ void Engine::setOverviewOpen(bool open)
 
 void Engine::tickAnimations()
 {
+    d->continueEdgeScroll();
     for (Monitor &monitor : d->monitors) {
         monitor.tickAnimations();
     }
@@ -217,7 +218,7 @@ void Engine::tickAnimations()
 
 bool Engine::isAnimating() const
 {
-    return std::ranges::any_of(d->monitors, &Monitor::isAnimating);
+    return d->edgeScrolling || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
 }
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area)

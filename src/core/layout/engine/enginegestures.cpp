@@ -87,6 +87,7 @@ void Engine::endWorkspaceSwipe(std::optional<bool> isTouchpad)
 
 void Engine::beginDataDrag()
 {
+    d->dataDragPointer.reset();
     for (Monitor &monitor : d->monitors) {
         monitor.beginEdgeScroll();
         for (Workspace &workspace : monitor.workspaces()) {
@@ -97,6 +98,8 @@ void Engine::beginDataDrag()
 
 void Engine::Private::stopEdgeScroll()
 {
+    dataDragPointer.reset();
+    edgeScrolling = false;
     for (Monitor &monitor : monitors) {
         monitor.endEdgeScroll();
         monitor.dropHint.reset();
@@ -108,9 +111,19 @@ void Engine::Private::stopEdgeScroll()
 
 void Engine::Private::edgeScrollAt(Monitor &monitor, QPointF local)
 {
-    monitor.edgeScrollBy(local, 1.0);
+    edgeScrolling = monitor.edgeScrollBy(local, 1.0);
     for (Workspace &workspace : monitor.workspaces()) {
-        workspace.edgeScrollBy(local, 1.0);
+        edgeScrolling = workspace.edgeScrollBy(local, 1.0) || edgeScrolling;
+    }
+}
+
+void Engine::Private::continueEdgeScroll()
+{
+    if (windowDrag) {
+        scrollDragEdges();
+        updateDropHint();
+    } else if (Monitor *monitor = dataDragPointer ? monitorByName(dataDragPointer->first) : nullptr) {
+        edgeScrollAt(*monitor, dataDragPointer->second);
     }
 }
 
@@ -124,7 +137,8 @@ void Engine::dataDragEdgeScroll(const QString &output, const QPointF &pointer, q
 {
     Q_UNUSED(timestampMs)
     if (Monitor *monitor = d->monitorByName(output)) {
-        d->edgeScrollAt(*monitor, pointer - d->originOf(monitor->outputName()));
+        d->dataDragPointer = {output, pointer - d->originOf(monitor->outputName())};
+        d->edgeScrollAt(*monitor, d->dataDragPointer->second);
     }
 }
 

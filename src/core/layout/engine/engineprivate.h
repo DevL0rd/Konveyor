@@ -77,6 +77,8 @@ struct Engine::Private
     std::optional<WindowId> announcedFocus;
     bool layoutFocused = true;
     std::optional<WindowDrag> windowDrag;
+    std::optional<std::pair<QString, QPointF>> dataDragPointer;
+    bool edgeScrolling = false;
     std::optional<WorkspaceId> viewGestureWorkspace;
     QString switchGestureOutput;
     std::optional<WindowId> resizeWindow;
@@ -155,6 +157,7 @@ struct Engine::Private
     void finishResize();
     void edgeScrollAt(Monitor &monitor, QPointF local);
     void scrollDragEdges();
+    void continueEdgeScroll();
     void moveDragToActiveOutput();
     void updateDropHint();
     void interactiveMoveFinish();
