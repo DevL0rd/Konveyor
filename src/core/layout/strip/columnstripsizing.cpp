@@ -40,7 +40,7 @@ bool ColumnStrip::setFullscreen(WindowId window, bool fullscreen)
     cancelResizeForColumn(m_columns[colIndex]);
     if (fullscreen && m_columns[colIndex].tiles.size() > 1 && !m_columns[colIndex].isTabbed()) {
         consumeOrExpelWindowRight(window);
-        colIndex += 1;
+        colIndex = columnIndexOf(window);
     }
     m_columns[colIndex].setFullscreen(fullscreen);
     return true;
@@ -55,7 +55,7 @@ bool ColumnStrip::setMaximized(WindowId window, bool maximize)
     cancelResizeForColumn(m_columns[colIndex]);
     if (maximize && m_columns[colIndex].tiles.size() > 1 && !m_columns[colIndex].isTabbed()) {
         consumeOrExpelWindowRight(window);
-        colIndex += 1;
+        colIndex = columnIndexOf(window);
     }
     m_columns[colIndex].setMaximized(maximize);
     return true;
