@@ -152,6 +152,22 @@ private Q_SLOTS:
         QCOMPARE(panel.call(QStringLiteral("setOpen"), false).type(), QDBusMessage::ErrorMessage);
     }
 
+    void keepsAShortcutTheUserChanged()
+    {
+        FakeKGlobalAccel kglobalaccel;
+        QVERIFY(kglobalaccel.start(m_session->address()));
+        const QKeySequence metaSpace(QStringLiteral("Meta+Space"));
+        kglobalaccel.add({QStringLiteral("konveyor-kontrol-panel"), QStringLiteral("toggle"), QStringLiteral("Kontrol Panel"),
+                             QStringLiteral("Open or close the Kontrol Panel")},
+            {metaSpace});
+        start();
+        QDBusInterface panel(busName, QStringLiteral("/KontrolPanel"), busName, QDBusConnection::sessionBus());
+        QVERIFY(panel.call(QStringLiteral("IsOpen")).type() == QDBusMessage::ReplyMessage);
+        FakeKGlobalAccel::settle();
+        QVERIFY(!kglobalaccel.calls(QStringLiteral("setShortcutKeys")).isEmpty());
+        QCOMPARE(kglobalaccel.keys(QStringLiteral("konveyor-kontrol-panel"), QStringLiteral("toggle")), QList<QKeySequence> {metaSpace});
+    }
+
     void savesSettingsChangesToKontrolpanelrc()
     {
         start();

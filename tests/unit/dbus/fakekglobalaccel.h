@@ -52,6 +52,9 @@ inline const QDBusArgument &operator>>(const QDBusArgument &argument, FakeShortc
 
 class FakeKGlobalAccel
 {
+    static constexpr uint noAutoloading = 0x4;
+    static constexpr uint isDefault = 0x8;
+
 public:
     FakeKGlobalAccel()
         : m_service(
@@ -150,6 +153,14 @@ private:
         }
         if (member == QLatin1String("setShortcutKeys")) {
             const QList<QKeySequence> keys = keysOf(arguments.value(1));
+            const uint flags = arguments.value(2).toUInt();
+            const FakeShortcut *existing = find(actionId.value(0), actionId.value(1));
+            if (flags & isDefault) {
+                return message.createReply(QVariant::fromValue(keys));
+            }
+            if (!(flags & noAutoloading) && existing) {
+                return message.createReply(QVariant::fromValue(existing->keys));
+            }
             store(actionId, keys);
             return message.createReply(QVariant::fromValue(keys));
         }
