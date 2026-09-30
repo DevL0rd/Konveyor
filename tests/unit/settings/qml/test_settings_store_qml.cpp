@@ -25,7 +25,8 @@ private Q_SLOTS:
     void appendMoveAndRead();
     void saveIsBlockedWhileConfigHasError();
     void reloadsWhenFileChangesUnderneath();
-    void warnsWhenFileChangesWithUnsavedEdits();
+    void externalEditWinsOverUnsavedEdits();
+    void pendingAutoSaveNeverOverwritesAnExternalEdit();
     void loadsAFixFromDiskOverEditsBlockedByAConfigError();
     void neverSavesOverAConfigItCannotRead();
     void scopeFollowsRuntimeNames();
@@ -54,6 +55,14 @@ private:
         }
         return SettingsHome::read(m_home.configPath());
     }
+
+    QString droppedMessage() const
+    {
+        return m_home.configPath()
+            + QStringLiteral(" changed on disk, so Settings loaded it. Your changes here that were not saved yet were not applied.");
+    }
+
+    static constexpr int SaveSettleMs = 700;
 
     SettingsHome m_home;
 };
@@ -264,18 +273,40 @@ void TestSettingsStoreQml::reloadsWhenFileChangesUnderneath()
     QCOMPARE(session.store->property("needsSave").toBool(), false);
 }
 
-void TestSettingsStoreQml::warnsWhenFileChangesWithUnsavedEdits()
+void TestSettingsStoreQml::externalEditWinsOverUnsavedEdits()
 {
+    const QString external = QStringLiteral("layout {\n    gaps 11\n}\n");
     Session session = open(QStringLiteral("layout {\n    gaps 4\n}\n"));
     QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {6}, QVariantMap {}));
     QSignalSpy failed(session.store, SIGNAL(editFailed(QString)));
-    QVERIFY(SettingsHome::write(m_home.configPath(), QStringLiteral("layout {\n    gaps 11\n}\n")));
+    QVERIFY(SettingsHome::write(m_home.configPath(), external));
     QVERIFY(failed.wait(SignalTimeoutMs));
-    QCOMPARE(failed.first().first().toString(),
-        m_home.configPath() + QStringLiteral(" changed on disk while you have unsaved changes here. Saving will replace it."));
-    QCOMPARE(call<QVariantMap>(session.store, "node", QStringLiteral("layout/gaps")).value(QStringLiteral("args")).toList(),
-        QVariantList {qint64(6)});
-    QCOMPARE(saved(session.store), QStringLiteral("layout {\n    gaps 6\n}\n"));
+    QCOMPARE(failed.first().first().toString(), droppedMessage());
+    QCOMPARE(call<QVariantMap>(session.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 11);
+    QCOMPARE(session.store->property("needsSave").toBool(), false);
+    QCOMPARE(session.store->property("canUndo").toBool(), false);
+    QCOMPARE(SettingsHome::read(m_home.configPath()), external);
+}
+
+void TestSettingsStoreQml::pendingAutoSaveNeverOverwritesAnExternalEdit()
+{
+    const QString external = QStringLiteral("layout {\n    gaps 11\n}\n");
+    Session session = open(QStringLiteral("layout {\n    gaps 4\n}\n"));
+    session.store->setProperty("autoSave", true);
+    QSignalSpy failed(session.store, SIGNAL(editFailed(QString)));
+    QSignalSpy savedSpy(session.store, SIGNAL(saved()));
+    QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {6}, QVariantMap {}));
+    QVERIFY(SettingsHome::write(m_home.configPath(), external));
+    QVERIFY(QMetaObject::invokeMethod(session.store, "save"));
+    QCOMPARE(savedSpy.count(), 0);
+    QCOMPARE(SettingsHome::read(m_home.configPath()), external);
+    QCOMPARE(failed.count(), 1);
+    QCOMPARE(failed.first().first().toString(), droppedMessage());
+    QCOMPARE(call<QVariantMap>(session.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 11);
+    QCOMPARE(session.store->property("needsSave").toBool(), false);
+    QTest::qWait(SaveSettleMs);
+    QCOMPARE(SettingsHome::read(m_home.configPath()), external);
+    QCOMPARE(savedSpy.count(), 0);
 }
 
 void TestSettingsStoreQml::loadsAFixFromDiskOverEditsBlockedByAConfigError()
@@ -286,9 +317,7 @@ void TestSettingsStoreQml::loadsAFixFromDiskOverEditsBlockedByAConfigError()
     QSignalSpy failed(session.store, SIGNAL(editFailed(QString)));
     QVERIFY(SettingsHome::write(m_home.configPath(), QStringLiteral("layout {\n    gaps 11\n}\n")));
     QVERIFY(failed.wait(SignalTimeoutMs));
-    QCOMPARE(failed.last().first().toString(),
-        m_home.configPath()
-            + QStringLiteral(" changed on disk, so Settings loaded it. Changes made here while the config had an error were not saved."));
+    QCOMPARE(failed.last().first().toString(), droppedMessage());
     QCOMPARE(session.store->property("configError").toString(), QString());
     QCOMPARE(call<QVariantMap>(session.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 11);
     QCOMPARE(session.store->property("needsSave").toBool(), false);

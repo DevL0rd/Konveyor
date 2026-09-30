@@ -82,6 +82,7 @@ private:
     void refresh();
     void watch();
     void fileChanged();
+    void adoptDisk(const QString &disk);
     void warnIfOverridden(const QString &name, const QStringList &paths);
 
     ConfigDocument m_document;

@@ -28,11 +28,7 @@ QString nodeName(const QString &path)
 
 QVariantMap leaf(const QString &path, const QVariantList &arguments, const QVariantMap &properties)
 {
-    return {
-        {QStringLiteral("name"), nodeName(path)},
-        {QStringLiteral("args"), arguments},
-        {QStringLiteral("props"), properties},
-    };
+    return {{QStringLiteral("name"), nodeName(path)}, {QStringLiteral("args"), arguments}, {QStringLiteral("props"), properties}};
 }
 
 }
@@ -120,8 +116,13 @@ void SettingsStore::load()
 void SettingsStore::save()
 {
     m_saveTimer.stop();
-    if (!m_configError.isEmpty()) {
-        Q_EMIT editFailed(QStringLiteral("Not saved, the config has an error: ") + m_configError);
+    if (const std::optional<QString> disk = readSaved(); disk && *disk != m_savedText) {
+        adoptDisk(*disk);
+        return;
+    }
+    const QString error = m_readError.isEmpty() ? m_configError : m_readError;
+    if (!error.isEmpty()) {
+        Q_EMIT editFailed(QStringLiteral("Not saved, the config has an error: ") + error);
         return;
     }
     const QString text = m_document.text();
@@ -363,21 +364,20 @@ void SettingsStore::fileChanged()
         refresh();
         return;
     }
-    const bool unsaved = m_saveTimer.isActive() || needsSave();
-    if (unsaved && m_configError.isEmpty()) {
+    adoptDisk(*disk);
+}
+
+void SettingsStore::adoptDisk(const QString &disk)
+{
+    if (m_saveTimer.isActive() || needsSave()) {
         Q_EMIT editFailed(
-            QStringLiteral("%1 changed on disk while you have unsaved changes here. Saving will replace it.").arg(configPath()));
-        return;
-    }
-    if (unsaved) {
-        Q_EMIT editFailed(
-            QStringLiteral("%1 changed on disk, so Settings loaded it. Changes made here while the config had an error were not saved.")
+            QStringLiteral("%1 changed on disk, so Settings loaded it. Your changes here that were not saved yet were not applied.")
                 .arg(configPath()));
     }
     m_saveTimer.stop();
-    m_savedText = *disk;
+    m_savedText = disk;
     m_history.clear();
-    replaceText(*disk);
+    replaceText(disk);
 }
 
 void SettingsStore::warnIfOverridden(const QString &name, const QStringList &paths)
