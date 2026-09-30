@@ -9,6 +9,12 @@ import tempfile
 import textwrap
 from pathlib import Path
 
+NARROW_COLUMNS = """
+window-rule {
+    default-column-width { proportion 0.3; }
+}
+"""
+
 REPO = Path(__file__).resolve().parents[3]
 HARNESS = Path(__file__).resolve().parent
 
