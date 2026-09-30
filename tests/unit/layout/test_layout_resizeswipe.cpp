@@ -14,8 +14,15 @@ bool widenFollows(WideRow &row, Layout::WindowId id)
 {
     row.fixture.engine().activateWindow(id);
     row.fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("1800")});
-    row.fixture.advance(1000);
+    row.fixture.advanceInSteps(1000);
     return row.inView(id);
+}
+
+Layout::WindowId addOnSecondary(WideRow &row)
+{
+    row.fixture.addOutput(Secondary, QRectF(1920, 0, 1920, 1080));
+    row.fixture.engine().focusOutput(Secondary);
+    return row.fixture.add(QStringLiteral("e"));
 }
 
 void swipe(Fixture &fixture, const QString &output, double delta)
@@ -33,10 +40,8 @@ class TestLayoutResizeSwipe : public QObject
 private Q_SLOTS:
     void secondResizeOnAnotherMonitorEndsTheFirst()
     {
-        WideRow row;
-        row.fixture.addOutput(Secondary, QRectF(1920, 0, 1920, 1080));
-        row.fixture.engine().focusOutput(Secondary);
-        const auto other = row.fixture.add(QStringLiteral("e"));
+        WideRow row(Primary, animatedWideColumns());
+        const auto other = addOnSecondary(row);
         QVERIFY(row.fixture.engine().beginResize(row.last, RightEdge));
         QVERIFY(row.fixture.engine().beginResize(other, RightEdge));
         row.fixture.engine().endResize();
@@ -48,7 +53,7 @@ private Q_SLOTS:
 
     void secondResizeOnTheSameRowEndsTheFirst()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         QVERIFY(row.fixture.engine().beginResize(row.last, RightEdge));
         QVERIFY(row.fixture.engine().beginResize(row.third, RightEdge));
         row.fixture.engine().updateResize(QPointF(100, 0));
@@ -63,7 +68,7 @@ private Q_SLOTS:
 
     void closingTheResizedWindowEndsTheResize()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         QVERIFY(row.fixture.engine().beginResize(row.last, RightEdge));
         row.fixture.engine().updateResize(QPointF(100, 0));
         row.fixture.remove(row.last);
@@ -111,7 +116,7 @@ private Q_SLOTS:
 
     void resizeWithoutABeginDoesNothing()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         const QRectF before = row.fixture.frame(row.last);
         row.fixture.engine().updateResize(QPointF(100, 0));
         row.fixture.engine().endResize();
@@ -122,7 +127,7 @@ private Q_SLOTS:
 
     void resizeOfAFullscreenWindowIsRefused()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         QVERIFY(row.fixture.perform(QStringLiteral("fullscreen-window")).ok);
         QVERIFY(!row.fixture.engine().beginResize(row.last, RightEdge));
         QVERIFY(row.fixture.perform(QStringLiteral("fullscreen-window")).ok);
@@ -151,68 +156,68 @@ private Q_SLOTS:
 
     void swipeThatOutlivesItsWorkspaceLeavesTheRowWorking()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         QVERIFY(row.fixture.perform(QStringLiteral("move-window-to-workspace-down")).ok);
         const auto elsewhere = row.last;
         QVERIFY(row.fixture.perform(QStringLiteral("focus-workspace-up")).ok);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         swipe(row.fixture, Primary, 300.0);
         row.fixture.engine().activateWindow(elsewhere);
         row.fixture.engine().updateSwipe(300.0, 20, true);
         row.fixture.engine().endSwipe(true);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QCOMPARE(row.fixture.focused(), std::optional(elsewhere));
         QVERIFY(row.fixture.perform(QStringLiteral("focus-workspace-up")).ok);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QVERIFY2(widenFollows(row, row.third), "the first workspace is still swiping");
         VERIFY_INVARIANTS(row.fixture);
     }
 
     void swipeOnAnUnpluggedOutputEndsOnTheOutputItMovedTo()
     {
-        WideRow row(Secondary);
+        WideRow row(Secondary, animatedWideColumns());
         swipe(row.fixture, Secondary, 300.0);
         row.fixture.removeOutput(Secondary);
         row.fixture.engine().updateSwipe(300.0, 20, true);
         row.fixture.engine().endSwipe(true);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         row.output = Primary;
         QCOMPARE(row.fixture.state(row.first).output, Primary);
         QVERIFY(row.fixture.perform(QStringLiteral("focus-workspace"), {QStringLiteral("2")}).ok);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QVERIFY2(widenFollows(row, row.third), "the moved workspace is still swiping");
         VERIFY_INVARIANTS(row.fixture);
     }
 
     void swipeOnAnUnknownOutputDoesNothing()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         const QRectF before = row.fixture.frame(row.first);
         swipe(row.fixture, QStringLiteral("HDMI-9"), 800.0);
         row.fixture.engine().endSwipe(true);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QCOMPARE(row.fixture.frame(row.first), before);
         QCOMPARE(row.fixture.focused(), std::optional(row.last));
     }
 
     void swipeWithoutABeginDoesNothing()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         const QRectF before = row.fixture.frame(row.first);
         row.fixture.engine().updateSwipe(800.0, 10, true);
         row.fixture.engine().endSwipe(true);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QCOMPARE(row.fixture.frame(row.first), before);
     }
 
     void closingAWindowMidSwipeKeepsTheSwipe()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         swipe(row.fixture, Primary, -900.0);
         row.fixture.remove(row.first);
         row.fixture.engine().updateSwipe(-900.0, 20, true);
         row.fixture.engine().endSwipe(true);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QVERIFY(row.fixture.focused().has_value());
         QVERIFY(row.inView(*row.fixture.focused()));
         VERIFY_INVARIANTS(row.fixture);
@@ -220,10 +225,10 @@ private Q_SLOTS:
 
     void swipeEndingWithKeepActiveKeepsThatWindowFocused()
     {
-        WideRow row;
+        WideRow row(Primary, animatedWideColumns());
         swipe(row.fixture, Primary, -3000.0);
         row.fixture.engine().endSwipe(true, row.last);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QCOMPARE(row.fixture.focused(), std::optional(row.last));
         QVERIFY(row.inView(row.last));
         VERIFY_INVARIANTS(row.fixture);
@@ -231,14 +236,12 @@ private Q_SLOTS:
 
     void swipeOnOneOutputLeavesTheOtherAlone()
     {
-        WideRow row;
-        row.fixture.addOutput(Secondary, QRectF(1920, 0, 1920, 1080));
-        row.fixture.engine().focusOutput(Secondary);
-        const auto other = row.fixture.add(QStringLiteral("e"));
+        WideRow row(Primary, animatedWideColumns());
+        const auto other = addOnSecondary(row);
         const QRectF before = row.fixture.frame(other);
         swipe(row.fixture, Primary, -3000.0);
         row.fixture.engine().endSwipe(true);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QCOMPARE(row.fixture.frame(other), before);
         QVERIFY(row.fixture.frame(row.first).left() >= 0.0);
         VERIFY_INVARIANTS(row.fixture);

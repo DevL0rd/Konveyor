@@ -292,17 +292,25 @@ inline bool startMove(Fixture &fixture, Layout::WindowId id, QPointF to, const Q
     return true;
 }
 
+inline Config::Config animatedWideColumns()
+{
+    Config::Config config = wideColumns();
+    config.animations = linearAnimationConfig().animations;
+    return config;
+}
+
 struct WideRow
 {
-    Fixture fixture {wideColumns()};
+    Fixture fixture;
     QString output;
     Layout::WindowId first = 0;
     Layout::WindowId second = 0;
     Layout::WindowId third = 0;
     Layout::WindowId last = 0;
 
-    explicit WideRow(const QString &on = QStringLiteral("DP-1"))
-        : output(on)
+    explicit WideRow(const QString &on = QStringLiteral("DP-1"), const Config::Config &config = wideColumns())
+        : fixture(config)
+        , output(on)
     {
         if (on != QLatin1String("DP-1")) {
             fixture.addOutput(on, QRectF(1920, 0, 1920, 1080));
@@ -312,7 +320,7 @@ struct WideRow
         second = fixture.add(QStringLiteral("b"));
         third = fixture.add(QStringLiteral("c"));
         last = fixture.add(QStringLiteral("d"));
-        fixture.advance(1000);
+        fixture.advanceInSteps(1000);
     }
 
     bool inView(Layout::WindowId id)

@@ -53,7 +53,7 @@ class TestLayoutDragEdges : public QObject
 private Q_SLOTS:
     void closingTheDraggedWindowStopsEdgeScrollAndDropHint()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         QVERIFY(startMove(row.fixture, row.last, QPointF(10, 500)));
         QVERIFY(row.hasDropHint());
         row.fixture.remove(row.last);
@@ -68,7 +68,7 @@ private Q_SLOTS:
 
     void closingTheDraggedWindowBeforeItDetachesKeepsTheRowWorking()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         QVERIFY(startMove(row.fixture, row.last, row.fixture.frame(row.last).center() + QPointF(10, 0)));
         row.fixture.remove(row.last);
         QVERIFY(row.fixture.perform(QStringLiteral("focus-column-first")).ok);
@@ -80,7 +80,7 @@ private Q_SLOTS:
 
     void closingAnotherWindowDuringADragKeepsTheDrag()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         QVERIFY(startMove(row.fixture, row.last, QPointF(10, 500)));
         row.fixture.remove(row.second);
         QVERIFY(row.hasDropHint());
@@ -93,7 +93,7 @@ private Q_SLOTS:
 
     void windowDragAtTheEdgeScrollsTheRow()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         QVERIFY(startMove(row.fixture, row.last, QPointF(960, 500)));
         const double before = row.fixture.frame(row.first).left();
         row.holdWindowDragAt(QPointF(5, 500), 4);
@@ -108,9 +108,9 @@ private Q_SLOTS:
 
     void floatingWindowDragAtTheEdgeDoesNotScrollTheRow()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         QVERIFY(row.fixture.perform(QStringLiteral("toggle-window-floating")).ok);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QVERIFY(startMove(row.fixture, row.last, QPointF(960, 500)));
         const double before = row.fixture.frame(row.first).left();
         row.holdWindowDragAt(QPointF(5, 500), 4);
@@ -122,15 +122,15 @@ private Q_SLOTS:
 
     void dataDragEdgeScrollMovesTheRowAndSettlesAfterwards()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         const double before = row.fixture.frame(row.first).left();
         row.fixture.engine().beginDataDrag();
         row.holdDataDragAt(QPointF(5, 500), 4);
         QVERIFY2(row.fixture.frame(row.first).left() > before, "dragging over the left edge did not scroll the row");
         row.fixture.engine().endDataDrag();
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QVERIFY(row.fixture.perform(QStringLiteral("focus-column-first")).ok);
-        row.fixture.advance(1000);
+        row.fixture.advanceInSteps(1000);
         QVERIFY(row.firstIsOnScreen());
         QCOMPARE(row.fixture.focused(), std::optional(row.first));
         VERIFY_INVARIANTS(row.fixture);
@@ -138,7 +138,7 @@ private Q_SLOTS:
 
     void dataDragEdgeScrollUsesTheOutputsOwnPosition()
     {
-        Row row(Secondary);
+        Row row(Secondary, animatedWideColumns());
         QCOMPARE(row.fixture.state(row.first).output, Secondary);
         const double before = row.fixture.frame(row.first).left();
         row.fixture.engine().beginDataDrag();
@@ -150,7 +150,7 @@ private Q_SLOTS:
 
     void dataDragEdgeScrollWaitsForTheDelay()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         const double before = row.fixture.frame(row.first).left();
         row.fixture.engine().beginDataDrag();
         row.fixture.passTime(10);
@@ -164,7 +164,7 @@ private Q_SLOTS:
 
     void dataDragEdgeScrollOnAnUnknownOutputDoesNothing()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         const QRectF before = row.fixture.frame(row.first);
         row.fixture.engine().beginDataDrag();
         for (int move = 0; move < 4; ++move) {
@@ -178,7 +178,7 @@ private Q_SLOTS:
 
     void dataDragInTheMiddleOfTheOutputDoesNotScroll()
     {
-        Row row;
+        Row row(Primary, animatedWideColumns());
         const QRectF before = row.fixture.frame(row.first);
         row.fixture.engine().beginDataDrag();
         row.holdDataDragAt(QPointF(960, 500), 4);
