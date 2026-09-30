@@ -1,7 +1,6 @@
 #include "procmonfixture.h"
 
 #include <QPointer>
-#include <QQuickWindow>
 
 using Procmon::feed;
 using Procmon::runtime;
@@ -20,34 +19,51 @@ QByteArray processes(int first, int count, int cpuBase = 0)
     return "{\"ts\": 2, \"ncpu\": 4, \"mem_total\": 1, \"vram_total\": 0, \"procs\": [" + procs + "]}";
 }
 
+QQuickItem *view(PlasmoidHarness &harness)
+{
+    return harness.root()->property("rowsView").value<QQuickItem *>();
+}
+
 QList<QQuickItem *> shownRows(PlasmoidHarness &harness)
 {
-    auto *view = harness.root()->property("rowsView").value<QQuickItem *>();
-    return view ? shownDelegates(view) : QList<QQuickItem *>();
+    return view(harness) ? shownDelegates(view(harness)) : QList<QQuickItem *>();
+}
+
+RowCheck showsItsProcess(PlasmoidHarness &harness)
+{
+    return [&harness](QQuickItem *row, int index) {
+        const int pid = harness.eval(QStringLiteral("rows.get(%1).pid").arg(index)).toInt();
+        const QString name = QStringLiteral("worker%1").arg(pid);
+        if (row->property("pid").toInt() == pid && plainTexts(row).contains(name)) {
+            return QString();
+        }
+        return QStringLiteral("row %1 should show %2 but shows %3").arg(index).arg(name, plainTexts(row).join(QLatin1Char('|')));
+    };
 }
 
 QString mismatch(PlasmoidHarness &harness)
 {
-    const QList<QQuickItem *> rows = shownRows(harness);
-    if (rows.isEmpty()) {
-        return QStringLiteral("no rows shown");
-    }
-    for (QQuickItem *row : rows) {
-        const int index = row->property("index").toInt();
-        const int pid = harness.eval(QStringLiteral("rows.get(%1).pid").arg(index)).toInt();
-        const QString name = QStringLiteral("worker%1").arg(pid);
-        if (row->property("pid").toInt() != pid || !plainTexts(row).contains(name)) {
-            return QStringLiteral("row %1 should show %2 but shows %3").arg(index).arg(name, plainTexts(row).join(QLatin1Char('|')));
-        }
-    }
-    return {};
+    return rowMismatch(view(harness), showsItsProcess(harness));
+}
+
+bool settled(PlasmoidHarness &harness)
+{
+    return QTest::qWaitFor([&] { return view(harness); }) && rowsMatch(view(harness), showsItsProcess(harness));
 }
 
 QQuickItem *rowFor(PlasmoidHarness &harness, int pid)
 {
-    const QList<QQuickItem *> rows = shownRows(harness);
-    const auto found = std::find_if(rows.cbegin(), rows.cend(), [pid](QQuickItem *row) { return row->property("pid").toInt() == pid; });
-    return found == rows.cend() ? nullptr : *found;
+    return delegateWith(view(harness), "pid", pid);
+}
+
+std::unique_ptr<PlasmoidHarness> flatList()
+{
+    auto harness = started(Form::Planar, {{QStringLiteral("treeView"), false}});
+    if (!harness || !feed(*harness, processes(1000, 150))
+        || !QTest::qWaitFor([&] { return harness->eval(QStringLiteral("rows.count")).toInt() == 150; }) || !settled(*harness)) {
+        return {};
+    }
+    return harness;
 }
 
 QString commandFor(int pid)
@@ -70,11 +86,6 @@ QList<int> openPids(PlasmoidHarness &harness)
         }
     }
     return pids;
-}
-
-bool settled(PlasmoidHarness &harness)
-{
-    return QTest::qWaitFor([&] { return mismatch(harness).isEmpty(); });
 }
 
 bool scrolledAway(PlasmoidHarness &harness, const QPointer<QQuickItem> &delegate, int pid)
@@ -102,13 +113,10 @@ private Q_SLOTS:
 
     void rowsShowTheirOwnProcessThroughEveryChange()
     {
-        auto harness = started(Form::Planar, {{QStringLiteral("treeView"), false}});
+        auto harness = flatList();
         QVERIFY(harness);
         const auto first = [&] { return harness->eval(QStringLiteral("rows.count ? rows.get(0).pid : 0")).toInt(); };
         const auto count = [&] { return harness->eval(QStringLiteral("rows.count")).toInt(); };
-        QVERIFY(feed(*harness, processes(1000, 150)));
-        QTRY_COMPARE(count(), 150);
-        QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
         harness->eval(QStringLiteral("headerSort('name')"));
         QTRY_COMPARE(first(), 1000);
         QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
@@ -138,19 +146,28 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
+    void commandLineBelongsToTheOpenProcess_data()
+    {
+        QTest::addColumn<bool>("lateReply");
+        QTest::newRow("read before the row moved on") << false;
+        QTest::newRow("reply after the row moved on") << true;
+    }
+
     void commandLineBelongsToTheOpenProcess()
     {
-        auto harness = started(Form::Planar, {{QStringLiteral("treeView"), false}});
+        QFETCH(bool, lateReply);
+        auto harness = flatList();
         QVERIFY(harness);
-        QVERIFY(feed(*harness, processes(1000, 150)));
-        QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
         const int first = harness->eval(QStringLiteral("rows.get(3).pid")).toInt();
         QPointer<QQuickItem> delegate = rowFor(*harness, first);
         QVERIFY(delegate);
         harness->root()->setProperty("expandedPid", first);
-        QVERIFY(harness->reply(commandFor(first), QStringLiteral("first --flag")));
-        QTRY_VERIFY(visibleTexts(delegate).contains(QStringLiteral("first --flag")));
-        harness->root()->setProperty("expandedPid", 0);
+        QTRY_VERIFY(!harness->command(commandFor(first)).isEmpty());
+        if (!lateReply) {
+            QVERIFY(harness->reply(commandFor(first), QStringLiteral("first --flag")));
+            QTRY_VERIFY(visibleTexts(delegate).contains(QStringLiteral("first --flag")));
+            harness->root()->setProperty("expandedPid", 0);
+        }
         QVERIFY(scrolledAway(*harness, delegate, first));
         const int second = delegate->property("pid").toInt();
         harness->root()->setProperty("expandedPid", second);
@@ -159,26 +176,9 @@ private Q_SLOTS:
         QVERIFY2(
             !visibleTexts(delegate).contains(QStringLiteral("first --flag")), qPrintable(visibleTexts(delegate).join(QLatin1Char('|'))));
         QVERIFY(harness->reply(commandFor(second), QStringLiteral("second --flag")));
-        QTRY_VERIFY(visibleTexts(delegate).contains(QStringLiteral("second --flag")));
-        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
-    }
-
-    void lateCommandLineRepliesGoToTheirOwnProcess()
-    {
-        auto harness = started(Form::Planar, {{QStringLiteral("treeView"), false}});
-        QVERIFY(harness);
-        QVERIFY(feed(*harness, processes(1000, 150)));
-        QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
-        const int first = harness->eval(QStringLiteral("rows.get(3).pid")).toInt();
-        QPointer<QQuickItem> delegate = rowFor(*harness, first);
-        QVERIFY(delegate);
-        harness->root()->setProperty("expandedPid", first);
-        QTRY_VERIFY(!harness->command(commandFor(first)).isEmpty());
-        QVERIFY(scrolledAway(*harness, delegate, first));
-        const int second = delegate->property("pid").toInt();
-        harness->root()->setProperty("expandedPid", second);
-        QVERIFY(harness->reply(commandFor(second), QStringLiteral("second --flag")));
-        QVERIFY(harness->reply(commandFor(first), QStringLiteral("first --flag")));
+        if (lateReply) {
+            QVERIFY(harness->reply(commandFor(first), QStringLiteral("first --flag")));
+        }
         QTRY_VERIFY(visibleTexts(delegate).contains(QStringLiteral("second --flag")));
         QVERIFY2(
             !visibleTexts(delegate).contains(QStringLiteral("first --flag")), qPrintable(visibleTexts(delegate).join(QLatin1Char('|'))));
@@ -187,10 +187,8 @@ private Q_SLOTS:
 
     void menuActsOnTheRightClickedProcessAfterTheListChanges()
     {
-        auto harness = started(Form::Planar, {{QStringLiteral("treeView"), false}});
+        auto harness = flatList();
         QVERIFY(harness);
-        QVERIFY(feed(*harness, processes(1000, 150)));
-        QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
         const int target = harness->eval(QStringLiteral("rows.get(4).pid")).toInt();
         click(rowFor(*harness, target), Qt::RightButton);
         QVERIFY(feed(*harness, processes(1000, 150, 9)));
@@ -207,10 +205,8 @@ private Q_SLOTS:
 
     void openRowFollowsItsProcessThroughSortsAndScrolling()
     {
-        auto harness = started(Form::Planar, {{QStringLiteral("treeView"), false}});
+        auto harness = flatList();
         QVERIFY(harness);
-        QVERIFY(feed(*harness, processes(1000, 150)));
-        QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
         const int target = harness->eval(QStringLiteral("rows.get(2).pid")).toInt();
         click(rowFor(*harness, target), Qt::LeftButton);
         QCOMPARE(harness->root()->property("expandedPid").toInt(), target);
@@ -248,27 +244,26 @@ private Q_SLOTS:
 
     void hoverLightsOnlyTheRowUnderThePointer()
     {
-        auto harness = started(Form::Planar, {{QStringLiteral("treeView"), false}});
+        auto harness = flatList();
         QVERIFY(harness);
-        QVERIFY(feed(*harness, processes(1000, 150)));
-        QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
         QQuickItem *hovered = rowFor(*harness, harness->eval(QStringLiteral("rows.get(5).pid")).toInt());
         const QPoint pointer = hovered->mapToScene(QPointF(hovered->width() / 2, hovered->property("rowHeight").toReal() / 2)).toPoint();
+        const auto mislit = [&] {
+            QStringList pids;
+            const QList<QQuickItem *> rows = shownRows(*harness);
+            for (QQuickItem *row : rows) {
+                const bool under = row->contains(row->mapFromScene(pointer));
+                if (findByType(row, "QQuickMouseArea").value(0)->property("containsMouse").toBool() != under) {
+                    pids.append(QString::number(row->property("pid").toInt()));
+                }
+            }
+            return pids;
+        };
         QTest::mouseMove(harness->scene()->window(), pointer);
         for (int step = 0; step < 150; step += 10) {
             harness->eval(QStringLiteral("rowsView.positionViewAtIndex(%1, ListView.Beginning)").arg(step));
             QVERIFY2(settled(*harness), qPrintable(mismatch(*harness)));
-            QTest::mouseMove(harness->scene()->window(), pointer);
-            QStringList lit;
-            const QList<QQuickItem *> rows = shownRows(*harness);
-            for (QQuickItem *row : rows) {
-                QObject *area = findByType(row, "QQuickMouseArea").value(0);
-                const bool under = row->contains(row->mapFromScene(pointer));
-                if (area->property("containsMouse").toBool() != under) {
-                    lit.append(QString::number(row->property("pid").toInt()));
-                }
-            }
-            QVERIFY2(lit.isEmpty(), qPrintable(lit.join(QLatin1Char(','))));
+            QTRY_COMPARE(mislit(), QStringList());
         }
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }

@@ -1,9 +1,7 @@
 #include "logmonfixture.h"
 
 #include <QPointer>
-#include <QQuickWindow>
 #include <QTest>
-#include <QtQuickTest/quicktest.h>
 
 using Logmon::feed;
 using Logmon::journalOf;
@@ -27,51 +25,37 @@ QByteArray numbered(int first, int count)
 
 QQuickItem *view(PlasmoidHarness &harness)
 {
-    const QList<QObject *> views = harness.findAll("QQuickListView");
-    for (QObject *candidate : views) {
-        if (candidate->property("model").value<QObject *>() == harness.eval(QStringLiteral("rows")).value<QObject *>()) {
-            return qobject_cast<QQuickItem *>(candidate);
-        }
-    }
-    return nullptr;
+    return harness.listOf(QStringLiteral("rows"));
 }
 
-QList<QQuickItem *> shownRows(PlasmoidHarness &harness)
+RowCheck showsItsLine(PlasmoidHarness &harness)
 {
-    QQuickItem *list = view(harness);
-    return list ? shownDelegates(list) : QList<QQuickItem *>();
+    return [&harness](QQuickItem *row, int index) {
+        const QVariantMap line
+            = harness.eval(QStringLiteral("(r => ({app: r.app, msg: r.msg, expanded: r.expanded}))(rows.get(%1))").arg(index)).toMap();
+        const QStringList texts = plainTexts(row);
+        const QString app = line.value(QStringLiteral("app")).toString();
+        const QString message = line.value(QStringLiteral("msg")).toString();
+        if (texts.contains(message) && texts.contains(app) && row->property("expanded") == line.value(QStringLiteral("expanded"))) {
+            return QString();
+        }
+        return QStringLiteral("row %1 should show %2 %3 but shows %4").arg(index).arg(app, message, texts.join(QLatin1Char('|')));
+    };
 }
 
 QString mismatch(PlasmoidHarness &harness)
 {
-    const QList<QQuickItem *> rows = shownRows(harness);
-    if (rows.isEmpty()) {
-        return QStringLiteral("no rows shown");
-    }
-    for (QQuickItem *row : rows) {
-        const int index = row->property("index").toInt();
-        const QString message = harness.eval(QStringLiteral("rows.get(%1).msg").arg(index)).toString();
-        const QString app = harness.eval(QStringLiteral("rows.get(%1).app").arg(index)).toString();
-        const bool expanded = harness.eval(QStringLiteral("rows.get(%1).expanded").arg(index)).toBool();
-        const QStringList texts = plainTexts(row);
-        if (!texts.contains(message) || !texts.contains(app) || row->property("expanded").toBool() != expanded) {
-            return QStringLiteral("row %1 should show %2 %3 but shows %4").arg(index).arg(app, message, texts.join(QLatin1Char('|')));
-        }
-    }
-    return {};
+    return rowMismatch(view(harness), showsItsLine(harness));
 }
 
 bool settled(PlasmoidHarness &harness)
 {
-    return QQuickTest::qWaitForPolish(harness.scene()->window()) && QTest::qWaitFor([&] { return mismatch(harness).isEmpty(); });
+    return rowsMatch(view(harness), showsItsLine(harness));
 }
 
 QQuickItem *rowShowing(PlasmoidHarness &harness, const QString &message)
 {
-    const QList<QQuickItem *> rows = shownRows(harness);
-    const auto found
-        = std::find_if(rows.cbegin(), rows.cend(), [&](QQuickItem *row) { return row->property("msg").toString() == message; });
-    return found == rows.cend() ? nullptr : *found;
+    return delegateWith(view(harness), "msg", message);
 }
 
 }

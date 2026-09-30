@@ -54,6 +54,7 @@ public:
     QString runtimePath(const QString &name) const;
     QString stagedPath(const QString &relative) const;
     QList<QObject *> findAll(const char *type) const;
+    QQuickItem *listOf(const QString &model) const;
     QQuickItem *scene() const;
     bool watching(const QString &path) const;
     QVariant eval(const QString &expression, QObject *scope = nullptr) const;

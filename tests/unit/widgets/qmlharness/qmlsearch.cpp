@@ -95,6 +95,33 @@ QList<QQuickItem *> shownDelegates(QQuickItem *view)
     return shown;
 }
 
+QString rowMismatch(QQuickItem *view, const RowCheck &check)
+{
+    if (!view) {
+        return QStringLiteral("no list");
+    }
+    const QList<QQuickItem *> rows = shownDelegates(view);
+    for (QQuickItem *row : rows) {
+        const QString problem = check(row, delegateIndex(view, row));
+        if (!problem.isEmpty()) {
+            return problem;
+        }
+    }
+    return rows.isEmpty() ? QStringLiteral("no rows shown") : QString();
+}
+
+bool rowsMatch(QQuickItem *view, const RowCheck &check)
+{
+    return view && QQuickTest::qWaitForPolish(view->window()) && QTest::qWaitFor([&] { return rowMismatch(view, check).isEmpty(); });
+}
+
+QQuickItem *delegateWith(QQuickItem *view, const char *property, const QVariant &value)
+{
+    const QList<QQuickItem *> rows = shownDelegates(view);
+    const auto found = std::find_if(rows.cbegin(), rows.cend(), [&](QQuickItem *row) { return row->property(property) == value; });
+    return found == rows.cend() ? nullptr : *found;
+}
+
 QObject *withText(const QList<QObject *> &objects, const QString &text)
 {
     const auto found

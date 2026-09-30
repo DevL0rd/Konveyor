@@ -1,8 +1,6 @@
 #include "routerfixture.h"
 
 #include <QPointer>
-#include <QQuickWindow>
-#include <QtQuickTest/quicktest.h>
 
 using Router::changed;
 using Router::feed;
@@ -31,48 +29,34 @@ QByteArray clientsWith(int count, int trafficShift)
 
 QQuickItem *view(PlasmoidHarness &harness)
 {
-    const QList<QObject *> views = harness.findAll("QQuickListView");
-    for (QObject *candidate : views) {
-        if (candidate->property("model").value<QObject *>() == harness.eval(QStringLiteral("clients")).value<QObject *>()) {
-            return qobject_cast<QQuickItem *>(candidate);
-        }
-    }
-    return nullptr;
+    return harness.listOf(QStringLiteral("clients"));
 }
 
-QList<QQuickItem *> shownRows(PlasmoidHarness &harness)
+RowCheck showsItsClient(PlasmoidHarness &harness)
 {
-    QQuickItem *list = view(harness);
-    return list ? shownDelegates(list) : QList<QQuickItem *>();
+    return [&harness](QQuickItem *row, int index) {
+        const QString mac = harness.eval(QStringLiteral("clients.get(%1).mac").arg(index)).toString();
+        const QString name = harness.eval(QStringLiteral("clients.get(%1).name").arg(index)).toString();
+        if (row->property("mac").toString() == mac && plainTexts(row).contains(name)) {
+            return QString();
+        }
+        return QStringLiteral("client %1 should be %2 but shows %3").arg(index).arg(name, plainTexts(row).join(QLatin1Char('|')));
+    };
 }
 
 QString mismatch(PlasmoidHarness &harness)
 {
-    const QList<QQuickItem *> rows = shownRows(harness);
-    if (rows.isEmpty()) {
-        return QStringLiteral("no rows shown");
-    }
-    for (QQuickItem *row : rows) {
-        const int index = row->property("model").value<QObject *>()->property("index").toInt();
-        const QString mac = harness.eval(QStringLiteral("clients.get(%1).mac").arg(index)).toString();
-        const QString name = harness.eval(QStringLiteral("clients.get(%1).name").arg(index)).toString();
-        if (row->property("mac").toString() != mac || !plainTexts(row).contains(name)) {
-            return QStringLiteral("row %1 should show %2 but shows %3").arg(index).arg(name, plainTexts(row).join(QLatin1Char('|')));
-        }
-    }
-    return {};
+    return rowMismatch(view(harness), showsItsClient(harness));
 }
 
 bool settled(PlasmoidHarness &harness)
 {
-    return QQuickTest::qWaitForPolish(harness.scene()->window()) && QTest::qWaitFor([&] { return mismatch(harness).isEmpty(); });
+    return rowsMatch(view(harness), showsItsClient(harness));
 }
 
 QQuickItem *rowFor(PlasmoidHarness &harness, const QString &mac)
 {
-    const QList<QQuickItem *> rows = shownRows(harness);
-    const auto found = std::find_if(rows.cbegin(), rows.cend(), [&](QQuickItem *row) { return row->property("mac").toString() == mac; });
-    return found == rows.cend() ? nullptr : *found;
+    return delegateWith(view(harness), "mac", mac);
 }
 
 std::unique_ptr<PlasmoidHarness> onClients(int count, const QVariantMap &config = {})
@@ -82,7 +66,7 @@ std::unique_ptr<PlasmoidHarness> onClients(int count, const QVariantMap &config 
         return {};
     }
     harness->root()->setProperty("tabKey", QStringLiteral("clients"));
-    return QTest::qWaitFor([&] { return view(*harness) && !shownRows(*harness).isEmpty(); }) ? std::move(harness) : nullptr;
+    return QTest::qWaitFor([&] { return view(*harness) && !shownDelegates(view(*harness)).isEmpty(); }) ? std::move(harness) : nullptr;
 }
 
 void trigger(PlasmoidHarness &harness, const QString &text)

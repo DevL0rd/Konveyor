@@ -372,6 +372,15 @@ QList<QObject *> PlasmoidHarness::findAll(const char *type) const
     return found;
 }
 
+QQuickItem *PlasmoidHarness::listOf(const QString &model) const
+{
+    const QList<QObject *> views = findAll("QQuickListView");
+    QObject *wanted = eval(model).value<QObject *>();
+    const auto found
+        = std::find_if(views.cbegin(), views.cend(), [&](QObject *view) { return view->property("model").value<QObject *>() == wanted; });
+    return found == views.cend() ? nullptr : qobject_cast<QQuickItem *>(*found);
+}
+
 bool PlasmoidHarness::watching(const QString &path) const
 {
     if (::watching(m_root.get(), path)) {
