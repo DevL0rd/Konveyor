@@ -5,6 +5,7 @@
 
 #include <QRegularExpression>
 
+#include <algorithm>
 #include <ranges>
 #include <string>
 
@@ -166,13 +167,13 @@ std::expected<QString, QString> setForceResizableRule(const QString &text, const
     return candidate;
 }
 
-std::expected<QString, QString> ensureTrailingForceResizableInclude(const QString &text, const QString &fileName)
+std::expected<QString, QString> ensureForceResizableInclude(const QString &text, const QString &fileName)
 {
     const auto document = Kdl::parse(text, fileName);
     if (!document) {
         return std::unexpected(document.error().toString());
     }
-    if (!document->nodes.isEmpty() && isForceResizableInclude(document->nodes.last())) {
+    if (std::ranges::any_of(document->nodes, isForceResizableInclude)) {
         return text;
     }
     return appendBlock(text, QStringLiteral("include \"force-resizable.kdl\"\n"));

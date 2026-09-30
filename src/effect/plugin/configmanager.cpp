@@ -125,7 +125,7 @@ std::expected<void, QString> ConfigManager::setForceResizable(const QString &app
     if (!mainText) {
         return std::unexpected(mainText.error());
     }
-    const auto updatedMain = Config::ensureTrailingForceResizableInclude(*mainText, m_path);
+    const auto updatedMain = Config::ensureForceResizableInclude(*mainText, m_path);
     if (!updatedMain) {
         return std::unexpected(updatedMain.error());
     }

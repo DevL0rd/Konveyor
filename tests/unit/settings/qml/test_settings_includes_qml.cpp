@@ -232,7 +232,7 @@ void TestSettingsIncludesQml::forceResizableToggleAfterUiEdits()
     const auto rule = Config::setForceResizableRule(QString(), overridePath, QStringLiteral("game.exe"), true);
     QVERIFY(rule.has_value());
     QVERIFY(SettingsHome::write(overridePath, *rule));
-    const auto main = Config::ensureTrailingForceResizableInclude(SettingsHome::read(m_home.configPath()), m_home.configPath());
+    const auto main = Config::ensureForceResizableInclude(SettingsHome::read(m_home.configPath()), m_home.configPath());
     QVERIFY(main.has_value());
     QVERIFY(SettingsHome::write(m_home.configPath(), *main));
     QTRY_VERIFY_WITH_TIMEOUT(call<bool>(session.store, "has", QStringLiteral("include")), SignalTimeoutMs);
@@ -241,7 +241,7 @@ void TestSettingsIncludesQml::forceResizableToggleAfterUiEdits()
     QVERIFY(saved.wait(SignalTimeoutMs));
     const QString text = SettingsHome::read(m_home.configPath());
     QCOMPARE(text, QStringLiteral("layout {\n    gaps 3\n}\n\ndisable-minimize\n\ninclude \"force-resizable.kdl\"\n"));
-    QCOMPARE(Config::ensureTrailingForceResizableInclude(text, m_home.configPath()).value(), text);
+    QCOMPARE(Config::ensureForceResizableInclude(text, m_home.configPath()).value(), text);
     const Config::Config config = runtimeConfig();
     QCOMPARE(config.disableMinimize, true);
     QCOMPARE(config.windowRules.size(), 1);

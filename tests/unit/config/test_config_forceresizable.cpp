@@ -12,7 +12,8 @@ class TestConfigForceResizable : public QObject
 private Q_SLOTS:
     void createsAndUpdatesAppRule();
     void preservesOtherRuleSettings();
-    void keepsOverrideIncludeLast();
+    void addsTheOverrideIncludeOnlyOnce_data();
+    void addsTheOverrideIncludeOnlyOnce();
     void rejectsInvalidInput();
 };
 
@@ -53,21 +54,33 @@ window-rule {
     QCOMPARE(loaded->config.windowRules.last().forceResizable, std::optional(true));
 }
 
-void TestConfigForceResizable::keepsOverrideIncludeLast()
+void TestConfigForceResizable::addsTheOverrideIncludeOnlyOnce_data()
 {
-    const QString text = QStringLiteral("include \"force-resizable.kdl\"\nwindow-rule { match app-id=\"^later$\"; }\n");
-    const auto appended = ensureTrailingForceResizableInclude(text, QStringLiteral("config.kdl"));
-    QVERIFY(appended.has_value());
-    QVERIFY(appended->endsWith(QStringLiteral("include \"force-resizable.kdl\"\n")));
-    const auto unchanged = ensureTrailingForceResizableInclude(*appended, QStringLiteral("config.kdl"));
-    QVERIFY(unchanged.has_value());
-    QCOMPARE(*unchanged, *appended);
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<QString>("expected");
+    const QString include = QStringLiteral("include \"force-resizable.kdl\"\n");
+    const QString optional = QStringLiteral("include optional=true \"force-resizable.kdl\"\n");
+    const QString rule = QStringLiteral("window-rule { match app-id=\"^later$\"; }\n");
+    QTest::newRow("missing") << rule << rule + QStringLiteral("\n") + include;
+    QTest::newRow("last") << rule + include << rule + include;
+    QTest::newRow("moved to the top") << include + rule << include + rule;
+    QTest::newRow("between other nodes") << rule + include + rule << rule + include + rule;
+    QTest::newRow("optional") << optional + rule << optional + rule;
+}
+
+void TestConfigForceResizable::addsTheOverrideIncludeOnlyOnce()
+{
+    QFETCH(QString, text);
+    QFETCH(QString, expected);
+    const auto updated = ensureForceResizableInclude(text, QStringLiteral("config.kdl"));
+    QVERIFY(updated.has_value());
+    QCOMPARE(*updated, expected);
 }
 
 void TestConfigForceResizable::rejectsInvalidInput()
 {
     QVERIFY(!setForceResizableRule(QStringLiteral("{"), QStringLiteral("force-resizable.kdl"), QStringLiteral("game"), true));
-    QVERIFY(!ensureTrailingForceResizableInclude(QStringLiteral("{"), QStringLiteral("config.kdl")));
+    QVERIFY(!ensureForceResizableInclude(QStringLiteral("{"), QStringLiteral("config.kdl")));
 }
 
 QTEST_GUILESS_MAIN(TestConfigForceResizable)

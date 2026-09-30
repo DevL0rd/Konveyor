@@ -11,6 +11,6 @@ namespace Konveyor::Config
 
 std::expected<QString, QString> setForceResizableRule(const QString &text, const QString &fileName, const QString &appId, bool enabled);
 bool isForceResizableInclude(const Kdl::Node &node);
-std::expected<QString, QString> ensureTrailingForceResizableInclude(const QString &text, const QString &fileName);
+std::expected<QString, QString> ensureForceResizableInclude(const QString &text, const QString &fileName);
 
 }
