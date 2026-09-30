@@ -103,7 +103,15 @@ QJsonDocument KonveyorEffect::bindsJson() const
 
 QString KonveyorEffect::performActionJson(const QString &json)
 {
-    const auto request = Ipc::actionFromJson(QJsonDocument::fromJson(json.toUtf8()).object());
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(json.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        return QStringLiteral("invalid action JSON: %1").arg(error.errorString());
+    }
+    if (!document.isObject()) {
+        return QStringLiteral("invalid action JSON: expected an object");
+    }
+    const auto request = Ipc::actionFromJson(document.object());
     if (!request) {
         return request.error();
     }

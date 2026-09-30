@@ -290,6 +290,20 @@ private Q_SLOTS:
         QVERIFY(fixture.state(first).isFloating);
         VERIFY_INVARIANTS(fixture);
     }
+
+    void unknownTargetWindowIsReported()
+    {
+        Fixture fixture;
+        const auto window = fixture.add(QStringLiteral("a"));
+        const auto targeted = fixture.engine().perform(action(QStringLiteral("close-window")), window + 100);
+        QVERIFY(!targeted.ok);
+        QCOMPARE(targeted.error, QStringLiteral("no window with id %1").arg(window + 100));
+        const auto byProperty
+            = fixture.perform(QStringLiteral("toggle-window-floating"), {}, {{QStringLiteral("id"), QStringLiteral("99")}});
+        QVERIFY(!byProperty.ok);
+        QVERIFY(!fixture.state(window).isFloating);
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutActions)

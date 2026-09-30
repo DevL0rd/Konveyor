@@ -68,7 +68,7 @@ int printUsage()
         out() << "  " << name.leftJustified(24) << command.help << "\n";
     }
     out() << "  " << QStringLiteral("action <name> [args]").leftJustified(24) << "Perform an action, e.g. `action set-column-width +10%`\n"
-          << "  " << QStringLiteral("load-config-file").leftJustified(24) << "Reload the config file\n"
+          << "  " << QStringLiteral("load-config-file [path]").leftJustified(24) << "Reload the config file, or switch to another one\n"
           << "  " << QStringLiteral("version").leftJustified(24) << "Print the running version\n";
     out().flush();
     return 0;
@@ -106,11 +106,10 @@ int runQuery(const QueryCommand &command, bool json)
     }
     QJsonParseError error;
     const QJsonDocument document = QJsonDocument::fromJson(reply->toUtf8(), &error);
-    if (!reply->isEmpty() && error.error != QJsonParseError::NoError) {
+    if (*reply != QLatin1String("null") && error.error != QJsonParseError::NoError) {
         return fail(QStringLiteral("Konveyor sent invalid JSON: %1").arg(error.errorString()));
     }
-    const QString raw = document.isNull() ? QStringLiteral("null") : QString::fromUtf8(document.toJson(QJsonDocument::Compact));
-    out() << (json ? raw : command.formatter(document)) << "\n";
+    out() << (json ? *reply : command.formatter(document)) << "\n";
     out().flush();
     return 0;
 }

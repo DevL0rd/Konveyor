@@ -37,7 +37,7 @@ bool DBusService::registerService()
 
 QString DBusService::compact(const QJsonDocument &document)
 {
-    return QString::fromUtf8(document.toJson(QJsonDocument::Compact));
+    return document.isNull() ? QStringLiteral("null") : QString::fromUtf8(document.toJson(QJsonDocument::Compact));
 }
 
 QString DBusService::Version() const
