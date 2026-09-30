@@ -64,6 +64,16 @@ class TestPortalGames(unittest.TestCase):
         self.assertEqual(games["test-nested"]["portrait"], str(nested / "abc123" / "library_600x900_2x.jpg"))
         self.assertTrue(games["test-nested"]["has_art"])
 
+    def test_only_steam_links_and_icons_make_a_steam_game(self):
+        self.box.desktop(self.box.data, "test-lutris.desktop", Name="Lutris Game", Categories="Game;", Exec="lutris lutris:rungameid/12")
+        self.box.desktop(self.box.data, "test-numbered.desktop", Name="2048", Categories="Game;", Exec="/opt/games/2048/run.sh")
+        self.box.desktop(self.box.data, "test-proton.desktop", Name="Proton", Categories="Game;", Exec="run", Icon="steam_app_730")
+        self.box.desktop(self.box.data, "test-cached.desktop", Name="Cached", Categories="Game;", Exec="run",
+                         Icon=str(self.box.data / "Steam" / "appcache" / "librarycache" / "570" / "icon.jpg"))
+        games = self.games()
+        self.assertEqual({key: game["appid"] for key, game in games.items()},
+                         {"test-lutris": "", "test-numbered": "", "test-proton": "730", "test-cached": "570"})
+
     def test_custom_art_overrides_and_resets(self):
         self.box.desktop(self.box.data, "test-portal.desktop", Name="Portal", Categories="Game;", Exec="steam steam://rungameid/400")
         self.steam_cache("400", "library_600x900.jpg")

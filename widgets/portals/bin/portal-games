@@ -64,7 +64,7 @@ FOLDERS = os.path.join(STATE_DIR, "folders.json")    # key -> last-launched epoc
 SIDEBAR = os.path.join(STATE_DIR, "sidebar.json")
 
 FIELD_CODES = re.compile(r"%[uUfFickdDnNvm]")
-APPID_RE = re.compile(r"rungameid/(\d+)|steam_app_(\d+)|steam_icon_(\d+)|/(\d+)/")
+APPID_RE = re.compile(r"steam://rungameid/(\d+)|steam_app_(\d+)|steam_icon_(\d+)|/librarycache/(\d+)/")
 
 
 def parse_desktop(path):
