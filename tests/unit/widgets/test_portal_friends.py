@@ -120,6 +120,10 @@ class TestPortalFriends(unittest.TestCase):
         self.box.write(self.box.home / ".steam" / "steam" / "config" / "loginusers.vdf", loginusers)
         self.assertEqual(self.module.detect_steamid(), ME)
 
+    def test_finds_the_account_of_the_flatpak_steam_client(self):
+        self.box.write(self.box.home / ".var" / "app" / "com.valvesoftware.Steam" / "data" / "Steam" / "config" / "loginusers.vdf", LOGINUSERS)
+        self.assertEqual(self.module.detect_steamid(), ME)
+
     def test_a_configured_steamid_wins(self):
         self.box.write(self.box.home / ".steam" / "steam" / "config" / "loginusers.vdf", LOGINUSERS)
         self.configure(steam_api_key=KEY, steamid=" 76561198000000009 ")

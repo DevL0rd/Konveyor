@@ -28,7 +28,8 @@ CONFIG = os.path.join(CONFIG_HOME, APP, "config.json")
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
 SNAP = os.path.join(RUNDIR, "friends.json")
 STEAM_ROOTS = [os.path.join(HOME, ".local/share/Steam"),
-               os.path.join(HOME, ".steam/steam")]
+               os.path.join(HOME, ".steam/steam"),
+               os.path.join(HOME, ".var/app/com.valvesoftware.Steam/data/Steam")]
 API = "https://api.steampowered.com"
 HEADER_CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache")), APP, "headers.json")
 
