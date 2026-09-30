@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from checks import Checks
+from checks import Checks, default_config, load_config
 from kwinsession import (CLIENTS, activate, active_title, for_window, konveyor, konveyor_action, konveyor_windows, managed_now, open_client,
                          qdbus, reload_konveyor, run_script, wait_for, window_state)
 
@@ -48,6 +48,17 @@ def layout_survives(checks):
     checks.expect(wait_for(lambda: layout()["C"][0] == 2), "moving a window that was open before the reload to another KDE desktop moves it to that workspace")
 
 
+def rules_apply_on_load(checks):
+    rule = '\nwindow-rule {\n    match title="^Ruled$"\n    open-floating true\n}\n'
+    checks.expect(load_config(default_config() + rule), "a config with an open-floating rule loads")
+    qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.unloadEffect", "konveyor_effect")
+    open_client("Ruled", managed=False)
+    checks.expect(reload_konveyor(["Ruled"]), "the effect loads with the window already open")
+    ruled = next(window for window in konveyor_windows() if window["title"] == "Ruled")
+    checks.expect(ruled["is_floating"], "a window open before the effect loaded follows the config's open-floating rule")
+    load_config(default_config())
+
+
 def fullscreen(title):
     return (window_state(title) or "").startswith("true|")
 
@@ -76,7 +87,7 @@ def unload_gives_back_desktops(checks):
 
 
 def main():
-    Checks().run(layout_survives, fullscreen_survives, unload_gives_back_desktops)
+    Checks().run(layout_survives, rules_apply_on_load, fullscreen_survives, unload_gives_back_desktops)
 
 
 if __name__ == "__main__":
