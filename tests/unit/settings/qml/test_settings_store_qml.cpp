@@ -26,6 +26,7 @@ private Q_SLOTS:
     void saveIsBlockedWhileConfigHasError();
     void reloadsWhenFileChangesUnderneath();
     void warnsWhenFileChangesWithUnsavedEdits();
+    void loadsAFixFromDiskOverEditsBlockedByAConfigError();
     void scopeFollowsRuntimeNames();
     void helpersForPages();
 
@@ -274,6 +275,23 @@ void TestSettingsStoreQml::warnsWhenFileChangesWithUnsavedEdits()
     QCOMPARE(call<QVariantMap>(session.store, "node", QStringLiteral("layout/gaps")).value(QStringLiteral("args")).toList(),
         QVariantList {qint64(6)});
     QCOMPARE(saved(session.store), QStringLiteral("layout {\n    gaps 6\n}\n"));
+}
+
+void TestSettingsStoreQml::loadsAFixFromDiskOverEditsBlockedByAConfigError()
+{
+    Session session = open(QStringLiteral("layout {\n    gaps \"wide\"\n}\n"));
+    QVERIFY(call<bool>(session.store, "setFlag", QStringLiteral("layout/float-child-windows"), true));
+    QVERIFY(!session.store->property("configError").toString().isEmpty());
+    QSignalSpy failed(session.store, SIGNAL(editFailed(QString)));
+    QVERIFY(SettingsHome::write(m_home.configPath(), QStringLiteral("layout {\n    gaps 11\n}\n")));
+    QVERIFY(failed.wait(SignalTimeoutMs));
+    QCOMPARE(failed.last().first().toString(),
+        m_home.configPath()
+            + QStringLiteral(" changed on disk, so Settings loaded it. Changes made here while the config had an error were not saved."));
+    QCOMPARE(session.store->property("configError").toString(), QString());
+    QCOMPARE(call<QVariantMap>(session.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 11);
+    QCOMPARE(session.store->property("needsSave").toBool(), false);
+    QCOMPARE(session.store->property("canUndo").toBool(), false);
 }
 
 void TestSettingsStoreQml::scopeFollowsRuntimeNames()

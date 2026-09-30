@@ -354,11 +354,18 @@ void SettingsStore::fileChanged()
         refresh();
         return;
     }
-    if (m_saveTimer.isActive() || needsSave()) {
+    const bool unsaved = m_saveTimer.isActive() || needsSave();
+    if (unsaved && m_configError.isEmpty()) {
         Q_EMIT editFailed(
             QStringLiteral("%1 changed on disk while you have unsaved changes here. Saving will replace it.").arg(configPath()));
         return;
     }
+    if (unsaved) {
+        Q_EMIT editFailed(
+            QStringLiteral("%1 changed on disk, so Settings loaded it. Changes made here while the config had an error were not saved.")
+                .arg(configPath()));
+    }
+    m_saveTimer.stop();
     m_savedText = *disk;
     m_history.clear();
     replaceText(*disk);
