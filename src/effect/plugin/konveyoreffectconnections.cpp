@@ -170,9 +170,7 @@ void KonveyorEffect::connectWindowLifecycle()
             releaseQuickTiling();
         }
         changeEngine().removeWindow(id);
-        if (std::exchange(d->followAfterClose, false) && !d->focusRequest) {
-            followActiveWindow();
-        }
+        followActiveWindowAfterClose();
         d->decorations.remove(id);
         d->fullscreenShade.remove(id);
         d->applier.forget(id);

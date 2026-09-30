@@ -1,5 +1,7 @@
 #include "plugin/konveyoreffect_p.h"
 
+#include <utility>
+
 namespace Konveyor
 {
 
@@ -35,6 +37,13 @@ void KonveyorEffect::onActiveWindowChanged()
         return;
     }
     followActiveWindow();
+}
+
+void KonveyorEffect::followActiveWindowAfterClose()
+{
+    if (std::exchange(d->followAfterClose, false) && !d->focusRequest) {
+        followActiveWindow();
+    }
 }
 
 void KonveyorEffect::followActiveWindow()
