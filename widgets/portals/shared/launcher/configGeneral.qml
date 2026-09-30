@@ -71,6 +71,51 @@ Kirigami.FormLayout {
     property bool portal: Plasmoid.metaData.pluginId === "org.devl0rd.portal"
     readonly property string defaultIcon: "view-app-grid-symbolic"
     property string cfg_searchOrder
+    property string title
+    property var cfg_appsCategoryDefault
+    property var cfg_appsSortDefault
+    property var cfg_appsViewDefault
+    property var cfg_appViewModeDefault
+    property var cfg_cardHeightDefault
+    property var cfg_cardWidthDefault
+    property var cfg_defaultCategoryDefault
+    property var cfg_defaultPageDefault
+    property var cfg_defaultSortDefault
+    property var cfg_dimStrengthDefault
+    property var cfg_gameCardSizeDefault
+    property var cfg_gameCardWidthDefault
+    property var cfg_gamesSortDefault
+    property var cfg_gamesViewDefault
+    property var cfg_gamesViewModeDefault
+    property var cfg_iconDefault
+    property var cfg_labelDefault
+    property var cfg_learnedRankingDefault
+    property var cfg_migratedFromPortalDefault
+    property var cfg_popupHeightDefault
+    property var cfg_popupWidthDefault
+    property var cfg_searchCalculatorDefault
+    property var cfg_searchCommandsDefault
+    property var cfg_searchFilesDefault
+    property var cfg_searchOrderDefault
+    property var cfg_searchPackagesDefault
+    property var cfg_searchSettingsDefault
+    property var cfg_searchWebDefault
+    property var cfg_searchWindowsDefault
+    property var cfg_showFriendsDefault
+    property var cfg_showFriendsBadgeDefault
+    property var cfg_showGamesDefault
+    property var cfg_showHomeDateDefault
+    property var cfg_showLabelDefault
+    property var cfg_showRecentAppsDefault
+    property var cfg_showRecentFilesDefault
+    property var cfg_showSidebarFriendsDefault
+    property var cfg_showSidebarSettingsDefault
+    property var cfg_showSidebarSystemDefault
+    property var cfg_showTopBarClockDefault
+    property var cfg_showTopBarFriendsDefault
+    property var cfg_showTopBarPowerDefault
+    property var cfg_showTopBarSettingsDefault
+    property var cfg_tileSizeDefault
 
     readonly property var groupLabels: ({
         answer: i18n("Answers (calculator, units)"),

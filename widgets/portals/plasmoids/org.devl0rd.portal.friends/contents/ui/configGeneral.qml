@@ -14,6 +14,17 @@ Kirigami.FormLayout {
     property string cfg_sortMode
     property string cfg_favorites
     property string cfg_currentTab
+    property string title
+    property var cfg_avatarSizeDefault
+    property var cfg_currentTabDefault
+    property var cfg_favoritesDefault
+    property var cfg_hideOfflineDefault
+    property var cfg_iconDefault
+    property var cfg_panelDetailDefault
+    property var cfg_panelShrinkDefault
+    property var cfg_showCountBadgeDefault
+    property var cfg_showPlayingNowDefault
+    property var cfg_sortModeDefault
 
     QQC2.TextField {
         id: iconField

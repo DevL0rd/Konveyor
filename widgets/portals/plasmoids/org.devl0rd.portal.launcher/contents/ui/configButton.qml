@@ -13,6 +13,10 @@ Kirigami.FormLayout {
     property string cfg_icon
     property alias cfg_label: labelField.text
     property alias cfg_showLabel: showLabel.checked
+    property string title
+    property var cfg_iconDefault
+    property var cfg_labelDefault
+    property var cfg_showLabelDefault
 
     P5Support.DataSource {
         id: service

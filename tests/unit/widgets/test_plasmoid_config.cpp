@@ -13,6 +13,17 @@ PlasmoidSpec spec(const char *ui, const char *id, QStringList libs = {})
     return {QLatin1String(ui), QLatin1String(id), QStringLiteral("configure"), std::move(libs)};
 }
 
+struct ConfigPage
+{
+    PlasmoidSpec plasmoid;
+    QString file;
+};
+
+ConfigPage page(const char *ui, const char *id, QStringList libs = {}, const char *file = "configGeneral.qml")
+{
+    return {spec(ui, id, std::move(libs)), QLatin1String(file)};
+}
+
 void plasmoidRows()
 {
     QTest::addColumn<PlasmoidSpec>("plasmoid");
@@ -26,12 +37,29 @@ void plasmoidRows()
         "system-log/plasmoids/org.devl0rd.logmon.journal", "org.devl0rd.logmon.journal", {QStringLiteral("system-log/shared/lib")});
 }
 
+void pageRows()
+{
+    QTest::addColumn<ConfigPage>("configPage");
+    QTest::newRow("system monitor") << page("system-monitor/plasmoids/org.devl0rd.sysmon.panel", "org.devl0rd.sysmon.panel");
+    QTest::newRow("process monitor") << page("process-monitor/plasmoids/org.devl0rd.procmon.panel", "org.devl0rd.procmon.panel");
+    QTest::newRow("router monitor") << page("router-monitor/plasmoids/org.devl0rd.routermon.panel", "org.devl0rd.routermon.panel",
+        {QStringLiteral("router-monitor/shared/lib")});
+    QTest::newRow("router dns") << page(
+        "router-monitor/plasmoids/org.devl0rd.routermon.panel", "org.devl0rd.routermon.dns", {QStringLiteral("router-monitor/shared/lib")});
+    QTest::newRow("system log") << page(
+        "system-log/plasmoids/org.devl0rd.logmon.journal", "org.devl0rd.logmon.journal", {QStringLiteral("system-log/shared/lib")});
+    QTest::newRow("friends") << page("portals/plasmoids/org.devl0rd.portal.friends", "org.devl0rd.portal.friends");
+    QTest::newRow("kontrol panel button") << page(
+        "portals/plasmoids/org.devl0rd.portal.launcher", "org.devl0rd.portal.launcher", {}, "configButton.qml");
+}
+
 QVariantMap pageProperties(PlasmoidHarness &harness)
 {
     QVariantMap properties {{QStringLiteral("title"), QStringLiteral("General")}};
     const QStringList keys = harness.plasmoid()->configuration()->keys();
     for (const QString &key : keys) {
         properties.insert(QStringLiteral("cfg_") + key, harness.config(key));
+        properties.insert(QStringLiteral("cfg_") + key + QStringLiteral("Default"), harness.config(key));
     }
     return properties;
 }
@@ -71,10 +99,10 @@ QStringList usedSettings(const QString &directory)
     return used;
 }
 
-QObject *openPage(PlasmoidHarness &harness)
+QObject *openPage(PlasmoidHarness &harness, const QString &file = QStringLiteral("configGeneral.qml"))
 {
     harness.setUp(Form::Planar);
-    return harness.create(QStringLiteral("contents/ui/configGeneral.qml"), pageProperties(harness));
+    return harness.create(QStringLiteral("contents/ui/") + file, pageProperties(harness));
 }
 
 bool finished(QObject *page, const QString &result, bool error)
@@ -89,6 +117,8 @@ const QString config = QStringLiteral("$HOME/.local/bin/routermon-config ");
 
 }
 
+Q_DECLARE_METATYPE(ConfigPage)
+
 class TestPlasmoidConfig : public QObject
 {
     Q_OBJECT
@@ -97,13 +127,13 @@ public:
     static void initMain() { PlasmoidHarness::prepareEnvironment(); }
 
 private Q_SLOTS:
-    void pagesOfferEverySetting_data() { plasmoidRows(); }
+    void pagesOfferEverySetting_data() { pageRows(); }
 
     void pagesOfferEverySetting()
     {
-        QFETCH(PlasmoidSpec, plasmoid);
-        PlasmoidHarness harness(plasmoid);
-        QObject *page = openPage(harness);
+        QFETCH(ConfigPage, configPage);
+        PlasmoidHarness harness(configPage.plasmoid);
+        QObject *page = openPage(harness, configPage.file);
         QVERIFY2(page, qPrintable(harness.error));
         QStringList keys = harness.plasmoid()->configuration()->keys();
         keys.sort();

@@ -30,6 +30,30 @@ Kirigami.FormLayout {
     property int cfg_cpuTab
     property int cfg_gpuTab
     property string cfg_collapsedCards
+    property var cfg_accentColorDefault
+    property var cfg_collapsedCardsDefault
+    property var cfg_compactShowCpuDefault
+    property var cfg_compactShowGpuDefault
+    property var cfg_compactShowRamDefault
+    property var cfg_compactShowTempsDefault
+    property var cfg_compactStyleDefault
+    property var cfg_cpuClockMaxDefault
+    property var cfg_cpuFanMaxDefault
+    property var cfg_cpuPowerMaxDefault
+    property var cfg_cpuTabDefault
+    property var cfg_gpuClockMaxDefault
+    property var cfg_gpuFanMaxDefault
+    property var cfg_gpuPowerMaxDefault
+    property var cfg_gpuTabDefault
+    property var cfg_historyLengthDefault
+    property var cfg_middleClickActionDefault
+    property var cfg_panelDetailDefault
+    property var cfg_panelIconDefault
+    property var cfg_panelShrinkDefault
+    property var cfg_showChartsDefault
+    property var cfg_showGpuDefault
+    property var cfg_showPerCoreDefault
+    property var cfg_updateIntervalDefault
 
     QQC2.CheckBox { id: compactCpu; Kirigami.FormData.label: i18n("Panel shows:"); text: i18n("CPU") }
     QQC2.CheckBox { id: compactGpu; text: i18n("GPU") }

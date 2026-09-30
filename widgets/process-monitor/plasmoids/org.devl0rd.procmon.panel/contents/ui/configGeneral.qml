@@ -32,6 +32,33 @@ Kirigami.FormLayout {
     property alias cfg_fpsWarn: fpsWarn.value
     property bool cfg_treeView
     property string cfg_processFilter
+    property var cfg_aggregateChildrenDefault
+    property var cfg_colorizeUsageDefault
+    property var cfg_compactMaxWidthDefault
+    property var cfg_compactShowCpuDefault
+    property var cfg_compactShowFpsDefault
+    property var cfg_compactShowGpuDefault
+    property var cfg_fpsGoodDefault
+    property var cfg_fpsWarnDefault
+    property var cfg_hideSystemdDefault
+    property var cfg_panelDetailDefault
+    property var cfg_panelIconDefault
+    property var cfg_panelShrinkDefault
+    property var cfg_processFilterDefault
+    property var cfg_showDecColumnDefault
+    property var cfg_showDiskColumnDefault
+    property var cfg_showEncColumnDefault
+    property var cfg_showFocusedCardDefault
+    property var cfg_showFpsColumnDefault
+    property var cfg_showGpuColumnDefault
+    property var cfg_showKernelThreadsDefault
+    property var cfg_showPidColumnDefault
+    property var cfg_showThreadsColumnDefault
+    property var cfg_showVramColumnDefault
+    property var cfg_sortColumnDefault
+    property var cfg_sortDescendingDefault
+    property var cfg_treeViewDefault
+    property var cfg_updateIntervalDefault
 
     QQC2.CheckBox { id: compactCpu; Kirigami.FormData.label: i18n("Panel shows:"); text: i18n("CPU of the focused app") }
     QQC2.CheckBox { id: compactGpu; text: i18n("GPU of the focused app") }
