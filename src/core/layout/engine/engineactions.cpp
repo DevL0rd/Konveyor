@@ -346,9 +346,6 @@ ActionResult Engine::perform(const Config::Action &action, std::optional<WindowI
     if (const auto invalid = invalidProperty(action)) {
         return actionError(*invalid);
     }
-    if (const std::optional<WindowId> requested = actionWindowId(action, target); requested && !d->workspaceOf(*requested)) {
-        return actionError(QStringLiteral("no window with id %1").arg(*requested));
-    }
     d->takeLayoutFocus();
     const ActionResult result = (*handler)(*d, action, target);
     d->refresh();

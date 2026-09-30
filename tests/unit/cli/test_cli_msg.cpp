@@ -65,6 +65,7 @@ private Q_SLOTS:
                                         << "Window ID 7: (focused)\n  Title: \"Konsole\"\n  App ID: \"org.kde.konsole\"\n  PID: 42\n"
                                            "  Workspace ID: 3\n  Scrolling position: column 2, tile 1\n  Tile size: 960 x 1080\n";
         QTest::newRow("no focused window") << "focused-window" << "FocusedWindow" << "" << "No window is focused.\n";
+        QTest::newRow("null focused window") << "focused-window" << "FocusedWindow" << "null" << "No window is focused.\n";
         QTest::newRow("binds") << "binds" << "Binds" << R"([{"key":"Mod+H","action":{"name":"focus-column-left"}}])"
                                << QStringLiteral("Mod+H").leftJustified(32) + QStringLiteral("  focus-column-left\n");
         QTest::newRow("floating windows")
@@ -117,6 +118,9 @@ private Q_SLOTS:
             QStringLiteral("{\"version\":\"1.2.3\"}\n"));
 
         m_konveyor->reply(QStringLiteral("FocusedWindow"), QString());
+        QCOMPARE(
+            konveyor({QStringLiteral("msg"), QStringLiteral("--json"), QStringLiteral("focused-window")}).out, QStringLiteral("null\n"));
+        m_konveyor->reply(QStringLiteral("FocusedWindow"), QStringLiteral("null"));
         QCOMPARE(
             konveyor({QStringLiteral("msg"), QStringLiteral("--json"), QStringLiteral("focused-window")}).out, QStringLiteral("null\n"));
     }

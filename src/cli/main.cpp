@@ -107,10 +107,12 @@ int runQuery(const QueryCommand &command, bool json)
     }
     QJsonParseError error;
     const QJsonDocument document = QJsonDocument::fromJson(reply->toUtf8(), &error);
-    if (*reply != QLatin1String("null") && error.error != QJsonParseError::NoError) {
+    const bool empty = reply->isEmpty() || *reply == QLatin1String("null");
+    if (!empty && error.error != QJsonParseError::NoError) {
         return fail(QStringLiteral("Konveyor sent invalid JSON: %1").arg(error.errorString()));
     }
-    out() << (json ? *reply : command.formatter(document)) << "\n";
+    const QString raw = document.isNull() ? QStringLiteral("null") : QString::fromUtf8(document.toJson(QJsonDocument::Compact));
+    out() << (json ? raw : command.formatter(document)) << "\n";
     out().flush();
     return 0;
 }

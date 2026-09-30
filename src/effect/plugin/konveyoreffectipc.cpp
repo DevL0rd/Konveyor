@@ -115,6 +115,9 @@ QString KonveyorEffect::performActionJson(const QString &json)
     if (!request) {
         return request.error();
     }
+    if (request->target && !d->windows.windowOf(*request->target)) {
+        return QStringLiteral("no window with id %1").arg(*request->target);
+    }
     const Layout::ActionResult result = performAction(request->action, request->target);
     return result.ok ? QString() : result.error;
 }
