@@ -78,16 +78,24 @@ def add_to(place, app):
     if path is None:
         return 1, "no application named %s was found" % app
     script = PLACE_SCRIPT % {"place": json.dumps(place), "url": json.dumps("file://" + path)}
-    result = subprocess.run(["busctl", "--user", "call", "org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
-                             "evaluateScript", "s", script], capture_output=True, text=True, check=False)
+    result = run(["busctl", "--user", "call", "org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
+                  "evaluateScript", "s", script])
     return result.returncode, result.stderr.strip()
 
 
+def run(arguments):
+    try:
+        return subprocess.run(arguments, capture_output=True, text=True, check=False)
+    except OSError as error:
+        return subprocess.CompletedProcess(arguments, 127, "", "%s: %s" % (arguments[0], error.strerror))
+
+
 def notify(summary, message):
-    subprocess.run(["gdbus", "call", "--session", "--dest", "org.freedesktop.Notifications",
-                    "--object-path", "/org/freedesktop/Notifications", "--method", "org.freedesktop.Notifications.Notify",
-                    "Kontrol Panel", "0", "dialog-error", summary, message, "[]", "{}", "10000"],
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    result = run(["gdbus", "call", "--session", "--dest", "org.freedesktop.Notifications",
+                  "--object-path", "/org/freedesktop/Notifications", "--method", "org.freedesktop.Notifications.Notify",
+                  "Kontrol Panel", "0", "dialog-error", summary, message, "[]", "{}", "10000"])
+    if result.returncode != 0:
+        sys.stderr.write("portal-launcher: could not show a notification: %s\n" % (result.stderr.strip() or "gdbus failed"))
 
 
 def main():
@@ -101,7 +109,7 @@ def main():
     if call is None:
         sys.stderr.write(__doc__)
         return 2
-    result = subprocess.run(["busctl", "--user", "call", *SERVICE, *call], capture_output=True, text=True, check=False)
+    result = run(["busctl", "--user", "call", *SERVICE, *call])
     if result.returncode != 0:
         message = result.stderr.strip() or "busctl exited with %d" % result.returncode
         sys.stderr.write("portal-launcher: %s\n" % message)

@@ -49,6 +49,17 @@ class TestPortalLauncher(unittest.TestCase):
     def calls(self):
         return [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []
 
+    def test_missing_tools_fail_with_a_message(self):
+        empty = Path(self.temporary.name) / "empty"
+        empty.mkdir()
+        self.environment["PATH"] = str(empty)
+        for arguments in (["toggle"], ["add-to", "panel", "/usr/share/applications/x.desktop"]):
+            result = self.run_launcher(*arguments)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertIn("could not show a notification: gdbus", result.stderr)
+        self.assertIn("busctl: No such file or directory", self.run_launcher("toggle").stderr)
+
     def test_toggle_asks_the_service(self):
         self.assertEqual(self.run_launcher("toggle").returncode, 0)
         self.assertEqual(self.calls(), [["busctl", *SERVICE, "Toggle"]])
