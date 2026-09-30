@@ -303,7 +303,7 @@ class TestRoutermonServe(CollectorTest):
 
     def serve(self, until, on_sleep=None):
         caches = []
-        clock = FakeClock(until)
+        clock = self.clock = FakeClock(until)
 
         def sleep(seconds):
             caches.append(json.loads(self.cache.read_text()))
@@ -337,6 +337,15 @@ class TestRoutermonServe(CollectorTest):
                 if value not in (0, -5):
                     self.assertEqual(self.log_file.read_text().count("poll_interval"), 1)
                 self.assertEqual(self.log_file.read_text().count("slow_every"), 1)
+
+    def test_the_local_ping_keeps_running_after_the_clock_is_set_back(self):
+        self.configure(json.dumps({"host": "", "poll_interval": 1}))
+
+        def step_back(count):
+            if count == 2:
+                self.clock.wall -= 3600
+        self.serve(until=20, on_sleep=step_back)
+        self.assertGreaterEqual(len([call for call in self.calls() if call[0] == "ping"]), 4)
 
     def test_an_unreadable_config_is_shown_until_it_is_fixed(self):
         self.configure('{"host": "router",')
