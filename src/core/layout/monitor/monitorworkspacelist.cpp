@@ -196,6 +196,12 @@ bool Monitor::clearWorkspaceName(WorkspaceId id)
     return true;
 }
 
+void Monitor::nameWorkspace(std::size_t idx, const QString &name)
+{
+    m_workspaces[idx].setName(name);
+    addEmptyWorkspacesAround(idx);
+}
+
 Workspace Monitor::detachWorkspaceAt(std::size_t idx)
 {
     if (idx == m_workspaces.size() - 1) {

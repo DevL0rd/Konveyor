@@ -78,6 +78,7 @@ public:
     void selectWorkspaceWith(std::size_t idx, const std::optional<Config::AnimationParams> &config);
     void pruneWorkspaces();
     bool clearWorkspaceName(WorkspaceId id);
+    void nameWorkspace(std::size_t idx, const QString &name);
     Workspace detachWorkspaceAt(std::size_t idx);
     void insertWorkspace(Workspace workspace, std::size_t idx, bool activate);
     void appendWorkspaces(std::vector<Workspace> workspaces);

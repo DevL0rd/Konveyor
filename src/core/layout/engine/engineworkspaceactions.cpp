@@ -231,7 +231,14 @@ ActionResult setWorkspaceName(Engine::Private &d, const Config::Action &action)
     if (!location) {
         return actionError(QStringLiteral("no such workspace"));
     }
-    d.monitors[location->monitor].workspaces()[location->workspace].setName(name);
+    Config::WorkspaceReference reference;
+    reference.kind = Config::WorkspaceReferenceKind::Name;
+    reference.name = name;
+    const auto existing = findWorkspace(d, reference);
+    if (existing && (existing->monitor != location->monitor || existing->workspace != location->workspace)) {
+        return actionError(QStringLiteral("workspace name already used: %1").arg(name));
+    }
+    d.monitors[location->monitor].nameWorkspace(location->workspace, name);
     return {};
 }
 
