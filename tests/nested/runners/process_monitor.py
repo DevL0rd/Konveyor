@@ -53,8 +53,36 @@ def bad_requests(checks):
     checks.equal(watch_error("[]"), None, "Watch([]) stops watching")
 
 
+def spinner_pid():
+    return next(window["pid"] for window in konveyor_windows() if window["title"] == "Spinner")
+
+
+def unwatch_stops_signals(checks):
+    pid = spinner_pid()
+    telemetry().Watch(json.dumps([pid]))
+    telemetry().Watch("[]")
+    lines = watch_signals(f"type='signal',interface='{SERVICE}',member='Frame'", lambda: None, lambda seen: signalled(seen, pid), timeout=3)
+    checks.expect(not signalled(lines, pid), "after Watch([]) no Frame signals arrive for the animating window")
+
+
+def service_registered():
+    names = subprocess.run(["qdbus6"], capture_output=True, text=True).stdout.split()
+    return SERVICE in names
+
+
+def reload_keeps_reporting(checks):
+    effects = ("org.kde.KWin", "/Effects", "org.kde.kwin.Effects")
+    subprocess.run(["qdbus6", *effects[:2], f"{effects[2]}.unloadEffect", "process_monitor_telemetry"], check=True)
+    checks.expect(wait_for(lambda: not service_registered()), "unloading the telemetry effect releases its D-Bus name")
+    subprocess.run(["qdbus6", *effects[:2], f"{effects[2]}.loadEffect", "process_monitor_telemetry"], check=True)
+    checks.expect(wait_for(service_registered), "loading it again takes the name back")
+    pid = spinner_pid()
+    checks.expect(wait_for(lambda: any(frame["pid"] == pid for frame in frames()), 30),
+                  f"the reloaded effect reports a window that was already open ({frames()})")
+
+
 def main():
-    Checks().run(frame_rates, bad_requests)
+    Checks().run(frame_rates, bad_requests, unwatch_stops_signals, reload_keeps_reporting)
 
 
 if __name__ == "__main__":

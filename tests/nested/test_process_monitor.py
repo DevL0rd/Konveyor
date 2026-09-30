@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Load the Process Monitor frame telemetry effect next to Konveyor and check Frames, Watch and its Frame signal."""
+"""Load the Process Monitor frame telemetry effect next to Konveyor, check Frames, Watch and its Frame signal, and reload it with a window open."""
 import sys
 from pathlib import Path
 
