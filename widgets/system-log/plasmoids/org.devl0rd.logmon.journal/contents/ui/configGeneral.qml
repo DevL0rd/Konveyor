@@ -5,6 +5,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols as KQuickControls
 
 Kirigami.FormLayout {
+    property string title: i18n("General")
     property alias cfg_pollInterval: pollSpin.value
     property alias cfg_maxRows: rowsSpin.value
     property alias cfg_searchLimit: searchSpin.value

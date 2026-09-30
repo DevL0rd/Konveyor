@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 Kirigami.FormLayout {
+    property string title: i18n("General")
     property alias cfg_panelIcon: iconField.text
     property alias cfg_updateInterval: intervalSpin.value
     property alias cfg_showKernelThreads: kernelCheck.checked

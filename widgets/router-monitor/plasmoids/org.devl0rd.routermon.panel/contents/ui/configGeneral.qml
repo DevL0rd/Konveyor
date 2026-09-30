@@ -77,6 +77,17 @@ Kirigami.FormLayout {
     function shq(value) {
         return "'" + String(value).replace(/'/g, "'\\''") + "'"
     }
+    function base64(text) {
+        const bytes = unescape(encodeURIComponent(text))
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        let out = ""
+        for (let i = 0; i < bytes.length; i += 3) {
+            const n = (bytes.charCodeAt(i) << 16) | ((bytes.charCodeAt(i + 1) || 0) << 8) | (bytes.charCodeAt(i + 2) || 0)
+            out += alphabet[n >> 18 & 63] + alphabet[n >> 12 & 63]
+                + (i + 1 < bytes.length ? alphabet[n >> 6 & 63] : "=") + (i + 2 < bytes.length ? alphabet[n & 63] : "=")
+        }
+        return out
+    }
     function connectionArguments(mode, password) {
         let command = "$HOME/.local/bin/routermon-config " + mode
             + " " + shq(routerHost.text.trim())
@@ -84,7 +95,7 @@ Kirigami.FormLayout {
             + " " + shq(routerKey.text.trim())
             + " " + shq(remoteScript.text.trim())
         if (password !== undefined)
-            command += " " + shq(Qt.btoa(password))
+            command += " " + shq(base64(password))
         return command + " # " + Date.now()
     }
     function runConnectionAction(mode, password) {
@@ -107,6 +118,11 @@ Kirigami.FormLayout {
         onNewData: function(source, result) {
             disconnectSource(source)
             form.connectionBusy = false
+            if (Number(result["exit code"]) !== 0) {
+                form.connectionResult = String(result.stderr || result.stdout).trim() || i18n("Could not read the router connection settings")
+                form.connectionError = true
+                return
+            }
             try {
                 const config = JSON.parse(result.stdout || "{}")
                 routerHost.text = config.host || ""
@@ -125,7 +141,8 @@ Kirigami.FormLayout {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
-            const failed = Number(result["exit code"] || 0) !== 0
+            form.connectionBusy = false
+            const failed = Number(result["exit code"]) !== 0
             form.connectionError = failed
             form.connectionResult = String(failed ? (result.stderr || result.stdout) : result.stdout).trim()
             if (!failed && form.connectionResult === "")
