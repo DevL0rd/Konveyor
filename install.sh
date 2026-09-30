@@ -16,7 +16,6 @@ AUR=false
 MODE=install
 OPTIONS_FILE="$HOME/.local/state/konveyor/install-options"
 UPDATE_PENDING="$HOME/.local/state/konveyor/update-pending"
-WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
 
 usage() {
     cat <<EOF
@@ -44,6 +43,7 @@ parse_arguments() {
         --system-update) MODE=system-update ;;
         --finish-update) MODE=finish-update ;;
         --login-update) MODE=login-update ;;
+        --login-rebuild) MODE=login-rebuild ;;
         -h | --help) usage; exit 0 ;;
         *) die "unknown option: $argument" ;;
         esac
@@ -214,9 +214,7 @@ finish_update() {
     configure_session_paths
     activate
     if $WIDGETS; then
-        local widget_installer="$WIDGETS_RUNTIME_DIR/install.sh"
-        [[ -x $widget_installer ]] || widget_installer="$SOURCE_DIR/widgets/install.sh"
-        KONVEYOR_WIDGETS_SOURCE="$SOURCE_DIR/widgets" "$widget_installer" --no-restart
+        "$SOURCE_DIR/widgets/install.sh" --no-restart
     fi
     rm -f "$UPDATE_PENDING"
     notify_owner "Konveyor updated" "Konveyor $(git -C "$SOURCE_DIR" describe --always --tags 2>/dev/null) is installed. Restart Plasma or log out and back in to load the updated widgets."
@@ -251,6 +249,7 @@ main() {
     system-update) system_update; return ;;
     finish-update) finish_update; return ;;
     login-update) login_update; return ;;
+    login-rebuild) login_rebuild; return ;;
     esac
     [[ $EUID -ne 0 ]] || die "run install.sh as your normal user; it asks for sudo when needed"
     update_checkout

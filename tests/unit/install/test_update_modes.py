@@ -48,12 +48,14 @@ class TestFinishUpdate(UpdateTest):
         self.assertTrue((self.harness.home / ".local" / "share" / "konveyor" / "widgets" / "install.sh").exists())
         self.assertNotIn(["systemctl", "--user", "stop", "plasma-plasmashell.service"], self.harness.calls("systemctl"))
 
-    def test_finishing_prefers_the_installed_widget_installer(self):
-        runtime = self.harness.home / ".local" / "share" / "konveyor" / "widgets" / "install.sh"
-        self.harness.write(runtime, '#!/bin/sh\necho "runtime installer $* $KONVEYOR_WIDGETS_SOURCE"\n')
-        runtime.chmod(0o755)
+    def test_finishing_runs_the_new_widget_installer_so_new_steps_like_the_kontrol_panel_service_happen(self):
+        self.options("true")
+        previous = self.harness.home / ".local" / "share" / "konveyor" / "widgets" / "install.sh"
+        self.harness.write(previous, '#!/bin/sh\necho "previous widget installer ran"\n')
+        previous.chmod(0o755)
         result = self.finish()
-        self.assertIn(f"runtime installer --no-restart {self.harness.source}/widgets", result.stdout)
+        self.assertNotIn("previous widget installer ran", result.stdout)
+        self.assertTrue((self.harness.home / ".config" / "systemd" / "user" / "konveyor-kontrol-panel.service").exists())
 
 
 class TestSystemUpdate(UpdateTest):

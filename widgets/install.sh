@@ -2,7 +2,7 @@
 set -euo pipefail
 
 INSTALLER_WIDGETS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SOURCE_WIDGETS_DIR="${KONVEYOR_WIDGETS_SOURCE:-$INSTALLER_WIDGETS_DIR}"
+SOURCE_WIDGETS_DIR="$INSTALLER_WIDGETS_DIR"
 WIDGETS_RUNTIME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/konveyor/widgets"
 
 say() {
