@@ -36,3 +36,23 @@ def click(x, y, settle=True):
 def touch(fingers, x, y, dx=0, dy=0, radius=0, end_radius=None, hold_ms=0, steps=20, settle=True):
     end = radius if end_radius is None else end_radius
     fake("touch", fingers, x, y, dx, dy, radius, end, hold_ms, steps, settle=1.0 if settle else 0)
+
+
+def press(x, y):
+    fake("press", x, y)
+
+
+def release(x, y):
+    fake("release", x, y)
+
+
+def keys(*events):
+    fake("keys", *(event if isinstance(event, str) else f"{event[0]}:{event[1]}" for event in events))
+
+
+def chord(modifiers, *events):
+    keys(*[(code, 1) for code in modifiers], *events, *[(code, 0) for code in reversed(modifiers)])
+
+
+def tap(modifiers, key):
+    chord(modifiers, (key, 1), (key, 0))

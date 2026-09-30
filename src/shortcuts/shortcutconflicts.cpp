@@ -39,14 +39,33 @@ QList<QKeySequence> keysFromStrings(const QStringList &strings)
     return keys;
 }
 
-bool setForeignKeys(const ReleasedShortcut &shortcut, const QList<QKeySequence> &keys)
+const QList<std::pair<QString, QString>> &superseded()
+{
+    static const QList<std::pair<QString, QString>> actions {
+        {QStringLiteral("kwin"), QStringLiteral("Edit Tiles")},
+    };
+    return actions;
+}
+
+bool isWanted(const ReleasedShortcut &shortcut, const QList<QKeySequence> &wanted)
+{
+    return superseded().contains({shortcut.component, shortcut.action})
+        || std::ranges::any_of(shortcut.keys, [&wanted](const QKeySequence &key) { return wanted.contains(key); });
+}
+
+bool giveBack(const ReleasedShortcut &shortcut)
 {
     qDBusRegisterMetaType<QKeySequence>();
     qDBusRegisterMetaType<QList<QKeySequence>>();
+    const QList<QKeySequence> current = KGlobalAccel::self()->globalShortcut(shortcut.component, shortcut.action);
+    if (!std::ranges::all_of(current, [&shortcut](const QKeySequence &key) { return shortcut.keys.contains(key); })) {
+        qInfo() << "konveyor: leaving" << shortcut.component << shortcut.action << "on the keys it was given since";
+        return true;
+    }
     OrgKdeKGlobalAccelInterface kglobalaccel(
         QStringLiteral("org.kde.kglobalaccel"), QStringLiteral("/kglobalaccel"), QDBusConnection::sessionBus());
     const QStringList actionId {shortcut.component, shortcut.action, shortcut.componentFriendlyName, shortcut.actionFriendlyName};
-    QDBusPendingReply<> reply = kglobalaccel.setForeignShortcutKeys(actionId, keys);
+    QDBusPendingReply<> reply = kglobalaccel.setForeignShortcutKeys(actionId, shortcut.keys);
     reply.waitForFinished();
     if (reply.isError()) {
         qWarning() << "konveyor: could not restore" << shortcut.component << shortcut.action << reply.error().message();
@@ -81,11 +100,8 @@ QList<ReleasedShortcut> ShortcutConflicts::takeOver(const QList<QKeySequence> &w
 
 QList<ReleasedShortcut> ShortcutConflicts::releaseSuperseded()
 {
-    static const QList<std::pair<QString, QString>> superseded {
-        {QStringLiteral("kwin"), QStringLiteral("Edit Tiles")},
-    };
     QList<ReleasedShortcut> released;
-    for (const auto &[component, action] : superseded) {
+    for (const auto &[component, action] : superseded()) {
         const QList<QKeySequence> keys = KGlobalAccel::self()->globalShortcut(component, action);
         if (keys.isEmpty()) {
             continue;
@@ -102,11 +118,22 @@ QList<ReleasedShortcut> ShortcutConflicts::restore(const QList<ReleasedShortcut>
 {
     QList<ReleasedShortcut> failed;
     for (const ReleasedShortcut &entry : released) {
-        if (!setForeignKeys(entry, entry.keys)) {
+        if (!giveBack(entry)) {
             failed.append(entry);
         }
     }
     return failed;
+}
+
+QList<ReleasedShortcut> ShortcutConflicts::restoreUnwanted(const QList<ReleasedShortcut> &released, const QList<QKeySequence> &wanted)
+{
+    QList<ReleasedShortcut> kept;
+    for (const ReleasedShortcut &entry : released) {
+        if (isWanted(entry, wanted) || !giveBack(entry)) {
+            kept.append(entry);
+        }
+    }
+    return kept;
 }
 
 QList<ReleasedShortcut> ShortcutConflicts::load()

@@ -9,6 +9,7 @@
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDBusConnection>
+#include <QDBusConnectionInterface>
 #include <QDBusInterface>
 #include <QDBusReply>
 #include <QJsonDocument>
@@ -189,6 +190,10 @@ int runValidateCommand(const QStringList &arguments)
 
 int runRestoreShortcuts()
 {
+    const QDBusConnectionInterface *bus = QDBusConnection::sessionBus().interface();
+    if (bus && bus->isServiceRegistered(Konveyor::Ipc::dbusService)) {
+        return fail(QStringLiteral("Konveyor is still running and holds these shortcuts; disable the effect first"));
+    }
     const QList<Konveyor::ReleasedShortcut> released = Konveyor::ShortcutConflicts::load();
     const QList<Konveyor::ReleasedShortcut> failed = Konveyor::ShortcutConflicts::restore(released);
     Konveyor::ShortcutConflicts::save(failed);

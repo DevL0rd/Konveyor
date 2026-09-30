@@ -68,7 +68,7 @@ ShortcutManager::ShortcutManager(Handler handler, QObject *parent)
 ShortcutManager::~ShortcutManager()
 {
     unregisterAll();
-    ShortcutConflicts::restore(m_released);
+    ShortcutConflicts::save(ShortcutConflicts::restore(m_released));
 }
 
 void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
@@ -84,6 +84,7 @@ void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
     ShortcutConflicts::merge(m_released, ShortcutConflicts::load());
     ShortcutConflicts::merge(m_released, ShortcutConflicts::releaseSuperseded());
     ShortcutConflicts::merge(m_released, ShortcutConflicts::takeOver(wanted, QStringLiteral("konveyor")));
+    m_released = ShortcutConflicts::restoreUnwanted(m_released, wanted);
     ShortcutConflicts::save(m_released);
     for (const Config::Bind &bind : m_binds) {
         if (bind.trigger == Config::BindTrigger::Key) {

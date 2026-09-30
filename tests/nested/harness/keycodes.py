@@ -21,7 +21,6 @@ KEY_CODES = {
 
 
 def evdev_codes(label):
-    """Map a Konveyor bind label such as "Super+Ctrl+Left" to evdev codes."""
     parts = [p for p in label.split("+") if p]
     if not parts:
         return None
