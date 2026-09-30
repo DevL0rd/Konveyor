@@ -50,7 +50,7 @@ bool WindowRegistry::isManageable(KWin::Window *window)
         || window->isMenu() || window->isDropdownMenu() || window->isPopupMenu() || window->isUtility() || window->isSplash()
         || window->isToolbar() || window->isTooltip() || window->isNotification() || window->isOnScreenDisplay()
         || window->isCriticalNotification() || window->isAppletPopup() || window->isLockScreen() || window->isInputMethod();
-    if (specialType || window->isLockScreenOverlay() || window->isOnAllDesktops() || window->skipTaskbar()) {
+    if (specialType || window->isLockScreenOverlay() || window->skipTaskbar()) {
         return false;
     }
     return window->isNormalWindow() || window->isDialog();
@@ -119,7 +119,7 @@ void WindowRegistry::forget(KWin::Window *window)
 void WindowRegistry::refresh(KWin::Window *window)
 {
     const bool tracked = m_ids.contains(window);
-    const bool wanted = !window->isMinimized() && (!m_wantsWindow || m_wantsWindow(propertiesOf(window)));
+    const bool wanted = !window->isMinimized() && !window->isOnAllDesktops() && (!m_wantsWindow || m_wantsWindow(propertiesOf(window)));
     if (!wanted && tracked) {
         if (window->isMinimized()) {
             Q_EMIT windowMinimizing(m_ids.value(window), window);
@@ -158,6 +158,7 @@ void WindowRegistry::connectObserved(KWin::Window *window)
 {
     const auto refreshWindow = [this, window]() { refresh(window); };
     connect(window, &KWin::Window::minimizedChanged, this, refreshWindow);
+    connect(window, &KWin::Window::desktopsChanged, this, refreshWindow);
     connect(window, &KWin::Window::captionChanged, this, refreshWindow);
     connect(window, &KWin::Window::desktopFileNameChanged, this, refreshWindow);
     connect(window, &KWin::Window::windowClassChanged, this, refreshWindow);
