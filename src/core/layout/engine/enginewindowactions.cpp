@@ -143,11 +143,7 @@ ActionResult setUrgency(Engine::Private &d, const Config::Action &action, std::o
     if (!window) {
         return actionError(QStringLiteral("no window given"));
     }
-    Workspace *workspace = d.workspaceOf(*window);
-    if (!workspace) {
-        return actionError(QStringLiteral("no such window"));
-    }
-    Tile *tile = workspace->tileFor(*window);
+    Tile *tile = d.tileOf(*window);
     if (!tile) {
         return actionError(QStringLiteral("no such window"));
     }
@@ -205,8 +201,7 @@ void registerWindowActions(ActionTable &table)
     addEngineAction(
         table, "toggle-window-rule-opacity", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId> target) {
             const auto window = d.target(actionWindowId(action, target));
-            Workspace *workspace = window ? d.workspaceOf(*window) : nullptr;
-            Tile *tile = workspace ? workspace->tileFor(*window) : nullptr;
+            Tile *tile = window ? d.tileOf(*window) : nullptr;
             if (!tile) {
                 return actionError(QStringLiteral("no such window"));
             }

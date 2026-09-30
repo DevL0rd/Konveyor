@@ -106,6 +106,7 @@ struct Engine::Private
     std::optional<std::size_t> monitorIndexByName(const QString &name) const;
     Monitor *monitorOf(WindowId id);
     Workspace *workspaceOf(WindowId id);
+    Tile *tileOf(WindowId id);
     Workspace *workspaceById(WorkspaceId id);
     std::optional<std::size_t> monitorIndexOf(WindowId id) const;
     std::vector<Workspace *> allWorkspaces();

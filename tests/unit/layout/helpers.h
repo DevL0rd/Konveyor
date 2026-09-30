@@ -282,6 +282,18 @@ private:
     bool m_holdCommits = false;
 };
 
+struct ThreeWindows
+{
+    Fixture fixture;
+    Layout::WindowId a = fixture.add(QStringLiteral("a"));
+    Layout::WindowId b = fixture.add(QStringLiteral("b"));
+    Layout::WindowId c = fixture.add(QStringLiteral("c"));
+
+    explicit ThreeWindows(const Config::Config &config = instantConfig())
+        : fixture(config)
+    { }
+};
+
 inline bool startMove(Fixture &fixture, Layout::WindowId id, QPointF to, const QString &output = QStringLiteral("DP-1"))
 {
     const QPointF start = fixture.frame(id).center();

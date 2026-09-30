@@ -98,6 +98,14 @@ Workspace *Engine::Private::workspaceOf(WindowId id)
     return nullptr;
 }
 
+Tile *Engine::Private::tileOf(WindowId id)
+{
+    if (Workspace *workspace = workspaceOf(id)) {
+        return workspace->tileFor(id);
+    }
+    return windowDrag && windowDrag->window == id && windowDrag->tile ? &*windowDrag->tile : nullptr;
+}
+
 Workspace *Engine::Private::workspaceById(WorkspaceId id)
 {
     for (Workspace *workspace : allWorkspaces()) {

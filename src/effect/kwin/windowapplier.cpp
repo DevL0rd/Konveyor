@@ -44,7 +44,13 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
     const QScopedValueRollback guard(m_applying, true);
     for (const Layout::WindowState &state : states) {
         KWin::Window *window = m_windows.windowOf(state.id);
-        if (!window || isUserManipulated(window)) {
+        if (!window) {
+            continue;
+        }
+        if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
+            window->setOpacity(state.ruleOpacity);
+        }
+        if (isUserManipulated(window)) {
             continue;
         }
         const QRectF frame = placedFrame(state);
@@ -56,9 +62,6 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
         applySizingMode(window, state);
         applyGeometry(window, frame, requestedSize, !state.isFloating, state.isForceResizable || window->isResizable());
         applyBorderRadius(window, state);
-        if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
-            window->setOpacity(state.ruleOpacity);
-        }
     }
     applyStacking(states);
 }

@@ -185,6 +185,7 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
     connect(
         window, &KWin::Window::maximizedChanged, this, [this, window, id]() { Q_EMIT maximizeRequested(id, isMaximizeRequested(window)); });
     connect(window, &KWin::Window::borderRadiusChanged, this, [this, id]() { Q_EMIT appearanceChanged(id); });
+    connect(window, &KWin::Window::opacityChanged, this, [this, id]() { Q_EMIT appearanceChanged(id); });
     connect(window, &KWin::Window::frameGeometryChanged, this, [this, window, id, announceFullscreen]() {
         announceFullscreen(window->isRequestedFullScreen());
         Q_EMIT sizeCommitted(id, window->frameGeometry().size());

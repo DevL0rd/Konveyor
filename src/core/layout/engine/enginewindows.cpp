@@ -356,17 +356,10 @@ void Engine::toggleWindowFillWidth(WindowId id)
 
 void Engine::setWindowUrgent(WindowId id, bool urgent)
 {
-    Workspace *workspace = d->workspaceOf(id);
-    if (!workspace) {
-        return;
+    if (Tile *tile = d->tileOf(id)) {
+        tile->window().setUrgent(urgent);
+        d->refresh();
     }
-    for (const TileRef &ref : workspace->renderedTilesMut(false)) {
-        if (ref.tile->id() == id) {
-            ref.tile->window().setUrgent(urgent);
-            break;
-        }
-    }
-    d->refresh();
 }
 
 }

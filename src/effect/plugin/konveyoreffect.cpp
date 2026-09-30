@@ -11,15 +11,17 @@ namespace Konveyor
 namespace
 {
 
-void setContentOpacity(KWin::Window *window, double opacity)
+void setDragFade(KWin::Window *window, std::optional<double> fade)
 {
     KWin::WindowItem *item = window ? window->windowItem() : nullptr;
     if (!item) {
         return;
     }
-    item->windowContainer()->setOpacity(opacity);
+    const double content = fade ? *fade * window->opacity() : 1.0;
+    item->setOpacity(fade ? 1.0 : window->opacity());
+    item->windowContainer()->setOpacity(content);
     if (KWin::ShadowItem *shadow = item->shadowItem()) {
-        shadow->setOpacity(opacity);
+        shadow->setOpacity(content);
     }
 }
 
@@ -69,7 +71,7 @@ KonveyorEffect::~KonveyorEffect()
         d->memoryStore.save(d->engine.windowMemory());
     }
     if (d->draggedOpacity) {
-        setContentOpacity(d->windows.windowOf(d->draggedOpacity->first), 1.0);
+        setDragFade(d->windows.windowOf(d->draggedOpacity->first), std::nullopt);
     }
     releaseQuickTiling();
     MinimizeRule::apply(false);
@@ -266,14 +268,11 @@ void KonveyorEffect::updateDraggedOpacity(const QList<Layout::WindowState> &stat
     const auto state = std::ranges::find_if(states, [&moving](const Layout::WindowState &each) { return each.id == moving; });
     const std::optional<std::pair<Layout::WindowId, double>> wanted
         = state != states.end() ? std::optional(std::pair(state->id, state->renderAlpha)) : std::nullopt;
-    if (wanted == d->draggedOpacity) {
-        return;
-    }
     if (d->draggedOpacity && (!wanted || wanted->first != d->draggedOpacity->first)) {
-        setContentOpacity(d->windows.windowOf(d->draggedOpacity->first), 1.0);
+        setDragFade(d->windows.windowOf(d->draggedOpacity->first), std::nullopt);
     }
     if (wanted) {
-        setContentOpacity(d->windows.windowOf(wanted->first), wanted->second);
+        setDragFade(d->windows.windowOf(wanted->first), wanted->second);
     }
     d->draggedOpacity = wanted;
 }

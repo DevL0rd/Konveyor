@@ -5,16 +5,9 @@ using namespace LayoutTest;
 namespace
 {
 
-struct Three
+struct Three : ThreeWindows
 {
-    Fixture fixture;
-    Layout::WindowId a = fixture.add(QStringLiteral("a"));
-    Layout::WindowId b = fixture.add(QStringLiteral("b"));
-    Layout::WindowId c = fixture.add(QStringLiteral("c"));
-
-    explicit Three(const Config::Config &config = instantConfig())
-        : fixture(config)
-    { }
+    using ThreeWindows::ThreeWindows;
 
     void dropAt(Layout::WindowId id, QPointF pointer)
     {

@@ -99,6 +99,39 @@ def hint_accent(checks):
                       f"the hint takes the green accent ({pixel_in_new_column_hint(target, 30)})")
 
 
+def with_opacity_rule(opacity):
+    rule = f'\nwindow-rule {{\n    match title="^C$"\n    opacity {opacity}\n}}\n'
+    config_path().write_text(config_path().read_text() + rule)
+    return konveyor("LoadConfigFile", "")
+
+
+def without_opacity_rule():
+    config_path().write_text(re.sub(r'\nwindow-rule \{\n    match title="\^C\$"\n    opacity [0-9.]+\n\}\n', "", config_path().read_text()))
+    return konveyor("LoadConfigFile", "")
+
+
+def hint_ignores_window_opacity(opacity):
+    def step(checks):
+        checks.equal(with_opacity_rule(opacity), "", f"give C a window rule opacity of {opacity}")
+        target, goal = new_column_goal()
+        under = (round(target[0] + target[2] + GAP + HINT_WIDTH - 8), 540)
+        with dragging("C", goal, grab=left_edge_grab()):
+            checks.expect(wait_for(lambda: close(pixel_in_new_column_hint(target, 30), MAGENTA), 10, 0.5),
+                          f"the hint keeps its own colour ({pixel_in_new_column_hint(target, 30)})")
+            through = blend(WINDOW, MAGENTA, DRAGGED_OPACITY * opacity)
+            checks.expect(wait_for(lambda: close(screenshot().getpixel(under), through), 10, 0.5),
+                          f"C is drawn with its own opacity over the hint ({screenshot().getpixel(under)}, want {through})")
+            checks.equal(konveyor_action("toggle-window-rule-opacity"), "", "ignore C's opacity rule mid-drag")
+            checks.expect(wait_for(lambda: close(screenshot().getpixel(under), blend(WINDOW, MAGENTA, DRAGGED_OPACITY)), 10, 0.5),
+                          f"C is drawn with only the drag fade ({screenshot().getpixel(under)})")
+            checks.expect(close(pixel_in_new_column_hint(target, 30), MAGENTA), f"the hint keeps its colour ({pixel_in_new_column_hint(target, 30)})")
+        activate("C")
+        checks.equal(konveyor_action("toggle-window-rule-opacity"), "", "use C's opacity rule again")
+        checks.equal(without_opacity_rule(), "", "drop C's opacity rule")
+    step.__name__ = f"hint_ignores_window_opacity_{str(opacity).replace('.', '_')}"
+    return step
+
+
 def hint_off(checks):
     checks.equal(use_hint('        off\n        color "#ff00ff"\n'), "", "turn the hint off")
     target, goal = new_column_goal()
@@ -135,8 +168,8 @@ def floating_drag_has_no_hint(checks):
 
 
 def main():
-    Checks().run(hint_for_new_column, hint_over_column_top, hint_follows_window_corners, hint_color_with_alpha, hint_gradient, hint_accent,
-                 hint_off, hint_at_left_edge, floating_drag_has_no_hint)
+    Checks().run(hint_for_new_column, hint_over_column_top, hint_follows_window_corners,
+                 hint_ignores_window_opacity(0.5), hint_ignores_window_opacity(0), hint_color_with_alpha, hint_gradient, hint_accent, hint_off, hint_at_left_edge, floating_drag_has_no_hint)
 
 
 if __name__ == "__main__":
