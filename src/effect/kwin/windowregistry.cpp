@@ -68,7 +68,7 @@ Layout::WindowProperties WindowRegistry::propertiesOf(KWin::Window *window) cons
     properties.isUrgent = window->isDemandingAttention();
     properties.isDialog = window->isDialog() || window->isModal();
     properties.isResizable = window->isResizable();
-    properties.wantsFullscreen = window->isFullScreen() && !m_adopting;
+    properties.wantsFullscreen = window->isFullScreen();
     properties.wantsMaximized = isMaximizeRequested(window) && !m_adopting;
     properties.onAllDesktops = window->isOnAllDesktops();
     properties.frameSize = window->frameGeometry().size();
