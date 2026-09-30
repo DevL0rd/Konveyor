@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <ranges>
 #include <utility>
 
 namespace Konveyor
@@ -35,6 +36,7 @@ void WindowRegistry::start(const std::function<bool(KWin::Window *, KWin::Window
     connect(KWin::workspace(), &KWin::Workspace::windowAdded, this, &WindowRegistry::observe);
     connect(KWin::workspace(), &KWin::Workspace::windowRemoved, this, &WindowRegistry::forget);
     connect(KWin::workspace(), &KWin::Workspace::windowActivated, this, &WindowRegistry::activeWindowChanged);
+    connect(KWin::workspace(), &KWin::Workspace::currentActivityChanged, this, &WindowRegistry::reevaluate);
     m_adopting = true;
     QList<KWin::Window *> windows = KWin::workspace()->windows();
     std::ranges::stable_sort(windows, adoptionOrder);
@@ -93,10 +95,27 @@ void WindowRegistry::setWantsWindow(std::function<bool(const Layout::WindowPrope
     m_wantsWindow = std::move(wantsWindow);
 }
 
+void WindowRegistry::setPlacementOrder(std::function<bool(KWin::Window *, KWin::Window *)> placedBefore)
+{
+    m_placedBefore = std::move(placedBefore);
+}
+
 void WindowRegistry::reevaluate()
 {
-    const QList<KWin::Window *> observed(m_observed.cbegin(), m_observed.cend());
-    for (KWin::Window *window : observed) {
+    QList<KWin::Window *> leaving;
+    QList<KWin::Window *> arriving;
+    for (KWin::Window *window : std::as_const(m_observed)) {
+        const bool tracked = m_ids.contains(window);
+        if (tracked != isWanted(window)) {
+            (tracked ? leaving : arriving).append(window);
+        }
+    }
+    std::ranges::stable_sort(leaving, m_placedBefore);
+    std::ranges::stable_sort(arriving, m_placedBefore);
+    for (KWin::Window *window : leaving | std::views::reverse) {
+        refresh(window);
+    }
+    for (KWin::Window *window : std::as_const(arriving)) {
         refresh(window);
     }
 }
@@ -120,13 +139,18 @@ void WindowRegistry::forget(KWin::Window *window)
     disconnect(window, nullptr, this, nullptr);
 }
 
+bool WindowRegistry::isWanted(KWin::Window *window) const
+{
+    return !window->isMinimized() && window->isOnCurrentActivity() && (!m_wantsWindow || m_wantsWindow(propertiesOf(window)));
+}
+
 void WindowRegistry::refresh(KWin::Window *window)
 {
     const bool tracked = m_ids.contains(window);
-    const bool wanted = !window->isMinimized() && (!m_wantsWindow || m_wantsWindow(propertiesOf(window)));
+    const bool wanted = isWanted(window);
     if (!wanted && tracked) {
-        if (window->isMinimized()) {
-            Q_EMIT windowMinimizing(m_ids.value(window), window);
+        if (window->isMinimized() || !window->isOnCurrentActivity()) {
+            Q_EMIT windowHiding(m_ids.value(window), window);
         }
         remove(window);
     } else if (wanted && !tracked) {
@@ -162,6 +186,7 @@ void WindowRegistry::connectObserved(KWin::Window *window)
 {
     const auto refreshWindow = [this, window]() { refresh(window); };
     connect(window, &KWin::Window::minimizedChanged, this, refreshWindow);
+    connect(window, &KWin::Window::activitiesChanged, this, refreshWindow);
     connect(window, &KWin::Window::captionChanged, this, refreshWindow);
     connect(window, &KWin::Window::desktopFileNameChanged, this, refreshWindow);
     connect(window, &KWin::Window::windowClassChanged, this, refreshWindow);

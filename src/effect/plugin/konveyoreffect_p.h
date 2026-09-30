@@ -146,7 +146,7 @@ struct KonveyorEffect::Private
     std::optional<Layout::WindowId> touchLift;
     std::optional<Layout::WindowId> touchMovePending;
     QHash<Layout::WindowId, QString> homeOutputs;
-    QHash<KWin::Window *, Layout::RestorePlacement> minimizedPlacements;
+    QHash<KWin::Window *, Layout::RestorePlacement> hiddenPlacements;
     QHash<Layout::WindowId, QHash<int, QPointer<KWin::Window>>> monitorOverlays;
     QHash<Layout::WindowId, QHash<int, QPointer<KWin::Window>>> monitorPanels;
     QSet<Layout::WindowId> placingMonitorOverlays;

@@ -26,6 +26,7 @@ public:
 
     void start(const std::function<bool(KWin::Window *, KWin::Window *)> &adoptionOrder);
     void setWantsWindow(std::function<bool(const Layout::WindowProperties &)> wantsWindow);
+    void setPlacementOrder(std::function<bool(KWin::Window *, KWin::Window *)> placedBefore);
     void reevaluate();
 
     static bool isManageable(KWin::Window *window);
@@ -37,7 +38,7 @@ public:
 Q_SIGNALS:
     void windowAdded(Layout::WindowId id, KWin::Window *window);
     void windowRemoved(Layout::WindowId id);
-    void windowMinimizing(Layout::WindowId id, KWin::Window *window);
+    void windowHiding(Layout::WindowId id, KWin::Window *window);
     void propertiesChanged(Layout::WindowId id);
     void sizeCommitted(Layout::WindowId id, const QSizeF &size);
     void fullscreenRequested(Layout::WindowId id, bool fullscreen);
@@ -53,6 +54,7 @@ private:
     void observe(KWin::Window *window);
     void forget(KWin::Window *window);
     void refresh(KWin::Window *window);
+    bool isWanted(KWin::Window *window) const;
     void add(KWin::Window *window);
     void remove(KWin::Window *window);
     void connectObserved(KWin::Window *window);
@@ -64,6 +66,7 @@ private:
     QHash<Layout::WindowId, QPointer<KWin::Window>> m_windows;
     Layout::WindowId m_nextId = 1;
     std::function<bool(const Layout::WindowProperties &)> m_wantsWindow;
+    std::function<bool(KWin::Window *, KWin::Window *)> m_placedBefore;
     bool m_adopting = false;
 };
 

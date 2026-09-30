@@ -55,11 +55,12 @@ KonveyorEffect::KonveyorEffect()
     connectOverviewSync();
     installInputFilter();
     startDBusService();
+    d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
+    d->windows.setPlacementOrder([this](KWin::Window *first, KWin::Window *second) { return placedBefore(first, second); });
     d->config.start();
     d->outputs.start();
     d->desktops.start();
     d->handoff = LayoutHandoff::take();
-    d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
     d->windows.start([this](KWin::Window *first, KWin::Window *second) { return d->handoff.comesBefore(first, second); });
     d->focusRequest.reset();
     followActiveWindow();
@@ -83,6 +84,21 @@ KonveyorEffect::~KonveyorEffect()
     for (const KWin::ElectricBorder border : std::as_const(d->reservedCorners)) {
         KWin::effects->unreserveElectricBorder(border, this);
     }
+}
+
+bool KonveyorEffect::placedBefore(KWin::Window *first, KWin::Window *second) const
+{
+    const auto key = [this](KWin::Window *window) {
+        const std::optional<Layout::WindowId> id = d->windows.idOf(window);
+        const auto hidden = d->hiddenPlacements.constFind(window);
+        const std::optional<Layout::RestorePlacement> placement = id ? readEngine().placementOf(*id)
+            : hidden != d->hiddenPlacements.constEnd()               ? std::optional(*hidden)
+                                                                     : std::nullopt;
+        return placement
+            ? std::tuple(false, placement->workspace, placement->isFloating, placement->columnIndex, placement->tileIndex.value_or(0))
+            : std::tuple(true, Layout::WorkspaceId(0), false, std::size_t(0), std::size_t(0));
+    };
+    return key(first) < key(second);
 }
 
 bool KonveyorEffect::isActive() const

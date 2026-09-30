@@ -175,15 +175,15 @@ void KonveyorEffect::connectWindowLifecycle()
         d->applier.forget(id);
         d->homeOutputs.remove(id);
     });
-    connect(&d->windows, &WindowRegistry::windowMinimizing, this, [this](Layout::WindowId id, KWin::Window *window) {
+    connect(&d->windows, &WindowRegistry::windowHiding, this, [this](Layout::WindowId id, KWin::Window *window) {
         const std::optional<Layout::RestorePlacement> placement = readEngine().placementOf(id);
         if (!placement) {
             return;
         }
-        if (!d->minimizedPlacements.contains(window)) {
-            connect(window, &QObject::destroyed, this, [this, window] { d->minimizedPlacements.remove(window); });
+        if (!d->hiddenPlacements.contains(window)) {
+            connect(window, &QObject::destroyed, this, [this, window] { d->hiddenPlacements.remove(window); });
         }
-        d->minimizedPlacements.insert(window, *placement);
+        d->hiddenPlacements.insert(window, *placement);
     });
     connect(&d->windows, &WindowRegistry::propertiesChanged, this, [this](Layout::WindowId id) {
         if (KWin::Window *window = d->windows.windowOf(id)) {
@@ -266,10 +266,10 @@ void KonveyorEffect::connectDesktopSync()
 
 void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
 {
-    const auto restore = d->minimizedPlacements.constFind(window);
+    const auto restore = d->hiddenPlacements.constFind(window);
     const std::optional<Layout::RestorePlacement> placement
-        = restore == d->minimizedPlacements.constEnd() ? std::nullopt : std::optional(*restore);
-    d->minimizedPlacements.remove(window);
+        = restore == d->hiddenPlacements.constEnd() ? std::nullopt : std::optional(*restore);
+    d->hiddenPlacements.remove(window);
     if (const std::optional<HandedOverPlacement> handed = d->handoff.takePlacement(window, readEngine())) {
         changeEngine().addWindow(id, d->windows.propertiesOf(window), handed->output, Layout::ActivationPolicy::NoFocus, handed->placement);
     } else {
