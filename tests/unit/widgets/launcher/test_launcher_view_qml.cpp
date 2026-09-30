@@ -73,6 +73,11 @@ private Q_SLOTS:
         host->setProperty("open", true);
         QCOMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("home"));
         QVERIFY(!eval(QStringLiteral("launcher.pageDefs.map(d => d.key)")).toStringList().contains(page));
+        QVERIFY(goTo(QStringLiteral("apps")));
+        eval(QStringLiteral("launcher.goToPage('%1')").arg(page));
+        QCOMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("home"));
+        QCOMPARE(host->property("currentPage").toString(), QStringLiteral("home"));
+        TRY_VERIFY(eval(QStringLiteral("launcher.currentView() !== null && pageLoaders.itemAt(launcher.pageIndex).visible")).toBool());
     }
 
     void pagesFollowTheSettings()

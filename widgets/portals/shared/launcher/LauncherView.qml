@@ -235,7 +235,7 @@ FocusScope {
         closeAnimation.stop()
         const wantedPage = root.requestedPage || launcherData.config.defaultPage
         root.requestedPage = ""
-        page = pageDefs.some(def => def.key === wantedPage) ? wantedPage : "home"
+        page = shownPage(wantedPage)
         markVisited(page)
         openFolder = ""
         field.text = ""
@@ -295,11 +295,14 @@ FocusScope {
         field.cursorPosition = text.length
         field.forceActiveFocus()
     }
+    function shownPage(key) {
+        return pageDefs.some(def => def.key === key) ? key : "home"
+    }
     function goToPage(key) {
         openFolder = ""
         railIndex = -1
-        page = key
-        markVisited(key)
+        page = shownPage(key)
+        markVisited(page)
         field.text = ""
         field.forceActiveFocus()
         Qt.callLater(resetSelection)
