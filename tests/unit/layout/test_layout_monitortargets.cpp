@@ -73,6 +73,7 @@ private Q_SLOTS:
             {"DP-1", "move-window-to-monitor-previous", "DP-3"},
             {"DP-1", "move-window-to-monitor-up", "DP-1"},
             {"DP-1", "move-column-to-monitor-down", "DP-3"},
+            {"DP-2", "move-column-to-monitor-left", "DP-1"},
             {"DP-1", "move-column-to-monitor-next", "DP-2"},
             {"DP-1", "move-column-to-monitor-previous", "DP-3"},
             {"DP-2", "move-column-to-monitor-down", "DP-2"},

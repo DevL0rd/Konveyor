@@ -1,158 +1,78 @@
-#include "helpers.h"
+#include "fuzzrunner.h"
 
-#include <QRandomGenerator>
-
-#include <limits>
+#include <QHashSeed>
+#include <QRegularExpression>
 
 using namespace LayoutTest;
 
 namespace
 {
 
-const QStringList &randomActions()
+struct Scenario
 {
-    static const QStringList names {QStringLiteral("focus-column-left"), QStringLiteral("focus-column-right"),
-        QStringLiteral("focus-window-down"), QStringLiteral("focus-window-up"), QStringLiteral("move-column-left"),
-        QStringLiteral("move-column-right"), QStringLiteral("move-window-down"), QStringLiteral("move-window-up"),
-        QStringLiteral("consume-or-expel-window-left"), QStringLiteral("consume-or-expel-window-right"),
-        QStringLiteral("consume-window-into-column"), QStringLiteral("expel-window-from-column"), QStringLiteral("swap-window-left"),
-        QStringLiteral("swap-window-right"), QStringLiteral("toggle-column-tabbed-display"), QStringLiteral("center-column"),
-        QStringLiteral("center-visible-columns"), QStringLiteral("switch-preset-column-width"),
-        QStringLiteral("switch-preset-window-height"), QStringLiteral("reset-window-height"), QStringLiteral("maximize-column"),
-        QStringLiteral("maximize-window-to-edges"), QStringLiteral("fullscreen-window"), QStringLiteral("expand-column-to-available-width"),
-        QStringLiteral("toggle-window-floating"), QStringLiteral("focus-workspace-down"), QStringLiteral("focus-workspace-up"),
-        QStringLiteral("move-window-to-workspace-down"), QStringLiteral("move-window-to-workspace-up"),
-        QStringLiteral("move-column-to-workspace-down"), QStringLiteral("move-workspace-down"), QStringLiteral("move-workspace-up"),
-        QStringLiteral("focus-monitor-left"), QStringLiteral("focus-monitor-right"), QStringLiteral("move-window-to-monitor-right"),
-        QStringLiteral("move-column-to-monitor-left"), QStringLiteral("move-workspace-to-monitor-right")};
-    return names;
-}
-
-class Harness
-{
-public:
-    explicit Harness(quint32 seed)
-        : m_random(seed)
-    {
-        m_fixture.engine().addOutput(makeOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1280, 720)));
-    }
-
-    Fixture &fixture() { return m_fixture; }
-
-    QString step()
-    {
-        const quint32 choice = m_random.bounded(100);
-        if (choice < 25 || m_windows.isEmpty()) {
-            addWindow();
-        } else if (choice < 35) {
-            removeWindow();
-        } else if (choice < 40) {
-            toggleOutput();
-        } else {
-            runAction();
-        }
-        m_fixture.advance(17);
-        return m_fixture.invariants();
-    }
-
-private:
-    void addWindow()
-    {
-        const QSizeF size(100 + m_random.bounded(800), 100 + m_random.bounded(600));
-        Layout::WindowProperties properties = makeWindow(QStringLiteral("app"), QStringLiteral("app"), size);
-        if (m_random.bounded(10) == 0 && !m_windows.isEmpty()) {
-            properties.parent = m_windows.at(static_cast<int>(m_random.bounded(quint32(m_windows.size()))));
-        }
-        m_windows.append(m_fixture.addWith(properties));
-    }
-
-    void removeWindow()
-    {
-        const int index = static_cast<int>(m_random.bounded(quint32(m_windows.size())));
-        m_fixture.remove(m_windows.takeAt(index));
-    }
-
-    void toggleOutput()
-    {
-        if (m_secondOutput) {
-            m_fixture.engine().removeOutput(QStringLiteral("DP-2"));
-        } else {
-            m_fixture.engine().addOutput(makeOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1280, 720)));
-        }
-        m_secondOutput = !m_secondOutput;
-        m_fixture.settle();
-    }
-
-    void runAction()
-    {
-        const QString &name = randomActions().at(static_cast<int>(m_random.bounded(quint32(randomActions().size()))));
-        m_fixture.perform(name);
-    }
-
-    Fixture m_fixture;
-    QRandomGenerator m_random;
-    QList<Layout::WindowId> m_windows;
-    bool m_secondOutput = true;
+    quint32 arrangement = 0;
+    bool animated = false;
 };
 
-QString deadSpaceProblem(Fixture &fixture)
+FuzzFailure replay(const QList<Event> &events, Scenario scenario, std::map<QString, int> *successes = nullptr)
 {
-    struct Span
-    {
-        double left = std::numeric_limits<double>::max();
-        double right = std::numeric_limits<double>::lowest();
-    };
-    static const QHash<QString, std::pair<double, double>> outputs {
-        {QStringLiteral("DP-1"), {0.0, 1920.0}},
-        {QStringLiteral("DP-2"), {1920.0, 1280.0}},
-    };
-    const double gaps = 16.0;
-    QHash<QString, Span> spans;
-    for (const Layout::WindowState &state : fixture.engine().windowStates()) {
-        if (state.isFloating || !state.onActiveWorkspace || !outputs.contains(state.output)) {
-            continue;
-        }
-        Span &span = spans[state.output];
-        span.left = std::min(span.left, state.targetFrame.left());
-        span.right = std::max(span.right, state.targetFrame.right());
-    }
-    for (auto it = spans.constBegin(); it != spans.constEnd(); ++it) {
-        const auto [origin, width] = outputs.value(it.key());
-        const double left = it->left - origin;
-        const double right = it->right - origin;
-        const bool fitsInView = right - left + gaps * 2.0 <= width + 0.5;
-        const bool leftGap = fitsInView ? std::abs(left - gaps) > 0.5 && left > 0.5 : left > gaps + 0.5;
-        const bool rightGap = !fitsInView && right < width - gaps - 0.5;
-        if (leftGap || rightGap) {
-            return QStringLiteral("%1 dead space: row spans %2..%3 on a %4 wide output").arg(it.key()).arg(left).arg(right).arg(width);
-        }
-    }
-    return {};
+    FuzzRun run(scenario.arrangement, scenario.animated, successes);
+    return run.run(events);
 }
 
-QString runSteps(Harness &harness, int count)
+QString signature(QString error)
 {
-    for (int step = 0; step < count; ++step) {
-        const QString error = harness.step();
-        if (!error.isEmpty()) {
-            return QStringLiteral("step %1: %2").arg(step).arg(error);
-        }
-    }
-    return {};
+    return error.remove(QRegularExpression(QStringLiteral("[-0-9.]+")));
 }
 
-QString checkStates(const QList<Layout::WindowState> &states)
+QList<Event> minimized(QList<Event> events, Scenario scenario, const QString &wanted)
 {
-    QSet<Layout::WindowId> seen;
-    for (const Layout::WindowState &state : states) {
-        const bool valid = !seen.contains(state.id) && state.workspaceIndex >= 1 && !state.output.isEmpty() && state.renderAlpha >= 0.0
-            && state.renderAlpha <= 1.0 && state.targetFrame.width() >= 0.0 && state.targetFrame.height() >= 0.0;
-        if (!valid) {
-            return QStringLiteral("invalid window state for id %1").arg(state.id);
+    qsizetype chunk = std::max<qsizetype>(1, events.size() / 2);
+    while (true) {
+        bool removed = false;
+        for (qsizetype start = 0; start < events.size();) {
+            QList<Event> candidate = events;
+            candidate.remove(start, std::min(chunk, events.size() - start));
+            const FuzzFailure failure = replay(candidate, scenario);
+            if (failure.failed() && signature(failure.error) == wanted) {
+                events = candidate.first(failure.index + 1);
+                removed = true;
+            } else {
+                start += chunk;
+            }
         }
-        seen.insert(state.id);
+        if (!removed && chunk == 1) {
+            return events;
+        }
+        chunk = removed ? chunk : chunk / 2;
     }
-    return {};
+}
+
+QString report(const QList<Event> &events, Scenario scenario, const FuzzFailure &failure)
+{
+    QList<Event> failing = events.first(failure.index + 1);
+    const QList<Event> trace = minimized(failing, scenario, signature(failure.error));
+    QStringList lines {QStringLiteral("%1 (arrangement %2, animations %3)")
+                           .arg(failure.error)
+                           .arg(scenario.arrangement)
+                           .arg(scenario.animated ? QStringLiteral("on") : QStringLiteral("off")),
+        QStringLiteral("minimal trace:")};
+    for (const Event &event : trace) {
+        lines.append(QStringLiteral("  ") + describe(event));
+    }
+    return lines.join(QLatin1Char('\n'));
+}
+
+QList<Event> everyActionEvents(quint32 seed, const QString &name)
+{
+    QList<Event> events = generateEvents(seed, 40);
+    events.removeIf([](const Event &event) { return event.step == Step::Act || event.step == Step::RemoveWindow; });
+    Dice dice(seed ^ static_cast<quint32>(qHash(name, 0)));
+    for (int i = 0; i < 4; ++i) {
+        events.append(Event {Step::Act, 0, 0, 0, Config::Action {name, actionArguments(dice, name), actionProperties(dice, name)}});
+        events.append(Event {Step::Advance, dice.below(200) * 5 + 1, 0, 0, {}});
+    }
+    return events;
 }
 
 QStringList removeAll(Fixture &fixture, const QList<Layout::WindowId> &windows)
@@ -169,13 +89,11 @@ QStringList removeAll(Fixture &fixture, const QList<Layout::WindowId> &windows)
 
 QString cycleSecondOutput(Fixture &fixture)
 {
-    fixture.engine().addOutput(makeOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1280, 720)));
-    fixture.settle();
+    fixture.addOutput(makeOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1280, 720)));
     QString error = fixture.invariants();
     fixture.perform(QStringLiteral("move-window-to-monitor-right"));
     error = error.isEmpty() ? fixture.invariants() : error;
-    fixture.engine().removeOutput(QStringLiteral("DP-2"));
-    fixture.settle();
+    fixture.removeOutput(QStringLiteral("DP-2"));
     return error.isEmpty() ? fixture.invariants() : error;
 }
 
@@ -186,52 +104,54 @@ class TestLayoutInvariants : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-    void randomizedOperationsNeverLeaveDeadSpace_data()
+    void initTestCase() { QHashSeed::setDeterministicGlobalSeed(); }
+
+    void randomEventsKeepInvariants_data()
     {
         QTest::addColumn<quint32>("seed");
-        for (quint32 seed = 1; seed <= 12; ++seed) {
+        for (quint32 seed = 1; seed <= 48; ++seed) {
             QTest::newRow(qPrintable(QStringLiteral("seed-%1").arg(seed))) << seed;
         }
     }
 
-    void randomizedOperationsNeverLeaveDeadSpace()
+    void randomEventsKeepInvariants()
     {
         QFETCH(quint32, seed);
-        Harness harness(seed);
-        for (int step = 0; step < 200; ++step) {
-            const QString action = harness.step();
-            harness.fixture().settle();
-            const QString problem = deadSpaceProblem(harness.fixture());
-            QVERIFY2(problem.isEmpty(), qPrintable(QStringLiteral("seed %1 step %2: %3").arg(seed).arg(step).arg(problem)));
+        const Scenario scenario {seed / 2, seed % 2 == 0};
+        const QList<Event> events = generateEvents(seed, 300);
+        const FuzzFailure failure = replay(events, scenario, &m_successes);
+        QVERIFY2(!failure.failed(),
+            qPrintable(QStringLiteral("seed %1: %2").arg(seed).arg(failure.failed() ? report(events, scenario, failure) : QString())));
+    }
+
+    void everyActionKeepsInvariants_data()
+    {
+        QTest::addColumn<QString>("name");
+        for (const QString &name : actionNames()) {
+            QTest::newRow(qPrintable(name)) << name;
         }
     }
 
-    void randomizedOperationsKeepInvariants_data()
+    void everyActionKeepsInvariants()
     {
-        QTest::addColumn<quint32>("seed");
-        for (quint32 seed = 1; seed <= 12; ++seed) {
-            QTest::newRow(qPrintable(QStringLiteral("seed-%1").arg(seed))) << seed;
+        QFETCH(QString, name);
+        for (quint32 seed = 1; seed <= 4; ++seed) {
+            const Scenario scenario {seed, seed % 2 == 1};
+            const QList<Event> events = everyActionEvents(seed, name);
+            const FuzzFailure failure = replay(events, scenario, &m_successes);
+            QVERIFY2(!failure.failed(), qPrintable(failure.failed() ? report(events, scenario, failure) : QString()));
         }
     }
 
-    void randomizedOperationsKeepInvariants()
+    void everyActionSucceededSomewhere()
     {
-        QFETCH(quint32, seed);
-        Harness harness(seed);
-        const QString error = runSteps(harness, 200);
-        QVERIFY2(error.isEmpty(), qPrintable(QStringLiteral("seed %1: %2").arg(seed).arg(error)));
-    }
-
-    void windowStatesRemainConsistent()
-    {
-        Harness harness(99);
-        QStringList errors;
-        for (int step = 0; step < 100; ++step) {
-            harness.step();
-            errors.append(checkStates(harness.fixture().engine().windowStates()));
+        QStringList never;
+        for (const QString &name : actionNames()) {
+            if (m_successes[name] == 0) {
+                never.append(name);
+            }
         }
-        errors.removeAll(QString());
-        QCOMPARE(errors, QStringList());
+        QCOMPARE(never, QStringList());
     }
 
     void removingEveryWindowLeavesOneEmptyWorkspacePerOutput()
@@ -264,6 +184,9 @@ private Q_SLOTS:
         QCOMPARE(errors, QStringList());
         QCOMPARE(fixture.engine().windowStates().size(), 4);
     }
+
+private:
+    std::map<QString, int> m_successes;
 };
 
 QTEST_GUILESS_MAIN(TestLayoutInvariants)
