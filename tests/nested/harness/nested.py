@@ -39,7 +39,7 @@ def build_dir():
 
 class NestedSession:
     def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1,
-                 input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=(), permission_checks=False):
+                 input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=(), permission_checks=False, lockscreen=False):
         self.output_count = output_count
         self.width = width
         self.height = height
@@ -79,6 +79,7 @@ class NestedSession:
         self.notifications = notifications
         self.notifications_log = self.root / "notifications.jsonl"
         self.permission_checks = permission_checks
+        self.lockscreen = lockscreen
         self.proc = None
         self.log_path = self.root / "kwin.log"
 
@@ -116,7 +117,7 @@ class NestedSession:
         return env
 
     def kwin_arguments(self, script):
-        arguments = ["--virtual", "--no-lockscreen"]
+        arguments = ["--virtual"] if self.lockscreen else ["--virtual", "--no-lockscreen"]
         if not self.global_shortcuts:
             arguments.append("--no-global-shortcuts")
         if self.xwayland:
