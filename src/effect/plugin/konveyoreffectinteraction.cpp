@@ -71,14 +71,8 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
     if (!window) {
         return;
     }
-    if (phase == interactivePhaseStart && d->gestures.touchPointCount() > 0) {
-        d->touchMoveResize = window;
-        if (d->gestures.touchPointCount() > 1) {
-            cancelTouchMoveResize();
-            return;
-        }
-    } else if (phase == interactivePhaseEnd && d->touchMoveResize == window) {
-        d->touchMoveResize.clear();
+    if (!trackTouchMoveResize(window, phase)) {
+        return;
     }
     if (isMove) {
         trackMove(id, phase);
@@ -173,6 +167,20 @@ void KonveyorEffect::handleTitlebarDrag(Layout::WindowId id, KWin::Window *windo
     d->dragOrigin = interactionPoint().x();
     changeEngine().beginSwipe(*output, false);
     window->endInteractiveMoveResize();
+}
+
+bool KonveyorEffect::trackTouchMoveResize(KWin::Window *window, int phase)
+{
+    if (phase == interactivePhaseStart && d->gestures.touchPointCount() > 0) {
+        d->touchMoveResize = window;
+        if (d->gestures.touchPointCount() > 1) {
+            cancelTouchMoveResize();
+            return false;
+        }
+    } else if (phase == interactivePhaseEnd && d->touchMoveResize == window) {
+        d->touchMoveResize.clear();
+    }
+    return true;
 }
 
 void KonveyorEffect::cancelTouchMoveResize()

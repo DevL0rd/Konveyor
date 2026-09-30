@@ -73,6 +73,14 @@ bool KonveyorEffect::handleTouchMotion(qint32 id, const QPointF &position, qint6
     return false;
 }
 
+void KonveyorEffect::handleTouchCancel()
+{
+    d->gestures.touchCancel();
+    cancelTouchMoveResize();
+    endTitlebarDrag();
+    scheduleFlush();
+}
+
 bool KonveyorEffect::handleTouchUp(qint32 id, qint64 timestampMs)
 {
     const bool consumed = routeGesture(d->gestures.touchUp(id, timestampMs));

@@ -87,6 +87,8 @@ private:
     void handleTitlebarDrag(Layout::WindowId id, KWin::Window *window, int phase);
     void endTitlebarDrag();
     void cancelTouchMoveResize();
+    bool trackTouchMoveResize(KWin::Window *window, int phase);
+    void handleTouchCancel();
     void handleWindowMove(Layout::WindowId id, KWin::Window *window, int phase);
     void followFloatingWindow(Layout::WindowId id, KWin::Window *window, bool isMove, int phase);
     void markMoveCancelled();

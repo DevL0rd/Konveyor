@@ -115,12 +115,7 @@ void KonveyorEffect::installInputFilter()
         [this](qint32 id, const QPointF &position, qint64 timestamp) { return handleTouchDown(id, position, timestamp); },
         [this](qint32 id, const QPointF &position, qint64 timestamp) { return handleTouchMotion(id, position, timestamp); },
         [this](qint32 id, qint64 timestamp) { return handleTouchUp(id, timestamp); },
-        [this] {
-            d->gestures.touchCancel();
-            cancelTouchMoveResize();
-            endTitlebarDrag();
-            scheduleFlush();
-        },
+        [this] { handleTouchCancel(); },
         [this] { routeGesture(d->gestures.resetTouches()); },
         [this](bool active) {
             if (d->dbus) {
