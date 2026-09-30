@@ -196,7 +196,10 @@ def write_snapshot(snap):
 
 def cmd_check():
     cfg = load_config()
-    snap = build_snapshot(cfg)
+    try:
+        snap = build_snapshot(cfg)
+    except Exception as error:
+        snap = {"ok": False, "error": str(error)}
     if not snap["ok"]:
         print("NOT OK:", snap["error"])
         print(f"  config:  {CONFIG} (exists: {os.path.exists(CONFIG)})")

@@ -264,15 +264,18 @@ def fav_link(resource, link):
         resource = "applications:" + resource
     method = "LinkResourceToActivity" if link else "UnlinkResourceFromActivity"
     try:
-        subprocess.run(["gdbus", "call", "--session", "--dest", "org.kde.ActivityManager",
-                        "--object-path", "/ActivityManager/Resources/Linking",
-                        "--method", "org.kde.ActivityManager.ResourcesLinking." + method,
-                        FAV_AGENT, resource, ":global"],
-                       capture_output=True, timeout=6)
-        return 0
+        done = subprocess.run(["gdbus", "call", "--session", "--dest", "org.kde.ActivityManager",
+                               "--object-path", "/ActivityManager/Resources/Linking",
+                               "--method", "org.kde.ActivityManager.ResourcesLinking." + method,
+                               FAV_AGENT, resource, ":global"],
+                              capture_output=True, text=True, timeout=6)
     except Exception as e:
         sys.stderr.write("dbus call failed: %s\n" % e)
         return 1
+    if done.returncode != 0:
+        sys.stderr.write("dbus call failed: %s\n" % done.stderr.strip())
+        return 1
+    return 0
 
 
 def track(key):
@@ -356,9 +359,11 @@ def folder_remove(app_id):
 
 def folder_rename(folder_id, name):
     folders = load_folders()
-    for folder in folders:
-        if folder["id"] == folder_id:
-            folder["name"] = name
+    target = next((folder for folder in folders if folder["id"] == folder_id), None)
+    if target is None:
+        sys.stderr.write("no such folder: %s\n" % folder_id)
+        return 1
+    target["name"] = name
     return save_folders(folders)
 
 
@@ -474,6 +479,7 @@ def reset_art(desktop_id):
             os.remove(p)
         except OSError:
             pass
+    os.makedirs(STATE_DIR, exist_ok=True)
     with open(OVERRIDES, "w") as f:
         json.dump(ov, f, indent=2)
     return 0
