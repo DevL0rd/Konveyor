@@ -178,6 +178,40 @@ private Q_SLOTS:
         QVERIFY(showsOnActiveWorkspace(fixture, pinned));
         VERIFY_INVARIANTS(fixture);
     }
+
+    void pinnedWindowStaysOnTheMonitorItLandsOnAfterAnUnplug()
+    {
+        Fixture fixture;
+        fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
+        const auto pinned = addOn(fixture, QStringLiteral("DP-2"), QStringLiteral("player"));
+        setOnAllDesktops(fixture, pinned, QStringLiteral("player"), true);
+        fixture.removeOutput(QStringLiteral("DP-2"));
+        QCOMPARE(fixture.state(pinned).output, QStringLiteral("DP-1"));
+        QVERIFY(showsOnActiveWorkspace(fixture, pinned));
+        fixture.engine().focusOutput(QStringLiteral("DP-1"));
+        QVERIFY(fixture.perform(QStringLiteral("focus-workspace-down")).ok);
+        QVERIFY(showsOnActiveWorkspace(fixture, pinned));
+        fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
+        QCOMPARE(fixture.state(pinned).output, QStringLiteral("DP-1"));
+        QVERIFY(showsOnActiveWorkspace(fixture, pinned));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void pinnedWindowWithEmptyWorkspaceAboveFirst()
+    {
+        Config::Config config = instantConfig();
+        config.layout.emptyWorkspaceAboveFirst = true;
+        Fixture fixture(config);
+        const auto pinned = fixture.add(QStringLiteral("player"));
+        setOnAllDesktops(fixture, pinned, QStringLiteral("player"), true);
+        QVERIFY(fixture.perform(QStringLiteral("focus-workspace-up")).ok);
+        fixture.advance(1);
+        QVERIFY(showsOnActiveWorkspace(fixture, pinned));
+        QVERIFY(fixture.perform(QStringLiteral("focus-workspace-down")).ok);
+        fixture.advance(1);
+        QVERIFY(showsOnActiveWorkspace(fixture, pinned));
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutAllDesktops)

@@ -306,6 +306,24 @@ private Q_SLOTS:
         QCOMPARE(fixture.frame(fixture.add()).y(), 40.0);
         VERIFY_INVARIANTS(fixture);
     }
+
+    void workspaceMovedToAnotherMonitorTakesThatMonitorsLayout()
+    {
+        QString text = QStringLiteral("animations { off; }\nlayout { always-expand-single-column false; }\n");
+        text += QStringLiteral("output \"DP-2\" { layout { struts { top 100; }; gaps 30; }; }\nworkspace \"w\" { layout { gaps 5; }; }\n");
+        Fixture fixture(Config::loadString(text, QStringLiteral("config.kdl"))->config);
+        fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
+        fixture.engine().focusOutput(QStringLiteral("DP-1"));
+        QVERIFY(fixture.perform(QStringLiteral("focus-workspace"), {QStringLiteral("w")}).ok);
+        const auto id = fixture.add();
+        QCOMPARE(fixture.frame(id).topLeft(), QPointF(5, 5));
+        QVERIFY(fixture.perform(QStringLiteral("move-workspace-to-monitor"), {QStringLiteral("DP-2")}).ok);
+        QCOMPARE(fixture.frame(id).topLeft(), QPointF(1925, 105));
+        const auto outside = fixture.add();
+        QVERIFY(fixture.perform(QStringLiteral("move-window-to-workspace-down")).ok);
+        QCOMPARE(fixture.frame(outside).y(), 130.0);
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutCascade)
