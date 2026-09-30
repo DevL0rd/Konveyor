@@ -6,16 +6,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
 from fakepointer import keys
-from kwinsession import activate, for_window, konveyor_action, konveyor_windows, run_script, wait_for
+from kwinsession import activate, frame, konveyor_action, konveyor_windows, wait_for
 
 META = 125
 RIGHT_BUTTON = 0x111
 DRAG = 120
-
-
-def frame(title):
-    printed = run_script(for_window(title, 'const g = w.frameGeometry; print("MARK|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height);'))
-    return tuple(round(float(value)) for value in printed[0].split("|"))
 
 
 def tile(title):

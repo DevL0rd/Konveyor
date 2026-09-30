@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
-from kwinsession import activate, active_title, for_window, konveyor_action, run_script, wait_for
+from kwinsession import activate, active_title, frame, konveyor_action, wait_for
 from screenshot import capture_workspace
 
 RED = (255, 0, 0)
@@ -21,11 +21,6 @@ TAB_GAP = 4
 TAB_WIDTH = 6
 
 
-def frame(title):
-    printed = run_script(for_window(title, 'const g = w.frameGeometry; print("MARK|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height);'))
-    return tuple(round(float(value)) for value in printed[0].split("|"))
-
-
 def screenshot():
     return capture_workspace(tempfile.mktemp(suffix=".png", dir=os.environ["KONVEYOR_TEST_ROOT"]))
 
@@ -34,8 +29,12 @@ def close(pixel, color, tolerance=48):
     return all(abs(a - b) <= tolerance for a, b in zip(pixel[:3], color))
 
 
+def rounded_frame(title):
+    return tuple(round(value) for value in frame(title))
+
+
 def ring_pixel(image, title):
-    x, y, width, height = frame(title)
+    x, y, width, height = rounded_frame(title)
     if x - RING < 0 or x + width > image.width:
         return None
     return image.getpixel((x - RING // 2, y + height // 2))
@@ -72,7 +71,7 @@ def accent_change(checks):
 
 def tab_pixels(title):
     image = screenshot()
-    x, y, width, height = frame(title)
+    x, y, width, height = rounded_frame(title)
     column_x = x - TAB_GAP - TAB_WIDTH // 2
     return {image.getpixel((column_x, row))[:3] for row in range(y, y + height, 4)} if column_x >= 0 else set()
 

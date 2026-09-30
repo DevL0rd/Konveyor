@@ -132,8 +132,14 @@ def minimize_rule(checks):
 
 
 def unload(checks):
+    config_path().write_text(default_config() + '\nworkspace "web"\n')
+    checks.expect(wait_for(lambda: "web" in named_indexes()), "a named workspace is back")
+    web = named_indexes()["web"]
+    checks.equal(konveyor_action("focus-workspace", "web"), "", "focus it")
+    checks.expect(wait_for(lambda: desktop_names()[web - 1] == "web"), f"its desktop is named after it ({desktop_names()})")
     before = subprocess.run(["sha256sum", str(config_path())], capture_output=True, text=True).stdout.split()[0]
     qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.unloadEffect", "konveyor_effect")
+    checks.equal(desktop_names()[web - 1], f"Desktop {web}", "unloading gives the desktop its KDE name back")
     checks.expect(wait_for(lambda: "org.kde.Konveyor" not in qdbus("org.freedesktop.DBus", "/", "org.freedesktop.DBus.ListNames")),
                   "unloading releases org.kde.Konveyor")
     checks.equal(rows(), 1, "unloading restores the desktop rows")

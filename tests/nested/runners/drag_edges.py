@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
 from fakepointer import Held, move
-from kwinsession import activate, for_window, konveyor, konveyor_action, konveyor_windows, managed_titles, open_client, run_script, wait_for
+from kwinsession import activate, frame, konveyor, konveyor_action, konveyor_windows, managed_titles, open_client, wait_for
 from nested import build_dir
 
 META = 125
@@ -23,11 +23,6 @@ def outputs_by_workspace():
 def placed(title):
     window = next(window for window in konveyor_windows() if window["title"] == title)
     return outputs_by_workspace()[window["workspace_id"]], window["layout"]["tile_pos_in_workspace_view"][0]
-
-
-def frame(title):
-    printed = run_script(for_window(title, 'const g = w.frameGeometry; print("MARK|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height);'))
-    return tuple(float(value) for value in printed[0].split("|"))
 
 
 def settled(title):

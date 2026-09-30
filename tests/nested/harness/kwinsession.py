@@ -74,6 +74,23 @@ def watch_changes(title, seconds):
                                         ' w.fullScreenChanged.connect(() => print("MARK|fullscreen|" + w.fullScreen));'), seconds)
 
 
+def frames():
+    printed = run_script('for (const w of workspace.windowList()) { if (!w.deleted && w.normalWindow) { const g = w.frameGeometry; '
+                         'print("MARK|" + w.caption + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); } }')
+    result = {}
+    for line in printed:
+        title, *values = line.split("|")
+        result[title] = tuple(float(value) for value in values)
+    return result
+
+
+def frame(title):
+    return frames().get(title)
+
+
+def intersects(a, b):
+    return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
+
 def kwin_titles():
     return run_script('for (const w of workspace.windowList()) { if (!w.deleted) print("MARK|" + w.caption); }')
 

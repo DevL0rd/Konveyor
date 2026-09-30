@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from fakepointer import click, move
-from kwinsession import activate, active_title, for_window, konveyor_action, konveyor_windows, open_client, run_script, wait_for
+from kwinsession import activate, active_title, for_window, frames, intersects, konveyor_action, konveyor_windows, open_client, run_script, wait_for
 from screenshot import capture_workspace
 
 CLIENT_COLOR = (0x2F, 0x30, 0x33)
@@ -21,19 +21,6 @@ def outputs():
         name, x, y, width, height = line.split("|")
         result[name] = (float(x), float(y), float(width), float(height))
     return result
-
-
-def frames():
-    printed = run_script('for (const w of workspace.windowList()) { if (!w.deleted && w.normalWindow) { const g = w.frameGeometry; print("MARK|" + w.caption + "|" + g.x + "|" + g.y + "|" + g.width + "|" + g.height); } }')
-    result = {}
-    for line in printed:
-        title, x, y, width, height = line.split("|")
-        result[title] = (float(x), float(y), float(width), float(height))
-    return result
-
-
-def intersects(a, b):
-    return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
 
 
 def client_pixels_in(image, rect):
