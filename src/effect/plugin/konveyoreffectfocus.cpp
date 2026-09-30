@@ -105,12 +105,15 @@ void KonveyorEffect::warpPointerTo(Layout::WindowId id)
     }
     const QPointF pointer = KWin::effects->cursorPos();
     const QRectF frame = state->targetFrame;
-    if (frame.contains(pointer) && input.warpMouseMode != Config::WarpMouseMode::CenterXYAlways) {
+    const double lastX = frame.right() - 1;
+    const double lastY = frame.bottom() - 1;
+    const bool inside = pointer.x() >= frame.left() && pointer.x() <= lastX && pointer.y() >= frame.top() && pointer.y() <= lastY;
+    if (inside && input.warpMouseMode != Config::WarpMouseMode::CenterXYAlways) {
         return;
     }
     const bool separate = input.warpMouseMode == Config::WarpMouseMode::Separate;
-    const double x = separate ? std::clamp(pointer.x(), frame.left(), frame.right()) : frame.center().x();
-    const double y = separate ? std::clamp(pointer.y(), frame.top(), frame.bottom()) : frame.center().y();
+    const double x = separate ? std::clamp(pointer.x(), frame.left(), lastX) : frame.center().x();
+    const double y = separate ? std::clamp(pointer.y(), frame.top(), lastY) : frame.center().y();
     KWin::input()->warpPointer({x, y});
 }
 
