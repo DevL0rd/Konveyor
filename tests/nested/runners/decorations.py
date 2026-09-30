@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, default_config, load_config
-from kwinsession import activate, active_title, frame, konveyor_action, wait_for
+from kwinsession import activate, active_title, frame, konveyor_action, wait_for, watch_signals
 from screenshot import capture_workspace
 
 RED = (255, 0, 0)
@@ -35,7 +35,7 @@ def rounded_frame(title):
 
 def ring_pixel(image, title):
     x, y, width, height = rounded_frame(title)
-    if x - RING < 0 or x + width > image.width:
+    if x - RING < 0 or x + width > image.width or not 0 <= y + height // 2 < image.height:
         return None
     return image.getpixel((x - RING // 2, y + height // 2))
 
@@ -65,15 +65,22 @@ def focus_ring(checks):
 
 def accent_change(checks):
     focused = active_title()
-    subprocess.run(["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "Colors:Selection", "--key", "BackgroundNormal", "0,0,255"], check=True)
-    checks.expect(wait_for(lambda: ring_is(focused, BLUE), 30, 0.5), f"changing the KDE accent recolours the ring live ({ring_pixel(screenshot(), focused)})")
+    write = ["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "Colors:Selection", "--key", "BackgroundNormal", "0,0,255"]
+    announced = watch_signals("type='signal',path='/kdeglobals',interface='org.kde.kconfig.notify',member='ConfigChanged'",
+                              lambda: subprocess.run(write, check=True), lambda lines: any("Colors:Selection" in line for line in lines))
+    checks.expect(any("Colors:Selection" in line for line in announced), f"kwriteconfig6 announces the accent change on the session bus ({announced})")
+    kdeglobals = (Path(os.environ["XDG_CONFIG_HOME"]) / "kdeglobals").read_text()
+    checks.expect(wait_for(lambda: ring_is(focused, BLUE), 30, 0.5),
+                  f"changing the KDE accent recolours the ring live ({ring_pixel(screenshot(), focused)}, kdeglobals {kdeglobals!r})")
 
 
 def tab_pixels(title):
     image = screenshot()
     x, y, width, height = rounded_frame(title)
     column_x = x - TAB_GAP - TAB_WIDTH // 2
-    return {image.getpixel((column_x, row))[:3] for row in range(y, y + height, 4)} if column_x >= 0 else set()
+    if not 0 <= column_x < image.width:
+        return set()
+    return {image.getpixel((column_x, row))[:3] for row in range(max(y, 0), min(y + height, image.height), 4)}
 
 
 def tab_bar(checks):
