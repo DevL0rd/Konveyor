@@ -78,6 +78,7 @@ private:
     void moveActiveOutputHome(Layout::WindowId id);
     void applyFocusRequest();
     void focusWindowUnderPointer(const QPointF &position);
+    bool switchToTabUnderPointer(const QPointF &position);
     void warpPointerTo(Layout::WindowId id);
     bool isFloatingWindow(Layout::WindowId id) const;
     bool adoptFloatingGeometry(Layout::WindowId id, KWin::Window *window);

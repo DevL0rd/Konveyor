@@ -91,6 +91,7 @@ void KonveyorEffect::installInputFilter()
             Config::ScrollDirection direction) { return d->shortcuts.triggerPointerBind(trigger, modifiers, button, direction); },
         [this](const QPointF &position, qint64 timestamp) { handlePointerMotion(position, timestamp); },
         [this] { endTitlebarDrag(); },
+        [this](const QPointF &position) { return switchToTabUnderPointer(position); },
         [this](quint32 keycode, Qt::KeyboardModifiers modifiers, bool repeat) {
             const KWin::Xkb *xkb = KWin::input()->keyboard()->xkb();
             return d->shortcuts.triggerKeyPosition(keycode, modifiers, repeat, xkb->keymap(), xkb->currentLayout());

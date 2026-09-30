@@ -346,11 +346,11 @@ std::optional<QPointF> Workspace::tileRenderPosition(WindowId id) const
     return std::nullopt;
 }
 
-std::optional<WindowId> Workspace::windowUnder(QPointF pos) const
+std::optional<WindowHit> Workspace::windowUnder(QPointF pos) const
 {
     if (showsFloating()) {
         if (const auto id = m_floating.windowUnder(pos)) {
-            return id;
+            return WindowHit {*id, false};
         }
     }
     return m_strip.windowUnder(pos);

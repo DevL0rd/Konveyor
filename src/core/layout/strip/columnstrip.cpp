@@ -260,14 +260,14 @@ bool ColumnStrip::animateOpening(WindowId id)
     return std::ranges::any_of(m_columns, [id](Column &column) { return column.animateOpening(id); });
 }
 
-std::optional<WindowId> ColumnStrip::windowUnder(QPointF pos) const
+std::optional<WindowHit> ColumnStrip::windowUnder(QPointF pos) const
 {
     for (const ColumnRef &ref : renderedColumns()) {
         const Column &column = *ref.column;
         if (column.isTabbed() && column.sizingMode() == WindowMode::Normal) {
             const QPointF colPos = roundPoint(ref.pos, m_area.scale);
             if (const auto idx = column.tabBar.hit(column.tabBarRect(), column.tiles.size(), m_area.scale, pos - colPos)) {
-                return column.tiles[*idx].id();
+                return WindowHit {column.tiles[*idx].id(), true};
             }
         }
         const std::vector<QPointF> offsets = column.tilePositions();
@@ -276,7 +276,7 @@ std::optional<WindowId> ColumnStrip::windowUnder(QPointF pos) const
             const bool visible = i == column.activeTileIndex || !column.isTabbed();
             const QPointF tilePos = roundPoint(ref.pos + offsets[i] + tile.animationOffset(), m_area.scale);
             if (visible && QRectF(tilePos, tile.outerSize()).contains(pos)) {
-                return tile.id();
+                return WindowHit {tile.id(), false};
             }
         }
     }

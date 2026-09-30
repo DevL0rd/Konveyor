@@ -89,8 +89,16 @@ bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
     const bool pressed = event->state == KWin::PointerButtonState::Pressed;
     if (!pressed) {
         m_handlers.pointerReleased();
+        return m_swallowedButtons.remove(event->button);
     }
-    if (!pressed || !button || event->modifiersRelevantForShortcuts == Qt::NoModifier) {
+    if (event->modifiersRelevantForShortcuts == Qt::NoModifier) {
+        const bool onTab = event->button == Qt::LeftButton && m_handlers.tabClicked(event->position);
+        if (onTab) {
+            m_swallowedButtons.insert(event->button);
+        }
+        return onTab;
+    }
+    if (!button) {
         return false;
     }
     return m_handlers.pointerBind(

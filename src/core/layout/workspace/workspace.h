@@ -171,7 +171,7 @@ public:
     std::vector<ConstTileRef> tilesWithRenderPositions() const;
     std::vector<ConstTileRef> placedTiles(bool animated) const;
     std::vector<TileRef> renderedTilesMut(bool round);
-    std::optional<WindowId> windowUnder(QPointF pos) const;
+    std::optional<WindowHit> windowUnder(QPointF pos) const;
     std::optional<QPointF> tileRenderPosition(WindowId id) const;
     DropSlot tiledDropSlotAt(QPointF pos, std::optional<Config::ColumnPosition> movingPin) const;
     std::optional<QRectF> dropSlotRect(DropSlot position) const;

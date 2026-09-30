@@ -139,7 +139,7 @@ public:
     bool setFullscreen(WindowId window, bool fullscreen);
     bool setMaximized(WindowId window, bool maximize);
     bool drawsAbovePanels() const;
-    std::optional<WindowId> windowUnder(QPointF pos) const;
+    std::optional<WindowHit> windowUnder(QPointF pos) const;
 
     void beginSwipe(bool isTouchpad);
     std::optional<bool> updateSwipe(double deltaX, Anim::Duration timestamp, bool isTouchpad);

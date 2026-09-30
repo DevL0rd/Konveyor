@@ -16,6 +16,7 @@ struct InputHandlers
     std::function<bool(Config::BindTrigger, Qt::KeyboardModifiers, Config::MouseButton, Config::ScrollDirection)> pointerBind;
     std::function<void(const QPointF &, qint64)> pointerMoved;
     std::function<void()> pointerReleased;
+    std::function<bool(const QPointF &)> tabClicked;
     std::function<bool(quint32, Qt::KeyboardModifiers, bool)> keyPositionBind;
 };
 
@@ -33,6 +34,7 @@ public:
 private:
     InputHandlers m_handlers;
     QSet<quint32> m_swallowedKeys;
+    QSet<Qt::MouseButton> m_swallowedButtons;
 };
 
 class DragMotionFilter : public KWin::InputEventFilter

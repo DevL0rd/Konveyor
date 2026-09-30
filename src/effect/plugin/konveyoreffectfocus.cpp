@@ -85,6 +85,17 @@ void KonveyorEffect::focusWindowUnderPointer(const QPointF &position)
     }
 }
 
+bool KonveyorEffect::switchToTabUnderPointer(const QPointF &position)
+{
+    const std::optional<Layout::WindowHit> hit = readEngine().hitAt(position);
+    KWin::Window *window = hit && hit->onTab ? d->windows.windowOf(hit->id) : nullptr;
+    if (!window) {
+        return false;
+    }
+    KWin::workspace()->activateWindow(window);
+    return true;
+}
+
 void KonveyorEffect::warpPointerTo(Layout::WindowId id)
 {
     const Config::Input &input = d->config.config().input;

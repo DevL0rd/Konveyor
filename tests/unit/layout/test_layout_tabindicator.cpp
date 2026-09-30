@@ -87,6 +87,34 @@ private Q_SLOTS:
         QCOMPARE(topmostTab(fixture, tabs), 0);
     }
 
+    void hitsTellTabsFromWindows()
+    {
+        Fixture fixture(tabbedConfig(Config::TabIndicatorPosition::Left, 4, -2));
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
+        fixture.advance(1);
+        const QList<QRectF> rects = fixture.state(tabs[1]).tabBar.tabRects;
+        QCOMPARE(fixture.engine().hitAt(rects[0].center()), std::optional(Layout::WindowHit {tabs[0], true}));
+        QCOMPARE(fixture.engine().hitAt(rects[1].center()), std::optional(Layout::WindowHit {tabs[1], true}));
+        QVERIFY(fixture.frame(tabs[1]).contains(rects[1].center()));
+        QCOMPARE(fixture.engine().hitAt(QPointF(400, 500)), std::optional(Layout::WindowHit {tabs[1], false}));
+        QCOMPARE(fixture.engine().hitAt(QPointF(400, 100)), std::optional(Layout::WindowHit {tabs[1], false}));
+        QCOMPARE(fixture.engine().hitAt(QPointF(1900, 1070)), std::nullopt);
+    }
+
+    void aFloatingWindowOverATabTakesTheHit()
+    {
+        Fixture fixture(tabbedConfig(Config::TabIndicatorPosition::Left, 4, 5));
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
+        fixture.advance(1);
+        const QPointF onTab = fixture.state(tabs[1]).tabBar.tabRects[0].center();
+        const auto floating = fixture.add(QStringLiteral("floating"), QSizeF(300, 300));
+        fixture.perform(QStringLiteral("toggle-window-floating"));
+        fixture.engine().setFloatingFrame(floating, QRectF(onTab.x() - 150, onTab.y() - 150, 300, 300));
+        fixture.settle();
+        QVERIFY(fixture.frame(floating).contains(onTab));
+        QCOMPARE(fixture.engine().hitAt(onTab), std::optional(Layout::WindowHit {floating, false}));
+    }
+
     void outsideTabsKeepTheirDistanceFromEverything_data()
     {
         QTest::addColumn<Config::TabIndicatorPosition>("position");

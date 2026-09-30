@@ -26,6 +26,13 @@ namespace Konveyor::Layout
 using WindowId = quint64;
 using WorkspaceId = quint64;
 
+struct WindowHit
+{
+    WindowId id = 0;
+    bool onTab = false;
+    bool operator==(const WindowHit &) const = default;
+};
+
 struct OutputInfo
 {
     QString name;
@@ -251,6 +258,7 @@ public:
     QList<OutputState> outputStates() const;
     std::optional<WindowId> focusedWindow() const;
     std::optional<WindowId> windowAt(const QPointF &globalPos) const;
+    std::optional<WindowHit> hitAt(const QPointF &globalPos) const;
 
     void focusWorkspace(const QString &output, int index);
     void setWindowMemory(const WindowMemory &memory);

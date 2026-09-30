@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, config_path, default_config
+from fakepointer import click
 from kwinsession import active_title, frame, frames, konveyor_action, wait_for
 from screenshot import capture_workspace
 
@@ -85,6 +86,17 @@ def switching_tabs_changes_the_shown_window(checks):
     checks.expect(wait_for(lambda: shown("B"), 30, 0.3), "switching back shows B")
 
 
+def clicking_a_tab_shows_its_window(checks):
+    x, y, _, height = frame("A")
+    click(x - 5 - 4, y + height * 0.375)
+    checks.expect(wait_for(lambda: active_title() == "A" and shown("A"), 30, 0.3), "clicking the first tab shows A")
+    click(x - 5 - 4, y + height * 0.625)
+    checks.expect(wait_for(lambda: active_title() == "B" and shown("B"), 30, 0.3), "clicking the second tab shows B")
+    click(x + 100, y + 100)
+    checks.expect(wait_for(lambda: "konveyor-test-clicked:B" in Path(os.environ["KONVEYOR_KWIN_LOG"]).read_text(errors="replace"), 30, 0.3),
+                  "a click on the window still reaches it")
+
+
 def room_beside(title, position):
     x, y, w, h = frame(title)
     rooms = {"left": x, "right": frame("C")[0] - (x + w), "top": y, "bottom": 1080 - (y + h)}
@@ -122,7 +134,7 @@ def roundness_rounds_the_tabs(checks):
 
 
 def main():
-    Checks().run(switching_tabs_changes_the_shown_window, thick_tabs_get_room, roundness_rounds_the_tabs)
+    Checks().run(switching_tabs_changes_the_shown_window, clicking_a_tab_shows_its_window, thick_tabs_get_room, roundness_rounds_the_tabs)
 
 
 if __name__ == "__main__":
