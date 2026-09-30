@@ -115,39 +115,18 @@ jobs:
   nested:
     name: Nested KWin tests
     runs-on: ubuntu-latest
-    container:
-      image: archlinux:base-devel
     steps:
-      - name: Install the nested session tools
-        run: >-
-          pacman -Syu --noconfirm --needed git cmake ninja wayland-protocols dbus mesa xorg-xwayland qt6-wayland qt6-declarative
-          python python-dbus python-gobject python-pillow python-xlib plasma-workspace plasma-keyboard breeze libkscreen kcmutils chromium
-
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Mark checkout as safe
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
+        run: tests/nested/ci/vgem.sh
 
-      - name: Install Konveyor's dependencies
-        run: extras/packaging/dependencies.sh
-
-      - name: Build
-        run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          cmake --build build
-
-      - name: Let kwin_wayland start in a container, which does not grant its CAP_SYS_NICE file capability
-        run: setcap -r "$(command -v kwin_wayland)"
-
-      - name: Run the nested KWin tests as a normal user
-        run: |
-          useradd -m tester
-          chown -R tester: "$GITHUB_WORKSPACE"
-          install -d -m 700 -o tester /tmp/runtime-tester
-          runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester \
-            ctest --test-dir build -L nested --output-on-failure -j2
+      - name: Build and run the nested KWin tests as a normal user on Arch Linux
+        run: >-
+          docker run --rm --device /dev/dri --shm-size 2g --security-opt seccomp=unconfined
+          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh
 
   distros:
     name: Install dependencies and build on ${{ matrix.name }}
