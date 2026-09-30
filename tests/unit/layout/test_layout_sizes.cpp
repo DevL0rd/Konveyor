@@ -227,6 +227,21 @@ private Q_SLOTS:
         QCOMPARE(fixture.frame(a).width(), 928.0);
     }
 
+    void fixedDefaultWidthWithABorderKnowsItsPreset()
+    {
+        Config::Config config = instantConfig();
+        config.layout.border.enabled = true;
+        config.layout.border.width = 4;
+        config.layout.presetColumnWidths = {Config::PresetSize(Config::Fixed {500}), Config::PresetSize(Config::Proportion {0.5})};
+        config.layout.defaultColumnWidth = Config::Fixed {500};
+        Fixture fixture(config);
+        const auto a = fixture.add(QStringLiteral("a"));
+        QCOMPARE(fixture.frame(a).width(), 500.0);
+        QCOMPARE(fixture.state(a).widthPresetIndex, std::optional(0));
+        fixture.perform(QStringLiteral("switch-preset-column-width"));
+        QCOMPARE(fixture.frame(a).width(), 928.0);
+    }
+
     void focusRingWidthNeverChangesTheGeometry()
     {
         Config::Config config = instantConfig();

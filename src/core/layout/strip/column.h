@@ -64,6 +64,7 @@ public:
     PresetExtent presetWidthExtent(const Config::PresetSize &preset) const;
     PresetExtent presetHeightExtent(const Config::PresetSize &preset) const;
     double widthInPixels(ColumnWidth width) const;
+    std::optional<std::size_t> presetIndexOf(ColumnWidth width) const;
     void layoutTiles(bool animate);
     double width() const;
 
