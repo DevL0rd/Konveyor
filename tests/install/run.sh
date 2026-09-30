@@ -48,6 +48,9 @@ step "Uninstalling Konveyor"
 as_tester ./uninstall.sh
 sleep 10
 
+step "Checking that uninstalling gave the shortcuts back"
+as_tester /opt/install-test/verify.sh uninstalled
+
 step "Checking that uninstalling left the system as it was"
 as_root /opt/install-test/snapshot.sh after
 as_root /opt/install-test/compare.sh
