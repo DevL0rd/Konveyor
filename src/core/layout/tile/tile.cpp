@@ -297,6 +297,12 @@ double Tile::outerWidthFor(double size) const
     return m_border.enabled ? size + m_border.width * 2.0 : size;
 }
 
+ColumnWidth Tile::columnWidthFor(const Config::PresetSize &preset) const
+{
+    const ColumnWidth width = ColumnWidth::fromPreset(preset);
+    return width.isProportion ? width : ColumnWidth::fixed(outerWidthFor(width.value));
+}
+
 double Tile::outerHeightFor(double size) const
 {
     return outerWidthFor(size);

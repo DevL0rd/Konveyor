@@ -100,6 +100,7 @@ public:
     void requestMaximized(QSizeF size, bool animate);
     void requestFullscreen(bool animate);
     double outerWidthFor(double size) const;
+    ColumnWidth columnWidthFor(const Config::PresetSize &preset) const;
     double outerHeightFor(double size) const;
     double innerWidthFor(double size) const;
     double innerHeightFor(double size) const;

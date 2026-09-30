@@ -87,9 +87,10 @@ void ColumnStrip::unstackPlacementColumns(const std::optional<Config::PresetSize
         if (!m_columns[idx].stackedByPlacement || m_columns[idx].tiles.size() < 2) {
             continue;
         }
-        const ColumnWidth columnWidth = width ? ColumnWidth::fromPreset(*width) : m_columns[idx].widthSetting;
+        const ColumnWidth kept = m_columns[idx].widthSetting;
         while (m_columns[idx].tiles.size() > 1) {
             DetachedTile moved = detachTileAt(idx, m_columns[idx].tiles.size() - 1, std::nullopt);
+            const ColumnWidth columnWidth = width ? moved.tile.columnWidthFor(*width) : kept;
             addTile(idx + 1, std::move(moved.tile), false, columnWidth, false, std::nullopt);
         }
         m_columns[idx].stackedByPlacement = false;

@@ -19,6 +19,7 @@ std::atomic<quint64> s_nextColumnId {1};
 
 Column::Column(Tile tile, const AreaInfo &area, ColumnWidth width, bool fillsWidth)
     : widthSetting(width)
+    , defaultedWidth(width)
     , fillsWidth(fillsWidth)
     , displayStyle(tile.window().rules().defaultColumnDisplay.value_or(tile.options()->layout.defaultColumnDisplay))
     , tabBar(tile.options()->layout.tabIndicator)

@@ -47,18 +47,19 @@ std::optional<std::optional<Config::PresetSize>> ColumnStrip::ruleWidthFor(const
 void ColumnStrip::applyDefaultColumnWidths()
 {
     m_defaultWidthsPending = false;
-    const std::optional<ColumnWidth> replaced
-        = m_replacedDefaultWidth ? std::optional(ColumnWidth::fromPreset(*m_replacedDefaultWidth)) : std::nullopt;
-    m_replacedDefaultWidth.reset();
+    const std::optional<Config::PresetSize> replaced = std::exchange(m_replacedDefaultWidth, std::nullopt);
     for (Column &column : m_columns) {
         const std::optional<std::optional<Config::PresetSize>> rule = ruleWidthFor(column);
         const std::optional<Config::PresetSize> preset = rule ? *rule : m_options->layout.defaultColumnWidth;
-        const bool customized = !rule && replaced && (column.fillsWidth || column.widthSetting != *replaced);
-        if (!preset || customized) {
+        const Tile &first = column.tiles.front();
+        const bool resizedByHand = rule ? column.widthSetting != column.defaultedWidth
+                                        : replaced && column.widthSetting != first.columnWidthFor(*replaced);
+        if (!preset || column.fillsWidth || resizedByHand) {
             continue;
         }
-        column.widthSetting = ColumnWidth::fromPreset(*preset);
-        column.fillsWidth = false;
+        column.widthSetting = first.columnWidthFor(*preset);
+        column.defaultedWidth = column.widthSetting;
+        column.presetWidthIndex = column.presetIndexOf(column.widthSetting);
         column.layoutTiles(false);
     }
 }

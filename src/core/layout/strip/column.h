@@ -103,6 +103,7 @@ public:
     std::vector<TileSizing> data;
     std::size_t activeTileIndex = 0;
     ColumnWidth widthSetting;
+    ColumnWidth defaultedWidth;
     std::optional<std::size_t> presetWidthIndex;
     bool fillsWidth = false;
     bool expandedAlone = false;
