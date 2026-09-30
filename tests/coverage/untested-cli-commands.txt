@@ -1,0 +1,14 @@
+konveyor --config
+konveyor --json
+konveyor msg
+konveyor msg action
+konveyor msg binds
+konveyor msg focused-output
+konveyor msg focused-window
+konveyor msg load-config-file
+konveyor msg outputs
+konveyor msg version
+konveyor msg windows
+konveyor msg workspaces
+konveyor restore-shortcuts
+konveyor validate

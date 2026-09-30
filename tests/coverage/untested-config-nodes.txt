@@ -1,0 +1,13 @@
+bottom-right
+column-position
+gradient
+height-above
+height-below
+inactive-color
+inactive-gradient
+name
+top-left
+urgent-color
+urgent-gradient
+width-above
+width-below

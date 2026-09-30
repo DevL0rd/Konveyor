@@ -1,0 +1,11 @@
+experiments
+layout
+look
+monitors
+motion
+mouse
+plasma
+rules
+shortcuts
+touch
+workspaces

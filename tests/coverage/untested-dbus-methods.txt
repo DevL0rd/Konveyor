@@ -1,0 +1,8 @@
+org.kde.Konveyor.FocusedOutput
+org.kde.Konveyor.FocusedWindow
+org.kde.Konveyor.Gestures
+org.kde.Konveyor.LastBind
+org.kde.Konveyor.LoadConfigFile
+org.kde.Konveyor.MultiTouchActive
+org.kde.Konveyor.MultiTouchChanged
+org.kde.Konveyor.Version
