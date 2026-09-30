@@ -21,6 +21,7 @@ struct InputHandlers
     std::function<bool(const QPointF &)> tabClicked;
     std::function<bool(quint32, Config::BindModifiers, bool)> keyPositionBind;
     std::function<void()> escapePressed;
+    std::function<bool()> toggleDragFloating;
 };
 
 class InputFilter : public KWin::InputEventFilter

@@ -254,16 +254,18 @@ private Q_SLOTS:
         QCOMPARE(t.fixture.state(t.c).columnIndex, 0);
     }
 
-    void togglingFloatingBeforeTheWindowDetachesDoesNothing()
+    void togglingFloatingBeforeTheWindowDetachesLiftsItFloating()
     {
         Three t;
-        const QPointF start = t.fixture.frame(t.c).center();
-        QVERIFY(t.fixture.engine().beginWindowDrag(t.c, start));
-        t.fixture.engine().toggleWindowDragFloating();
+        const QRectF before = t.fixture.frame(t.c);
+        QVERIFY(t.fixture.engine().beginWindowDrag(t.c, before.center()));
+        QVERIFY(t.fixture.engine().toggleWindowDragFloating());
+        QCOMPARE(t.fixture.engine().movingWindow(), std::optional(t.c));
         t.fixture.engine().endWindowDrag();
         t.fixture.settle();
-        QVERIFY(!t.fixture.state(t.c).isFloating);
-        QCOMPARE(t.fixture.state(t.c).columnIndex, 2);
+        QVERIFY(t.fixture.state(t.c).isFloating);
+        QVERIFY(t.fixture.frame(t.c).contains(before.center()));
+        VERIFY_INVARIANTS(t.fixture);
     }
 
     void draggingAFullscreenWindowLeavesFullscreen_data()
@@ -302,7 +304,7 @@ private Q_SLOTS:
         Three t;
         const QRectF before = t.fixture.frame(t.c);
         t.fixture.engine().updateWindowDrag(QPointF(2, 540), QStringLiteral("DP-1"));
-        t.fixture.engine().toggleWindowDragFloating();
+        QVERIFY(!t.fixture.engine().toggleWindowDragFloating());
         t.fixture.engine().endWindowDrag();
         t.fixture.settle();
         QCOMPARE(t.fixture.frame(t.c), before);

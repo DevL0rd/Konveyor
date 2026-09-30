@@ -74,10 +74,8 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
     if (isMove) {
         trackMove(id, phase);
     }
-    if (isFloatingWindow(id)) {
-        if (phase == interactivePhaseEnd || (isMove && phase == interactivePhaseStep)) {
-            changeEngine().setFloatingFrame(id, window->moveResizeGeometry());
-        }
+    if (isFloatingWindow(id) && readEngine().movingWindow() != id) {
+        followFloatingWindow(id, window, isMove, phase);
         return;
     }
     const bool scrollOnDrag = d->config.config().gestures.titlebarDrag == Config::TitlebarDrag::ScrollView;
@@ -94,6 +92,18 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
     }
     if (lifted && phase == interactivePhaseEnd) {
         d->touchLift.reset();
+    }
+}
+
+void KonveyorEffect::followFloatingWindow(Layout::WindowId id, KWin::Window *window, bool isMove, int phase)
+{
+    if (phase == interactivePhaseEnd || (isMove && phase == interactivePhaseStep)) {
+        changeEngine().setFloatingFrame(id, window->moveResizeGeometry());
+    }
+    if (isMove && phase == interactivePhaseStart) {
+        changeEngine().beginWindowDrag(id, interactionPoint());
+    } else if (isMove && phase == interactivePhaseEnd) {
+        changeEngine().endWindowDrag();
     }
 }
 
@@ -181,6 +191,11 @@ void KonveyorEffect::markMoveCancelled()
 {
     KWin::Window *window = KWin::workspace()->moveResizeWindow();
     d->cancelledMove = window && window->isInteractiveMove() ? d->windows.idOf(window) : std::nullopt;
+}
+
+bool KonveyorEffect::toggleDragFloating()
+{
+    return changeEngine().toggleWindowDragFloating();
 }
 
 void KonveyorEffect::handleWindowResize(Layout::WindowId id, KWin::Window *window, int phase)

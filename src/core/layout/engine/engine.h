@@ -242,7 +242,7 @@ public:
 
     bool beginWindowDrag(WindowId id, const QPointF &pointer);
     void updateWindowDrag(const QPointF &pointer, const QString &output);
-    void toggleWindowDragFloating();
+    bool toggleWindowDragFloating();
     void endWindowDrag();
     void cancelWindowDrag();
     bool beginResize(WindowId id, quint8 edges);

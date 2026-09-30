@@ -175,6 +175,8 @@ struct Engine::Private
     void continueEdgeScroll();
     void moveDragToActiveOutput();
     void updateDropHint();
+    void setDragFloating(bool floating);
+    void placeDragPointerOnFloatingTile();
     void interactiveMoveFinish();
     void dropDraggedWindow(std::optional<WindowId> window);
     void returnDraggedTile(WindowDrag &move);

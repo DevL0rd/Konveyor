@@ -131,6 +131,10 @@ bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
         m_handlers.pointerReleased();
         return m_swallowedButtons.remove(event->button);
     }
+    if (event->button == Qt::RightButton && m_handlers.toggleDragFloating()) {
+        m_swallowedButtons.insert(event->button);
+        return true;
+    }
     const Config::BindModifiers modifiers = bindModifiersOf(event->modifiersRelevantForShortcuts);
     if (!modifiers && event->button == Qt::LeftButton && m_handlers.tabClicked(event->position)) {
         m_swallowedButtons.insert(event->button);

@@ -99,6 +99,7 @@ void KonveyorEffect::installInputFilter()
             return d->shortcuts.triggerKeyPosition(keycode, modifiers, repeat, xkb->keymap(), xkb->currentLayout());
         },
         [this] { markMoveCancelled(); },
+        [this] { return toggleDragFloating(); },
     });
     d->axisInput = std::make_unique<AxisFilter>(pointerBind);
     d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {

@@ -181,20 +181,58 @@ void Engine::Private::moveDragToActiveOutput()
     updateDropHint();
 }
 
-void Engine::toggleWindowDragFloating()
+void Engine::Private::placeDragPointerOnFloatingTile()
 {
-    if (!d->windowDrag || !d->windowDrag->moving || !d->windowDrag->tile) {
+    WindowDrag &move = *windowDrag;
+    const Monitor *monitor = monitorOf(move.window);
+    Workspace *workspace = workspaceOf(move.window);
+    const Tile *tile = workspace ? workspace->tileFor(move.window) : nullptr;
+    const auto tilePos = workspace ? workspace->tileRenderPosition(move.window) : std::nullopt;
+    if (!monitor || !tile || !tilePos) {
         return;
     }
-    WindowDrag &move = *d->windowDrag;
-    move.isFloating = !move.isFloating;
-    if (move.isFloating) {
-        move.tile->fadeOpacity(DraggedWindowOpacity, 1.0, d->options->animations.windowMovement);
+    const QSizeF size = tile->windowSize();
+    move.output = monitor->outputName();
+    move.pointerPos
+        = *tilePos + tile->windowOffset() + QPointF(move.pointerRatio.x() * size.width(), move.pointerRatio.y() * size.height());
+}
+
+void Engine::Private::setDragFloating(bool floating)
+{
+    if (windowDrag && !windowDrag->moving) {
+        if (windowDrag->isFloating) {
+            placeDragPointerOnFloatingTile();
+        }
+        beginInteractiveMoving(windowDrag->output);
+    }
+    if (!windowDrag || !windowDrag->tile || windowDrag->isFloating == floating) {
+        return;
+    }
+    WindowDrag &move = *windowDrag;
+    move.isFloating = floating;
+    if (floating) {
+        FloatingLayer::prepareTileSize(*move.tile);
+        move.tile->fadeOpacity(DraggedWindowOpacity, 1.0, options->animations.windowMovement);
     } else {
-        move.tile->fadeOpacity(1.0, DraggedWindowOpacity, d->options->animations.windowMovement);
+        for (Monitor &monitor : monitors) {
+            for (Workspace &workspace : monitor.workspaces()) {
+                workspace.beginEdgeScroll();
+            }
+        }
+        move.tile->fadeOpacity(1.0, DraggedWindowOpacity, options->animations.windowMovement);
         move.tile->keepFadeAfterFinish();
     }
-    d->updateDropHint();
+    updateDropHint();
+}
+
+bool Engine::toggleWindowDragFloating()
+{
+    if (!d->windowDrag) {
+        return false;
+    }
+    d->setDragFloating(!d->windowDrag->isFloating);
+    d->refresh();
+    return true;
 }
 
 void Engine::Private::dropInteractiveTile(Monitor &monitor, const Monitor::InsertTarget &insertTarget)

@@ -85,7 +85,9 @@ private:
     void handleTitlebarDrag(Layout::WindowId id, KWin::Window *window, int phase);
     void endTitlebarDrag();
     void handleWindowMove(Layout::WindowId id, KWin::Window *window, int phase);
+    void followFloatingWindow(Layout::WindowId id, KWin::Window *window, bool isMove, int phase);
     void markMoveCancelled();
+    bool toggleDragFloating();
     void handleWindowResize(Layout::WindowId id, KWin::Window *window, int phase);
     void connectDesktopSync();
     void applyConfig(const Config::Config &config);

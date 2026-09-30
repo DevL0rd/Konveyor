@@ -137,6 +137,21 @@ ActionResult moveFloatingWindow(Engine::Private &d, const Config::Action &action
     return {};
 }
 
+ActionResult placeFloating(Engine::Private &d, const Config::Action &action, std::optional<WindowId> target, std::optional<bool> floating)
+{
+    const auto window = d.target(actionWindowId(action, target));
+    if (d.windowDrag && window == d.windowDrag->window) {
+        d.setDragFloating(floating.value_or(!d.windowDrag->isFloating));
+    } else if (Workspace *workspace = d.workspaceForTarget(window)) {
+        if (floating) {
+            workspace->placeWindowFloating(window, *floating);
+        } else {
+            workspace->toggleWindowFloating(window);
+        }
+    }
+    return {};
+}
+
 ActionResult setUrgency(Engine::Private &d, const Config::Action &action, std::optional<WindowId> target, int mode)
 {
     const auto window = d.target(actionWindowId(action, target));
@@ -184,9 +199,12 @@ void registerOverviewActions(ActionTable &table)
 void registerWindowActions(ActionTable &table)
 {
     registerOverviewActions(table);
-    addTargetAction(table, "toggle-window-floating", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleWindowFloating(id); });
-    addTargetAction(table, "move-window-to-floating", +[](Workspace &ws, std::optional<WindowId> id) { ws.placeWindowFloating(id, true); });
-    addTargetAction(table, "move-window-to-tiling", +[](Workspace &ws, std::optional<WindowId> id) { ws.placeWindowFloating(id, false); });
+    addEngineAction(table, "toggle-window-floating",
+        [](Engine::Private &d, const Config::Action &a, std::optional<WindowId> t) { return placeFloating(d, a, t, std::nullopt); });
+    addEngineAction(table, "move-window-to-floating",
+        [](Engine::Private &d, const Config::Action &a, std::optional<WindowId> t) { return placeFloating(d, a, t, true); });
+    addEngineAction(table, "move-window-to-tiling",
+        [](Engine::Private &d, const Config::Action &a, std::optional<WindowId> t) { return placeFloating(d, a, t, false); });
     addEngineAction(table, "move-floating-window", moveFloatingWindow);
     addEngineAction(table, "close-window", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId> target) {
         const auto window = d.target(actionWindowId(action, target));

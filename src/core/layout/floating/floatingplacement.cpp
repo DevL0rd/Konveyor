@@ -106,7 +106,7 @@ QPointF FloatingLayer::keepInsideWorkArea(QPointF pos, QSizeF size) const
     return clampIntoArea(m_workingArea, QRectF(pos, size));
 }
 
-void FloatingLayer::prepareTileSize(Tile &tile) const
+void FloatingLayer::prepareTileSize(Tile &tile)
 {
     LayoutWindow &window = tile.window();
     QSize size = tile.savedFloatingSize.value_or(QSize());

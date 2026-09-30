@@ -121,7 +121,7 @@ Workspaces live above and below each other and appear the moment you need one. S
 
 ### 🪟 Float anything
 
-Some windows don't belong in a row. Lift one out with a single key, move it and resize it freely like any normal Plasma window, then drop it back in. Dialogs and pop-ups float on their own.
+Some windows don't belong in a row. Lift one out with a single key, move it and resize it freely like any normal Plasma window, then drop it back in. While you drag a window, a right click switches between dropping it into the row and letting it float. Dialogs and pop-ups float on their own.
 
 <p align="center"><img alt="Floating a window out of the row and back" src="docs/media/floating.gif" width="88%"></p>
 
