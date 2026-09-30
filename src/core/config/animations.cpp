@@ -139,7 +139,7 @@ AnimationParams decodeAnimation(const Kdl::Node &node, const AnimationParams &fa
     });
     table.insert(QStringLiteral("duration-ms"), [&draft](const Kdl::Node &child) {
         guardExclusive(child, draft.hasSpring);
-        draft.easing.durationMs = static_cast<double>(integerArgument(child, Range {0, 2147483647}));
+        draft.easing.durationMs = static_cast<double>(integerArgument(child, Range {1, 2147483647}));
         draft.hasEasing = true;
     });
     table.insert(QStringLiteral("curve"), [&draft](const Kdl::Node &child) {
@@ -173,18 +173,15 @@ void decodeAnimations(const Kdl::Node &node, Animations &animations)
     table.insert(QStringLiteral("on"), [&on](const Kdl::Node &child) { on = flagArgument(child); });
     table.insert(QStringLiteral("off"), [&off](const Kdl::Node &child) { off = flagArgument(child); });
     table.insert(QStringLiteral("slowdown"),
-        [&animations](const Kdl::Node &child) { animations.slowdown = numberArgument(child, Range {0, 2147483647}); });
+        [&animations](const Kdl::Node &child) { animations.slowdown = positiveNumberArgument(child, 2147483647); });
     static const Animations defaults = defaultAnimations();
     for (const AnimationSlot &slot : animationSlots()) {
         table.insert(slot.name,
             [&animations, slot](const Kdl::Node &child) { animations.*slot.field = decodeAnimation(child, defaults.*slot.field); });
     }
     decodeChildren(node, table);
-    if (off) {
-        animations.enabled = false;
-    }
-    if (on) {
-        animations.enabled = true;
+    if (const std::optional<bool> enabled = decodeToggle(node, on, off)) {
+        animations.enabled = *enabled;
     }
 }
 

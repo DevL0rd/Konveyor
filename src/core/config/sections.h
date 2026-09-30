@@ -18,6 +18,7 @@ struct LoadContext
     QHash<QString, QString> texts;
     QString rootDir;
     QStringList workspaceNames;
+    QHash<QString, std::pair<QString, Kdl::Location>> bindNodes;
     int recursion = 0;
 };
 
@@ -48,7 +49,7 @@ Qt::KeyboardModifiers qtModifiers(BindModifiers modifiers);
 
 WindowRule decodeWindowRule(const Kdl::Node &node);
 void decodeBinds(LoadContext &context, const Kdl::Node &node);
-void resolveBinds(Config &config);
+void resolveBinds(LoadContext &context);
 
 void processNode(LoadContext &context, const Kdl::Node &node, const QString &baseDir, const QStringList &stack);
 void processDocument(LoadContext &context, const Kdl::Document &document, const QString &baseDir, const QStringList &stack);

@@ -66,10 +66,10 @@ std::expected<LoadResult, LoadError> runLoad(LoadContext &context, const QString
     }
     try {
         processDocument(context, *document, baseDir, QStringList {QDir(baseDir).filePath(name)});
+        resolveBinds(context);
     } catch (const DecodeError &error) {
         return std::unexpected(LoadError {error.message, error.location, sourceLineOf(context, error.location), context.files});
     }
-    resolveBinds(context.config);
     resolveScopedLayouts(context.config);
     return LoadResult {context.config, context.files, context.warnings};
 }

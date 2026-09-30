@@ -107,7 +107,8 @@ void TestConfigAnimations::animationsOffAndSlowdown()
     const Config off = parsed(QStringLiteral("animations {\n off\n slowdown 2.5\n}\n"));
     QCOMPARE(off.animations.enabled, false);
     QCOMPARE(off.animations.slowdown, 2.5);
-    QCOMPARE(parsed(QStringLiteral("animations {\n off\n on\n}\n")).animations.enabled, true);
+    verifyFailure(QStringLiteral("animations {\n off\n »on\n}\n"), QStringLiteral("cannot use both `on` and `off`"));
+    QCOMPARE(parsed(QStringLiteral("animations {\n on\n}\n")).animations.enabled, true);
 }
 
 void TestConfigAnimations::rejectsUnknownAnimations()

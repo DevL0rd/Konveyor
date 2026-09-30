@@ -41,10 +41,10 @@ const QStringList &columnDisplays()
 PresetSize decodePresetSize(const Kdl::Node &node)
 {
     if (node.name == QLatin1String("proportion")) {
-        return Proportion {numberArgument(node, AnyNumber)};
+        return Proportion {positiveNumberArgument(node, 1)};
     }
     if (node.name == QLatin1String("fixed")) {
-        return Fixed {static_cast<double>(integerArgument(node, AnyNumber))};
+        return Fixed {static_cast<double>(integerArgument(node, Range {1, 65535}))};
     }
     fail(node, QStringLiteral("unexpected node ") + quoteName(node.name));
 }
@@ -168,17 +168,26 @@ HotCorners decodeHotCorners(const Kdl::Node &node)
 {
     expectOnlyChildren(node);
     bool off = false;
+    bool listed = false;
     HotCorners corners;
     corners.topLeft = false;
     NodeTable table;
     table.insert(QStringLiteral("off"), [&off](const Kdl::Node &child) { off = flagArgument(child); });
-    table.insert(QStringLiteral("top-left"), [&corners](const Kdl::Node &child) { corners.topLeft = flagArgument(child); });
-    table.insert(QStringLiteral("top-right"), [&corners](const Kdl::Node &child) { corners.topRight = flagArgument(child); });
-    table.insert(QStringLiteral("bottom-left"), [&corners](const Kdl::Node &child) { corners.bottomLeft = flagArgument(child); });
-    table.insert(QStringLiteral("bottom-right"), [&corners](const Kdl::Node &child) { corners.bottomRight = flagArgument(child); });
+    const QList<std::pair<QString, bool HotCorners::*>> flags {
+        {QStringLiteral("top-left"), &HotCorners::topLeft},
+        {QStringLiteral("top-right"), &HotCorners::topRight},
+        {QStringLiteral("bottom-left"), &HotCorners::bottomLeft},
+        {QStringLiteral("bottom-right"), &HotCorners::bottomRight},
+    };
+    for (const auto &[name, flag] : flags) {
+        table.insert(name, [&corners, &listed, flag](const Kdl::Node &child) {
+            corners.*flag = flagArgument(child);
+            listed = true;
+        });
+    }
     decodeChildren(node, table);
     corners.enabled = !off;
-    corners.topLeft = corners.topLeft || !(corners.topRight || corners.bottomLeft || corners.bottomRight);
+    corners.topLeft = corners.topLeft || !listed;
     return corners;
 }
 

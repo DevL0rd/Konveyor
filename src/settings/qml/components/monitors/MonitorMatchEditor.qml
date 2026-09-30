@@ -114,7 +114,7 @@ ColumnLayout {
         description: "Shape of the screen, width divided by height"
         iconName: "zoom-fit-width"
         aspect: true
-        fallback: 2
+        fallback: editor.props["aspect-ratio-below"] !== undefined ? editor.props["aspect-ratio-below"] / 2 : 2
         bound: editor.props["aspect-ratio-above"]
         onChanged: value => editor.write({ "aspect-ratio-above": value })
     }
@@ -123,7 +123,7 @@ ColumnLayout {
         label: "Narrower than"
         iconName: "zoom-fit-height"
         aspect: true
-        fallback: 2
+        fallback: editor.props["aspect-ratio-above"] !== undefined ? editor.props["aspect-ratio-above"] * 2 : 2
         bound: editor.props["aspect-ratio-below"]
         onChanged: value => editor.write({ "aspect-ratio-below": value })
     }
@@ -131,7 +131,7 @@ ColumnLayout {
     BoundRow {
         label: "More pixels wide than"
         iconName: "distribute-horizontal-x"
-        fallback: 2560
+        fallback: editor.props["width-below"] !== undefined ? Math.round(editor.props["width-below"] / 2) : 2560
         bound: editor.props["width-above"]
         onChanged: value => editor.write({ "width-above": value })
     }
@@ -139,7 +139,7 @@ ColumnLayout {
     BoundRow {
         label: "Fewer pixels wide than"
         iconName: "distribute-horizontal-x"
-        fallback: 2560
+        fallback: editor.props["width-above"] !== undefined ? Math.round(editor.props["width-above"] * 2) : 2560
         bound: editor.props["width-below"]
         onChanged: value => editor.write({ "width-below": value })
     }
@@ -147,7 +147,7 @@ ColumnLayout {
     BoundRow {
         label: "More pixels tall than"
         iconName: "distribute-vertical-y"
-        fallback: 1440
+        fallback: editor.props["height-below"] !== undefined ? Math.round(editor.props["height-below"] / 2) : 1440
         bound: editor.props["height-above"]
         onChanged: value => editor.write({ "height-above": value })
     }
@@ -155,7 +155,7 @@ ColumnLayout {
     BoundRow {
         label: "Fewer pixels tall than"
         iconName: "distribute-vertical-y"
-        fallback: 1440
+        fallback: editor.props["height-above"] !== undefined ? Math.round(editor.props["height-above"] * 2) : 1440
         bound: editor.props["height-below"]
         onChanged: value => editor.write({ "height-below": value })
     }

@@ -12,13 +12,11 @@ ColumnLayout {
     property string blockPath
     readonly property var node: SettingsStore.revision >= 0 ? SettingsStore.node(blockPath) : ({})
     readonly property bool overridden: node.name !== undefined
-    readonly property var flags: (node.children || []).map(child => child.name)
+    readonly property var listed: (node.children || []).map(child => child.name)
+    readonly property var flags: (node.children || []).filter(child => !(child.args && child.args[0] === false)).map(child => child.name)
     readonly property bool enabledHere: !flags.includes("off")
     readonly property var corners: ["top-left", "top-right", "bottom-left", "bottom-right"]
-    readonly property var activeCorners: {
-        const set = corners.filter(corner => flags.includes(corner));
-        return set.length ? set : ["top-left"];
-    }
+    readonly property var activeCorners: corners.some(corner => listed.includes(corner)) ? corners.filter(corner => flags.includes(corner)) : ["top-left"]
     readonly property var globalCorners: SettingsStore.values["gestures/hot-corners"] || ({})
 
     function toggle(corner) {

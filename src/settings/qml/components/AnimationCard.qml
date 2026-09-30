@@ -156,7 +156,7 @@ Card {
         label: "Duration"
         description: "How long the animation takes before the slowdown factor is applied."
         resetPaths: [card.base + "/duration-ms"]
-        from: 0
+        from: 10
         to: 2000
         stepSize: 10
         unit: "ms"

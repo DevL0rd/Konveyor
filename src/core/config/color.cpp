@@ -178,6 +178,15 @@ Paint paintFromText(const Kdl::Value &value)
     return Paint {ColorSource::Explicit, *color, std::nullopt};
 }
 
+QColor gradientEndpoint(const Kdl::Value &value)
+{
+    const Paint paint = paintFromText(value);
+    if (paint.source != ColorSource::Explicit) {
+        failAt(value.location, QStringLiteral("gradients need explicit colors, theme colors like `accent` are not supported"));
+    }
+    return paint.color;
+}
+
 QColor colorFromChannels(const Kdl::Node &node)
 {
     if (node.arguments.size() != 4) {
@@ -267,11 +276,11 @@ Gradient decodeGradientNode(const Kdl::Node &node)
     bool hasTo = false;
     ValueTable table;
     table.insert(QStringLiteral("from"), [&](const Kdl::Value &value) {
-        gradient.from = paintFromText(value).color;
+        gradient.from = gradientEndpoint(value);
         hasFrom = true;
     });
     table.insert(QStringLiteral("to"), [&](const Kdl::Value &value) {
-        gradient.to = paintFromText(value).color;
+        gradient.to = gradientEndpoint(value);
         hasTo = true;
     });
     table.insert(QStringLiteral("angle"), [&](const Kdl::Value &value) { gradient.angle = toNumber(value, Range {-32768, 32767}); });

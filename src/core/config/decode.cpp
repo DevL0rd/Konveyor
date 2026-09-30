@@ -1,5 +1,8 @@
 #include "config/decode.h"
 
+#include <algorithm>
+#include <ranges>
+
 namespace Konveyor::Config
 {
 
@@ -94,6 +97,18 @@ double toNumber(const Kdl::Value &value, Range range)
     return number;
 }
 
+double toPositiveNumber(const Kdl::Value &value, qint64 max)
+{
+    if (!value.isNumber()) {
+        failAt(value.location, QStringLiteral("unsupported value, only numbers are recognized"));
+    }
+    const double number = value.toDouble();
+    if (number <= 0 || number > static_cast<double>(max)) {
+        failAt(value.location, QStringLiteral("value must be greater than 0 and at most %1").arg(max));
+    }
+    return number;
+}
+
 qint64 toInteger(const Kdl::Value &value, Range range)
 {
     if (!value.isInteger()) {
@@ -160,6 +175,13 @@ double numberArgument(const Kdl::Node &node, Range range)
     return toNumber(requiredArgument(node, node.name), range);
 }
 
+double positiveNumberArgument(const Kdl::Node &node, qint64 max)
+{
+    expectLeafNode(node);
+    expectArgumentLimit(node, 1);
+    return toPositiveNumber(requiredArgument(node, node.name), max);
+}
+
 qint64 integerArgument(const Kdl::Node &node, Range range)
 {
     expectLeafNode(node);
@@ -223,6 +245,22 @@ void decodeProperties(const Kdl::Node &node, const ValueTable &table)
         }
         (*handler)(property.value);
     }
+}
+
+std::optional<bool> decodeToggle(const Kdl::Node &node, bool on, bool off)
+{
+    if (on && off) {
+        const auto later = std::ranges::find_if(node.children | std::views::reverse,
+            [](const Kdl::Node &child) { return child.name == QLatin1String("on") || child.name == QLatin1String("off"); });
+        failAt(later->location, QStringLiteral("cannot use both `on` and `off`"));
+    }
+    if (on) {
+        return true;
+    }
+    if (off) {
+        return false;
+    }
+    return std::nullopt;
 }
 
 }

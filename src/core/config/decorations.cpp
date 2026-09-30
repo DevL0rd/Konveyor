@@ -51,11 +51,7 @@ BorderRule decodeBorderRule(const Kdl::Node &node)
     addTripletHandlers(table, rule.active, rule.inactive, rule.urgent);
     table.insert(QStringLiteral("width"), [&rule](const Kdl::Node &child) { rule.width = numberArgument(child, Range {0, 65535}); });
     decodeChildren(node, table);
-    if (on) {
-        rule.enabled = true;
-    } else if (off) {
-        rule.enabled = false;
-    }
+    rule.enabled = decodeToggle(node, on, off);
     return rule;
 }
 
@@ -83,15 +79,14 @@ TabIndicatorPart decodeTabIndicatorPart(const Kdl::Node &node)
         expectNoChildren(child);
         ValueTable properties;
         properties.insert(QStringLiteral("total-proportion"),
-            [&part](const Kdl::Value &value) { part.lengthTotalProportion = toNumber(value, AnyNumber); });
+            [&part](const Kdl::Value &value) { part.lengthTotalProportion = toNumber(value, Range {0, 1}); });
         decodeProperties(child, properties);
+        if (!part.lengthTotalProportion) {
+            fail(child, QStringLiteral("property `total-proportion` is required"));
+        }
     });
     decodeChildren(node, table);
-    if (on) {
-        part.enabled = true;
-    } else if (off) {
-        part.enabled = false;
-    }
+    part.enabled = decodeToggle(node, on, off);
     return part;
 }
 
@@ -105,11 +100,7 @@ InsertHintPart decodeInsertHintPart(const Kdl::Node &node)
     addToggleHandlers(table, on, off);
     addPaintHandlers(table, QStringLiteral("color"), QStringLiteral("gradient"), part.paint);
     decodeChildren(node, table);
-    if (on) {
-        part.enabled = true;
-    } else if (off) {
-        part.enabled = false;
-    }
+    part.enabled = decodeToggle(node, on, off);
     return part;
 }
 

@@ -8,6 +8,7 @@
 #include <QStringList>
 
 #include <functional>
+#include <optional>
 
 namespace Konveyor::Config
 {
@@ -46,6 +47,7 @@ void expectArgumentLimit(const Kdl::Node &node, int limit);
 const Kdl::Value &requiredArgument(const Kdl::Node &node, const QString &name);
 
 double toNumber(const Kdl::Value &value, Range range);
+double toPositiveNumber(const Kdl::Value &value, qint64 max);
 qint64 toInteger(const Kdl::Value &value, Range range);
 QString toText(const Kdl::Value &value);
 bool toBoolean(const Kdl::Value &value);
@@ -53,6 +55,7 @@ QString toWritten(const Kdl::Value &value);
 int toKeyword(const Kdl::Value &value, const QStringList &keywords);
 
 double numberArgument(const Kdl::Node &node, Range range);
+double positiveNumberArgument(const Kdl::Node &node, qint64 max);
 qint64 integerArgument(const Kdl::Node &node, Range range);
 QString stringArgument(const Kdl::Node &node);
 bool booleanArgument(const Kdl::Node &node);
@@ -61,5 +64,6 @@ int keywordArgument(const Kdl::Node &node, const QStringList &keywords);
 
 void decodeChildren(const Kdl::Node &node, const NodeTable &table, const QSet<QString> &repeatable = {});
 void decodeProperties(const Kdl::Node &node, const ValueTable &table);
+std::optional<bool> decodeToggle(const Kdl::Node &node, bool on, bool off);
 
 }

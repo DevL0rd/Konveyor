@@ -39,7 +39,13 @@ void decodeOutput(LoadContext &context, const Kdl::Node &node)
     expectNoProperties(node);
     expectArgumentLimit(node, 1);
     OutputConfig output;
-    output.name = toText(requiredArgument(node, QStringLiteral("name")));
+    const Kdl::Value nameValue = requiredArgument(node, QStringLiteral("name"));
+    output.name = toText(nameValue);
+    for (const OutputConfig &seen : context.config.outputs) {
+        if (seen.name.compare(output.name, Qt::CaseInsensitive) == 0) {
+            failAt(nameValue.location, QStringLiteral("duplicate output: ") + output.name);
+        }
+    }
     NodeTable table;
     table.insert(QStringLiteral("layout"), [&output](const Kdl::Node &child) {
         rejectNodes(child, globalOnlyLayoutNodes(), QStringLiteral("output.layout"));
@@ -71,10 +77,21 @@ MonitorMatch decodeMonitorMatch(const Kdl::Node &node)
         {QStringLiteral("height-above"), &MonitorMatch::heightAbove},
         {QStringLiteral("height-below"), &MonitorMatch::heightBelow},
     };
+    QHash<QString, Kdl::Location> locations;
     for (const auto &[name, member] : numbers) {
-        table.insert(name, [&match, member](const Kdl::Value &value) { match.*member = toNumber(value, Range {0, 100000}); });
+        table.insert(name, [&match, &locations, name, member](const Kdl::Value &value) {
+            match.*member = toNumber(value, Range {0, 100000});
+            locations.insert(name, value.location);
+        });
     }
     decodeProperties(node, table);
+    for (qsizetype index = 0; index < numbers.size(); index += 2) {
+        const auto &[aboveName, above] = numbers.at(index);
+        const auto &[belowName, below] = numbers.at(index + 1);
+        if (match.*above && match.*below && *(match.*above) >= *(match.*below)) {
+            failAt(locations.value(aboveName), quoteName(aboveName) + QStringLiteral(" must be less than ") + quoteName(belowName));
+        }
+    }
     return match;
 }
 
@@ -83,7 +100,13 @@ void decodeMonitorProfile(LoadContext &context, const Kdl::Node &node)
     expectNoProperties(node);
     expectArgumentLimit(node, 1);
     MonitorProfile profile;
-    profile.name = toText(requiredArgument(node, QStringLiteral("name")));
+    const Kdl::Value nameValue = requiredArgument(node, QStringLiteral("name"));
+    profile.name = toText(nameValue);
+    for (const MonitorProfile &seen : context.config.monitorProfiles) {
+        if (seen.name == profile.name) {
+            failAt(nameValue.location, QStringLiteral("duplicate monitor profile: ") + profile.name);
+        }
+    }
     NodeTable table;
     table.insert(QStringLiteral("match"), [&profile](const Kdl::Node &child) { profile.matches.append(decodeMonitorMatch(child)); });
     table.insert(QStringLiteral("layout"), [&profile](const Kdl::Node &child) {

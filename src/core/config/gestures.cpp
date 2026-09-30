@@ -41,7 +41,7 @@ void decodeEdgeScroll(const Kdl::Node &node, const QString &triggerName, DndEdge
     table.insert(QStringLiteral("delay-ms"),
         [&scroll](const Kdl::Node &child) { scroll.delayMs = static_cast<double>(integerArgument(child, Range {0, 65535})); });
     table.insert(
-        QStringLiteral("max-speed"), [&scroll](const Kdl::Node &child) { scroll.maxSpeed = numberArgument(child, Range {0, 1000000}); });
+        QStringLiteral("max-speed"), [&scroll](const Kdl::Node &child) { scroll.maxSpeed = numberArgument(child, Range {1, 1000000}); });
     decodeChildren(node, table);
 }
 

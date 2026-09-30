@@ -25,13 +25,7 @@ enum class Activation
     Never
 };
 
-enum class ChangeKind
-{
-    SetFixed,
-    SetProportion,
-    AdjustFixed,
-    AdjustProportion
-};
+using ChangeKind = Config::SizeChangeKind;
 
 struct PositionChange
 {

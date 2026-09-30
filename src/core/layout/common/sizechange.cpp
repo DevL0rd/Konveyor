@@ -1,59 +1,20 @@
 #include "layout/common/sizechange.h"
 
+#include "config/sizechange.h"
+
 namespace Konveyor::Layout
 {
 
-namespace
-{
-
-struct ParsedChange
-{
-    ChangeKind kind;
-    double value;
-};
-
-std::expected<double, QString> parseNumber(const QString &text, bool integer)
-{
-    bool ok = false;
-    const double value = integer ? static_cast<double>(text.toInt(&ok)) : text.toDouble(&ok);
-    if (!ok) {
-        return std::unexpected(QStringLiteral("error parsing value"));
-    }
-    return value;
-}
-
-std::expected<ParsedChange, QString> parseChange(const QString &text, bool fixedIsInteger)
-{
-    const qsizetype percent = text.indexOf(QLatin1Char('%'));
-    const bool isProportion = percent >= 0;
-    if (isProportion && percent != text.size() - 1) {
-        return std::unexpected(QStringLiteral("trailing characters after '%' are not allowed"));
-    }
-    const QString value = isProportion ? text.left(percent) : text;
-    if (value.isEmpty()) {
-        return std::unexpected(QStringLiteral("value is missing"));
-    }
-    const bool adjust = value.front() == QLatin1Char('+') || value.front() == QLatin1Char('-');
-    const auto number = parseNumber(value, fixedIsInteger && !isProportion);
-    if (!number) {
-        return std::unexpected(number.error());
-    }
-    if (isProportion) {
-        return ParsedChange {adjust ? ChangeKind::AdjustProportion : ChangeKind::SetProportion, *number};
-    }
-    return ParsedChange {adjust ? ChangeKind::AdjustFixed : ChangeKind::SetFixed, *number};
-}
-
-}
-
 std::expected<SizeChange, QString> parseSizeChange(const QString &text)
 {
-    return parseChange(text, true).transform([](ParsedChange change) { return SizeChange {change.kind, change.value}; });
+    return Config::parseSizeChange(text, true).transform([](Config::SizeChange change) { return SizeChange {change.kind, change.value}; });
 }
 
 std::expected<PositionChange, QString> parsePositionChange(const QString &text)
 {
-    return parseChange(text, false).transform([](ParsedChange change) { return PositionChange {change.kind, change.value}; });
+    return Config::parseSizeChange(text, false).transform([](Config::SizeChange change) {
+        return PositionChange {change.kind, change.value};
+    });
 }
 
 std::expected<Config::WorkspaceReference, QString> parseWorkspaceReference(const QString &text)

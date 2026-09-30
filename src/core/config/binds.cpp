@@ -1,5 +1,6 @@
 #include "config/loader.h"
 #include "config/sections.h"
+#include "config/sizechange.h"
 
 #include <xkbcommon/xkbcommon.h>
 
@@ -33,37 +34,48 @@ constexpr const char *kSimpleActions[] = {"close-window", "fullscreen-window", "
     "move-window-to-tiling", "focus-floating", "focus-tiling", "switch-focus-between-floating-and-tiling", "toggle-window-rule-opacity",
     "toggle-overview", "open-overview", "close-overview"};
 
+enum class ArgumentKind
+{
+    None,
+    Text,
+    Index,
+    Workspace,
+    Size,
+    Display
+};
+
 struct ActionSpec
 {
     const char *name;
     int minArguments;
     int maxArguments;
+    ArgumentKind argument;
     const char *properties;
 };
 
 constexpr ActionSpec kSpecialActions[] = {
-    {"spawn", 0, -1, ""},
-    {"spawn-sh", 1, 1, ""},
-    {"focus-window-in-column", 1, 1, ""},
-    {"focus-column", 1, 1, ""},
-    {"move-column-to-index", 1, 1, ""},
-    {"set-column-display", 1, 1, ""},
-    {"focus-workspace", 1, 1, ""},
-    {"move-window-to-workspace-down", 0, 0, "focus"},
-    {"move-window-to-workspace-up", 0, 0, "focus"},
-    {"move-window-to-workspace", 1, 1, "focus"},
-    {"move-column-to-workspace-down", 0, 0, "focus"},
-    {"move-column-to-workspace-up", 0, 0, "focus"},
-    {"move-column-to-workspace", 1, 1, "focus"},
-    {"move-workspace-to-index", 1, 1, ""},
-    {"move-workspace-to-monitor", 1, 1, ""},
-    {"set-workspace-name", 1, 1, ""},
-    {"focus-monitor", 1, 1, ""},
-    {"move-window-to-monitor", 1, 1, ""},
-    {"move-column-to-monitor", 1, 1, ""},
-    {"set-window-width", 1, 1, ""},
-    {"set-window-height", 1, 1, ""},
-    {"set-column-width", 1, 1, ""},
+    {"spawn", 1, -1, ArgumentKind::Text, ""},
+    {"spawn-sh", 1, 1, ArgumentKind::Text, ""},
+    {"focus-window-in-column", 1, 1, ArgumentKind::Index, ""},
+    {"focus-column", 1, 1, ArgumentKind::Index, ""},
+    {"move-column-to-index", 1, 1, ArgumentKind::Index, ""},
+    {"set-column-display", 1, 1, ArgumentKind::Display, ""},
+    {"focus-workspace", 1, 1, ArgumentKind::Workspace, ""},
+    {"move-window-to-workspace-down", 0, 0, ArgumentKind::None, "focus"},
+    {"move-window-to-workspace-up", 0, 0, ArgumentKind::None, "focus"},
+    {"move-window-to-workspace", 1, 1, ArgumentKind::Workspace, "focus"},
+    {"move-column-to-workspace-down", 0, 0, ArgumentKind::None, "focus"},
+    {"move-column-to-workspace-up", 0, 0, ArgumentKind::None, "focus"},
+    {"move-column-to-workspace", 1, 1, ArgumentKind::Workspace, "focus"},
+    {"move-workspace-to-index", 1, 1, ArgumentKind::Index, ""},
+    {"move-workspace-to-monitor", 1, 1, ArgumentKind::Text, ""},
+    {"set-workspace-name", 1, 1, ArgumentKind::Text, ""},
+    {"focus-monitor", 1, 1, ArgumentKind::Text, ""},
+    {"move-window-to-monitor", 1, 1, ArgumentKind::Text, ""},
+    {"move-column-to-monitor", 1, 1, ArgumentKind::Text, ""},
+    {"set-window-width", 1, 1, ArgumentKind::Size, ""},
+    {"set-window-height", 1, 1, ArgumentKind::Size, ""},
+    {"set-column-width", 1, 1, ArgumentKind::Size, ""},
 };
 
 struct ModifierSpec
@@ -114,7 +126,7 @@ const QHash<QString, ActionSpec> &actionSpecs()
     static const QHash<QString, ActionSpec> specs = [] {
         QHash<QString, ActionSpec> result;
         for (const char *name : kSimpleActions) {
-            result.insert(QString::fromLatin1(name), ActionSpec {name, 0, 0, ""});
+            result.insert(QString::fromLatin1(name), ActionSpec {name, 0, 0, ArgumentKind::None, ""});
         }
         for (const ActionSpec &spec : kSpecialActions) {
             result.insert(QString::fromLatin1(spec.name), spec);
@@ -169,12 +181,70 @@ void parseBindKey(Bind &bind, const Kdl::Node &node)
     applyTrigger(bind, bind.keyText, node.location);
 }
 
-QString bindSignature(const Bind &bind)
+QString bindSignature(const Bind &bind, BindModifiers modifiers)
 {
     const int detail = bind.trigger == BindTrigger::Key
         ? static_cast<int>(bind.keysym)
         : (bind.trigger == BindTrigger::MouseButton ? static_cast<int>(bind.mouseButton) : static_cast<int>(bind.scrollDirection));
-    return QStringLiteral("%1/%2/%3").arg(static_cast<int>(bind.trigger)).arg(detail).arg(static_cast<int>(bind.keyModifiers.toInt()));
+    return QStringLiteral("%1/%2/%3").arg(static_cast<int>(bind.trigger)).arg(detail).arg(static_cast<int>(modifiers.toInt()));
+}
+
+void checkWorkspaceArgument(const Kdl::Value &value)
+{
+    if (value.isInteger()) {
+        toInteger(value, Range {0, 255});
+        return;
+    }
+    if (!value.isString() || value.toString().isEmpty()) {
+        failAt(value.location, QStringLiteral("expected a workspace index or name"));
+    }
+}
+
+void checkSizeArgument(const Kdl::Value &value)
+{
+    if (value.isInteger()) {
+        return;
+    }
+    if (!value.isString()) {
+        failAt(value.location, QStringLiteral("expected a size like \"+10%\", \"50%\" or \"800\""));
+    }
+    const auto change = parseSizeChange(value.toString(), true);
+    if (!change) {
+        failAt(value.location, change.error());
+    }
+}
+
+void checkArgument(ArgumentKind kind, const Kdl::Value &value)
+{
+    switch (kind) {
+    case ArgumentKind::None:
+        return;
+    case ArgumentKind::Text:
+        toText(value);
+        return;
+    case ArgumentKind::Index:
+        toInteger(value, Range {1, 2147483647});
+        return;
+    case ArgumentKind::Workspace:
+        checkWorkspaceArgument(value);
+        return;
+    case ArgumentKind::Size:
+        checkSizeArgument(value);
+        return;
+    case ArgumentKind::Display:
+        toKeyword(value, {QStringLiteral("normal"), QStringLiteral("tabbed")});
+        return;
+    }
+}
+
+void checkArguments(const Kdl::Node &node, const ActionSpec &spec)
+{
+    for (const Kdl::Value &value : node.arguments) {
+        checkArgument(spec.argument, value);
+    }
+    if (spec.argument == ArgumentKind::Text && !node.arguments.isEmpty() && node.arguments.first().toString().isEmpty()) {
+        failAt(node.arguments.first().location, QStringLiteral("expected a non-empty string"));
+    }
 }
 
 Action decodeAction(const Kdl::Node &node)
@@ -195,11 +265,13 @@ Action decodeAction(const Kdl::Node &node)
     if (spec->maxArguments >= 0) {
         expectArgumentLimit(node, spec->maxArguments);
     }
+    checkArguments(node, *spec);
     const QStringList allowed = QString::fromLatin1(spec->properties).split(QLatin1Char(' '), Qt::SkipEmptyParts);
     for (const Kdl::Property &property : node.properties) {
         if (!allowed.contains(property.name)) {
             failAt(property.location, QStringLiteral("unexpected property ") + quoteName(property.name));
         }
+        toBoolean(property.value);
         action.properties.append({property.name, toWritten(property.value)});
     }
     return action;
@@ -246,20 +318,22 @@ void decodeBinds(LoadContext &context, const Kdl::Node &node)
     QStringList signatures;
     for (const Kdl::Node &child : node.children) {
         const Bind bind = decodeBind(child);
-        const QString signature = bindSignature(bind);
+        const QString signature = bindSignature(bind, bind.keyModifiers);
         if (signatures.contains(signature)) {
             failAt(child.location, QStringLiteral("duplicate keybind ") + quoteName(child.name));
         }
         signatures.append(signature);
+        context.bindNodes.insert(signature, {child.name, child.location});
         binds.append(bind);
     }
     QList<Bind> &target = context.config.binds;
-    target.removeIf([&signatures](const Bind &bind) { return signatures.contains(bindSignature(bind)); });
+    target.removeIf([&signatures](const Bind &bind) { return signatures.contains(bindSignature(bind, bind.keyModifiers)); });
     target.append(binds);
 }
 
-void resolveBinds(Config &config)
+void resolveBinds(LoadContext &context)
 {
+    Config &config = context.config;
     const QString modKey = config.input.modKey;
     BindModifier resolved = BindModifier::Super;
     for (const ModifierSpec &spec : kModifiers) {
@@ -267,6 +341,7 @@ void resolveBinds(Config &config)
             resolved = spec.flag;
         }
     }
+    QHash<QString, QString> seen;
     for (Bind &bind : config.binds) {
         bind.resolvedModifiers = bind.keyModifiers;
         if (bind.resolvedModifiers.testFlag(BindModifier::Mod)) {
@@ -274,6 +349,14 @@ void resolveBinds(Config &config)
             bind.resolvedModifiers |= resolved;
         }
         bind.modifiers = qtModifiers(bind.resolvedModifiers);
+        const auto [name, location] = context.bindNodes.value(bindSignature(bind, bind.keyModifiers));
+        const QString signature = bindSignature(bind, bind.resolvedModifiers);
+        if (seen.contains(signature)) {
+            failAt(location,
+                QStringLiteral("keybind ") + quoteName(name) + QStringLiteral(" is the same as ") + quoteName(seen.value(signature))
+                    + QStringLiteral(" while the Mod key is ") + modKey);
+        }
+        seen.insert(signature, name);
     }
 }
 
