@@ -79,7 +79,7 @@ private Q_SLOTS:
 
     void memoryBeatsProfileAndGlobal()
     {
-        Fixture fixture(withMemory(withProfile(instantConfig(), 0.75)));
+        Fixture fixture(withProfile(withMemory(instantConfig()), 0.75));
         remember(fixture, 0.25);
         QCOMPARE(openedWidth(fixture), Quarter);
     }
@@ -93,14 +93,14 @@ private Q_SLOTS:
 
     void ruleBeatsMemoryProfileAndGlobal()
     {
-        Fixture fixture(withRule(withMemory(withProfile(instantConfig(), 0.75)), Config::Proportion {1.0}));
+        Fixture fixture(withRule(withProfile(withMemory(instantConfig()), 0.75), Config::Proportion {1.0}));
         remember(fixture, 0.25);
         QCOMPARE(openedWidth(fixture), Full);
     }
 
     void emptyRuleKeepsTheWindowSizeOverEverything()
     {
-        Fixture fixture(withRule(withMemory(withProfile(instantConfig(), 0.75)), std::nullopt));
+        Fixture fixture(withRule(withProfile(withMemory(instantConfig()), 0.75), std::nullopt));
         remember(fixture, 0.25);
         QCOMPARE(openedWidth(fixture), 700.0);
     }

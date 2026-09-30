@@ -98,7 +98,7 @@ struct Engine::Private
     std::optional<std::size_t> monitorIndexOf(WindowId id) const;
     std::vector<Workspace *> allWorkspaces();
     void rememberWindows();
-    void applyRememberedSize(NewWindowPlan &plan, const QString &appId) const;
+    void applyRememberedSize(NewWindowPlan &plan, const QString &appId, const Config::Layout &layout) const;
     bool appHasWindow(const QString &appId) const;
     bool placeInAppGroup(Tile &tile, const NewWindowPlan &plan, Workspace &workspace, MonitorAddRequest &request);
     struct AppStackRequest

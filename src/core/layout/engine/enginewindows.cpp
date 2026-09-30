@@ -114,7 +114,7 @@ NewWindowPlan Engine::Private::planNewWindow(
     if (Workspace *workspace = self.workspaceForNewWindow(plan)) {
         plan.width = workspace->defaultWidthFor(plan.rules.defaultWidth, plan.isFloating);
         plan.height = workspace->defaultHeightFor(plan.rules.defaultHeight, plan.isFloating);
-        applyRememberedSize(plan, properties.appId);
+        applyRememberedSize(plan, properties.appId, workspace->options()->layout);
     }
     return plan;
 }
@@ -211,7 +211,7 @@ void Engine::Private::placeNewWindow(
 
     Tile tile = workspace->createTile(makeNewWindow(id, properties, plan, *workspace));
     const auto remembered = windowMemory.constFind(properties.appId);
-    if (plan.isFloating && config.layout.rememberWindowPositions && remembered != windowMemory.constEnd() && remembered->floatingPosition
+    if (plan.isFloating && workspace->options()->layout.rememberWindowPositions && remembered != windowMemory.constEnd() && remembered->floatingPosition
         && !plan.rules.defaultFloatingPosition) {
         tile.savedFloatingPosition = remembered->floatingPosition;
     }
