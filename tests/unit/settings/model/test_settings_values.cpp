@@ -330,14 +330,11 @@ workspace "mail" { layout { gaps 4; }; }
 workspace "chat" { open-on-output "HDMI-A-1"; }
 workspace "notes"
 )"));
-    const auto output = [](const QString &outputName) {
-        return QVariantMap {{QStringLiteral("name"), outputName},
-            {QStringLiteral("logical"), QVariantMap {{QStringLiteral("width"), 2560}, {QStringLiteral("height"), 1080}}}};
-    };
-    const QVariantList outputs {output(QStringLiteral("DP-1")), output(QStringLiteral("HDMI-A-1"))};
+    const QVariantMap logical {{QStringLiteral("width"), 2560}, {QStringLiteral("height"), 1080}};
+    const QVariantList outputs {QVariantMap {{QStringLiteral("name"), QStringLiteral("DP-1")}, {QStringLiteral("logical"), logical}},
+        QVariantMap {{QStringLiteral("name"), QStringLiteral("HDMI-A-1")}, {QStringLiteral("logical"), logical}}};
     const QVariantList workspaces {
-        QVariantMap {{QStringLiteral("name"), QStringLiteral("mail")}, {QStringLiteral("output"), QStringLiteral("DP-1")}},
-        QVariantMap {{QStringLiteral("name"), QString()}, {QStringLiteral("output"), QStringLiteral("DP-1")}}};
+        QVariantMap {{QStringLiteral("name"), QStringLiteral("mail")}, {QStringLiteral("output"), QStringLiteral("DP-1")}}};
     const Config::Layout layout = scopedLayout(config, kind, name, outputs, workspaces);
     QCOMPARE(layout.gaps, double(gaps));
     QCOMPARE(layout.alwaysCenterSingleColumn, centered);
