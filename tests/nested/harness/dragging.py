@@ -24,6 +24,12 @@ def center(title):
     return round(x + width / 2), round(y + height / 2)
 
 
+def grab_point(title, output_left=0, output_width=1920):
+    x, y, width, height = frame(title)
+    left, right = max(x, output_left) + 40, min(x + width, output_left + output_width) - 40
+    return round((left + right) / 2), round(y + min(height / 2, 540))
+
+
 def window_json(title):
     return next(window for window in konveyor_windows() if window["title"] == title)
 
@@ -34,7 +40,7 @@ def placement(title):
 
 @contextmanager
 def dragging(title, goal, grab=None, release=True):
-    start = grab or center(title)
+    start = grab or grab_point(title)
     lifted = (start[0], start[1] - 300 if start[1] > 540 else start[1] + 300)
     with Held() as pointer:
         pointer.send((META, 1), f"move:{start[0]}:{start[1]}", f"button:{LEFT_BUTTON}:1")

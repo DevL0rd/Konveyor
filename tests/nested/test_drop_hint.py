@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Drag windows with a real pointer and check the drop hint in screenshots."""
+"""Drag windows with a real pointer and check the drop hint and each of its settings in screenshots."""
 import sys
 from pathlib import Path
 
@@ -12,6 +12,13 @@ HINT = """    gaps 16
     }
 """
 
+ROUNDED_C = """
+window-rule {
+    match title="^C$"
+    geometry-corner-radius 40
+}
+"""
+
 
 def main():
     from nested import REPO, run_runner
@@ -21,7 +28,8 @@ def main():
     if hinted.count("insert-hint") != 1 or 'titlebar-drag "move-window"' not in hinted:
         print("the default config no longer has the gaps and titlebar-drag lines this test rewrites")
         return 1
-    return run_runner(HERE / "runners" / "drop_hint.py", timeout=300, config_kdl=hinted)
+    return run_runner(HERE / "runners" / "drop_hint.py", timeout=300, config_kdl=hinted + ROUNDED_C,
+                      files={"config/kdeglobals": "[Colors:Selection]\nBackgroundNormal=0,255,0\n"})
 
 
 if __name__ == "__main__":

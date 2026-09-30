@@ -1,52 +1,44 @@
 #!/usr/bin/env python3
-import os
+import re
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from checks import Checks
-from dragging import dragging, placement, settled
-from kwinsession import activate, frame, wait_for
-from screenshot import capture_workspace
+from checks import Checks, config_path
+from dragging import dragging, placement, settled, window_json
+from drophint import DRAGGED_OPACITY, MAGENTA, WINDOW, blend, close, hint_area, screenshot
+from kwinsession import activate, frame, konveyor, konveyor_action, wait_for
 
-MAGENTA = (255, 0, 255)
-WINDOW = (47, 48, 51)
-DRAGGED_OPACITY = 0.75
-
-
-def blend(over, under, alpha):
-    return tuple(round(alpha * a + (1 - alpha) * b) for a, b in zip(over, under))
+GREEN = (0, 255, 0)
+HINT_WIDTH = 300
+GAP = 16
 
 
-def hint_area(color=MAGENTA):
-    return painted(screenshot(), color, blend(WINDOW, color, DRAGGED_OPACITY))
+def use_hint(block):
+    text = re.sub(r"    insert-hint \{.*?\n    \}\n", "    insert-hint {\n" + block + "    }\n", config_path().read_text(), count=1, flags=re.S)
+    config_path().write_text(text)
+    return konveyor("LoadConfigFile", "")
 
 
-def screenshot():
-    return capture_workspace(tempfile.mktemp(suffix=".png", dir=os.environ["KONVEYOR_TEST_ROOT"])).convert("RGB")
+def new_column_goal():
+    activate("B")
+    target = settled("B")
+    return target, (round(target[0] + target[2] + HINT_WIDTH / 2), 540)
 
 
-def close(pixel, color, tolerance=16):
-    return all(abs(a - b) <= tolerance for a, b in zip(pixel[:3], color))
+def left_edge_grab():
+    return round(frame("C")[0] + 40), 540
 
 
-def painted(image, *colors, step=4):
-    points = [(x, y) for y in range(0, image.height, step) for x in range(0, image.width, step)
-              if any(close(image.getpixel((x, y)), color) for color in colors)]
-    if not points:
-        return None
-    xs, ys = [x for x, _ in points], [y for _, y in points]
-    return min(xs), min(ys), max(xs) + step, max(ys) + step
+def pixel_in_new_column_hint(target, offset):
+    return screenshot().getpixel((round(target[0] + target[2] + GAP + offset), 540))
 
 
 def hint_for_new_column(checks):
-    activate("B")
-    target = settled("B")
-    goal = (round(target[0] + target[2] + 150), 540)
-    beside = lambda area: area and abs(area[0] - (target[0] + target[2] + 16)) <= 24 and abs(area[2] - area[0] - 300) <= 24
-    with dragging("C", goal, grab=(round(frame("C")[0] + 40), 540)):
+    target, goal = new_column_goal()
+    beside = lambda area: area and abs(area[0] - (target[0] + target[2] + GAP)) <= 24 and abs(area[2] - area[0] - HINT_WIDTH) <= 24
+    with dragging("C", goal, grab=left_edge_grab()):
         checks.expect(wait_for(lambda: beside(hint_area()), 10, 0.5), f"a column-wide drop hint is drawn right of B ({hint_area()}, B at {target})")
     checks.expect(placement("C")[1] == 1 and placement("C")[0] == placement("B")[0] + 1, f"C dropped into its own column after B ({placement('C')})")
 
@@ -66,10 +58,81 @@ def hint_over_column_top(checks):
     checks.expect(wait_for(lambda: hint_area() is None, 10, 0.5), "the drop hint is gone after the drop")
     checks.equal(placement("C"), [column, 1], "C dropped at the top of B's column")
     checks.equal(placement("B"), [column, 2], "B moved below C")
+    activate("C")
+    checks.equal(konveyor_action("consume-or-expel-window-right"), "", "expel C back into its own column")
+    checks.expect(wait_for(lambda: placement("C") == [column + 1, 1]), f"C has its own column again ({placement('C')})")
+
+
+def hint_follows_window_corners(checks):
+    target, goal = new_column_goal()
+    left = round(target[0] + target[2] + GAP)
+    with dragging("C", goal, grab=left_edge_grab()):
+        checks.expect(wait_for(lambda: close(screenshot().getpixel((left + 30, 540)), MAGENTA), 10, 0.5), "the hint is drawn")
+        corner = screenshot().getpixel((left + 2, round(target[1]) + 2))
+        checks.expect(not close(corner, MAGENTA), f"the hint's corner is rounded like C's 40 px corners ({corner})")
+
+
+def hint_color_with_alpha(checks):
+    checks.equal(use_hint('        color "#ff00ff80"\n'), "", "make the hint half transparent")
+    target, goal = new_column_goal()
+    half = blend(MAGENTA, (0, 0, 0), 128 / 255)
+    with dragging("C", goal, grab=left_edge_grab()):
+        checks.expect(wait_for(lambda: close(pixel_in_new_column_hint(target, 30), half, 24), 10, 0.5),
+                      f"the half transparent hint lets the background through ({pixel_in_new_column_hint(target, 30)}, want {half})")
+
+
+def hint_gradient(checks):
+    checks.equal(use_hint('        gradient from="#ff0000" to="#0000ff" angle=90\n'), "", "paint the hint with a gradient")
+    target, goal = new_column_goal()
+    with dragging("C", goal, grab=left_edge_grab()):
+        reddish = lambda: (lambda p: p[0] > 180 and p[2] < 80)(pixel_in_new_column_hint(target, 8))
+        checks.expect(wait_for(reddish, 10, 0.5), f"the left edge of the hint is red ({pixel_in_new_column_hint(target, 8)})")
+        right = pixel_in_new_column_hint(target, HINT_WIDTH - 8)
+        checks.expect(right[2] > right[0] + 20, f"the right edge, under the see-through window, is blue ({right})")
+
+
+def hint_accent(checks):
+    checks.equal(use_hint('        color "accent"\n'), "", "follow the KDE accent colour")
+    target, goal = new_column_goal()
+    with dragging("C", goal, grab=left_edge_grab()):
+        checks.expect(wait_for(lambda: close(pixel_in_new_column_hint(target, 30), GREEN), 10, 0.5),
+                      f"the hint takes the green accent ({pixel_in_new_column_hint(target, 30)})")
+
+
+def hint_off(checks):
+    checks.equal(use_hint('        off\n        color "#ff00ff"\n'), "", "turn the hint off")
+    target, goal = new_column_goal()
+    with dragging("C", goal, grab=left_edge_grab()):
+        checks.expect(wait_for(lambda: settled("C")[0] > target[0] + target[2], 10), "C follows the pointer")
+        checks.expect(hint_area() is None, f"no hint is drawn ({hint_area()})")
+    checks.expect(placement("C")[0] == placement("B")[0] + 1, f"C still drops where the hint would have been ({placement('C')})")
+    checks.equal(use_hint('        color "#ff00ff"\n'), "", "turn the hint back on")
+
+
+def hint_at_left_edge(checks):
+    activate("A")
+    settled("A")
+    half_shown = lambda area: area and area[0] <= 4 and area[2] - area[0] >= HINT_WIDTH / 2 - 8
+    with dragging("B", (2, 540)):
+        checks.expect(wait_for(lambda: half_shown(hint_area()), 10, 0.5), f"a hint for a new first column shows at least half on screen ({hint_area()})")
+    checks.equal(placement("B"), [1, 1], "B becomes the first column")
+
+
+def floating_drag_has_no_hint(checks):
+    activate("C")
+    checks.equal(konveyor_action("toggle-window-floating"), "", "float C")
+    settled("C")
+    with dragging("C", (900, 500)):
+        checks.expect(wait_for(lambda: abs(sum(settled("C")[:2]) - sum(frame("C")[:2])) < 1 and window_json("C")["is_floating"], 10), "C is dragged floating")
+        checks.expect(hint_area() is None, f"a floating window gets no drop hint ({hint_area()})")
+    checks.expect(window_json("C")["is_floating"], "C stays floating after the drop")
+    activate("C")
+    checks.equal(konveyor_action("toggle-window-floating"), "", "tile C again")
 
 
 def main():
-    Checks().run(hint_for_new_column, hint_over_column_top)
+    Checks().run(hint_for_new_column, hint_over_column_top, hint_follows_window_corners, hint_color_with_alpha, hint_gradient, hint_accent,
+                 hint_off, hint_at_left_edge, floating_drag_has_no_hint)
 
 
 if __name__ == "__main__":
