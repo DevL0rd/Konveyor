@@ -74,6 +74,16 @@ class TestPortalGames(unittest.TestCase):
         self.assertEqual({key: game["appid"] for key, game in games.items()},
                          {"test-lutris": "", "test-numbered": "", "test-proton": "730", "test-cached": "570"})
 
+    def test_corrupt_usage_and_art_files_keep_the_library(self):
+        self.box.desktop(self.box.data, "test-chess.desktop", Name="Chess", Categories="Game;")
+        for text in ("[]", '"x"', "null"):
+            self.box.write(self.state / "usage.json", text)
+            self.box.write(self.state / "overrides.json", text)
+            self.assertEqual(self.games()["test-chess"]["last"], 0, text)
+            self.assertEqual(self.run_games("--track", "test-chess").returncode, 0, text)
+            self.assertGreater(self.games()["test-chess"]["last"], 0, text)
+            self.assertEqual(self.run_games("--reset-art", "test-chess").returncode, 0, text)
+
     def test_custom_art_overrides_and_resets(self):
         self.box.desktop(self.box.data, "test-portal.desktop", Name="Portal", Categories="Game;", Exec="steam steam://rungameid/400")
         self.steam_cache("400", "library_600x900.jpg")

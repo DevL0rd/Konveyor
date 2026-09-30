@@ -144,12 +144,17 @@ def _load_json(path):
         return {}
 
 
+def _load_object(path):
+    data = _load_json(path)
+    return data if isinstance(data, dict) else {}
+
+
 def load_overrides():
-    return _load_json(OVERRIDES)
+    return _load_object(OVERRIDES)
 
 
 def load_usage():
-    return _load_json(USAGE)
+    return _load_object(USAGE)
 
 
 def collect():
