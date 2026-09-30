@@ -107,6 +107,19 @@ def managed_titles():
     return sorted(window["title"] for window in konveyor_windows())
 
 
+def managed_now():
+    try:
+        return set(managed_titles())
+    except subprocess.CalledProcessError:
+        return set()
+
+
+def reload_konveyor(titles):
+    qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.unloadEffect", "konveyor_effect")
+    loaded = qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.loadEffect", "konveyor_effect") == "true"
+    return loaded and wait_for(lambda: set(titles) <= managed_now(), 60)
+
+
 def konveyor_action(name, *arguments):
     return konveyor("Action", json.dumps({"name": name, "arguments": list(arguments), "properties": {}}))
 

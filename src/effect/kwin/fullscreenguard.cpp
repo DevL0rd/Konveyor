@@ -5,14 +5,15 @@
 
 #include <core/output.h>
 #include <main.h>
+#include <wayland/clientconnection.h>
 #include <wayland/surface.h>
 #include <wayland/xdgshell.h>
-#include <wayland_server.h>
 #include <window.h>
 
 #include <QPointer>
 #include <cmath>
 #include <utility>
+#include <wayland-server-core.h>
 
 namespace Konveyor
 {
@@ -34,6 +35,30 @@ KWin::XdgToplevelInterface::Capabilities capabilitiesFor(KWin::Window *window)
     capabilities.setFlag(KWin::XdgToplevelInterface::Capability::FullScreen, window->isFullScreenable());
     capabilities.setFlag(KWin::XdgToplevelInterface::Capability::Minimize, window->isMinimizable());
     return capabilities;
+}
+
+KWin::XdgToplevelInterface *toplevelOf(KWin::Window *window)
+{
+    struct Search
+    {
+        KWin::SurfaceInterface *surface = nullptr;
+        KWin::XdgToplevelInterface *toplevel = nullptr;
+    };
+    Search search {window->surface()};
+    if (!search.surface || !search.surface->client()) {
+        return nullptr;
+    }
+    const auto match = [](wl_resource *resource, void *data) {
+        auto *search = static_cast<Search *>(data);
+        KWin::XdgToplevelInterface *toplevel = KWin::XdgToplevelInterface::get(resource);
+        if (toplevel && toplevel->surface() == search->surface) {
+            search->toplevel = toplevel;
+            return WL_ITERATOR_STOP;
+        }
+        return WL_ITERATOR_CONTINUE;
+    };
+    wl_client_for_each_resource(search.surface->client()->client(), match, &search);
+    return search.toplevel;
 }
 
 }
@@ -59,9 +84,6 @@ FullscreenGuard::FullscreenGuard(WindowRegistry &windows, QObject *parent)
         });
     connect(&m_windows, &WindowRegistry::windowAdded, this, &FullscreenGuard::observe);
     connect(&m_windows, &WindowRegistry::windowRemoved, this, &FullscreenGuard::forget);
-    if (KWin::XdgShellInterface *shell = KWin::waylandServer()->findChild<KWin::XdgShellInterface *>()) {
-        connect(shell, &KWin::XdgShellInterface::toplevelCreated, this, &FullscreenGuard::observeToplevel);
-    }
 }
 
 FullscreenGuard::~FullscreenGuard()
@@ -73,22 +95,13 @@ FullscreenGuard::~FullscreenGuard()
     }
 }
 
-void FullscreenGuard::observeToplevel(KWin::XdgToplevelInterface *toplevel)
-{
-    KWin::SurfaceInterface *surface = toplevel->surface();
-    m_toplevels.insert(surface, toplevel);
-    connect(toplevel, &QObject::destroyed, this, [this, surface] { m_toplevels.remove(surface); });
-    KWin::Window *window = KWin::waylandServer()->findWindow(surface);
-    const std::optional<Layout::WindowId> id = m_windows.idOf(window);
-    if (id) {
-        observe(*id, window);
-    }
-}
-
 void FullscreenGuard::observe(Layout::WindowId id, KWin::Window *window)
 {
-    KWin::XdgToplevelInterface *toplevel = m_toplevels.value(window->surface());
-    if (!toplevel || m_entries.contains(id)) {
+    if (m_entries.contains(id)) {
+        return;
+    }
+    KWin::XdgToplevelInterface *toplevel = toplevelOf(window);
+    if (!toplevel) {
         return;
     }
 

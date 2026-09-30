@@ -10,7 +10,7 @@ from Xlib.protocol import event
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from kwinsession import CLIENTS, activate, kwin_titles, run_script, wait_for, window_minimized, window_state
+from kwinsession import CLIENTS, activate, kwin_titles, reload_konveyor, run_script, wait_for, window_minimized, window_state
 from nested import build_dir
 
 LOGS = Path(os.environ["KONVEYOR_TEST_ROOT"])
@@ -118,6 +118,12 @@ def check_requests(title, problems):
             problems.append(f"{title} did not accept minimize after becoming windowed")
 
 
+def reload_effect(titles, problems):
+    if not reload_konveyor(titles):
+        problems.append("the reloaded effect did not manage the windows that were already open")
+    print("reloaded the effect with the windows already open")
+
+
 def main():
     problems = []
     guard = str(build_dir() / "bin" / "fullscreen_guard_client")
@@ -126,8 +132,11 @@ def main():
     launch("GuardMinimize", [guard, "GuardMinimize", "minimize"], {"WAYLAND_DEBUG": "client"})
     launch("X11GuardUnfullscreen", ["python3", x11_guard, "X11GuardUnfullscreen", "unfullscreen"])
     launch("X11GuardMinimize", ["python3", x11_guard, "X11GuardMinimize", "minimize"])
-    for title in ("GuardUnfullscreen", "GuardMinimize", "X11GuardUnfullscreen", "X11GuardMinimize"):
+    titles = ("GuardUnfullscreen", "GuardMinimize", "X11GuardUnfullscreen", "X11GuardMinimize")
+    for title in titles:
         wait_for(lambda: is_fullscreen(title), 60)
+    if sys.argv[1:] == ["reload"]:
+        reload_effect(titles, problems)
     check_requests("GuardUnfullscreen", problems)
     check_requests("GuardMinimize", problems)
     check_requests("X11GuardMinimize", problems)

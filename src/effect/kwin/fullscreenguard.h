@@ -10,7 +10,6 @@
 
 namespace KWin
 {
-class SurfaceInterface;
 class Window;
 class XdgToplevelInterface;
 }
@@ -33,7 +32,6 @@ public:
 private:
     struct Entry;
 
-    void observeToplevel(KWin::XdgToplevelInterface *toplevel);
     void observe(Layout::WindowId id, KWin::Window *window);
     void forget(Layout::WindowId id);
     void restore(const std::shared_ptr<Entry> &entry);
@@ -49,7 +47,6 @@ private:
 
     WindowRegistry &m_windows;
     QHash<Layout::WindowId, std::shared_ptr<Entry>> m_entries;
-    QHash<KWin::SurfaceInterface *, KWin::XdgToplevelInterface *> m_toplevels;
     QSet<Layout::WindowId> m_fullscreenWindows;
     std::unique_ptr<X11FullscreenGuardFilter> m_x11Filter;
     bool m_preventFullscreenMinimize = false;

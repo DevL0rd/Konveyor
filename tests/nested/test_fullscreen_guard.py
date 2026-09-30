@@ -7,7 +7,7 @@ sys.path.insert(0, str(HERE / "harness"))
 
 SCRIPT = """
 export QT_QPA_PLATFORM=wayland
-python3 {clients} client.qml A > "$KONVEYOR_REPORT" 2>&1 && python3 {runner} > "$KONVEYOR_REPORT" 2>&1
+python3 {clients} client.qml A > "$KONVEYOR_REPORT" 2>&1 && python3 {runner} {mode} > "$KONVEYOR_REPORT" 2>&1
 """
 
 EXPERIMENTS = """
@@ -21,8 +21,9 @@ experiments {
 def main():
     from nested import run_script
 
-    return run_script(SCRIPT.format(clients=HERE / "harness" / "clients.py", runner=HERE / "runners" / "fullscreen_guard.py"),
-                      timeout=240, extra_config=EXPERIMENTS, xwayland=True)
+    results = [run_script(SCRIPT.format(clients=HERE / "harness" / "clients.py", runner=HERE / "runners" / "fullscreen_guard.py", mode=mode),
+                          timeout=240, extra_config=EXPERIMENTS, xwayland=True) for mode in ("", "reload")]
+    return max(results)
 
 
 if __name__ == "__main__":

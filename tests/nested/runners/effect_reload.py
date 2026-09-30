@@ -6,22 +6,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
-from kwinsession import CLIENTS, for_window, managed_titles, qdbus, run_script, wait_for, window_state
-
-EFFECTS = ("org.kde.KWin", "/Effects")
-
-
-def managed_now():
-    try:
-        return set(managed_titles())
-    except subprocess.CalledProcessError:
-        return set()
-
+from kwinsession import CLIENTS, for_window, managed_now, reload_konveyor, run_script, wait_for, window_state
 
 def reload_effect(checks, titles):
-    qdbus(*EFFECTS, "org.kde.kwin.Effects.unloadEffect", "konveyor_effect")
-    checks.equal(qdbus(*EFFECTS, "org.kde.kwin.Effects.loadEffect", "konveyor_effect"), "true", "the effect loads again")
-    checks.expect(wait_for(lambda: set(titles) <= managed_now(), 60), f"the reloaded effect manages the open windows ({sorted(managed_now())})")
+    checks.expect(reload_konveyor(titles), f"the reloaded effect manages the open windows ({sorted(managed_now())})")
 
 
 def fullscreen(title):
