@@ -28,8 +28,9 @@ def load_config():
 def save_config(config):
     CONFIG.parent.mkdir(parents=True, exist_ok=True)
     temporary = CONFIG.with_suffix(".tmp")
-    temporary.write_text(json.dumps(config, indent=2) + "\n")
-    temporary.chmod(0o600)
+    temporary.unlink(missing_ok=True)
+    with os.fdopen(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as handle:
+        handle.write(json.dumps(config, indent=2) + "\n")
     temporary.replace(CONFIG)
 
 

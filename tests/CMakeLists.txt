@@ -102,6 +102,11 @@ foreach(name test_sysmon_collect test_procmon_collect test_logmon_collect test_r
     set_tests_properties(${name} PROPERTIES LABELS "unit;widgets" ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
 endforeach()
 
+foreach(name test_routermon_ctl test_routermon_config test_routermon_speedtest)
+    add_test(NAME ${name} COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/${name}.py)
+    set_tests_properties(${name} PROPERTIES LABELS "unit;widgets" ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
+endforeach()
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
 find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
