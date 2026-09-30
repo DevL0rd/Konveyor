@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import os
 import unittest
 from unittest import mock
 
@@ -93,6 +94,59 @@ class TestRoutermonParsing(CollectorTest):
         self.assertIn("ControlPath=%s" % (self.runtime / "Linux-Router-Monitor" / "cm.sock"), command)
         self.assertIn("ControlPersist=30", command)
         self.assertIn("BatchMode=yes", command)
+
+SESSION = RECORDING_STUB + """import time
+with open(os.environ["STUB_LOG"]) as log:
+    session = sum(1 for line in log if line.startswith('["ssh"')) - 1
+replies = iter(os.environ["ROUTER_REPLIES"].split("|")[session].split(","))
+for line in sys.stdin:
+    reply = next(replies, "exit")
+    if reply == "exit":
+        sys.exit(255)
+    if reply == "hang":
+        time.sleep(30)
+    sys.stdout.write(("END=1\\n" if reply == "ok" else "partial=1\\n") + "__LRM_DONE__\\n")
+    sys.stdout.flush()
+"""
+
+
+class TestRoutermonSession(CollectorTest):
+    def setUp(self):
+        super().setUp()
+        write_stub(self.stubs, "ssh", SESSION)
+        self.module = self.load(SCRIPT, "routermon_collect")
+        self.module.SESSION_TIMEOUT = 1
+        self.addCleanup(self.module._close_session)
+        self.cfg = {"host": "router"}
+
+    def outcomes(self, replies, requests):
+        os.environ["ROUTER_REPLIES"] = replies
+        results = []
+        for _ in range(requests):
+            try:
+                results.append(self.module.fetch_remote(self.cfg).strip())
+            except RuntimeError as error:
+                results.append(str(error))
+        return results, len(self.calls())
+
+    def test_one_ssh_session_serves_every_poll(self):
+        self.assertEqual(self.outcomes("ok,ok,ok", 3), (["END=1"] * 3, 1))
+
+    def test_a_dropped_session_is_reported_and_the_next_poll_reconnects(self):
+        results, sessions = self.outcomes("ok,exit|ok", 3)
+        self.assertEqual(results[0], "END=1")
+        self.assertIn("remote session ended", results[1])
+        self.assertEqual((results[2], sessions), ("END=1", 2))
+
+    def test_a_hung_router_times_out_and_the_next_poll_reconnects(self):
+        results, sessions = self.outcomes("hang|ok", 2)
+        self.assertEqual(results[0], "remote collect failed: remote collect timed out")
+        self.assertEqual((results[1], sessions), ("END=1", 2))
+
+    def test_output_without_the_end_marker_drops_the_session(self):
+        results, sessions = self.outcomes("partial|ok", 2)
+        self.assertEqual(results[0], "remote collect failed: incomplete output")
+        self.assertEqual((results[1], sessions), ("END=1", 2))
 
 
 class TestRoutermonBuild(CollectorTest):
