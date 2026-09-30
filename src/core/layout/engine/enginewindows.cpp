@@ -243,43 +243,38 @@ bool Engine::hasWindow(WindowId id) const
 
 void Engine::updateWindowProperties(WindowId id, const WindowProperties &properties)
 {
-    Workspace *workspace = d->workspaceOf(id);
-    if (!workspace) {
+    Tile *tile = d->tileOf(id);
+    if (!tile) {
         return;
     }
-    for (const TileRef &ref : workspace->renderedTilesMut(false)) {
-        if (ref.tile->id() != id) {
-            continue;
-        }
-        LayoutWindow &window = ref.tile->window();
-        const bool parentChanged = window.properties().parent != properties.parent;
-        window.setProperties(properties);
-        window.setUrgent(properties.isUrgent);
-        window.markRulesDirty();
+    LayoutWindow &window = tile->window();
+    const bool parentChanged = window.properties().parent != properties.parent;
+    window.setProperties(properties);
+    window.setUrgent(properties.isUrgent);
+    window.markRulesDirty();
+    if (Workspace *workspace = d->workspaceOf(id)) {
         if (parentChanged && properties.parent) {
             workspace->childrenAdded(*properties.parent);
         }
-        break;
+        workspace->updateWindow(id);
+    } else {
+        tile->updateWindow();
     }
-    workspace->updateWindow(id);
     d->refresh();
 }
 
 void Engine::windowSizeCommitted(WindowId id, const QSizeF &frameSize)
 {
-    Workspace *workspace = d->workspaceOf(id);
-    if (!workspace) {
+    Tile *tile = d->tileOf(id);
+    if (!tile) {
         return;
     }
-    bool changed = false;
-    for (const TileRef &ref : workspace->renderedTilesMut(false)) {
-        if (ref.tile->id() == id) {
-            changed = ref.tile->window().commit(frameSize);
-            break;
+    if (tile->window().commit(frameSize)) {
+        if (Workspace *workspace = d->workspaceOf(id)) {
+            workspace->updateWindow(id);
+        } else {
+            tile->updateWindow();
         }
-    }
-    if (changed) {
-        workspace->updateWindow(id);
     }
     d->refresh();
 }

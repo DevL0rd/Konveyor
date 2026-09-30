@@ -164,6 +164,38 @@ private Q_SLOTS:
         QCOMPARE(t.fixture.frame(t.c).size(), QSizeF(500, 400));
         VERIFY_INVARIANTS(t.fixture);
     }
+
+    void aFullscreenWindowDroppedAfterItLeftFullscreenMidDragIsNormal()
+    {
+        Three t;
+        QVERIFY(t.fixture.perform(QStringLiteral("fullscreen-window")).ok);
+        QCOMPARE(t.fixture.state(t.c).sizingMode, Layout::WindowMode::Fullscreen);
+        QVERIFY(startMove(t.fixture, t.c, QPointF(700, 500)));
+        t.fixture.settle();
+        t.drop();
+        t.fixture.advance(1);
+        QCOMPARE(t.fixture.state(t.c).sizingMode, Layout::WindowMode::Normal);
+        QCOMPARE(t.fixture.state(t.c).renderFrame, t.fixture.frame(t.c));
+        QVERIFY(t.fixture.state(t.c).stackingIndex >= 0);
+        VERIFY_INVARIANTS(t.fixture);
+    }
+
+    void aTitleChangeMidDragReachesTheWindowRules()
+    {
+        Config::Config config = instantConfig();
+        Config::WindowRule rule;
+        Config::Match match;
+        match.title = QRegularExpression(QStringLiteral("^Done$"));
+        rule.matches.append(match);
+        rule.opacity = 0.5;
+        config.windowRules.append(rule);
+        Three t(config);
+        QVERIFY(startMove(t.fixture, t.c, QPointF(700, 500)));
+        t.fixture.engine().updateWindowProperties(t.c, makeWindow(QStringLiteral("c"), QStringLiteral("Done")));
+        t.drop();
+        QCOMPARE(t.fixture.state(t.c).ruleOpacity, 0.5);
+        VERIFY_INVARIANTS(t.fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutDragActions)
