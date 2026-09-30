@@ -97,6 +97,9 @@ void Engine::Private::beginInteractiveMoving(const QString &output)
     move.tile = std::move(removed.tile);
     move.moving = true;
     move.output = output;
+    if (const auto idx = monitorIndexByName(output)) {
+        activeMonitorIndex = *idx;
+    }
     for (Monitor &monitor : monitors) {
         monitor.pruneWorkspaces();
     }

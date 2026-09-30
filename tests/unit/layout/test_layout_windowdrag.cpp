@@ -74,6 +74,28 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void aWindowDroppedOnTheOtherMonitorHasFocusThere()
+    {
+        Fixture fixture;
+        fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
+        fixture.engine().focusOutput(QStringLiteral("DP-2"));
+        const auto there = fixture.add(QStringLiteral("there"));
+        fixture.engine().focusOutput(QStringLiteral("DP-1"));
+        fixture.add(QStringLiteral("a"));
+        const auto moved = fixture.add(QStringLiteral("b"));
+        QVERIFY(fixture.engine().beginWindowDrag(moved, QPointF(1800, 540)));
+        fixture.engine().updateWindowDrag(QPointF(1900, 540), QStringLiteral("DP-1"));
+        fixture.engine().updateWindowDrag(QPointF(2200, 540), QStringLiteral("DP-2"));
+        fixture.engine().updateWindowDrag(QPointF(2300, 540), QStringLiteral("DP-2"));
+        fixture.engine().endWindowDrag();
+        fixture.settle();
+        QCOMPARE(fixture.state(moved).output, QStringLiteral("DP-2"));
+        QCOMPARE(fixture.focused(), std::optional(moved));
+        QCOMPARE(fixture.engine().focusedOutput(), std::optional(QStringLiteral("DP-2")));
+        QVERIFY(!fixture.state(there).isFocused);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void fullscreenMidDragDropsTheWindowWhereTheHintIs_data() { addRequestRows(); }
 
     void fullscreenMidDragDropsTheWindowWhereTheHintIs()
