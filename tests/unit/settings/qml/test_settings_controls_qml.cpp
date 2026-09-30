@@ -147,6 +147,19 @@ void TestSettingsControlsQml::controls_data()
             "layout { remember-window-sizes; }\n"});
     addControl("remember positions",
         {"LayoutPage", "Remember floating window positions", "switched", "[true]", "layout/remember-window-positions", R"({"args":[]})"});
+    addControl("reset gaps", {"LayoutPage", "Gaps", "resetRequested", "[]", "layout/gaps", R"({"args":[16]})", "layout { gaps 3; }\n"});
+    addControl("reset expand",
+        {"LayoutPage", "Expand a lone window", "resetRequested", "[]", "layout/always-expand-single-column", R"({"args":[true]})",
+            "layout { always-expand-single-column false; }\n"});
+    addControl(
+        "reset animations", {"MotionPage", "Animate windows", "resetRequested", "[]", "animations/off", "null", "animations { off; }\n"});
+    addControl("reset widgets",
+        {"PlasmaPage", "Hide desktop widgets behind windows", "resetRequested", "[]", "hide-desktop-widgets", R"({"args":[]})", ""});
+    addControl("reset ring",
+        {"LookPage", "Show focus ring", "resetRequested", "[]", "layout/focus-ring/off", "null", "layout { focus-ring { off; }; }\n"});
+    addControl("reset corners",
+        {"MousePage", "Active corners", "resetRequested", "[]", "gestures/hot-corners", R"({"children":["off"]})",
+            "gestures { hot-corners { top-right; }; }\n"});
 }
 
 QTEST_MAIN(TestSettingsControlsQml)

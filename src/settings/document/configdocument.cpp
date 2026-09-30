@@ -217,24 +217,10 @@ EditResult ConfigDocument::insertChild(const NodePath &parentPath, const QVarian
     const QString name = node.value(QStringLiteral("name")).toString();
     NodePath resultPath = parentPath;
     resultPath.append(PathSegment {name, countNamed(childrenOf(m_document, parent), name)});
-    std::u32string text = m_text;
-    if (!parent && !m_document.nodes.isEmpty() && Config::isForceResizableInclude(m_document.nodes.last())) {
-        const qsizetype includeStart = m_document.nodes.last().span.start;
-        const qsizetype line = lineStart(includeStart);
-        const bool ownsLine = slice(line, includeStart).trimmed().isEmpty();
-        const qsizetype position = ownsLine ? line : includeStart;
-        replace(text, position, position, writeNode(node, QString()) + (ownsLine ? QStringLiteral("\n\n") : QStringLiteral("\n")));
-        return commit(std::move(text), formatPath(resultPath));
-    }
     if (!parent) {
-        QString prefix;
-        if (!m_text.empty()) {
-            prefix = m_text.back() == U'\n' ? QStringLiteral("\n") : QStringLiteral("\n\n");
-        }
-        replace(text, static_cast<qsizetype>(m_text.size()), static_cast<qsizetype>(m_text.size()),
-            prefix + writeNode(node, QString()) + QLatin1Char('\n'));
-        return commit(std::move(text), formatPath(resultPath));
+        return insertTopLevel(node, formatPath(resultPath));
     }
+    std::u32string text = m_text;
     const Kdl::Span &span = parent->span;
     const QString parentIndent = indentFor(parentPath);
     const QString indent = parentIndent + IndentStep;
@@ -257,6 +243,25 @@ EditResult ConfigDocument::insertChild(const NodePath &parentPath, const QVarian
         replace(text, span.childrenOpen, span.childrenClose + 1, block);
     }
     return commit(std::move(text), formatPath(resultPath));
+}
+
+EditResult ConfigDocument::insertTopLevel(const QVariantMap &node, const QString &resultPath)
+{
+    std::u32string text = m_text;
+    if (!m_document.nodes.isEmpty() && Config::isForceResizableInclude(m_document.nodes.last())) {
+        const qsizetype includeStart = m_document.nodes.last().span.start;
+        const qsizetype line = lineStart(includeStart);
+        const bool ownsLine = slice(line, includeStart).trimmed().isEmpty();
+        const qsizetype position = ownsLine ? line : includeStart;
+        replace(text, position, position, writeNode(node, QString()) + (ownsLine ? QStringLiteral("\n\n") : QStringLiteral("\n")));
+        return commit(std::move(text), resultPath);
+    }
+    QString prefix;
+    if (!m_text.empty()) {
+        prefix = m_text.back() == U'\n' ? QStringLiteral("\n") : QStringLiteral("\n\n");
+    }
+    replace(text, size(), size(), prefix + writeNode(node, QString()) + QLatin1Char('\n'));
+    return commit(std::move(text), resultPath);
 }
 
 EditResult ConfigDocument::commit(std::u32string text, const QString &resultPath)
