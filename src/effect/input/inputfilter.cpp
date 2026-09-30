@@ -48,7 +48,7 @@ Config::BindTrigger scrollTriggerOf(const KWin::PointerAxisEvent *event)
 }
 
 InputFilter::InputFilter(InputHandlers handlers)
-    : KWin::InputEventFilter(KWin::InputFilterOrder::Effects)
+    : KWin::InputEventFilter(KWin::InputFilterOrder::GlobalShortcut)
     , m_handlers(std::move(handlers))
 {
     KWin::input()->installInputEventFilter(this);
