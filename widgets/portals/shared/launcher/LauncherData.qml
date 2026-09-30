@@ -282,9 +282,11 @@ Item {
         engine: "executable"
         onNewData: function(source, result) {
             disconnectSource(source)
+            if (result["exit code"] !== 0)
+                return
             let parsed = null
             try {
-                parsed = JSON.parse(result.stdout || "{}")
+                parsed = JSON.parse(result.stdout)
             } catch (error) {
                 return
             }

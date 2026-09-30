@@ -57,12 +57,23 @@ private Q_SLOTS:
         QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games # ")), 0);
     }
 
+    void aBrokenLibraryKeepsTheLastGames_data()
+    {
+        QTest::addColumn<QByteArray>("output");
+        QTest::addColumn<int>("exitCode");
+        QTest::newRow("output that is not json") << QByteArray("not json") << 0;
+        QTest::newRow("a crash with no output") << QByteArray() << 1;
+        QTest::newRow("a missing portal-games") << QByteArray() << 127;
+    }
+
     void aBrokenLibraryKeepsTheLastGames()
     {
+        QFETCH(QByteArray, output);
+        QFETCH(int, exitCode);
         m_harness.respondWithLibrary();
         QVERIFY(m_harness.openHost(false));
         TRY_COMPARE(eval(QStringLiteral("launcherData.games.length")).toInt(), 3);
-        m_harness.respond({response(QStringLiteral("portal-games # "), "not json")});
+        m_harness.respond({response(QStringLiteral("portal-games # "), output, exitCode, QStringLiteral("Traceback"))});
         eval(QStringLiteral("launcherData.refreshGames(true)"));
         QVERIFY(m_harness.waitHandled(QStringLiteral("$HOME/.local/bin/portal-games # "), 2));
         QCOMPARE(eval(QStringLiteral("launcherData.games.length")).toInt(), 3);
