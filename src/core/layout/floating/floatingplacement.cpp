@@ -69,8 +69,8 @@ void FloatingData::refreshAbsolutePos()
     QPointF logical = scaleByArea(workingArea, pos) - workingArea.topLeft();
     const double maxOffHor = std::max(0.0, size.width() - std::clamp(size.width() / 4.0, 10.0, 75.0));
     const double maxOffVer = std::max(0.0, size.height() - std::clamp(size.height() / 4.0, 10.0, 75.0));
-    logical.setX(std::clamp(logical.x(), -maxOffHor, workingArea.width() - size.width() + maxOffHor));
-    logical.setY(std::clamp(logical.y(), -maxOffVer, workingArea.height() - size.height() + maxOffVer));
+    logical.setX(std::clamp(logical.x(), -maxOffHor, std::max(-maxOffHor, workingArea.width() - size.width() + maxOffHor)));
+    logical.setY(std::clamp(logical.y(), -maxOffVer, std::max(-maxOffVer, workingArea.height() - size.height() + maxOffVer)));
     absolutePos = logical + workingArea.topLeft();
 }
 

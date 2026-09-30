@@ -347,6 +347,21 @@ private Q_SLOTS:
         QCOMPARE(fixture.frame(id).topLeft(), QPointF(300, 400));
         VERIFY_INVARIANTS(fixture);
     }
+
+    void tinyFloatingWindowStaysAtTheStartOfAnAreaNarrowerThanIt()
+    {
+        Config::Config config = instantConfig();
+        Config::WindowRule rule = ruleFor(QStringLiteral("tiny"));
+        rule.openFloating = true;
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        fixture.addOutput(withPanels(makeOutput(QStringLiteral("DP-1"), QRectF(0, 0, 1920, 1080)), QMarginsF(956, 536, 956, 536)));
+        const auto id = fixture.add(QStringLiteral("tiny"), QSizeF(10, 10));
+        QCOMPARE(fixture.frame(id), QRectF(956, 536, 10, 10));
+        moveFloating(fixture, QStringLiteral("+50"), QStringLiteral("-50"));
+        QCOMPARE(fixture.frame(id).topLeft(), QPointF(956, 536));
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutFloating)
