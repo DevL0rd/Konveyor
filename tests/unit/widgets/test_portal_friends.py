@@ -124,6 +124,19 @@ class TestPortalFriends(unittest.TestCase):
         self.box.write(self.box.home / ".var" / "app" / "com.valvesoftware.Steam" / "data" / "Steam" / "config" / "loginusers.vdf", LOGINUSERS)
         self.assertEqual(self.module.detect_steamid(), ME)
 
+    def test_a_steamid_written_as_a_number_is_used(self):
+        self.box.write(self.config, '{"steam_api_key": "%s", "steamid": %s}' % (KEY, ME))
+        snapshot = self.module.build_snapshot(self.module.load_config())
+        self.assertEqual((snapshot["ok"], snapshot["self"]), (True, ME))
+        self.assertEqual(self.steam.calls_to("GetFriendList/v1/")[0]["steamid"], ME)
+
+    def test_a_config_that_is_not_an_object_asks_for_a_key_instead_of_crashing(self):
+        for text in ("[]", "null", '"key"', "7"):
+            self.box.write(self.config, text)
+            self.assertEqual(self.run_mode("--check")[0], 1)
+            interval, _, snapshot = self.serve_once()
+            self.assertEqual((interval, snapshot["needs_api_key"]), (60.0, True), text)
+
     def test_a_configured_steamid_wins(self):
         self.box.write(self.box.home / ".steam" / "steam" / "config" / "loginusers.vdf", LOGINUSERS)
         self.configure(steam_api_key=KEY, steamid=" 76561198000000009 ")

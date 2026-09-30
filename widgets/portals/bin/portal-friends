@@ -67,9 +67,10 @@ def resolve_headers(appids):
 def load_config():
     try:
         with open(CONFIG) as f:
-            return json.load(f)
+            config = json.load(f)
     except Exception:
         return {}
+    return config if isinstance(config, dict) else {}
 
 
 def detect_steamid():
@@ -163,7 +164,7 @@ def build_snapshot(cfg):
     if not key or "PASTE" in key:
         return {"ts": time.time(), "ok": False, "by_appid": {},
                 "needs_api_key": True, "error": "no steam_api_key in config"}
-    sid = (cfg.get("steamid") or "").strip() or detect_steamid()
+    sid = str(cfg.get("steamid") or "").strip() or detect_steamid()
     if not sid:
         return {"ts": time.time(), "ok": False, "by_appid": {},
                 "error": "could not determine SteamID"}
