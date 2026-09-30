@@ -34,7 +34,7 @@ QStringList cfgProperties(const QObject *form)
     const QMetaObject *meta = form->metaObject();
     for (int i = meta->propertyOffset(); i < meta->propertyCount(); ++i) {
         const QString name = QString::fromLatin1(meta->property(i).name());
-        if (name.startsWith(QLatin1String("cfg_"))) {
+        if (name.startsWith(QLatin1String("cfg_")) && !name.endsWith(QLatin1String("Default"))) {
             names.append(name.mid(4));
         }
     }
