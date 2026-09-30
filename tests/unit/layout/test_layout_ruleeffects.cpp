@@ -165,6 +165,49 @@ private Q_SLOTS:
         QCOMPARE(fixture.frame(framed), QRectF(974, 22, 924, 1036));
         VERIFY_INVARIANTS(fixture);
     }
+
+    void isActiveInColumnRuleFollowsTheColumnsActiveWindow()
+    {
+        Config::Config config = instantConfig();
+        Config::WindowRule rule;
+        Config::Match match;
+        match.isActiveInColumn = false;
+        rule.matches.append(match);
+        rule.opacity = 0.5;
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        const auto [top, bottom] = addStackedPair(fixture);
+        QCOMPARE(fixture.state(top).ruleOpacity, 0.5);
+        QCOMPARE(fixture.state(bottom).ruleOpacity, 1.0);
+        fixture.perform(QStringLiteral("focus-window-up"));
+        QCOMPARE(fixture.state(top).ruleOpacity, 1.0);
+        QCOMPARE(fixture.state(bottom).ruleOpacity, 0.5);
+        fixture.perform(QStringLiteral("expel-window-from-column"));
+        QCOMPARE(fixture.state(top).ruleOpacity, 1.0);
+        QCOMPARE(fixture.state(bottom).ruleOpacity, 1.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void minHeightRuleGivesThatWindowItsHeight()
+    {
+        Config::Config config = instantConfig();
+        Config::WindowRule rule = ruleFor(QStringLiteral("tall"));
+        rule.minHeight = 700;
+        config.windowRules.append(rule);
+        Fixture fixture(config);
+        const auto tall = fixture.add(QStringLiteral("tall"));
+        const auto other = fixture.add(QStringLiteral("other"));
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        QCOMPARE(fixture.state(tall).columnIndex, fixture.state(other).columnIndex);
+        QCOMPARE(fixture.frame(tall).height(), 700.0);
+        QCOMPARE(fixture.frame(other).height(), 1048.0 - 700.0 - 16.0);
+        fixture.perform(QStringLiteral("set-window-height"), {QStringLiteral("100")}, idProperty(tall));
+        QCOMPARE(fixture.frame(tall).height(), 700.0);
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("tall"), QStringLiteral("tall"), QSizeF(400, 300));
+        properties.isDialog = true;
+        QCOMPARE(fixture.frame(fixture.addWith(properties)).size(), QSizeF(400, 700));
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutRuleEffects)
