@@ -50,6 +50,11 @@ DesktopSync::DesktopSync(const WindowRegistry &windows, const OutputRegistry &ou
 
 DesktopSync::~DesktopSync()
 {
+    for (auto it = m_originalNames.cbegin(); it != m_originalNames.cend(); ++it) {
+        if (KWin::VirtualDesktop *desktop = manager()->desktopForId(it.key())) {
+            desktop->setName(it.value());
+        }
+    }
     manager()->setPerOutputVirtualDesktops(m_previousPerOutput);
     manager()->setRows(m_previousRows);
 }
@@ -97,12 +102,16 @@ void DesktopSync::shrinkDesktops(int count)
 void DesktopSync::applyNames(const QList<Layout::WorkspaceState> &workspaces)
 {
     for (const Layout::WorkspaceState &workspace : workspaces) {
-        if (workspace.name.isEmpty() || !workspace.isActive) {
+        KWin::VirtualDesktop *desktop = workspace.isActive ? desktopAt(workspace.index) : nullptr;
+        if (!desktop || (workspace.name.isEmpty() && !m_originalNames.contains(desktop->id()))) {
             continue;
         }
-        KWin::VirtualDesktop *desktop = desktopAt(workspace.index);
-        if (desktop && desktop->name() != workspace.name) {
-            desktop->setName(workspace.name);
+        if (!m_originalNames.contains(desktop->id())) {
+            m_originalNames.insert(desktop->id(), desktop->name());
+        }
+        const QString name = workspace.name.isEmpty() ? m_originalNames.take(desktop->id()) : workspace.name;
+        if (desktop->name() != name) {
+            desktop->setName(name);
         }
     }
 }

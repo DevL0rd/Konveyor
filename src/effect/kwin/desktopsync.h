@@ -2,6 +2,7 @@
 
 #include "layout/engine/engine.h"
 
+#include <QHash>
 #include <QObject>
 
 namespace KWin
@@ -46,6 +47,7 @@ private:
     bool m_applying = false;
     bool m_previousPerOutput = false;
     uint m_previousRows = 1;
+    QHash<QString, QString> m_originalNames;
 };
 
 }

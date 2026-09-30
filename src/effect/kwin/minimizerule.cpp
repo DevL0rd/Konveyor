@@ -35,18 +35,21 @@ void MinimizeRule::apply(bool blockMinimize)
     config->reparseConfiguration();
     KConfigGroup general = config->group(QStringLiteral("General"));
     QStringList rules = general.readEntry("rules", QStringList());
-    if (rules.contains(ruleId) == blockMinimize) {
+    const KConfigGroup existing = config->group(ruleId);
+    const bool blocking
+        = rules.contains(ruleId) && existing.readEntry("minimizerule", 0) == forceRule && !existing.readEntry("minimize", true);
+    const bool absent = !rules.contains(ruleId) && !config->hasGroup(ruleId);
+    if (blockMinimize ? blocking : absent) {
         return;
     }
+    rules.removeAll(ruleId);
+    config->deleteGroup(ruleId);
     if (blockMinimize) {
         rules.append(ruleId);
         KConfigGroup rule = config->group(ruleId);
         rule.writeEntry("Description", QStringLiteral("Konveyor: windows cannot be minimized"));
         rule.writeEntry("minimize", false);
         rule.writeEntry("minimizerule", forceRule);
-    } else {
-        rules.removeAll(ruleId);
-        config->deleteGroup(ruleId);
     }
     general.writeEntry("rules", rules);
     general.writeEntry("count", rules.size());
