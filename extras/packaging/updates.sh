@@ -167,7 +167,7 @@ login_update() {
 }
 
 login_rebuild() {
-    grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null && WIDGETS=false
+    read_install_options "$OPTIONS_FILE"
     notify_owner "Updating Konveyor" "The system changed, so Konveyor is rebuilding for it. This takes a few minutes."
     install_dependencies
     build

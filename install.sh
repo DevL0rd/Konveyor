@@ -201,12 +201,16 @@ activate() {
     fi
 }
 
+read_install_options() {
+    if grep -qx "widgets=false" "$1" 2>/dev/null; then
+        WIDGETS=false
+    fi
+}
+
 finish_update() {
     KONVEYOR_PLUGIN_DIR=$(konveyor_plugin_dir)
     PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/plugin-id")
-    if grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null; then
-        WIDGETS=false
-    fi
+    read_install_options "$OPTIONS_FILE"
     if $WIDGETS; then
         TELEMETRY_PLUGIN_ID=$(<"$KONVEYOR_STATE_DIR/telemetry-plugin-id")
     fi
@@ -223,6 +227,9 @@ finish_update() {
 system_update() {
     [[ $EUID -eq 0 && -n ${KONVEYOR_OWNER:-} ]] || die "--system-update runs from the system update hook"
     SYSTEM_UPDATE_ROOT=true
+    local owner_state
+    owner_state="$(getent passwd "$KONVEYOR_OWNER" | cut -d: -f6)/.local/state/konveyor"
+    read_install_options "$owner_state/install-options"
     source_git submodule update --init --recursive --quiet
     build
     install_files
@@ -234,10 +241,8 @@ system_update() {
         as_owner env KONVEYOR_SOURCE_DIR="$SOURCE_DIR" KONVEYOR_INSTALL_SUPPORT="$KONVEYOR_UPDATER_DIR" \
             "$KONVEYOR_UPDATER_DIR/install" --finish-update
     else
-        local pending
-        pending="$(getent passwd "$KONVEYOR_OWNER" | cut -d: -f6)/.local/state/konveyor/update-pending"
-        as_owner mkdir -p "$(dirname "$pending")"
-        as_owner touch "$pending"
+        as_owner mkdir -p "$owner_state"
+        as_owner touch "$owner_state/update-pending"
         say "Konveyor was built; its session steps run at your next login"
     fi
 }

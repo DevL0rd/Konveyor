@@ -85,6 +85,13 @@ class TestSystemUpdate(UpdateTest):
         self.assertFalse((self.state / "update-pending").exists())
         self.assertFalse((self.harness.home / ".config" / "systemd" / "user" / "konveyor-update.service").exists())
 
+    def test_an_install_without_widgets_gets_no_frame_telemetry_plugin_from_an_update(self):
+        self.options("false")
+        self.harness.start_session()
+        self.assertSucceeded(self.system_update(KONVEYOR_OWNER="tester"))
+        plugins = self.harness.prefix / "lib" / "plugins" / "kwin" / "effects" / "plugins"
+        self.assertEqual(sorted(path.name for path in plugins.iterdir()), ["konveyor_effect_1700000000.so"])
+
     def test_without_a_session_it_leaves_the_rest_for_the_next_login(self):
         (self.state / "update-pending").unlink()
         result = self.system_update(KONVEYOR_OWNER="tester")
