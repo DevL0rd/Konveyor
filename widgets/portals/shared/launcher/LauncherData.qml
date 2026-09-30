@@ -22,6 +22,7 @@ Item {
     readonly property alias rootModel: rootModel
     readonly property alias favorites: rootModel.favoritesModel
     readonly property alias runner: runnerModel
+    readonly property alias windows: windowSource
     readonly property alias system: systemModel
     readonly property alias recentApps: recentAppsModel
     readonly property alias recentDocs: recentDocsModel
@@ -106,8 +107,6 @@ Item {
         if (launcherData.config.searchFiles)
             list.push("krunner_placesrunner", "krunner_recentdocuments", "baloosearch", "locations")
         list.push("krunner_sessions", "krunner_powerdevil")
-        if (launcherData.config.searchWindows)
-            list.push("windows")
         if (launcherData.config.searchWeb)
             list.push("krunner_webshortcuts")
         return list
@@ -129,6 +128,10 @@ Item {
         mergeResults: false
         runners: launcherData.modeRunners[launcherData.searchMode] || launcherData.allRunners
         query: launcherData.live && (launcherData.modeRunners[launcherData.searchMode] || []).length > 0 ? launcherData.query : ""
+    }
+
+    WindowSource {
+        id: windowSource
     }
 
     Kicker.SystemModel {

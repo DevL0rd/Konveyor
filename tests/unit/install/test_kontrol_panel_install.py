@@ -110,6 +110,10 @@ class TestKontrolPanelInstall(unittest.TestCase):
         self.assertIn("SystemdService=konveyor-kontrol-panel.service", activation)
         desktop = (self.home / ".local" / "share" / "applications" / "org.devl0rd.KontrolPanel.desktop").read_text()
         self.assertIn(f"Exec={self.home}/.local/bin/portal-launcher toggle\n", desktop)
+        program = (self.home / ".local" / "share" / "applications" / "konveyor-kontrol-panel.desktop").read_text()
+        self.assertIn(f"Exec={command}\n", program)
+        self.assertIn("NoDisplay=true\n", program)
+        self.assertIn("X-KDE-Wayland-Interfaces=org_kde_plasma_window_management\n", program)
         for staged in ("Main.qml", "Overlay.qml", "ConfigWindow.qml", "config/main.xml", "LauncherView.qml", "pages/HomePage.qml", "lib/FileWatcher.qml", "lib/GameArt.qml"):
             self.assertTrue((panel / staged).is_file(), staged)
         calls = self.calls()
@@ -129,6 +133,7 @@ class TestKontrolPanelInstall(unittest.TestCase):
         self.assertFalse((self.home / ".config" / "systemd" / "user" / "konveyor-kontrol-panel.service").exists())
         self.assertFalse((self.home / ".local" / "share" / "dbus-1").exists())
         self.assertFalse((self.home / ".local" / "share" / "applications" / "org.devl0rd.KontrolPanel.desktop").exists())
+        self.assertFalse((self.home / ".local" / "share" / "applications" / "konveyor-kontrol-panel.desktop").exists())
         self.assertIn(["systemctl", "--user", "disable", "--now", "konveyor-kontrol-panel.service"], self.calls())
 
 

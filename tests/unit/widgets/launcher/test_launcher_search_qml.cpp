@@ -8,7 +8,7 @@ namespace
 const QStringList everyRunner {QStringLiteral("krunner_services"), QStringLiteral("krunner_systemsettings"), QStringLiteral("calculator"),
     QStringLiteral("unitconverter"), QStringLiteral("krunner_shell"), QStringLiteral("krunner_placesrunner"),
     QStringLiteral("krunner_recentdocuments"), QStringLiteral("baloosearch"), QStringLiteral("locations"),
-    QStringLiteral("krunner_sessions"), QStringLiteral("krunner_powerdevil"), QStringLiteral("windows")};
+    QStringLiteral("krunner_sessions"), QStringLiteral("krunner_powerdevil")};
 
 }
 
@@ -39,8 +39,7 @@ private Q_SLOTS:
                                 << everyRunner + QStringList {QStringLiteral("krunner_webshortcuts")};
         QTest::newRow("all extras off") << QStringLiteral("kon")
                                         << QVariantMap {{QStringLiteral("searchFiles"), false}, {QStringLiteral("searchSettings"), false},
-                                               {QStringLiteral("searchCalculator"), false}, {QStringLiteral("searchCommands"), false},
-                                               {QStringLiteral("searchWindows"), false}}
+                                               {QStringLiteral("searchCalculator"), false}, {QStringLiteral("searchCommands"), false}}
                                         << QStringList {QStringLiteral("krunner_services"), QStringLiteral("krunner_sessions"),
                                                QStringLiteral("krunner_powerdevil")};
         QTest::newRow("apps") << QStringLiteral("a kon") << QVariantMap() << QStringList {QStringLiteral("krunner_services")};

@@ -39,7 +39,7 @@ def build_dir():
 
 class NestedSession:
     def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1,
-                 input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=()):
+                 input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=(), permission_checks=False):
         self.output_count = output_count
         self.width = width
         self.height = height
@@ -76,6 +76,7 @@ class NestedSession:
         self.input_method = input_method
         self.notifications = notifications
         self.notifications_log = self.root / "notifications.jsonl"
+        self.permission_checks = permission_checks
         self.proc = None
         self.log_path = self.root / "kwin.log"
 
@@ -102,7 +103,8 @@ class NestedSession:
         env["KONVEYOR_NOTIFICATIONS_LOG"] = str(self.notifications_log)
         env["QT_PLUGIN_PATH"] = f"{self.plugins}:{build_dir() / 'bin'}:{os.environ.get('QT_PLUGIN_PATH', '/usr/lib/qt6/plugins')}"
         env["KWIN_SCREENSHOT_NO_PERMISSION_CHECKS"] = "1"
-        env["KWIN_WAYLAND_NO_PERMISSION_CHECKS"] = "1"
+        if not self.permission_checks:
+            env["KWIN_WAYLAND_NO_PERMISSION_CHECKS"] = "1"
         env["QT_LOGGING_RULES"] = "kwin_*.debug=false"
         env["QT_FORCE_STDERR_LOGGING"] = "1"
         env["KSCREEN_BACKEND_INPROCESS"] = "1"

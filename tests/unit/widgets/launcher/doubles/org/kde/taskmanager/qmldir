@@ -1,0 +1,3 @@
+module org.kde.taskmanager
+singleton TaskFixture 1.0 TaskFixture.qml
+TasksModel 1.0 TasksModel.qml

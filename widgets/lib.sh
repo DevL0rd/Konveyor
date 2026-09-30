@@ -17,6 +17,7 @@ KONTROL_PANEL_BUS="org.devl0rd.KontrolPanel"
 KONTROL_PANEL_DBUS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/dbus-1/services"
 KONTROL_PANEL_CONFIG="$CONFIG_HOME/konveyor/kontrolpanelrc"
 KONTROL_PANEL_DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$KONTROL_PANEL_BUS.desktop"
+KONTROL_PANEL_PROGRAM_DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/konveyor-kontrol-panel.desktop"
 PLASMA_LAUNCHER_ACTION=(plasmashell "activate application launcher" plasmashell "Activate Application Launcher")
 KONTROL_PANEL_KEYS=(16777250 150994992)
 LAUNCHER_KEYS_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/launcher-keys"
@@ -169,6 +170,16 @@ Icon=start-here-kde-plasma-symbolic
 NoDisplay=true
 StartupNotify=false
 EOF
+    cat >"$KONTROL_PANEL_PROGRAM_DESKTOP" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Kontrol Panel service
+Comment=Lets the Kontrol Panel list open windows in its search
+Exec=$binary $KONTROL_PANEL_DIR
+Icon=start-here-kde-plasma-symbolic
+NoDisplay=true
+X-KDE-Wayland-Interfaces=org_kde_plasma_window_management
+EOF
     kbuildsycoca6 >/dev/null 2>&1 || true
     busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig >/dev/null
     systemctl --user daemon-reload
@@ -178,7 +189,8 @@ EOF
 
 remove_kontrol_panel_service() {
     systemctl --user disable --now "$KONTROL_PANEL_UNIT" >/dev/null 2>&1 || true
-    rm -f "${USER_UNITS:?}/${KONTROL_PANEL_UNIT:?}" "${KONTROL_PANEL_DBUS_DIR:?}/${KONTROL_PANEL_BUS:?}.service" "${KONTROL_PANEL_DESKTOP:?}"
+    rm -f "${USER_UNITS:?}/${KONTROL_PANEL_UNIT:?}" "${KONTROL_PANEL_DBUS_DIR:?}/${KONTROL_PANEL_BUS:?}.service" "${KONTROL_PANEL_DESKTOP:?}" \
+        "${KONTROL_PANEL_PROGRAM_DESKTOP:?}"
     rmdir --ignore-fail-on-non-empty "$KONTROL_PANEL_DBUS_DIR" "$(dirname "$KONTROL_PANEL_DBUS_DIR")" 2>/dev/null || true
     kbuildsycoca6 >/dev/null 2>&1 || true
     busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig >/dev/null 2>&1 || true

@@ -34,8 +34,6 @@ PopScroll {
             return "apps"
         if (text.indexOf("calculat") >= 0 || text.indexOf("unit conver") >= 0 || text.indexOf("date and time") >= 0 || text.indexOf("dictionary") >= 0)
             return "answer"
-        if (text.indexOf("window") >= 0)
-            return "windows"
         if (text.indexOf("setting") >= 0)
             return "settings"
         if (text.indexOf("place") >= 0 || text.indexOf("recent") >= 0 || text.indexOf("file") >= 0 || text.indexOf("location") >= 0 || text.indexOf("desktop search") >= 0 || text.indexOf("document") >= 0)
@@ -70,6 +68,9 @@ PopScroll {
         }).sort((a, b) => (a.score - b.score) || (b.game.last - a.game.last)).map(entry => entry.game).slice(0, mode === "games" ? 40 : 8) : []
     readonly property var friendMatches: (mode === "all" || mode === "friends") && term !== "" && launcherData.friendsEnabled
         ? launcherData.friends.filter(friend => Highlight.matches(friend.name, term) || Highlight.matches(friend.game, term)).slice(0, mode === "friends" ? 40 : 6) : []
+    readonly property var windowMatches: mode === "all" && term !== "" && launcherData.config.searchWindows ? launcherData.windows.matches(term) : []
+    onWindowMatchesChanged: Qt.callLater(rebuildSections)
+    property Item windowSection: null
     readonly property bool showPackages: (mode === "all" || mode === "packages") && launcherData.packagesEnabled
     readonly property var settingMatches: mode === "all" && term.length >= 2 ? SettingsIndex.search(term).slice(0, 6) : []
     onSettingMatchesChanged: Qt.callLater(rebuildSections)
@@ -529,6 +530,48 @@ PopScroll {
     }
 
     Component {
+        id: windowsSlot
+        ResultGroup {
+            id: windowsGroup
+            function grids() {
+                return [grid]
+            }
+            title: i18n("Open windows")
+            model: page.windowMatches
+            Component.onCompleted: page.windowSection = windowsGroup
+            Component.onDestruction: if (page.windowSection === windowsGroup) page.windowSection = null
+            delegate: RowTile {
+                id: windowRow
+                required property int index
+                required property var modelData
+                readonly property var grid: GridView.view
+                width: grid.cellWidth
+                height: grid.cellHeight
+                iconSource: modelData.icon
+                label: modelData.title
+                query: page.term
+                subtitle: modelData.minimized ? i18n("%1 · minimized", modelData.appName) : modelData.appName
+                selected: GridView.isCurrentItem && grid.sectionActive
+                function activate() {
+                    launcher.closeAndRun(() => launcherData.windows.activate(modelData))
+                }
+                function openMenu() {
+                    launcher.openMenu([
+                        { text: i18n("Switch to window"), icon: "window", run: () => windowRow.activate() },
+                        { text: i18n("Close window"), icon: "window-close", run: () => launcherData.windows.close(modelData) }
+                    ], windowRow)
+                }
+                onHovered: launcher.select(grid, index)
+                onClicked: activate()
+                onRightClicked: {
+                    launcher.select(grid, index)
+                    openMenu()
+                }
+            }
+        }
+    }
+
+    Component {
         id: runnerSlot
         ColumnLayout {
             id: runnerKind
@@ -614,7 +657,7 @@ PopScroll {
             Layout.preferredHeight: item && item.hasContent ? item.implicitHeight : 0
             visible: item !== null && item.hasContent
             active: modelData !== "apps" || page.appGroup !== null
-            sourceComponent: modelData === "apps" ? appsSlot : modelData === "games" ? gamesSlot : modelData === "friends" ? friendsSlot : runnerSlot
+            sourceComponent: modelData === "apps" ? appsSlot : modelData === "games" ? gamesSlot : modelData === "friends" ? friendsSlot : modelData === "windows" ? windowsSlot : runnerSlot
             onLoaded: {
                 item.width = Qt.binding(() => slot.width)
                 if (sourceComponent === runnerSlot)
