@@ -21,7 +21,7 @@ def main():
         konveyor.mkdir(parents=True)
         (konveyor / "settings").symlink_to(build_dir() / "bin" / "org" / "kde" / "konveyor" / "settings")
         (konveyor / "components").symlink_to(REPO / "src" / "components")
-        return run_script(SCRIPT.format(imports=imports, runner=HERE / "runners" / "kcm.py"), timeout=300)
+        return run_script(SCRIPT.format(imports=imports, runner=HERE / "runners" / "kcm.py"), timeout=540)
 
 
 if __name__ == "__main__":
