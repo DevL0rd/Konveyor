@@ -63,11 +63,14 @@ void TestSettingsControlsQml::controls_data()
         {"MousePage", "Move the pointer with keyboard focus", "chosen", R"(["off"])", "input/warp-mouse-to-focus", "null",
             "input { warp-mouse-to-focus; }\n"});
     addControl("title bar",
-        {"MousePage", "Dragging a tiled window's title bar", "chosen", R"(["move-window"])", "gestures/titlebar-drag",
-            R"({"args":["move-window"]})"});
-    addControl("resize tiled",
+        {"MousePage", "Dragging a tiled window's title bar", "chosen", R"(["scroll-view"])", "gestures/titlebar-drag",
+            R"({"args":["scroll-view"]})"});
+    addControl("resize tiled off",
+        {"MousePage", "Resize tiled windows by dragging their edges", "switched", "[false]", "gestures/resize-tiled-windows",
+            R"({"args":[false]})"});
+    addControl("resize tiled on",
         {"MousePage", "Resize tiled windows by dragging their edges", "switched", "[true]", "gestures/resize-tiled-windows",
-            R"({"args":[]})"});
+            R"({"args":[true]})", "gestures { resize-tiled-windows false; }\n"});
     addControl("corners on",
         {"MousePage", "Open the overview from screen corners", "switched", "[true]", "gestures/hot-corners", R"({"children":[]})"});
     addControl("corners off",

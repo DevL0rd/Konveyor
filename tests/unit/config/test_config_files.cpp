@@ -34,7 +34,8 @@ void TestConfigFiles::loadsRepositoryDefaultConfig()
 
     const auto result = loadFile(path);
     QVERIFY(result.has_value());
-    QCOMPARE(result->config.gestures.titlebarDrag, TitlebarDrag::ScrollView);
+    QCOMPARE(result->config.gestures.titlebarDrag, TitlebarDrag::MoveWindow);
+    QCOMPARE(result->config.gestures.resizeTiledWindows, true);
     QCOMPARE(result->config.gestures.hotCorners.enabled, false);
     QCOMPARE(result->config.layout.focusRing.active.source, ColorSource::SystemAccent);
     QCOMPARE(result->config.layout.border.enabled, false);

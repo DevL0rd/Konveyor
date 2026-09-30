@@ -25,7 +25,7 @@ binds {
 }
 ```
 
-You get gaps, borders, a focus ring, tab indicators, preset widths, centering modes, per-monitor and per-workspace overrides, window rules, animation springs and key binds. Two KDE-specific extras: `active-color "accent"` follows the KDE accent color, and `gestures { titlebar-drag "scroll-view" }` scrolls the row when you drag a window by its title bar.
+You get gaps, borders, a focus ring, tab indicators, preset widths, centering modes, per-monitor and per-workspace overrides, window rules, animation springs and key binds. Two KDE-specific extras: `active-color "accent"` follows the KDE accent color, and `gestures { titlebar-drag "scroll-view" }` scrolls the row when you drag a window by its title bar instead of moving the window. Dragging a tiled window's edge resizes its column; `gestures { resize-tiled-windows false; }` turns that off.
 
 Layout settings come in four levels: `layout` for every monitor, the first `monitor-profile` a monitor matches, the monitor's own `output` block, and a named `workspace`. Each level changes only the settings it lists and takes everything else from the level before it. An `output` block that only sets `gaps` keeps its profile's column widths, and a workspace that only sets `gaps` keeps the struts and borders of the monitor it is on.
 

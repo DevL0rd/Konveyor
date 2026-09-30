@@ -74,12 +74,13 @@ gestures {
         off
     }
 
-    // "scroll-view" scrolls the columns when dragging a tiled window's title bar, "move-window" drags it to a new position in the row.
-    titlebar-drag "scroll-view"
+    // "move-window" drags a tiled window by its title bar to a new position in the row, "scroll-view" scrolls the columns instead.
+    titlebar-drag "move-window"
 
-    // Uncomment to resize tiled windows by dragging their edges. Floating
-    // windows can always be resized.
-    // resize-tiled-windows
+    // Dragging a tiled window's edge resizes its column or row. Set it to false
+    // to change the layout only through shortcuts and presets. Floating windows
+    // can always be resized.
+    resize-tiled-windows true
 
     // Multi-finger touchpad gestures. 3-finger swipes move the row, 4-finger
     // swipes push the focused window into the next column or to another

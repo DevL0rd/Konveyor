@@ -21,7 +21,6 @@ private Q_SLOTS:
     void sizeAndColorValues();
     void scopedLayoutPerScope_data();
     void scopedLayoutPerScope();
-    void profileForOutput();
     void rulesMatchLiveWindows();
 
 private:
@@ -40,15 +39,16 @@ void TestSettingsValues::globalDefaults()
 {
     const QVariantMap values = globalValues(Config::Config());
     QCOMPARE(values.size(), 25);
-    for (const QString &key : {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"),
-             QStringLiteral("disable-minimize"), QStringLiteral("experiments/prevent-fullscreen-minimize"),
-             QStringLiteral("experiments/prevent-fullscreen-exit"), QStringLiteral("config-notification/disable-failed"),
-             QStringLiteral("input/focus-follows-mouse"), QStringLiteral("input/warp-mouse-to-focus"),
-             QStringLiteral("input/workspace-auto-back-and-forth"), QStringLiteral("gestures/resize-tiled-windows")}) {
+    for (const QString &key :
+        {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"), QStringLiteral("disable-minimize"),
+            QStringLiteral("experiments/prevent-fullscreen-minimize"), QStringLiteral("experiments/prevent-fullscreen-exit"),
+            QStringLiteral("config-notification/disable-failed"), QStringLiteral("input/focus-follows-mouse"),
+            QStringLiteral("input/warp-mouse-to-focus"), QStringLiteral("input/workspace-auto-back-and-forth")}) {
         QVERIFY2(values.value(key).typeId() == QMetaType::Bool && !values.value(key).toBool(), qPrintable(key));
     }
+    QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(true));
     QCOMPARE(values.value(QStringLiteral("input/warp-mouse-to-focus/mode")).toString(), QString());
-    QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("scroll-view"));
+    QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("move-window"));
     const QVariantMap corners = values.value(QStringLiteral("gestures/hot-corners")).toMap();
     QCOMPARE(corners.value(QStringLiteral("enabled")).toBool(), true);
     QCOMPARE(corners.value(QStringLiteral("top-left")).toBool(), true);
@@ -78,8 +78,8 @@ gestures {
     dnd-edge-view-scroll { trigger-width 40; delay-ms 90; max-speed 900; }
     dnd-edge-workspace-switch { trigger-height 30; delay-ms 70; max-speed 800; }
     hot-corners { top-right; bottom-left; }
-    resize-tiled-windows
-    titlebar-drag "move-window"
+    resize-tiled-windows false
+    titlebar-drag "scroll-view"
     touchpad {
         swipe-fingers 4
         pinch-fingers 3
@@ -96,16 +96,17 @@ gestures {
     touchscreen { off; long-press-ms 800; }
 }
 )")));
-    for (const QString &key : {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"),
-             QStringLiteral("disable-minimize"), QStringLiteral("experiments/prevent-fullscreen-minimize"),
-             QStringLiteral("experiments/prevent-fullscreen-exit"), QStringLiteral("config-notification/disable-failed"),
-             QStringLiteral("input/focus-follows-mouse"), QStringLiteral("input/warp-mouse-to-focus"),
-             QStringLiteral("input/workspace-auto-back-and-forth"), QStringLiteral("gestures/resize-tiled-windows")}) {
+    for (const QString &key :
+        {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"), QStringLiteral("disable-minimize"),
+            QStringLiteral("experiments/prevent-fullscreen-minimize"), QStringLiteral("experiments/prevent-fullscreen-exit"),
+            QStringLiteral("config-notification/disable-failed"), QStringLiteral("input/focus-follows-mouse"),
+            QStringLiteral("input/warp-mouse-to-focus"), QStringLiteral("input/workspace-auto-back-and-forth")}) {
         QVERIFY2(values.value(key).toBool(), qPrintable(key));
     }
+    QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(false));
     QCOMPARE(values.value(QStringLiteral("input/warp-mouse-to-focus/mode")).toString(), QStringLiteral("center-xy-always"));
     QCOMPARE(values.value(QStringLiteral("input/mod-key")).toString(), QStringLiteral("Alt"));
-    QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("move-window"));
+    QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("scroll-view"));
     const QVariantMap view = values.value(QStringLiteral("gestures/dnd-edge-view-scroll")).toMap();
     QCOMPARE(view.value(QStringLiteral("trigger")).toDouble(), 40.0);
     QCOMPARE(view.value(QStringLiteral("delay-ms")).toInt(), 90);
@@ -339,21 +340,6 @@ workspace "notes"
     QCOMPARE(layout.gaps, double(gaps));
     QCOMPARE(layout.alwaysCenterSingleColumn, centered);
     QCOMPARE(layoutValues(layout).value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("always"));
-}
-
-void TestSettingsValues::profileForOutput()
-{
-    const Config::Config config = load(QStringLiteral(R"(
-monitor-profile "portrait" { match aspect-ratio-below=1.0; }
-monitor-profile "named" { match name="^HDMI"; }
-)"));
-    const auto output = [](const QString &name, int width, int height) {
-        return QVariantMap {{QStringLiteral("name"), name},
-            {QStringLiteral("logical"), QVariantMap {{QStringLiteral("width"), width}, {QStringLiteral("height"), height}}}};
-    };
-    QCOMPARE(profileNameFor(config, output(QStringLiteral("DP-1"), 1080, 1920)), QStringLiteral("portrait"));
-    QCOMPARE(profileNameFor(config, output(QStringLiteral("HDMI-A-1"), 1920, 1080)), QStringLiteral("named"));
-    QCOMPARE(profileNameFor(config, output(QStringLiteral("DP-1"), 1920, 1080)), QString());
 }
 
 void TestSettingsValues::rulesMatchLiveWindows()

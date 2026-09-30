@@ -215,7 +215,8 @@ void TestConfigNodes::touchKeywords()
 
 void TestConfigNodes::titlebarDrag()
 {
-    QCOMPARE(parsed(QString()).gestures.titlebarDrag, TitlebarDrag::ScrollView);
+    QCOMPARE(parsed(QString()).gestures.titlebarDrag, TitlebarDrag::MoveWindow);
+    QCOMPARE(parsed(QStringLiteral("gestures { titlebar-drag \"move-window\"; }")).gestures.titlebarDrag, TitlebarDrag::MoveWindow);
     QCOMPARE(parsed(QStringLiteral("gestures { titlebar-drag \"scroll-view\"; }")).gestures.titlebarDrag, TitlebarDrag::ScrollView);
     verifyFailure(QStringLiteral("gestures { titlebar-drag »true; }"), QStringLiteral("expected a string"));
 }

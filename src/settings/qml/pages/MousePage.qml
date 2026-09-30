@@ -115,7 +115,7 @@ SettingsPage {
             iconName: "transform-scale"
             resetPaths: ["gestures/resize-tiled-windows"]
             isOn: SettingsStore.values["gestures/resize-tiled-windows"]
-            onSwitched: on => SettingsStore.setFlag("gestures/resize-tiled-windows", on)
+            onSwitched: on => SettingsStore.setValue("gestures/resize-tiled-windows", [on])
         }
     }
 

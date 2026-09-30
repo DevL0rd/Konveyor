@@ -9,6 +9,13 @@ import tempfile
 import textwrap
 from pathlib import Path
 
+BREEZE_DECORATION = """
+[org.kde.kdecoration2]
+NoPlugin=false
+library=org.kde.breeze
+theme=Breeze
+"""
+
 NARROW_COLUMNS = """
 window-rule {
     default-column-width { proportion 0.3; }

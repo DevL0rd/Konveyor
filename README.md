@@ -162,8 +162,7 @@ Touchpads and touchscreens get the whole row under your fingers. Slide three fin
 | 4-finger pinch | Open or close KDE's Overview |
 | 3-finger tap | Cycle the column width |
 | 4-finger tap | Open the Kontrol Panel |
-| Drag a title bar on a touchscreen | Scroll the row |
-| Hold a title bar on a touchscreen, then drag | Move the window |
+| Drag a title bar on a touchscreen | Move the window |
 
 The swipes, pinch and taps work on touchpads and touchscreens alike. Pick other finger counts, flip natural swiping or hand a gesture back to KDE on the **Touch & Gestures** settings page.
 

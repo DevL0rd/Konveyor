@@ -13,6 +13,7 @@ class TestSettingsProfiles : public QObject
 private Q_SLOTS:
     void profileMatchSizeBoundsAreStrict_data();
     void profileMatchSizeBoundsAreStrict();
+    void profilesMatchByAspectRatioAndName();
 };
 
 void TestSettingsProfiles::profileMatchSizeBoundsAreStrict_data()
@@ -47,6 +48,23 @@ void TestSettingsProfiles::profileMatchSizeBoundsAreStrict()
     const QVariantMap output {{QStringLiteral("name"), QStringLiteral("DP-1")},
         {QStringLiteral("logical"), QVariantMap {{QStringLiteral("width"), width}, {QStringLiteral("height"), height}}}};
     QCOMPARE(profileNameFor(config->config, output), matches ? QStringLiteral("sized") : QStringLiteral("rest"));
+}
+
+void TestSettingsProfiles::profilesMatchByAspectRatioAndName()
+{
+    const auto config = Config::loadString(QStringLiteral(R"(
+monitor-profile "portrait" { match aspect-ratio-below=1.0; }
+monitor-profile "named" { match name="^HDMI"; }
+)"),
+        QStringLiteral("config.kdl"));
+    QVERIFY(config);
+    const auto output = [](const QString &name, int width, int height) {
+        return QVariantMap {{QStringLiteral("name"), name},
+            {QStringLiteral("logical"), QVariantMap {{QStringLiteral("width"), width}, {QStringLiteral("height"), height}}}};
+    };
+    QCOMPARE(profileNameFor(config->config, output(QStringLiteral("DP-1"), 1080, 1920)), QStringLiteral("portrait"));
+    QCOMPARE(profileNameFor(config->config, output(QStringLiteral("HDMI-A-1"), 1920, 1080)), QStringLiteral("named"));
+    QCOMPARE(profileNameFor(config->config, output(QStringLiteral("DP-1"), 1920, 1080)), QString());
 }
 
 QTEST_GUILESS_MAIN(TestSettingsProfiles)

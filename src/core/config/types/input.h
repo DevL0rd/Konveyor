@@ -113,8 +113,8 @@ struct Gestures
     DndEdgeScroll dndEdgeViewScroll;
     DndEdgeScroll dndEdgeWorkspaceSwitch {50, 100, 1500};
     HotCorners hotCorners;
-    TitlebarDrag titlebarDrag = TitlebarDrag::ScrollView;
-    bool resizeTiledWindows = false;
+    TitlebarDrag titlebarDrag = TitlebarDrag::MoveWindow;
+    bool resizeTiledWindows = true;
     bool operator==(const Gestures &) const = default;
 };
 
