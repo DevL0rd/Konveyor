@@ -142,6 +142,12 @@ private:
             || member == QLatin1String("activateGlobalShortcutContext")) {
             return message.createReply();
         }
+        if (member == QLatin1String("unregister")) {
+            m_shortcuts.removeIf([&actionId](const FakeShortcut &shortcut) {
+                return shortcut.actionId.value(0) == actionId.value(0) && shortcut.actionId.value(1) == actionId.value(1);
+            });
+            return message.createReply(true);
+        }
         if (member == QLatin1String("getComponent")) {
             QString name = arguments.value(0).toString();
             name.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9_]")), QStringLiteral("_"));

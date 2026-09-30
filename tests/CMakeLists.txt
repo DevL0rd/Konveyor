@@ -228,3 +228,11 @@ add_library(konveyor_test_touchpad MODULE nested/plugins/touchpad/touchpadplugin
 target_link_libraries(konveyor_test_touchpad PRIVATE KWin::kwin Qt6::DBus)
 target_compile_options(konveyor_test_touchpad PRIVATE -Wall -Wextra -Werror)
 set_target_properties(konveyor_test_touchpad PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/kwin/plugins)
+
+find_package(KF6 REQUIRED COMPONENTS GlobalAccel)
+add_executable(test_shortcut_manager unit/input/test_shortcut_manager.cpp ${PROJECT_SOURCE_DIR}/src/effect/input/shortcutmanager.cpp)
+target_include_directories(test_shortcut_manager PRIVATE ${PROJECT_SOURCE_DIR}/src/effect)
+target_link_libraries(test_shortcut_manager PRIVATE konveyor_config konveyor_shortcuts KF6::GlobalAccel Qt6::Test)
+target_compile_options(test_shortcut_manager PRIVATE -Wall -Wextra -Werror)
+add_test(NAME test_shortcut_manager COMMAND test_shortcut_manager)
+set_tests_properties(test_shortcut_manager PROPERTIES LABELS "unit;input" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
