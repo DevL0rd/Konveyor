@@ -61,7 +61,8 @@ PopScroll {
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
         cellHeight: Math.round(cellWidth * 0.4667)
-        model: launcherData.playingNow
+        entries: launcherData.playingNow
+        keyOf: entry => entry.key
         delegate: PlayingNowCard {}
     }
 
@@ -140,7 +141,8 @@ PopScroll {
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / page.columnWidth)))
         cellHeight: Kirigami.Units.gridUnit * 3.2
-        model: page.inGameList
+        entries: page.inGameList
+        keyOf: friend => friend.profile
         delegate: FriendRow {}
     }
 
@@ -156,7 +158,8 @@ PopScroll {
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / page.columnWidth)))
         cellHeight: Kirigami.Units.gridUnit * 3.2
-        model: page.onlineList
+        entries: page.onlineList
+        keyOf: friend => friend.profile
         delegate: FriendRow {}
     }
 
@@ -175,7 +178,8 @@ PopScroll {
         Layout.preferredHeight: implicitHeight
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / page.columnWidth)))
         cellHeight: Kirigami.Units.gridUnit * 3.2
-        model: page.offlineList
+        entries: page.offlineList
+        keyOf: friend => friend.profile
         delegate: FriendRow {}
     }
 

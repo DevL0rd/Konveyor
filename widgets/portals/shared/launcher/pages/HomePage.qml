@@ -63,7 +63,8 @@ PopScroll {
         cellWidth: Math.round(page.tileSize + Kirigami.Units.gridUnit * 3.6)
         cellHeight: Math.round(page.tileSize + Kirigami.Units.gridUnit * 3.2)
         iconSize: page.tileSize
-        model: launcherData.pinnedEntries
+        entries: launcherData.pinnedEntries
+        keyOf: entry => entry.kind === "folder" ? "folder:" + entry.id : entry.favoriteId
         delegate: PinnedTile {}
     }
 
@@ -222,7 +223,8 @@ PopScroll {
         cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
         cellHeight: Math.round(cellWidth * 0.4667)
         limit: columns
-        model: launcherData.playingNow
+        entries: launcherData.playingNow
+        keyOf: entry => entry.key
         delegate: PlayingNowCard {}
     }
 
@@ -242,7 +244,8 @@ PopScroll {
         wideCards: true
         showTitles: false
         limit: columns
-        model: launcherData.recentGames
+        entries: launcherData.recentGames
+        keyOf: game => game.id
         delegate: GameTile {}
     }
 

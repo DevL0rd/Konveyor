@@ -173,7 +173,8 @@ ColumnLayout {
             readonly property real target: Kirigami.Units.gridUnit * launcherData.config.gameCardSize * (wideCards ? 2.1 : 1)
             cellWidth: Math.floor(width / Math.max(1, Math.round(width / target)))
             cellHeight: Math.round((cellWidth - cardSpacing * 2) * (wideCards ? 0.4667 : 1.5) + cardSpacing * 2)
-            model: visible ? page.shown : []
+            entries: visible ? page.shown : []
+            keyOf: game => game.id
             delegate: GameTile {}
             QQC2.ScrollBar.vertical: PlasmaComponents.ScrollBar {}
         }
@@ -185,7 +186,8 @@ ColumnLayout {
             scrolling: true
             cellWidth: width
             cellHeight: Kirigami.Units.gridUnit * 4.4
-            model: visible ? page.shown : []
+            entries: visible ? page.shown : []
+            keyOf: game => game.id
             QQC2.ScrollBar.vertical: PlasmaComponents.ScrollBar {}
             delegate: Item {
                 id: row
