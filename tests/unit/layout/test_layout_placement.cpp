@@ -223,6 +223,39 @@ private Q_SLOTS:
         QCOMPARE(fixture.frame(resized).width(), 700.0);
         QVERIFY(fixture.frame(untouched).width() > 1080 * 0.9);
     }
+
+    void childOfAWindowOutsideTheLayoutOpensOnTheActiveWorkspace()
+    {
+        Fixture fixture;
+        const auto first = fixture.add(QStringLiteral("a"));
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("child"));
+        properties.parent = 999;
+        properties.wantsFullscreen = true;
+        const auto child = fixture.addWith(properties);
+        QVERIFY(fixture.engine().hasWindow(child));
+        QCOMPARE(fixture.state(child).workspace, fixture.state(first).workspace);
+        QCOMPARE(fixture.focused(), std::optional(child));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void childOpenedWithoutOutputsJoinsItsParentsWorkspace()
+    {
+        Config::Config config = instantConfig();
+        config.workspaces = {namedWorkspace(QStringLiteral("web"))};
+        Fixture fixture(config);
+        QVERIFY(fixture.perform(QStringLiteral("focus-workspace-down")).ok);
+        const auto parent = fixture.add(QStringLiteral("a"));
+        QCOMPARE(fixture.workspaceNamed(QStringLiteral("web")).activeWindow, std::optional<Layout::WindowId>());
+        fixture.removeOutput(QStringLiteral("DP-1"));
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("child"));
+        properties.parent = parent;
+        properties.wantsFullscreen = true;
+        const auto child = fixture.addWith(properties);
+        fixture.addOutput(QStringLiteral("DP-1"), QRectF(0, 0, 1920, 1080));
+        QCOMPARE(fixture.state(child).workspace, fixture.state(parent).workspace);
+        QCOMPARE(fixture.workspaceNamed(QStringLiteral("web")).activeWindow, std::optional<Layout::WindowId>());
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutPlacement)

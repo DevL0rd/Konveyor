@@ -98,7 +98,8 @@ NewWindowPlan Engine::Private::planNewWindow(
     plan.rules = resolveWindowRules(config.windowRules, contextFor(properties, plan.isFloating), atStartup());
 
     const auto monitorIndex = monitorForNewWindow(plan, properties, preferredOutput);
-    if (properties.parent && (!monitorIndex || monitorIndex == monitorIndexOf(*properties.parent))) {
+    if (properties.parent && self.workspaceOf(*properties.parent)
+        && (!monitorIndex || monitorIndex == monitorIndexOf(*properties.parent))) {
         plan.parent = properties.parent;
     }
     plan.monitorIndex = monitorIndex.value_or(activeMonitorIndex);
@@ -179,6 +180,9 @@ Workspace *Engine::Private::workspaceForPlacement(const NewWindowPlan &plan)
     }
     if (plan.monitorIndex < monitors.size()) {
         return &monitors[plan.monitorIndex].activeWorkspace();
+    }
+    if (Workspace *workspace = plan.parent ? workspaceOf(*plan.parent) : nullptr) {
+        return workspace;
     }
     return activeWorkspace();
 }
