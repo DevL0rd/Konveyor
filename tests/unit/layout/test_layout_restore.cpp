@@ -49,6 +49,23 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void restoresAFullWidthColumnAtFullWidth()
+    {
+        Fixture fixture;
+        const auto a = fixture.add(QStringLiteral("a"));
+        const auto b = fixture.add(QStringLiteral("b"));
+        const auto c = fixture.add(QStringLiteral("c"));
+        fixture.engine().activateWindow(b);
+        fixture.perform(QStringLiteral("maximize-column"));
+        QCOMPARE(fixture.frame(b).width(), 1888.0);
+        const auto restored = restore(fixture, b, QStringLiteral("b"));
+        QCOMPARE(positions(fixture, {a, restored, c}), (QList<std::pair<int, int>> {{0, 0}, {1, 0}, {2, 0}}));
+        QCOMPARE(fixture.frame(restored).width(), 1888.0);
+        fixture.perform(QStringLiteral("maximize-column"));
+        QCOMPARE(fixture.frame(restored).width(), 936.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void restoresAStackedWindowIntoItsColumn()
     {
         Fixture fixture;

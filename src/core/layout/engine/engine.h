@@ -155,6 +155,7 @@ struct RestorePlacement
     std::size_t columnIndex = 0;
     std::optional<std::size_t> tileIndex;
     ColumnWidth width;
+    bool fillsWidth = false;
     QRectF floatingFrame;
 };
 

@@ -85,6 +85,7 @@ std::optional<RestorePlacement> Engine::placementOf(WindowId id) const
         }
         placement.columnIndex = c;
         placement.width = columns[c].widthSetting;
+        placement.fillsWidth = columns[c].fillsWidth;
         if (columns[c].tiles.size() > 1) {
             placement.tileIndex = position;
         }
@@ -121,6 +122,7 @@ bool Engine::Private::placeRestored(Tile &tile, const NewWindowPlan &plan, const
     }
     const std::size_t columnCount = workspace->scrolling().columns().size();
     request.width = restore.width;
+    request.fillsWidth = restore.fillsWidth;
     if (!restore.tileIndex || restore.columnIndex >= columnCount) {
         request.target = MonitorAddTarget::onWorkspace(restore.workspace, std::min(restore.columnIndex, columnCount));
         return false;
