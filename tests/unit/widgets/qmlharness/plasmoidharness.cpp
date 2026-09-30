@@ -1,0 +1,400 @@
+#include "plasmoidharness.h"
+
+#include <KLocalizedQmlContext>
+#include <KLocalizedString>
+
+#include <QAbstractItemModel>
+#include <QDir>
+#include <QDirIterator>
+#include <QFile>
+#include <QQmlComponent>
+#include <QQmlContext>
+#include <QQmlExpression>
+#include <QRegularExpression>
+#include <QXmlStreamReader>
+
+#include <cstdio>
+
+namespace
+{
+
+QtMessageHandler previousHandler = nullptr;
+
+void collectMessage(QtMsgType type, const QMessageLogContext &context, const QString &message)
+{
+    const QLatin1String category(context.category ? context.category : "default");
+    const bool fromQml = category == QLatin1String("default") || category == QLatin1String("qml") || category == QLatin1String("js");
+    const bool offscreenLimit = message.startsWith(QLatin1String("This plugin does not support "));
+    if (type != QtDebugMsg && type != QtInfoMsg && fromQml && !offscreenLimit) {
+        PlasmoidHarness::messages().append(message);
+    }
+    if (previousHandler) {
+        previousHandler(type, context, message);
+    }
+}
+
+void copyTree(const QString &from, const QString &to)
+{
+    QDirIterator it(from, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString source = it.next();
+        const QString target = to + source.mid(from.size());
+        QDir().mkpath(QFileInfo(target).absolutePath());
+        QFile::copy(source, target);
+    }
+}
+
+QVariant kcfgValue(const QString &type, const QString &text)
+{
+    if (type == QLatin1String("Bool")) {
+        return text.trimmed() == QLatin1String("true");
+    }
+    if (type == QLatin1String("Int") || type == QLatin1String("UInt")) {
+        return text.trimmed().toInt();
+    }
+    if (type == QLatin1String("Double")) {
+        return text.trimmed().toDouble();
+    }
+    return text;
+}
+
+}
+
+PlasmoidHarness::PlasmoidHarness(PlasmoidSpec spec)
+    : m_spec(std::move(spec))
+{ }
+
+PlasmoidHarness::~PlasmoidHarness()
+{
+    qDeleteAll(m_shown);
+    m_root.reset();
+    m_window.reset();
+    m_engine.reset();
+    m_plasmoid.reset();
+    qInstallMessageHandler(previousHandler);
+    previousHandler = nullptr;
+    DataSourceDouble::commands().clear();
+    SessionBusDouble::calls().clear();
+}
+
+void PlasmoidHarness::prepareEnvironment()
+{
+    static QTemporaryDir home;
+    const QString root = home.path();
+    const QList<QPair<const char *, QString>> paths {
+        {"HOME", root},
+        {"XDG_CONFIG_HOME", root + QStringLiteral("/.config")},
+        {"XDG_DATA_HOME", root + QStringLiteral("/.local/share")},
+        {"XDG_CACHE_HOME", root + QStringLiteral("/.cache")},
+        {"XDG_STATE_HOME", root + QStringLiteral("/.local/state")},
+        {"XDG_RUNTIME_DIR", root + QStringLiteral("/runtime")},
+    };
+    for (const auto &[name, path] : paths) {
+        QDir().mkpath(path);
+        qputenv(name, path.toUtf8());
+    }
+    QFile::setPermissions(root + QStringLiteral("/runtime"), QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+    const QString doubles = root + QStringLiteral("/doubles");
+    const QStringList modules {QStringLiteral("org.kde.plasma.plasmoid"), QStringLiteral("org.kde.plasma.plasma5support"),
+        QStringLiteral("org.kde.taskmanager"), QStringLiteral("org.kde.plasma.workspace.dbus")};
+    for (const QString &module : modules) {
+        const QString directory = doubles + QLatin1Char('/') + QString(module).replace(QLatin1Char('.'), QLatin1Char('/'));
+        QDir().mkpath(directory);
+        QFile qmldir(directory + QStringLiteral("/qmldir"));
+        if (qmldir.open(QIODevice::WriteOnly)) {
+            qmldir.write("module " + module.toUtf8() + "\n");
+        }
+    }
+    qputenv("QML_IMPORT_PATH", doubles.toUtf8());
+    qputenv("XDG_CONFIG_DIRS", QString(root + QStringLiteral("/etc")).toUtf8());
+    qputenv("QML_XHR_ALLOW_FILE_READ", "1");
+    qputenv("QT_QPA_PLATFORM", "offscreen");
+    KLocalizedString::setApplicationDomain("konveyor-widget-tests");
+}
+
+QString PlasmoidHarness::widgetsDir()
+{
+    return QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets");
+}
+
+QStringList &PlasmoidHarness::messages()
+{
+    static QStringList list;
+    return list;
+}
+
+void PlasmoidHarness::stage()
+{
+    const QString ui = m_dir.path() + QStringLiteral("/contents/ui");
+    copyTree(widgetsDir() + QLatin1Char('/') + m_spec.ui + QStringLiteral("/contents"), m_dir.path() + QStringLiteral("/contents"));
+    QDir().mkpath(ui + QStringLiteral("/lib"));
+    const QDir common(widgetsDir() + QStringLiteral("/shared/common"));
+    for (const QString &name : common.entryList({QStringLiteral("*.qml"), QStringLiteral("*.js")}, QDir::Files)) {
+        QFile::copy(common.filePath(name), ui + QStringLiteral("/lib/") + name);
+    }
+    QFile::copy(widgetsDir() + QStringLiteral("/shared/MonitorOverlay.qml"), ui + QStringLiteral("/lib/MonitorOverlay.qml"));
+    for (const QString &lib : std::as_const(m_spec.libs)) {
+        copyTree(widgetsDir() + QLatin1Char('/') + lib, ui + QStringLiteral("/lib"));
+    }
+}
+
+void PlasmoidHarness::loadConfig()
+{
+    QFile file(stagedPath(QStringLiteral("contents/config/main.xml")));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    QXmlStreamReader xml(&file);
+    QString name;
+    QString type;
+    while (!xml.atEnd()) {
+        xml.readNext();
+        if (!xml.isStartElement()) {
+            continue;
+        }
+        if (xml.name() == QLatin1String("entry")) {
+            name = xml.attributes().value(QLatin1String("name")).toString();
+            type = xml.attributes().value(QLatin1String("type")).toString();
+            m_plasmoid->configuration()->insert(name, kcfgValue(type, QString()));
+        } else if (xml.name() == QLatin1String("default")) {
+            m_plasmoid->configuration()->insert(name, kcfgValue(type, xml.readElementText()));
+        }
+    }
+}
+
+QObject *PlasmoidHarness::load(int formFactor, const QVariantMap &config)
+{
+    stage();
+    registerPlasmaDoubles();
+    messages().clear();
+    previousHandler = qInstallMessageHandler(collectMessage);
+    m_engine = std::make_unique<QQmlEngine>();
+    m_engine->rootContext()->setContextObject(new KLocalizedQmlContext(m_engine.get()));
+    QObject::connect(m_engine.get(), &QQmlEngine::warnings, m_engine.get(), [](const QList<QQmlError> &warnings) {
+        for (const QQmlError &warning : warnings) {
+            messages().append(warning.toString());
+        }
+    });
+    m_engine->setOutputWarningsToStandardError(false);
+    m_plasmoid = std::make_unique<PlasmoidDouble>(m_spec.pluginId, m_spec.iconName);
+    m_plasmoid->formFactor = formFactor;
+    PlasmoidAttachedType::current = m_plasmoid.get();
+    loadConfig();
+    for (auto it = config.begin(); it != config.end(); ++it) {
+        m_plasmoid->configuration()->insert(it.key(), it.value());
+    }
+    m_window = std::make_unique<QQuickWindow>();
+    m_window->resize(800, 900);
+    QQmlComponent component(m_engine.get(), QUrl::fromLocalFile(stagedPath(QStringLiteral("contents/ui/main.qml"))));
+    m_root.reset(component.create());
+    if (!m_root) {
+        error = component.errorString();
+        return nullptr;
+    }
+    if (auto *item = qobject_cast<QQuickItem *>(m_root.get())) {
+        item->setParentItem(m_window->contentItem());
+        item->setSize(m_window->size());
+    }
+    m_window->show();
+    return m_root.get();
+}
+
+QObject *PlasmoidHarness::loadFile(const QString &relative, const QVariantMap &properties)
+{
+    QQmlComponent component(m_engine.get(), QUrl::fromLocalFile(stagedPath(relative)));
+    QObject *object = component.createWithInitialProperties(properties, qmlContext(m_root.get()));
+    if (!object) {
+        error = component.errorString();
+        return nullptr;
+    }
+    m_shown.append(object);
+    showItem(object);
+    return object;
+}
+
+QQuickItem *PlasmoidHarness::showItem(QObject *object)
+{
+    auto *item = qobject_cast<QQuickItem *>(object);
+    if (item) {
+        item->setParentItem(m_window->contentItem());
+        item->setSize(m_window->size());
+    }
+    return item;
+}
+
+QQuickItem *PlasmoidHarness::show(const char *representation)
+{
+    auto *component = m_root->property(representation).value<QQmlComponent *>();
+    if (!component) {
+        error = QStringLiteral("no %1").arg(QLatin1String(representation));
+        return nullptr;
+    }
+    QObject *object = component->create(component->creationContext());
+    if (!object) {
+        error = component->errorString();
+        return nullptr;
+    }
+    m_shown.append(object);
+    return showItem(object);
+}
+
+QString PlasmoidHarness::command(const QString &prefix) const
+{
+    const QStringList &all = DataSourceDouble::commands();
+    for (auto it = all.crbegin(); it != all.crend(); ++it) {
+        if (it->startsWith(prefix)) {
+            return *it;
+        }
+    }
+    return {};
+}
+
+bool PlasmoidHarness::reply(const QString &prefix, const QString &out, int exitCode, const QString &err)
+{
+    const QList<DataSourceDouble *> sources = DataSourceDouble::instances();
+    for (DataSourceDouble *source : sources) {
+        const QStringList connected = source->connectedSources();
+        for (const QString &command : connected) {
+            if (command.startsWith(prefix)) {
+                source->reply(command, out, exitCode, err);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void PlasmoidHarness::resolveRuntime(const QString &prefix)
+{
+    QString path = command(prefix);
+    static const QRegularExpression quoted(QStringLiteral("\"([^\"]*)\""));
+    path = quoted.match(path).captured(1);
+    path.replace(QStringLiteral("$XDG_RUNTIME_DIR"), qEnvironmentVariable("XDG_RUNTIME_DIR"));
+    reply(prefix, path + QLatin1Char('\n'));
+}
+
+void PlasmoidHarness::writeFile(const QString &path, const QByteArray &content) const
+{
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QFile file(path + QStringLiteral(".tmp"));
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(content);
+        file.close();
+        std::rename(QFile::encodeName(file.fileName()).constData(), QFile::encodeName(path).constData());
+    }
+}
+
+QString PlasmoidHarness::runtimePath(const QString &name) const
+{
+    return qEnvironmentVariable("XDG_RUNTIME_DIR") + QLatin1Char('/') + name;
+}
+
+QString PlasmoidHarness::stagedPath(const QString &relative) const
+{
+    return m_dir.filePath(relative);
+}
+
+QVariant PlasmoidHarness::eval(const QString &expression, QObject *scope) const
+{
+    QObject *target = scope ? scope : m_root.get();
+    QQmlExpression evaluation(qmlContext(target), target, expression);
+    const QVariant result = evaluation.evaluate();
+    if (evaluation.hasError()) {
+        messages().append(evaluation.error().toString());
+    }
+    return result.canConvert<QJSValue>() ? result.value<QJSValue>().toVariant() : result;
+}
+
+QVariant PlasmoidHarness::config(const QString &key) const
+{
+    return m_plasmoid->configuration()->value(key);
+}
+
+void PlasmoidHarness::setConfig(const QString &key, const QVariant &value)
+{
+    m_plasmoid->configuration()->insert(key, value);
+}
+
+QQuickItem *findItem(QQuickItem *item, const std::function<bool(QQuickItem *)> &match)
+{
+    if (match(item)) {
+        return item;
+    }
+    const QList<QQuickItem *> children = item->childItems();
+    for (QQuickItem *child : children) {
+        if (QQuickItem *found = findItem(child, match)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+QStringList visibleTexts(QQuickItem *item)
+{
+    QStringList texts;
+    if (!item->isVisible()) {
+        return texts;
+    }
+    if (item->inherits("QQuickText")) {
+        texts.append(item->property("text").toString());
+    }
+    const QList<QQuickItem *> children = item->childItems();
+    for (QQuickItem *child : children) {
+        texts += visibleTexts(child);
+    }
+    return texts;
+}
+
+QList<QObject *> findByType(QObject *root, const char *type)
+{
+    QList<QObject *> found;
+    const QString prefix = QLatin1String(type) + QLatin1Char('_');
+    const QList<QObject *> children = root->findChildren<QObject *>();
+    for (QObject *child : children) {
+        const QString name = QLatin1String(child->metaObject()->className());
+        if (name == QLatin1String(type) || name.startsWith(prefix)) {
+            found.append(child);
+        }
+    }
+    return found;
+}
+
+QList<QObject *> PlasmoidHarness::findAll(const char *type) const
+{
+    QList<QObject *> found = findByType(m_root.get(), type);
+    for (QObject *shown : m_shown) {
+        found += findByType(shown, type);
+    }
+    return found;
+}
+
+bool watching(QObject *root, const QString &directory)
+{
+    const QUrl folder = QUrl::fromLocalFile(directory);
+    const QList<QAbstractItemModel *> models = root->findChildren<QAbstractItemModel *>();
+    for (QAbstractItemModel *model : models) {
+        if (model->inherits("QQuickFolderListModel") && model->property("folder").toUrl() == folder
+            && model->property("status").toInt() == 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool PlasmoidHarness::watching(const QString &directory) const
+{
+    if (::watching(m_root.get(), directory)) {
+        return true;
+    }
+    return std::any_of(m_shown.cbegin(), m_shown.cend(), [&](QObject *shown) { return ::watching(shown, directory); });
+}
+
+QQuickItem *PlasmoidHarness::scene() const
+{
+    return m_window->contentItem();
+}
+
+QString PlasmoidHarness::report()
+{
+    return messages().join(QLatin1Char('\n'));
+}
