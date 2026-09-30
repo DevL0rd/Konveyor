@@ -16,6 +16,7 @@ using Konveyor::Test::FakeKGlobalAccel;
 using Konveyor::Test::FakeService;
 using Konveyor::Test::PrivateSession;
 using Konveyor::Test::ProgramResult;
+using Konveyor::Test::writeFile;
 
 namespace
 {
@@ -33,13 +34,6 @@ QtObject {
     Component.onCompleted: config.tileSize = 64
 }
 )";
-
-bool write(const QString &path, const QByteArray &contents)
-{
-    QDir().mkpath(QFileInfo(path).path());
-    QFile file(path);
-    return file.open(QIODevice::WriteOnly) && file.write(contents) == contents.size();
-}
 
 }
 
@@ -63,7 +57,7 @@ private Q_SLOTS:
         QVERIFY(QDir().mkpath(m_directory + QStringLiteral("/config")));
         QVERIFY(QFile::copy(QStringLiteral(KONVEYOR_SOURCE_DIR "/widgets/portals/kontrol-panel/config/main.xml"),
             m_directory + QStringLiteral("/config/main.xml")));
-        QVERIFY(write(m_directory + QStringLiteral("/Main.qml"), workingMain));
+        QVERIFY(writeFile(m_directory + QStringLiteral("/Main.qml"), workingMain));
     }
 
     void cleanup()
@@ -111,7 +105,7 @@ private Q_SLOTS:
 
     void brokenMainQmlExitsWithoutClaimingTheBusName()
     {
-        QVERIFY(write(m_directory + QStringLiteral("/Main.qml"), "import QtQuick\nItem {\n"));
+        QVERIFY(writeFile(m_directory + QStringLiteral("/Main.qml"), "import QtQuick\nItem {\n"));
         QDBusServiceWatcher watcher(busName, QDBusConnection::sessionBus(), QDBusServiceWatcher::WatchForRegistration);
         QSignalSpy registered(&watcher, &QDBusServiceWatcher::serviceRegistered);
         FakeKGlobalAccel kglobalaccel;

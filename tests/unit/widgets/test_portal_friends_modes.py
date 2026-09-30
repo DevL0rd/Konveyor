@@ -51,10 +51,10 @@ class TestPortalFriendsModes(unittest.TestCase):
         return module
 
     def test_an_unknown_mode_prints_usage_instead_of_polling(self):
-        result = self.run_script("--chek")
+        result = self.run_script("--list")
         self.assertEqual(result.returncode, 2)
         self.assertEqual(result.stdout, "")
-        self.assertIn("unknown mode '--chek'", result.stderr)
+        self.assertIn("unknown mode '--list'", result.stderr)
         for mode in ("--check", "--snapshot", "--serve", "--set-key"):
             self.assertIn(mode, result.stderr)
 

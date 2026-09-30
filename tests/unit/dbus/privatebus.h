@@ -17,6 +17,13 @@
 namespace Konveyor::Test
 {
 
+inline bool writeFile(const QString &path, const QByteArray &contents)
+{
+    QDir().mkpath(QFileInfo(path).path());
+    QFile file(path);
+    return file.open(QIODevice::WriteOnly) && file.write(contents) == contents.size();
+}
+
 struct ProgramResult
 {
     int exitCode = -1;

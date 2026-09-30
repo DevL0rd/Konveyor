@@ -10,18 +10,7 @@
 using Konveyor::Test::FakeKGlobalAccel;
 using Konveyor::Test::PrivateSession;
 using Konveyor::Test::ProgramResult;
-
-namespace
-{
-
-bool write(const QString &path, const QByteArray &contents)
-{
-    QDir().mkpath(QFileInfo(path).path());
-    QFile file(path);
-    return file.open(QIODevice::WriteOnly) && file.write(contents) == contents.size();
-}
-
-}
+using Konveyor::Test::writeFile;
 
 class TestCliCommands : public QObject
 {
@@ -61,7 +50,7 @@ private Q_SLOTS:
     void validateAcceptsAGoodConfig()
     {
         const QString path = m_session->dir(QStringLiteral("home")) + QStringLiteral("/good.kdl");
-        QVERIFY(write(path, "layout {\n    gaps 8\n}\n"));
+        QVERIFY(writeFile(path, "layout {\n    gaps 8\n}\n"));
         for (const QString &flag : {QStringLiteral("-c"), QStringLiteral("--config")}) {
             const ProgramResult result = konveyor({QStringLiteral("validate"), flag, path});
             QCOMPARE(result.exitCode, 0);
@@ -81,7 +70,7 @@ private Q_SLOTS:
     void validateRejectsABadConfig()
     {
         const QString path = m_session->dir(QStringLiteral("home")) + QStringLiteral("/bad.kdl");
-        QVERIFY(write(path, "layout {\n    gaps \"wide\"\n}\n"));
+        QVERIFY(writeFile(path, "layout {\n    gaps \"wide\"\n}\n"));
         const ProgramResult result = konveyor({QStringLiteral("validate"), QStringLiteral("-c"), path});
         QCOMPARE(result.exitCode, 1);
         QCOMPARE(result.out, QString());
@@ -99,7 +88,7 @@ private Q_SLOTS:
     void validatePrintsWarningsButPasses()
     {
         const QString path = m_session->dir(QStringLiteral("home")) + QStringLiteral("/warn.kdl");
-        QVERIFY(write(path, "include \"missing.kdl\" optional=true\nlayout {\n    gaps 8\n}\n"));
+        QVERIFY(writeFile(path, "include \"missing.kdl\" optional=true\nlayout {\n    gaps 8\n}\n"));
         const ProgramResult result = konveyor({QStringLiteral("validate"), QStringLiteral("-c"), path});
         QCOMPARE(result.exitCode, 0);
         QCOMPARE(result.err,
@@ -110,14 +99,14 @@ private Q_SLOTS:
     void validateDefaultsToTheUserConfig()
     {
         const QString path = m_session->dir(QStringLiteral("config")) + QStringLiteral("/konveyor/config.kdl");
-        QVERIFY(write(path, "layout {\n    gaps 4\n}\n"));
+        QVERIFY(writeFile(path, "layout {\n    gaps 4\n}\n"));
         const ProgramResult result = konveyor({QStringLiteral("validate")});
         QCOMPARE(result.exitCode, 0);
         QCOMPARE(result.out, QStringLiteral("Config is valid: %1\n").arg(path));
 
         QProcessEnvironment environment = m_session->environment();
         const QString explicitPath = m_session->dir(QStringLiteral("home")) + QStringLiteral("/explicit.kdl");
-        QVERIFY(write(explicitPath, "layout {\n    gaps 2\n}\n"));
+        QVERIFY(writeFile(explicitPath, "layout {\n    gaps 2\n}\n"));
         environment.insert(QStringLiteral("KONVEYOR_CONFIG"), explicitPath);
         QCOMPARE(m_session->run(QStringLiteral(KONVEYOR_CLI), {QStringLiteral("validate")}, environment).out,
             QStringLiteral("Config is valid: %1\n").arg(explicitPath));

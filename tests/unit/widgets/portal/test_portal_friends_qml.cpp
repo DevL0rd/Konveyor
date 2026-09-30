@@ -29,9 +29,9 @@ QString snapshot(const QJsonArray &friends, bool ok = true, const QString &error
 const QJsonArray crowd {
     friendJson(QStringLiteral("1"), QStringLiteral("Zed"), 1),
     friendJson(QStringLiteral("2"), QStringLiteral("amy"), 0),
-    friendJson(QStringLiteral("3"), QStringLiteral("Bob"), 1, QStringLiteral("570"), QStringLiteral("Dota 2")),
+    friendJson(QStringLiteral("3"), QStringLiteral("Bob"), 1, QStringLiteral("570"), QStringLiteral("Half-Life 2")),
     friendJson(QStringLiteral("4"), QStringLiteral("Cat"), 3),
-    friendJson(QStringLiteral("5"), QStringLiteral("Dan"), 1, QStringLiteral("570"), QStringLiteral("Dota 2")),
+    friendJson(QStringLiteral("5"), QStringLiteral("Dan"), 1, QStringLiteral("570"), QStringLiteral("Half-Life 2")),
     friendJson(QStringLiteral("6"), QStringLiteral("Eve"), 1, QStringLiteral("730"), QStringLiteral("Counter-Strike 2")),
 };
 
@@ -92,7 +92,7 @@ private Q_SLOTS:
             QStringList({QStringLiteral("3:In Game"), QStringLiteral("5:In Game"), QStringLiteral("6:In Game"), QStringLiteral("4:Online"),
                 QStringLiteral("1:Online"), QStringLiteral("2:Offline")}));
         QCOMPARE(root()->property("toolTipSubText").toString(),
-            QStringLiteral("5 online · 3 in game · 6 friends\nDota 2: Bob, Dan\nCounter-Strike 2: Eve"));
+            QStringLiteral("5 online · 3 in game · 6 friends\nHalf-Life 2: Bob, Dan\nCounter-Strike 2: Eve"));
     }
 
     void playingNowGroupsByGameBiggestFirst()
@@ -100,7 +100,7 @@ private Q_SLOTS:
         process(snapshot(crowd));
         const QVariantList groups = root()->property("playingNow").toList();
         QCOMPARE(groups.size(), 2);
-        QCOMPARE(groups.at(0).toMap().value(QStringLiteral("game")).toString(), QStringLiteral("Dota 2"));
+        QCOMPARE(groups.at(0).toMap().value(QStringLiteral("game")).toString(), QStringLiteral("Half-Life 2"));
         QCOMPARE(groups.at(0).toMap().value(QStringLiteral("friends")).toList().size(), 2);
         QCOMPARE(groups.at(1).toMap().value(QStringLiteral("appid")).toString(), QStringLiteral("730"));
     }
@@ -188,7 +188,7 @@ private Q_SLOTS:
         QTest::newRow("away") << 3 << "" << "Away" << "#7e9bb5";
         QTest::newRow("snooze") << 4 << "" << "Snooze" << "#7e9bb5";
         QTest::newRow("looking to trade") << 5 << "" << "Online" << "#57cbde";
-        QTest::newRow("in game") << 1 << "Dota 2" << "Dota 2" << "#90ba3c";
+        QTest::newRow("in game") << 1 << "Half-Life 2" << "Half-Life 2" << "#90ba3c";
     }
 
     void stateNamesAndColours()
