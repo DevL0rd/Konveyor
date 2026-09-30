@@ -53,7 +53,7 @@ void TestSettingsNodeCodec::parsesPaths()
     QFETCH(int, segments);
     QFETCH(int, lastIndex);
     const auto path = parsePath(text);
-    QVERIFY2(path.has_value(), qPrintable(path.error()));
+    QVERIFY2(path.has_value(), path ? "" : qPrintable(path.error()));
     QCOMPARE(path->size(), segments);
     QCOMPARE(formatPath(*path), formatted);
     if (segments > 0) {
