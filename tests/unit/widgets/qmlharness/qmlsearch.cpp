@@ -3,6 +3,9 @@
 #include <QAbstractItemModel>
 #include <QFileInfo>
 #include <QQuickItem>
+#include <QQuickWindow>
+#include <QRegularExpression>
+#include <QTest>
 
 QStringList visibleTexts(QQuickItem *item)
 {
@@ -18,6 +21,12 @@ QStringList visibleTexts(QQuickItem *item)
         texts += visibleTexts(child);
     }
     return texts;
+}
+
+QStringList plainTexts(QQuickItem *item)
+{
+    static const QRegularExpression markup(QStringLiteral("<[^>]*>"));
+    return visibleTexts(item).replaceInStrings(markup, QString());
 }
 
 QList<QObject *> findByType(QObject *root, const char *type)
@@ -60,4 +69,37 @@ QList<QQuickItem *> visibleItems(QQuickItem *item, const char *type)
         found += visibleItems(child, type);
     }
     return found;
+}
+
+QList<QQuickItem *> shownDelegates(QQuickItem *view)
+{
+    QList<QQuickItem *> shown;
+    const QRectF viewport = view->mapRectToScene(view->boundingRect());
+    const QList<QQuickItem *> children = view->property("contentItem").value<QQuickItem *>()->childItems();
+    for (QQuickItem *child : children) {
+        const QVariant index = child->property("index");
+        QQuickItem *placed = nullptr;
+        if (index.isValid()) {
+            QMetaObject::invokeMethod(view, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, placed), Q_ARG(int, index.toInt()));
+        }
+        if (placed == child && child->isVisible() && child->mapRectToScene(child->boundingRect()).intersects(viewport)) {
+            shown.append(child);
+        }
+    }
+    return shown;
+}
+
+QObject *withText(const QList<QObject *> &objects, const QString &text)
+{
+    const auto found
+        = std::find_if(objects.cbegin(), objects.cend(), [&](QObject *object) { return object->property("text").toString() == text; });
+    return found == objects.cend() ? nullptr : *found;
+}
+
+void clickAt(QQuickItem *item, Qt::MouseButton button, QPointF local)
+{
+    if (local.x() < 0) {
+        local = QPointF(item->width() / 2, item->height() / 2);
+    }
+    QTest::mouseClick(item->window(), button, {}, item->mapToScene(local).toPoint());
 }

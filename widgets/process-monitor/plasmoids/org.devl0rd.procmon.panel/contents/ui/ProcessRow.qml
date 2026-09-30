@@ -20,7 +20,9 @@ Rectangle {
     readonly property bool open: root.expandedPid === pid
     readonly property real rowHeight: Kirigami.Units.gridUnit * 1.75
     readonly property string query: root.searchText.trim()
-    property string commandLine
+    property int commandLinePid
+    property string commandLineText
+    readonly property string commandLine: commandLinePid === pid ? commandLineText : ""
     signal menuRequested(var proc)
 
     implicitHeight: rowHeight + (open && details.item ? details.item.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0)
@@ -34,8 +36,15 @@ Rectangle {
     Behavior on implicitHeight { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
     onOpenChanged: {
-        if (open)
-            root.readCommand(root.commandLineCommand(pid), text => row.commandLine = text)
+        if (!open)
+            return
+        const target = pid
+        root.readCommand(root.commandLineCommand(target), text => {
+            if (row.pid !== target)
+                return
+            row.commandLinePid = target
+            row.commandLineText = text
+        })
     }
 
     MouseArea {
