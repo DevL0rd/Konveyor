@@ -13,7 +13,6 @@ STATE = Path(".local") / "state" / "konveyor"
 class UpdateTest(HarnessTest):
     def setUp(self):
         super().setUp()
-        self.harness.seed_prefix()
         self.state = self.harness.home / STATE
         self.harness.write(self.state / "update-pending", "")
 

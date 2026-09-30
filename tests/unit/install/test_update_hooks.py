@@ -176,7 +176,7 @@ class TestHooks(HarnessTest):
         removed = [entry["argv"][1:] for entry in entries if entry["argv"][:2] == ["sudo", "rm"]]
         self.assertIn(["rm", "-f", str(legacy)], removed)
         self.assertIn(["rm", "-f", str(self.harness.prefix / "share" / "konveyor" / "source")], removed)
-        state = [entry["stdin"] for entry in entries if entry["argv"][:2] == ["sudo", "tee"]]
+        state = [entry["stdin"] for entry in entries if entry["argv"][:3] == ["sudo", "tee", str(self.harness.prefix / "share" / "konveyor" / "update-source")]]
         self.assertEqual(state, [f"{self.harness.home}/.local/share/konveyor/source\ntester\n"])
 
     def test_the_update_copy_clones_over_https(self):

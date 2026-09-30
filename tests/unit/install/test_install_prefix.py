@@ -11,6 +11,8 @@ SCRIPTS = ("karousel", "krohnkite", "kzones", "polonium", "bismuth", "devl0rd-hi
 
 
 class TestPrefixFiles(HarnessTest):
+    seeded = False
+
     def build_dir(self):
         return self.harness.source / "build-release"
 

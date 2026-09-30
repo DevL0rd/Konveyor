@@ -14,6 +14,14 @@ elif [[ $(. "$KONVEYOR_OS_RELEASE" && printf '%s' "$ID") == steamos ]]; then
     KONVEYOR_BUILD_BOX="konveyor-steamos"
     KONVEYOR_BUILD_ENV=(distrobox enter "$KONVEYOR_BUILD_BOX" --)
 fi
+KONVEYOR_OPTIONS_FILE="$HOME/.local/state/konveyor/install-options"
+KONVEYOR_RECORDED_PREFIX="$(dirname "${BASH_SOURCE[0]}")/install-prefix"
+if [[ -z ${KONVEYOR_PREFIX:-} && -r $KONVEYOR_RECORDED_PREFIX ]]; then
+    KONVEYOR_PREFIX=$(<"$KONVEYOR_RECORDED_PREFIX")
+fi
+if [[ -z ${KONVEYOR_PREFIX:-} && -r $KONVEYOR_OPTIONS_FILE ]]; then
+    KONVEYOR_PREFIX=$(sed -n 's/^prefix=//p' "$KONVEYOR_OPTIONS_FILE")
+fi
 if $KONVEYOR_ATOMIC; then
     KONVEYOR_PREFIX="${KONVEYOR_PREFIX:-$HOME/.local}"
 fi

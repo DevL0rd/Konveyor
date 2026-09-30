@@ -11,6 +11,7 @@ PLASMA = "plasma-plasmashell.service"
 
 
 class TestPartialInstalls(HarnessTest):
+    seeded = False
     def widgets(self, *arguments):
         return self.harness.run(str(self.harness.source / "widgets" / "install.sh"), *arguments)
 

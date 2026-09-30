@@ -29,14 +29,14 @@ class TestInstallOptions(HarnessTest):
         self.assertEqual(self.harness.stub_state("kwin")["loaded"], ["konveyor_effect_1700000000"])
         self.assertIn("Konveyor is live now", result.stdout)
         self.assertIn("Settings: open System Settings", result.stdout)
-        self.assertEqual((self.harness.home / STATE / "install-options").read_text(), "widgets=false\n")
+        self.assertEqual((self.harness.home / STATE / "install-options").read_text(), f"widgets=false\nprefix={self.harness.prefix}\n")
         self.assertFalse((self.harness.home / ".local" / "share" / "konveyor" / "widgets").exists())
         self.assertEqual(self.harness.calls("busctl"), [])
 
     def test_switching_to_no_widgets_turns_the_telemetry_off(self):
         self.assertSucceeded(self.harness.install("--skip-deps"))
         self.assertEqual(self.plugins()["process_monitor_telemetry_1700000000Enabled"], "true")
-        self.assertEqual((self.harness.home / STATE / "install-options").read_text(), "widgets=true\n")
+        self.assertEqual((self.harness.home / STATE / "install-options").read_text(), f"widgets=true\nprefix={self.harness.prefix}\n")
         self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))
         self.assertNotIn("process_monitor_telemetry_1700000000Enabled", self.plugins())
         self.assertEqual(self.harness.stub_state("kwin")["loaded"], ["konveyor_effect_1700000000"])

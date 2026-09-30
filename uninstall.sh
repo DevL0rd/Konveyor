@@ -133,15 +133,18 @@ remove_session_path() {
     fi
 }
 
-remove_atomic_setup() {
+remove_session_paths() {
     rm -f "$KONVEYOR_SESSION_ENV"
+    [[ $KONVEYOR_PREFIX != /usr && -n $KONVEYOR_PLUGIN_DIR ]] || return 0
+    local qml
+    remove_session_path QT_PLUGIN_PATH "${KONVEYOR_PLUGIN_DIR%/kwin/effects/plugins}"
+    qml=$(manifest_entry "$KONVEYOR_STATE_DIR/install_manifest.txt" '/org/kde/konveyor/settings/qmldir$')
+    remove_session_path QML_IMPORT_PATH "${qml%/org/kde/konveyor/settings/qmldir}"
+}
+
+remove_atomic_setup() {
     $KONVEYOR_ATOMIC || return 0
-    local name qml
-    if [[ -n $KONVEYOR_PLUGIN_DIR ]]; then
-        remove_session_path QT_PLUGIN_PATH "${KONVEYOR_PLUGIN_DIR%/kwin/effects/plugins}"
-        qml=$(manifest_entry "$KONVEYOR_STATE_DIR/install_manifest.txt" '/org/kde/konveyor/settings/qmldir$')
-        remove_session_path QML_IMPORT_PATH "${qml%/org/kde/konveyor/settings/qmldir}"
-    fi
+    local name
     for name in $(podman ps --all --format '{{.Names}}' | grep -E '^konveyor-(fedora-[0-9]+|steamos)$' || true); do
         say "Removing the $name build container"
         podman rm --force --volumes "$name" >/dev/null
@@ -187,6 +190,7 @@ main() {
         "$widget_uninstaller"
     fi
     restore_shortcuts
+    remove_session_paths
     remove_atomic_setup
     remove_files
     remove_update_unit

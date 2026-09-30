@@ -35,6 +35,7 @@ copy_updater() {
     "$@" install -Dm644 "$SOURCE_DIR/extras/packaging/common.sh" "$directory/common.sh"
     "$@" install -Dm644 "$SOURCE_DIR/extras/packaging/updates.sh" "$directory/updates.sh"
     "$@" install -Dm755 "$SOURCE_DIR/extras/packaging/konveyor-rebuild" "$directory/konveyor-rebuild"
+    printf '%s\n' "$KONVEYOR_PREFIX" | "$@" tee "$directory/install-prefix" >/dev/null
 }
 
 update_source_path() {

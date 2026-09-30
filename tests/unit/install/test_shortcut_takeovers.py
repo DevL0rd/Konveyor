@@ -16,7 +16,6 @@ GRID = ("kwin", "Grid View")
 class TestShortcutTakeovers(HarnessTest):
     def setUp(self):
         super().setUp()
-        self.harness.seed_prefix()
 
     def widgets(self, script="install.sh", *arguments):
         return self.assertSucceeded(self.harness.run(str(self.harness.source / "widgets" / script), *arguments))

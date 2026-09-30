@@ -72,6 +72,10 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
     <td>Run <code>./install.sh --no-widgets</code> to skip the widgets, or <code>./uninstall.sh --keep-widgets</code> to remove only the window manager.</td>
   </tr>
   <tr>
+    <td>📁 <b>Another location</b></td>
+    <td>Run <code>KONVEYOR_PREFIX=/opt/konveyor ./install.sh</code> to install somewhere other than <code>/usr</code>. The installer adds that location to your session's plugin and QML paths, and updates and <code>./uninstall.sh</code> remember it. Log out and back in once after the first install.</td>
+  </tr>
+  <tr>
     <td>🧊 <b>Atomic desktops</b></td>
     <td>On Fedora Atomic desktops like Kinoite, Aurora and Bazzite, the installer builds Konveyor in a toolbox that matches your system's KWin exactly. On SteamOS it uses a distrobox that matches Valve's packages. Either way it installs to <code>~/.local</code>, so the read-only system stays untouched. Log out and back in once after the first install. After a system update, Konveyor rebuilds itself at your next login.</td>
   </tr>

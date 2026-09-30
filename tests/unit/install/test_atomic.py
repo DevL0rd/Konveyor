@@ -127,7 +127,8 @@ class TestSessionPaths(AtomicTest):
     def test_updates_run_at_login_from_the_home(self):
         self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))
         updater = self.harness.home / ".local" / "lib" / "konveyor"
-        self.assertEqual(sorted(path.name for path in updater.iterdir()), ["common.sh", "install", "konveyor-rebuild", "updates.sh"])
+        self.assertEqual(sorted(path.name for path in updater.iterdir()), ["common.sh", "install", "install-prefix", "konveyor-rebuild", "updates.sh"])
+        self.assertEqual((updater / "install-prefix").read_text(), f"{self.harness.home}/.local\n")
         unit = (self.harness.home / ".config" / "systemd" / "user" / "konveyor-login-update.service").read_text()
         self.assertIn(f"Environment=KONVEYOR_SOURCE_DIR={self.harness.home}/.local/share/konveyor/source\n", unit)
         self.assertEqual(self.harness.stub_state("systemd")["enabled"], ["konveyor-login-update.service"])

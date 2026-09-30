@@ -63,7 +63,7 @@ class TestUninstall(HarnessTest):
         super().setUp()
         self.harness.write(self.harness.home / ".config" / "plasma-org.kde.plasma.desktop-appletsrc", APPLETS)
         self.harness.set_stub_state("systemd", {"environment": {"QT_PLUGIN_PATH": "/opt/plugins"}, "enabled": []})
-        self.plugins = self.harness.seed_prefix()
+        self.plugins = self.harness.prefix / "lib" / "plugins" / "kwin" / "effects" / "plugins"
 
     def home_snapshot(self):
         return {path: value for path, value in self.harness.snapshot().items() if not path.startswith(("prefix", "system"))}

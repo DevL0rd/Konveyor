@@ -14,7 +14,7 @@ WIDGETS=true
 AUR=false
 [[ ${KONVEYOR_AUR:-} == @(1|true|yes) ]] && AUR=true
 MODE=install
-OPTIONS_FILE="$HOME/.local/state/konveyor/install-options"
+OPTIONS_FILE="$KONVEYOR_OPTIONS_FILE"
 UPDATE_PENDING="$HOME/.local/state/konveyor/update-pending"
 
 usage() {
@@ -170,7 +170,7 @@ add_session_path() {
 }
 
 configure_session_paths() {
-    $KONVEYOR_ATOMIC || return 0
+    [[ $KONVEYOR_PREFIX != /usr ]] || return 0
     local plugins qml
     plugins="${KONVEYOR_PLUGIN_DIR%/kwin/effects/plugins}"
     qml=$(manifest_entry "$KONVEYOR_STATE_DIR/install_manifest.txt" '/org/kde/konveyor/settings/qmldir$')
@@ -218,7 +218,7 @@ finish_update() {
     configure_session_paths
     activate
     if $WIDGETS; then
-        "$SOURCE_DIR/widgets/install.sh" --no-restart
+        PATH="$KONVEYOR_PREFIX/bin:$PATH" "$SOURCE_DIR/widgets/install.sh" --no-restart
     fi
     rm -f "$UPDATE_PENDING"
     notify_owner "Konveyor updated" "Konveyor $(git -C "$SOURCE_DIR" describe --always --tags 2>/dev/null) is installed. Restart Plasma or log out and back in to load the updated widgets."
@@ -270,9 +270,9 @@ main() {
     configure_session_paths
     activate
     mkdir -p "$(dirname "$OPTIONS_FILE")"
-    printf 'widgets=%s\n' "$WIDGETS" >"$OPTIONS_FILE"
+    printf 'widgets=%s\nprefix=%s\n' "$WIDGETS" "$KONVEYOR_PREFIX" >"$OPTIONS_FILE"
     if $WIDGETS; then
-        "$SOURCE_DIR/widgets/install.sh"
+        PATH="$KONVEYOR_PREFIX/bin:$PATH" "$SOURCE_DIR/widgets/install.sh"
         say "Settings: press Meta+K and open Settings in the Kontrol Panel, or open System Settings > Window Management > Konveyor"
     else
         say "Settings: open System Settings > Window Management > Konveyor"

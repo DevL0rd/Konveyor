@@ -254,10 +254,13 @@ class HarnessTest(unittest.TestCase):
     managers = ("pacman",)
     system = "arch"
     checkout = True
+    seeded = True
 
     def setUp(self):
         self.harness = Harness(self.managers, self.system, self.checkout)
         self.addCleanup(self.harness.close)
+        if self.seeded and not self.harness.atomic:
+            self.harness.seed_prefix()
 
     def assertSucceeded(self, result):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
