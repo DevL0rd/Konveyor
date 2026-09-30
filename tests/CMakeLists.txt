@@ -236,3 +236,10 @@ target_link_libraries(test_shortcut_manager PRIVATE konveyor_config konveyor_sho
 target_compile_options(test_shortcut_manager PRIVATE -Wall -Wextra -Werror)
 add_test(NAME test_shortcut_manager COMMAND test_shortcut_manager)
 set_tests_properties(test_shortcut_manager PROPERTIES LABELS "unit;input" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+
+add_executable(test_touchpad_contacts unit/input/test_touchpad_contacts.cpp ${PROJECT_SOURCE_DIR}/src/effect/input/touchpadcontactdecoder.cpp)
+target_include_directories(test_touchpad_contacts PRIVATE ${PROJECT_SOURCE_DIR}/src/effect)
+target_link_libraries(test_touchpad_contacts PRIVATE Qt6::Core Qt6::Test)
+target_compile_options(test_touchpad_contacts PRIVATE -Wall -Wextra -Werror)
+add_test(NAME test_touchpad_contacts COMMAND test_touchpad_contacts)
+set_tests_properties(test_touchpad_contacts PROPERTIES LABELS "unit;input")
