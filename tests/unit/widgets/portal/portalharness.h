@@ -151,7 +151,8 @@ private:
         while (it.hasNext()) {
             const QString file = it.next();
             const QString target = to + QLatin1Char('/') + QDir(from).relativeFilePath(file);
-            if (!QDir().mkpath(QFileInfo(target).path()) || !QFile::copy(file, target)) {
+            if (!QDir().mkpath(QFileInfo(target).path()) || (QFile::exists(target) && !QFile::remove(target))
+                || !QFile::copy(file, target)) {
                 return false;
             }
         }
