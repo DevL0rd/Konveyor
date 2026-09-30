@@ -8,6 +8,7 @@ sys.path.insert(0, str(HERE / "harness"))
 
 BREEZE_DECORATION = """
 [org.kde.kdecoration2]
+NoPlugin=false
 library=org.kde.breeze
 theme=Breeze
 """

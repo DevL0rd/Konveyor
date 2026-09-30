@@ -54,6 +54,9 @@ class NestedSession:
         for directory in (self.config_home, self.data_home, self.state_home, self.home, self.cache_home, self.runtime):
             directory.mkdir(mode=0o700)
         (self.config_home / "kwinrc").write_text(textwrap.dedent(f"""\
+            [org.kde.kdecoration2]
+            NoPlugin=true
+
             [Plugins]
             konveyor_effectEnabled=true
             slideEnabled=false
@@ -103,6 +106,8 @@ class NestedSession:
         env["XDG_CACHE_HOME"] = str(self.cache_home)
         env["XDG_RUNTIME_DIR"] = str(self.runtime)
         env["KONVEYOR_OUTSIDE_DIRS"] = ":".join(dict.fromkeys(filter(None, (os.environ.get("HOME"), os.environ.get("XDG_RUNTIME_DIR"), f"/run/user/{os.getuid()}"))))
+        env["XDG_CONFIG_DIRS"] = "/etc/xdg"
+        env["QT_WAYLAND_DISABLE_WINDOWDECORATION"] = "1"
         if self.data_dirs:
             env["XDG_DATA_DIRS"] = self.data_dirs
         env["KONVEYOR_TEST_ROOT"] = str(self.root)
