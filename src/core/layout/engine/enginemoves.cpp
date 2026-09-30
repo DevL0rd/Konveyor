@@ -127,7 +127,12 @@ void Engine::Private::moveColumnToMonitor(std::size_t monitorIndex, bool activat
         return;
     }
     const std::size_t sourceIndex = std::min(activeMonitorIndex, monitors.size() - 1);
-    auto column = monitors[sourceIndex].activeWorkspace().removeActiveColumn();
+    Workspace &source = monitors[sourceIndex].activeWorkspace();
+    if (source.isFloatingFocused()) {
+        moveWindowToMonitor(source.activeWindow(), monitorIndex, activate);
+        return;
+    }
+    auto column = source.removeActiveColumn();
     if (!column) {
         return;
     }
