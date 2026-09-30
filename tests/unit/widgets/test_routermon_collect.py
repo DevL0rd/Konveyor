@@ -262,6 +262,16 @@ class TestRoutermonServe(CollectorTest):
             self.module.serve()
         return caches
 
+    def test_the_router_identity_is_fetched_again_after_the_router_comes_back(self):
+        self.configure(json.dumps({"host": "router", "poll_interval": 1}))
+        self.reachable = [True, True, False, True, False, True]
+        caches = self.serve(until=2.5)
+        self.assertEqual([cache["online"] for cache in caches], [True, False, True])
+        self.assertIn("No route to host", caches[1]["error"])
+        self.assertEqual(caches[2]["info"]["model"], "RT-AX")
+        self.assertEqual(caches[2]["wifi"]["radios"][0]["ssid"], "Home Net")
+        self.assertEqual(self.fetches, ["poll", "static", "poll", "poll", "static"])
+
     def test_a_bad_interval_setting_is_logged_once_and_the_default_used(self):
         for value in ("fast", None, "inf", 0, -5):
             with self.subTest(value=value):
