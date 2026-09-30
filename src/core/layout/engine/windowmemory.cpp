@@ -1,5 +1,7 @@
 #include "layout/engine/windowmemory.h"
 
+#include "layout/common/sizelimits.h"
+
 #include <QJsonArray>
 
 namespace Konveyor::Layout
@@ -29,29 +31,45 @@ QJsonObject entryToJson(const RememberedWindow &entry)
     return object;
 }
 
+std::optional<QSize> sizeFromJson(const QJsonValue &value)
+{
+    const QJsonArray array = value.toArray();
+    if (array.size() != 2 || !array[0].isDouble() || !array[1].isDouble()) {
+        return std::nullopt;
+    }
+    const QSize size(array[0].toInt(), array[1].toInt());
+    if (size.width() < 1 || size.height() < 1 || size.width() > MaxPixelSize || size.height() > MaxPixelSize) {
+        return std::nullopt;
+    }
+    return size;
+}
+
+std::optional<ColumnWidth> columnWidthFromJson(const QJsonValue &value)
+{
+    const QJsonObject object = value.toObject();
+    const QJsonValue number = object[QStringLiteral("value")];
+    if (!number.isDouble()) {
+        return std::nullopt;
+    }
+    const double width = number.toDouble();
+    if (object[QStringLiteral("proportion")].toBool()) {
+        return width > 0.0 && width <= MaxProportion ? std::optional(ColumnWidth::proportion(width)) : std::nullopt;
+    }
+    return width >= 1.0 && width <= MaxPixelSize ? std::optional(ColumnWidth::fixed(width)) : std::nullopt;
+}
+
 RememberedWindow entryFromJson(const QJsonObject &object)
 {
     RememberedWindow entry;
-    const QJsonObject width = object[QStringLiteral("column-width")].toObject();
-    if (width.contains(QStringLiteral("value"))) {
-        const double value = width[QStringLiteral("value")].toDouble();
-        entry.columnWidth = width[QStringLiteral("proportion")].toBool() ? ColumnWidth::proportion(value) : ColumnWidth::fixed(value);
-    }
-    const QJsonArray size = object[QStringLiteral("floating-size")].toArray();
-    if (size.size() == 2) {
-        entry.floatingSize = QSize(size[0].toInt(), size[1].toInt());
-    }
+    entry.columnWidth = columnWidthFromJson(object[QStringLiteral("column-width")]);
+    entry.floatingSize = sizeFromJson(object[QStringLiteral("floating-size")]);
     const QJsonArray position = object[QStringLiteral("floating-position")].toArray();
-    if (position.size() == 2) {
+    if (position.size() == 2 && position[0].isDouble() && position[1].isDouble()) {
         entry.floatingPosition = QPointF(position[0].toDouble(), position[1].toDouble());
     }
-    const QJsonArray nativeSize = object[QStringLiteral("native-size")].toArray();
-    if (nativeSize.size() == 2) {
-        entry.nativeSize = QSize(nativeSize[0].toInt(), nativeSize[1].toInt());
-    }
+    entry.nativeSize = sizeFromJson(object[QStringLiteral("native-size")]);
     return entry;
 }
-
 }
 
 QJsonObject windowMemoryToJson(const WindowMemory &memory)

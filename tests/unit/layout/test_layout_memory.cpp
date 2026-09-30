@@ -1,5 +1,7 @@
 #include "helpers.h"
 
+#include <QJsonDocument>
+
 using namespace LayoutTest;
 
 namespace
@@ -126,6 +128,36 @@ private Q_SLOTS:
         memory[QStringLiteral("browser")].columnWidth = Layout::ColumnWidth::proportion(0.5);
         memory[QStringLiteral("game")].nativeSize = QSize(1280, 720);
         QCOMPARE(Layout::windowMemoryFromJson(Layout::windowMemoryToJson(memory)), memory);
+    }
+
+    void damagedMemoryDoesNotOpenWindowsAtAnUnusableSize_data()
+    {
+        QTest::addColumn<QByteArray>("entry");
+        QTest::newRow("zero proportion") << QByteArray(R"({"column-width": {"proportion": true, "value": 0}})");
+        QTest::newRow("negative proportion") << QByteArray(R"({"column-width": {"proportion": true, "value": -2}})");
+        QTest::newRow("huge proportion") << QByteArray(R"({"column-width": {"proportion": true, "value": 1e9}})");
+        QTest::newRow("zero width") << QByteArray(R"({"column-width": {"proportion": false, "value": 0}})");
+        QTest::newRow("huge width") << QByteArray(R"({"column-width": {"proportion": false, "value": 1e12}})");
+        QTest::newRow("width as text") << QByteArray(R"({"column-width": {"proportion": false, "value": "wide"}})");
+        QTest::newRow("negative floating size") << QByteArray(R"({"floating-size": [-10, -10]})");
+        QTest::newRow("empty floating size") << QByteArray(R"({"floating-size": [0, 0]})");
+        QTest::newRow("floating size as text") << QByteArray(R"({"floating-size": ["a", "b"]})");
+        QTest::newRow("floating position as text") << QByteArray(R"({"floating-position": ["a", "b"]})");
+    }
+
+    void damagedMemoryDoesNotOpenWindowsAtAnUnusableSize()
+    {
+        QFETCH(QByteArray, entry);
+        Fixture fixture(memoryConfig(true));
+        fixture.add(QStringLiteral("other"));
+        const QJsonObject json {{QStringLiteral("app"), QJsonDocument::fromJson(entry).object()}};
+        fixture.engine().setWindowMemory(Layout::windowMemoryFromJson(json));
+        QCOMPARE(fixture.engine().windowMemory().value(QStringLiteral("app")), Layout::RememberedWindow());
+        const auto tiled = fixture.add(QStringLiteral("app"));
+        QCOMPARE(fixture.frame(tiled).width(), 936.0);
+        const auto floating = fixture.addWith(dialog(QStringLiteral("app")));
+        QCOMPARE(fixture.frame(floating), QRectF(760, 390, 400, 300));
+        VERIFY_INVARIANTS(fixture);
     }
 };
 
