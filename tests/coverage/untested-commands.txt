@@ -1,5 +1,0 @@
-procmon-collect --once
-procmon-collect --snapshot
-routermon-collect all
-sysmon-collect --once
-sysmon-collect --snapshot

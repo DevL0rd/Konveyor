@@ -1,7 +1,9 @@
 import builtins
+import contextlib
 import glob
 import importlib.machinery
 import importlib.util
+import io
 import json
 import os
 import sys
@@ -100,3 +102,12 @@ class CollectorTest(unittest.TestCase):
 
     def calls(self):
         return [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []
+
+
+def run_main(module, name, *arguments):
+    output = io.StringIO()
+    errors = io.StringIO()
+    with mock.patch.object(module.sys, "argv", [name, *arguments]), mock.patch.object(module.time, "sleep"), \
+            contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+        code = module.main()
+    return code, output.getvalue(), errors.getvalue()

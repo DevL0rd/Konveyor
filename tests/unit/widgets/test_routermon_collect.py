@@ -212,6 +212,7 @@ class TestRoutermonOffline(CollectorTest):
         (self.runtime / "Linux-Router-Monitor" / "data.json").write_text(json.dumps({"online": True, "system": {"cores": 4}}))
         self.assertEqual(self.run_main("system"), {"cores": 4})
         self.assertEqual(self.run_main("nothing"), {"online": True, "system": {"cores": 4}})
+        self.assertEqual(self.run_main("all"), self.run_main())
         self.assertEqual(self.calls(), [])
 
     def test_pausing_serves_the_last_snapshot_flagged_paused(self):

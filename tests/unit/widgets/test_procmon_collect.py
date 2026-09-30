@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest import mock
 
-from collectorharness import WIDGETS, CollectorTest
+from collectorharness import WIDGETS, CollectorTest, run_main
 
 SCRIPT = WIDGETS / "process-monitor" / "bin" / "procmon-collect"
 
@@ -176,6 +176,24 @@ class TestProcmonCollect(CollectorTest):
         module = self.module()
         self.assertEqual([module._bytes_text(value) for value in (5, 2048, 3 << 20, 3 << 30, 2 << 40)],
                          ["5B", "2K", "3M", "3.0G", "2.0T"])
+
+    def test_once_prints_a_fresh_reading(self):
+        self.process(1, "init", 0, ticks=5)
+        code, output, _ = run_main(self.module(), "procmon-collect", "--once")
+        self.assertIn(code, (None, 0))
+        self.assertIn(1, self.rows(json.loads(output)))
+
+    def test_snapshot_mode_prints_the_last_snapshot(self):
+        module = self.module()
+        os.makedirs(module.RUNDIR, exist_ok=True)
+        with open(module.DATA, "w") as handle:
+            json.dump({"ts": 9, "procs": []}, handle)
+        self.assertEqual(json.loads(run_main(module, "procmon-collect", "--snapshot")[1]), {"ts": 9, "procs": []})
+
+    def test_an_unknown_mode_prints_usage(self):
+        code, output, errors = run_main(self.module(), "procmon-collect", "--twice")
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("usage: procmon-collect", errors)
 
 
 if __name__ == "__main__":

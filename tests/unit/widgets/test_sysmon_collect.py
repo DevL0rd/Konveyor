@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest import mock
 
-from collectorharness import WIDGETS, CollectorTest
+from collectorharness import WIDGETS, CollectorTest, run_main
 
 SCRIPT = WIDGETS / "system-monitor" / "bin" / "sysmon-collect"
 
@@ -163,6 +163,25 @@ class TestSysmonCollect(CollectorTest):
         self.assertEqual(json.loads((self.config / "Linux-System-Monitor" / "config.json").read_text()), {"poll_interval": 0.25})
         with mock.patch.object(module.sys, "argv", ["sysmon-collect", "--set-interval", "fast"]):
             self.assertEqual(module.cmd_set_interval(), 1)
+
+    def test_once_prints_a_fresh_reading(self):
+        self.write_minimal()
+        code, output, _ = run_main(self.load(SCRIPT, "sysmon_collect"), "sysmon-collect", "--once")
+        self.assertIn(code, (None, 0))
+        self.assertIn("cpu", json.loads(output))
+        self.assertIn("mem", json.loads(output))
+
+    def test_snapshot_mode_prints_the_last_snapshot(self):
+        self.write_minimal()
+        module = self.load(SCRIPT, "sysmon_collect")
+        module.write_snapshot({"ts": 7})
+        self.assertEqual(json.loads(run_main(module, "sysmon-collect", "--snapshot")[1]), {"ts": 7})
+
+    def test_an_unknown_mode_prints_usage(self):
+        self.write_minimal()
+        code, output, errors = run_main(self.load(SCRIPT, "sysmon_collect"), "sysmon-collect", "--twice")
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("usage: sysmon-collect", errors)
 
 
 if __name__ == "__main__":
