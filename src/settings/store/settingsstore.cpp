@@ -323,10 +323,10 @@ void SettingsStore::refresh()
     m_configError = loaded ? QString() : loaded.error().toString();
     if (loaded) {
         m_config = loaded->config;
-        for (const QString &file : loaded->files) {
-            if (!m_watcher.files().contains(file) && QFileInfo::exists(file)) {
-                m_watcher.addPath(file);
-            }
+    }
+    for (const QString &file : loaded ? loaded->files : loaded.error().files) {
+        if (!m_watcher.files().contains(file) && QFileInfo::exists(file)) {
+            m_watcher.addPath(file);
         }
     }
     m_values = globalValues(m_config);

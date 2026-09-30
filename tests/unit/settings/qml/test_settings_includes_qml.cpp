@@ -3,6 +3,8 @@
 #include "config/forceresizable.h"
 #include "config/loader.h"
 
+#include <QSaveFile>
+
 using namespace Konveyor;
 using namespace Konveyor::Settings::Testing;
 
@@ -21,6 +23,7 @@ private Q_SLOTS:
     void otherListEntriesAreNotCompared();
     void editsNeverTouchIncludedFiles();
     void includedFileChangeRefreshesValues();
+    void fixingABrokenIncludeInASubfolderClearsTheError();
     void newSectionsStayBeforeForceResizableInclude();
     void forceResizableToggleAfterUiEdits();
 
@@ -178,6 +181,22 @@ void TestSettingsIncludesQml::includedFileChangeRefreshesValues()
     QVERIFY(SettingsHome::write(includedPath(QStringLiteral("extra.kdl")), QStringLiteral("layout { gaps 12; }\n")));
     QTRY_COMPARE_WITH_TIMEOUT(gaps(session), 12, SignalTimeoutMs);
     QCOMPARE(session.store->property("needsSave").toBool(), false);
+}
+
+void TestSettingsIncludesQml::fixingABrokenIncludeInASubfolderClearsTheError()
+{
+    Session session = open(
+        QStringLiteral("include \"parts/extra.kdl\"\n"), {{QStringLiteral("parts/extra.kdl"), QStringLiteral("layout { gaps 9; }\n")}});
+    QCOMPARE(gaps(session), 9);
+    const auto replace = [this](const QString &text) {
+        QSaveFile file(includedPath(QStringLiteral("parts/extra.kdl")));
+        return file.open(QIODevice::WriteOnly) && file.write(text.toUtf8()) >= 0 && file.commit();
+    };
+    QVERIFY(replace(QStringLiteral("layout { gaps 9\n")));
+    QTRY_VERIFY_WITH_TIMEOUT(!session.store->property("configError").toString().isEmpty(), SignalTimeoutMs);
+    QVERIFY(replace(QStringLiteral("layout { gaps 12; }\n")));
+    QTRY_COMPARE_WITH_TIMEOUT(session.store->property("configError").toString(), QString(), SignalTimeoutMs);
+    QCOMPARE(gaps(session), 12);
 }
 
 void TestSettingsIncludesQml::newSectionsStayBeforeForceResizableInclude()
