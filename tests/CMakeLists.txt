@@ -154,3 +154,13 @@ set_tests_properties(test_kontrolpanel_windows_qml PROPERTIES LABELS "unit;kontr
 
 add_test(NAME test_portal_friends_modes COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/test_portal_friends_modes.py)
 set_tests_properties(test_portal_friends_modes PROPERTIES LABELS "unit;widgets")
+
+find_package(KF6 REQUIRED COMPONENTS Config)
+foreach(name test_portal_plasmoid_qml test_portal_friends_qml)
+    add_executable(${name} unit/widgets/portal/${name}.cpp unit/widgets/portal/fakeplasmoid.h)
+    target_link_libraries(${name} PRIVATE Qt6::Qml Qt6::Quick Qt6::Test KF6::ConfigGui KF6::ConfigQml KF6::I18n KF6::I18nQml)
+    target_compile_options(${name} PRIVATE -Wall -Wextra -Werror)
+    target_compile_definitions(${name} PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name} PROPERTIES LABELS "unit;widgets" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+endforeach()

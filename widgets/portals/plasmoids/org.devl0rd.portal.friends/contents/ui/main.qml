@@ -276,7 +276,11 @@ PlasmoidItem {
     P5Support.DataSource {
         id: runner
         engine: "executable"
-        onNewData: function(source, d) { disconnectSource(source) }
+        onNewData: function(source, d) {
+            disconnectSource(source)
+            if (source === root.keySource)
+                root.keySaved(d)
+        }
     }
     function steamRun(url) {
         if (url)
@@ -290,15 +294,21 @@ PlasmoidItem {
     }
     function launch(command) { runner.connectSource(command) }
 
+    property string keySource: ""
     function saveKey(k) {
         k = String(k).trim()
         if (k === "") return
         root.saving = true
-        runner.connectSource("$HOME/.local/bin/portal-friends --set-key " + root.shq(k)
-            + " ; systemctl --user restart konveyor-widgets.service")
-        setupReloadTimer.restart()
+        root.keySource = "$HOME/.local/bin/portal-friends --set-key " + root.shq(k)
+            + " && systemctl --user restart konveyor-widgets.service"
+        runner.connectSource(root.keySource)
     }
-    Timer { id: setupReloadTimer; interval: 4000; onTriggered: root.read() }
+    function keySaved(data) {
+        root.keySource = ""
+        root.saving = false
+        if (data["exit code"] !== 0)
+            root.error = String(data.stderr || data.stdout || "").trim() || i18n("Could not save the Steam Web API key")
+    }
 
     FileWatcher { path: root.dataWanted ? root.cachePath : ""; onChanged: root.read() }
     Component.onCompleted: pathHelper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Plasma-App-Portal/friends.json\"")
