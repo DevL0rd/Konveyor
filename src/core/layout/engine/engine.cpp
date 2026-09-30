@@ -40,7 +40,9 @@ void Engine::setConfig(const Config::Config &config)
     for (const Monitor &monitor : d->monitors) {
         previous.push_back(monitor.layoutOverride() ? *monitor.layoutOverride() : d->config.layout);
     }
+    const QList<Config::NamedWorkspace> previousNamed = d->config.workspaces;
     d->config = config;
+    d->forgetRemovedWorkspaceNames(previousNamed);
     d->applyOptions();
     d->applyNamedWorkspaceLayouts();
     for (std::size_t idx = 0; idx < previous.size(); ++idx) {

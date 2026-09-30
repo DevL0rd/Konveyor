@@ -118,6 +118,19 @@ std::optional<std::size_t> namedWorkspaceIndex(const std::vector<Workspace> &wor
 
 }
 
+void Engine::Private::forgetRemovedWorkspaceNames(const QList<Config::NamedWorkspace> &previous)
+{
+    const auto listed = [](const QList<Config::NamedWorkspace> &named, const QString &name) {
+        return std::ranges::any_of(
+            named, [&name](const Config::NamedWorkspace &entry) { return entry.name.compare(name, Qt::CaseInsensitive) == 0; });
+    };
+    for (Workspace *workspace : allWorkspaces()) {
+        if (!workspace->name().isEmpty() && listed(previous, workspace->name()) && !listed(config.workspaces, workspace->name())) {
+            workspace->setName(QString());
+        }
+    }
+}
+
 void Engine::Private::applyNamedWorkspaceLayouts()
 {
     for (Workspace *workspace : allWorkspaces()) {

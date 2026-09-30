@@ -206,6 +206,22 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void namedWorkspaceRemovedFromTheConfigLosesItsName()
+    {
+        Fixture fixture;
+        Config::Config config = instantConfig();
+        config.workspaces = {namedWorkspace(QStringLiteral("browser")), namedWorkspace(QStringLiteral("chat"))};
+        fixture.setConfig(config);
+        fixture.perform(QStringLiteral("set-workspace-name"), {QStringLiteral("mine")});
+        config.workspaces = {namedWorkspace(QStringLiteral("chat"))};
+        fixture.setConfig(config);
+        const QStringList names = workspaceNames(fixture.engine(), QStringLiteral("DP-1"));
+        QVERIFY(!names.contains(QStringLiteral("browser")));
+        QVERIFY(names.contains(QStringLiteral("chat")));
+        QVERIFY(names.contains(QStringLiteral("mine")));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void namedWorkspaceSurvivesCleanup()
     {
         Config::Config config = instantConfig();

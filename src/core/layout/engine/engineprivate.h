@@ -124,6 +124,7 @@ struct Engine::Private
     bool resolveWorkspaceRules(Workspace &workspace, std::vector<WindowId> &changed);
     void ensureNamedWorkspaces();
     void applyNamedWorkspaceLayouts();
+    void forgetRemovedWorkspaceNames(const QList<Config::NamedWorkspace> &previous);
     void applyOptions();
 
     NewWindowPlan planNewWindow(const WindowProperties &properties, const QString &preferredOutput, ActivationPolicy policy) const;
