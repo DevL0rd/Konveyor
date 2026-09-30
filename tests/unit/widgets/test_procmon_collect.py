@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+import ctypes
 import json
 import os
+import types
 import unittest
 from unittest import mock
 
@@ -12,6 +14,42 @@ SCRIPT = WIDGETS / "process-monitor" / "bin" / "procmon-collect"
 def stat_line(pid, comm, ppid, ticks, threads, rss_pages, start=100):
     fields = ["S", ppid, 0, 0, 0, 0, 0, 0, 0, 0, 0, ticks, 0, 0, 0, 20, 0, threads, 0, start, 0, rss_pages, 0, 0]
     return "%d (%s) %s\n" % (pid, comm, " ".join(str(field) for field in fields))
+
+
+class Sample(ctypes.Structure):
+    _fields_ = [("pid", ctypes.c_uint), ("timeStamp", ctypes.c_ulonglong), ("smUtil", ctypes.c_uint), ("memUtil", ctypes.c_uint),
+                ("encUtil", ctypes.c_uint), ("decUtil", ctypes.c_uint)]
+
+
+class ProcessInfo(ctypes.Structure):
+    _fields_ = [("pid", ctypes.c_uint), ("usedGpuMemory", ctypes.c_ulonglong), ("gpuInstanceId", ctypes.c_uint),
+                ("computeInstanceId", ctypes.c_uint)]
+
+
+def fake_process_nvml(samples, compute, graphics):
+    missing = ctypes.c_ulonglong(2 ** 64 - 1)
+
+    def fill(buffer, count, rows):
+        count._obj.value, needed = len(rows), len(rows)
+        if needed > len(buffer):
+            return 7
+        for index, row in enumerate(rows):
+            buffer[index] = row
+        return 0
+
+    functions = {
+        "nvmlDeviceGetProcessUtilization": lambda handle, buffer, count, since: fill(buffer, count, [Sample(*row) for row in samples]),
+        "nvmlDeviceGetComputeRunningProcesses_v3": lambda handle, count, buffer: fill(
+            buffer, count, [ProcessInfo(pid, missing.value if used is None else used) for pid, used in compute]),
+        "nvmlDeviceGetGraphicsRunningProcesses_v3": lambda handle, count, buffer: fill(
+            buffer, count, [ProcessInfo(pid, used) for pid, used in graphics]),
+    }
+    return types.SimpleNamespace(
+        NVML_SUCCESS=0, NVML_ERROR_INSUFFICIENT_SIZE=7, NVML_VALUE_NOT_AVAILABLE_ulonglong=missing,
+        c_nvmlProcessUtilizationSample_t=Sample, c_nvmlProcessInfo_v3_t=ProcessInfo,
+        nvmlInit=lambda: None, nvmlDeviceGetHandleByIndex=lambda index: "gpu0",
+        nvmlDeviceGetMemoryInfo=lambda handle: types.SimpleNamespace(total=8 << 30),
+        _nvmlGetFunctionPointer=functions.__getitem__, _nvmlCheckReturn=lambda code: None)
 
 
 class TestProcmonCollect(ServeLoopTests, CollectorTest):
@@ -172,6 +210,20 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         module._frame_telemetry["retry"] = 0.0
         self.assertEqual(module.frame_rates(), {})
         self.assertGreater(module._frame_telemetry["retry"], 0.0)
+
+    def test_gpu_columns_show_each_processes_share_even_with_more_processes_than_the_buffers_hold(self):
+        self.process(1, "init", 0)
+        self.process(90, "game", 1)
+        self.process(91, "encoder", 1)
+        self.process(92, "cuda", 1)
+        samples = [(90, 5, 30, 0, 0, 0), (90, 9, 60, 0, 0, 0), (91, 9, 5, 0, 40, 20)] + [(1000 + n, 1, 1, 0, 0, 0) for n in range(80)]
+        nvml = fake_process_nvml(samples, compute=[(92, None)], graphics=[(90, 2 << 30)] + [(2000 + n, 1) for n in range(70)])
+        rows = self.rows(self.build_at(self.module(pynvml=nvml), 100.0))
+        self.assertEqual((rows[90]["gpu"], rows[90]["vram"]), (60, 2 << 30))
+        self.assertEqual((rows[91]["gpu"], rows[91]["enc"], rows[91]["dec"]), (5, 40, 20))
+        self.assertNotIn("vram", rows[92])
+        self.assertEqual(rows[1]["agpu"], 65)
+        self.assertEqual(self.build_at(self.module(pynvml=nvml), 100.0)["vram_total"], 8 << 30)
 
     def test_no_nvidia_reports_no_gpu_columns(self):
         self.process(90, "app", 1)
