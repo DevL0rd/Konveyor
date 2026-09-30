@@ -66,7 +66,7 @@ LayoutHandoff LayoutHandoff::take()
     KWin::workspace()->setProperty(handoffProperty, QVariant());
     LayoutHandoff handoff;
     const QJsonArray entries = QJsonDocument::fromJson(json).array();
-    for (const QJsonValue &value : entries) {
+    for (const auto &value : entries) {
         const QJsonObject object = value.toObject();
         Entry entry;
         entry.output = object.value(QStringLiteral("output")).toString();
@@ -98,12 +98,10 @@ bool LayoutHandoff::comesBefore(KWin::Window *first, KWin::Window *second) const
 
 std::optional<HandedOverPlacement> LayoutHandoff::takePlacement(KWin::Window *window, const Layout::Engine &engine)
 {
-    const auto entry = m_entries.constFind(window->internalId());
-    if (entry == m_entries.constEnd()) {
+    if (!m_entries.contains(window->internalId())) {
         return std::nullopt;
     }
-    const Entry handed = *entry;
-    m_entries.erase(entry);
+    const Entry handed = m_entries.take(window->internalId());
     std::optional<Layout::WorkspaceState> target;
     const QList<Layout::WorkspaceState> workspaces = engine.workspaceStates();
     for (const Layout::WorkspaceState &workspace : workspaces) {
