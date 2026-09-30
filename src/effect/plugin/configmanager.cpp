@@ -2,8 +2,7 @@
 
 #include "config/forceresizable.h"
 #include "config/loader.h"
-
-#include <KNotification>
+#include "plugin/notifications.h"
 
 #include <QDir>
 #include <QFile>
@@ -23,16 +22,6 @@ constexpr QLatin1StringView forceResizableFileName("force-resizable.kdl");
 QString bundledDefaultConfig()
 {
     return QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("konveyor/default-config.kdl"));
-}
-
-void sendNotification(const QString &title, const QString &text)
-{
-    auto *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout);
-    notification->setComponentName(QStringLiteral("plasma_workspace"));
-    notification->setTitle(title);
-    notification->setText(text);
-    notification->setIconName(QStringLiteral("preferences-system-windows-effect"));
-    notification->sendEvent();
 }
 
 std::expected<QString, QString> readText(const QString &path, bool allowMissing)

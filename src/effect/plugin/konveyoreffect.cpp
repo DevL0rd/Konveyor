@@ -262,6 +262,12 @@ Layout::Hooks KonveyorEffect::makeHooks()
         }
     };
     hooks.spawn = [](const QString &command) { QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), command}); };
+    hooks.runWidgetTool = [](const QString &name, const QStringList &arguments) {
+        if (const auto started = Tools::startWidgetTool(name, arguments); !started) {
+            qWarning().noquote() << "konveyor:" << started.error();
+            sendNotification(QStringLiteral("Konveyor: could not open %1").arg(name), started.error());
+        }
+    };
     hooks.compositorAction = [](const QString &name) {
         if (name == QLatin1String("show-hotkey-overlay")) {
             QProcess::startDetached(QStringLiteral(KONVEYOR_BINDIR "/konveyor-cheatsheet"), {});

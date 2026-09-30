@@ -19,12 +19,14 @@
 #include "kwin/windowregistry.h"
 #include "plasma/plasmashellsync.h"
 #include "plugin/configmanager.h"
+#include "plugin/notifications.h"
 #include "plugin/windowmemorystore.h"
 
 #include "anim/clock.h"
 #include "config/loader.h"
 #include "ipc/model.h"
 #include "layout/gestures/gesturerouter.h"
+#include "tools/widgettool.h"
 
 #include <core/output.h>
 #include <effect/effecthandler.h>

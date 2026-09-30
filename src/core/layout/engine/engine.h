@@ -8,6 +8,7 @@
 #include <QRectF>
 #include <QSizeF>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 #include <memory>
@@ -179,6 +180,7 @@ struct Hooks
 {
     std::function<void(WindowId)> closeWindow;
     std::function<void(const QString &)> spawn;
+    std::function<void(const QString &, const QStringList &)> runWidgetTool;
     std::function<void()> toggleOverview;
     std::function<void(bool)> setOverviewOpen;
     std::function<void(const QString &)> compositorAction;
@@ -218,6 +220,7 @@ public:
     bool wantsWindow(const WindowProperties &properties) const;
 
     ActionResult perform(const Config::Action &action, std::optional<WindowId> target = {});
+    void runWidgetTool(const QString &name, const QStringList &arguments) const;
 
     void beginSwipe(const QString &output, bool isTouchpad);
     void updateSwipe(double delta, qint64 timestampMs, bool isTouchpad);

@@ -46,7 +46,7 @@ bool GestureRouter::performTap(const Config::MultiTouch &settings, int fingers, 
         m_engine.perform(Config::Action {QStringLiteral("switch-preset-column-width"), {}, {}});
         return true;
     case Config::TapAction::KontrolPanel:
-        m_engine.perform(Config::Action {QStringLiteral("spawn-sh"), {QStringLiteral("\"$HOME/.local/bin/portal-launcher\" toggle")}, {}});
+        m_engine.runWidgetTool(QStringLiteral("portal-launcher"), {QStringLiteral("toggle")});
         return true;
     case Config::TapAction::ToggleOverview:
         m_engine.perform(Config::Action {QStringLiteral("toggle-overview"), {}, {}});

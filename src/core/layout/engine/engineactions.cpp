@@ -337,4 +337,11 @@ ActionResult Engine::perform(const Config::Action &action, std::optional<WindowI
     return result;
 }
 
+void Engine::runWidgetTool(const QString &name, const QStringList &arguments) const
+{
+    if (d->hooks.runWidgetTool) {
+        d->hooks.runWidgetTool(name, arguments);
+    }
+}
+
 }

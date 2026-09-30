@@ -22,6 +22,7 @@ konveyor_add_module(config konveyor_kdl PkgConfig::XKBCOMMON Qt6::GuiPrivate)
 konveyor_add_module(render konveyor_config)
 konveyor_add_module(layout konveyor_config konveyor_anim)
 konveyor_add_module(ipc konveyor_layout konveyor_config)
+konveyor_add_module(tools)
 
 add_library(konveyor_core INTERFACE)
-target_link_libraries(konveyor_core INTERFACE konveyor_ipc konveyor_layout konveyor_render konveyor_config konveyor_anim konveyor_kdl)
+target_link_libraries(konveyor_core INTERFACE konveyor_ipc konveyor_tools konveyor_layout konveyor_render konveyor_config konveyor_anim konveyor_kdl)

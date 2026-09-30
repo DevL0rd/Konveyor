@@ -10,7 +10,7 @@ function(konveyor_add_unit_test source module)
     set_tests_properties(${name} PROPERTIES LABELS "unit;${module}" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endfunction()
 
-foreach(module kdl anim config render layout ipc)
+foreach(module kdl anim config render layout ipc tools)
     file(GLOB_RECURSE module_tests CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/unit/${module}/test_*.cpp)
     foreach(test_source ${module_tests})
         konveyor_add_unit_test(${test_source} ${module})

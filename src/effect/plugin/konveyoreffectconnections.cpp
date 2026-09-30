@@ -13,7 +13,10 @@ namespace
 
 void runMonitorOverlay(const QStringList &arguments)
 {
-    QProcess::startDetached(QDir::home().filePath(QStringLiteral(".local/bin/monitor-overlay")), arguments);
+    const QString tool = QStringLiteral("monitor-overlay");
+    if (const auto started = Tools::startWidgetTool(tool, arguments); !started && Tools::widgetToolInstalled(tool)) {
+        qWarning().noquote() << "konveyor:" << started.error();
+    }
 }
 
 void attachMonitorWindow(KWin::Window *window, KWin::Window *target)

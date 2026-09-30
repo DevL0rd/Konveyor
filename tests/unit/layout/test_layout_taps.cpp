@@ -8,7 +8,7 @@ namespace
 {
 
 const QString Output = QStringLiteral("DP-1");
-const QString KontrolPanelCommand = QStringLiteral("\"$HOME/.local/bin/portal-launcher\" toggle");
+const QString KontrolPanelCommand = QStringLiteral("portal-launcher toggle");
 
 struct Rig
 {
@@ -23,6 +23,9 @@ struct Rig
     {
         Layout::Hooks result;
         result.spawn = [this](const QString &command) { spawned.append(command); };
+        result.runWidgetTool = [this](const QString &name, const QStringList &arguments) {
+            spawned.append(QStringList {name, arguments.join(QLatin1Char(' '))}.join(QLatin1Char(' ')));
+        };
         return result;
     }
 
