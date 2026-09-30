@@ -163,7 +163,7 @@ void PlasmoidHarness::loadConfig()
     }
 }
 
-QObject *PlasmoidHarness::load(int formFactor, const QVariantMap &config)
+void PlasmoidHarness::setUp(int formFactor, const QVariantMap &config)
 {
     stage();
     registerPlasmaDoubles();
@@ -186,8 +186,12 @@ QObject *PlasmoidHarness::load(int formFactor, const QVariantMap &config)
     }
     m_window = std::make_unique<QQuickWindow>();
     m_window->resize(800, 900);
-    QQmlComponent component(m_engine.get(), QUrl::fromLocalFile(stagedPath(QStringLiteral("contents/ui/main.qml"))));
-    m_root.reset(component.create());
+}
+
+QObject *PlasmoidHarness::create(const QString &relative, const QVariantMap &properties)
+{
+    QQmlComponent component(m_engine.get(), QUrl::fromLocalFile(stagedPath(relative)));
+    m_root.reset(component.createWithInitialProperties(properties));
     if (!m_root) {
         error = component.errorString();
         return nullptr;
@@ -198,6 +202,12 @@ QObject *PlasmoidHarness::load(int formFactor, const QVariantMap &config)
     }
     m_window->show();
     return m_root.get();
+}
+
+QObject *PlasmoidHarness::load(int formFactor, const QVariantMap &config)
+{
+    setUp(formFactor, config);
+    return create(QStringLiteral("contents/ui/main.qml"));
 }
 
 QObject *PlasmoidHarness::loadFile(const QString &relative, const QVariantMap &properties)

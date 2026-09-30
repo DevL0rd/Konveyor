@@ -23,6 +23,8 @@ struct PlasmoidSpec
     QStringList libs;
 };
 
+Q_DECLARE_METATYPE(PlasmoidSpec)
+
 class PlasmoidHarness
 {
 public:
@@ -34,6 +36,8 @@ public:
     static QStringList &messages();
     static QString report();
 
+    void setUp(int formFactor, const QVariantMap &config = {});
+    QObject *create(const QString &relative, const QVariantMap &properties = {});
     QObject *load(int formFactor, const QVariantMap &config = {});
     QObject *loadFile(const QString &relative, const QVariantMap &properties = {});
     QQuickItem *show(const char *representation);
