@@ -5,7 +5,7 @@ cd "$(dirname "$0")/../../.."
 owner=$(stat -c %u:%g .)
 trap 'chown -R "$owner" .' EXIT
 
-pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols typos nodejs npm shellcheck ruff dbus mesa xorg-xwayland \
+pacman -Syu --noconfirm --needed git cmake ninja ccache clang llvm wayland-protocols typos nodejs npm shellcheck ruff dbus mesa xorg-xwayland \
     qt6-wayland qt6-declarative python python-dbus python-gobject python-pillow python-xlib plasma-workspace plasma-desktop plasma5support \
     plasma-keyboard breeze libkscreen kcmutils chromium
 git clone https://github.com/mgehre/xunused.git /tmp/xunused
@@ -23,4 +23,6 @@ useradd -m tester
 chown -R tester: .
 install -d -m 700 -o tester /tmp/runtime-tester
 install -d -m 1777 /tmp/.X11-unix
-runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester ./tools/check.sh --nested --coverage
+runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester CCACHE_DIR="$PWD/.ccache" CCACHE_MAXSIZE=2G \
+    CMAKE_C_COMPILER_LAUNCHER=ccache CMAKE_CXX_COMPILER_LAUNCHER=ccache ./tools/check.sh --nested --coverage
+runuser -u tester -- env CCACHE_DIR="$PWD/.ccache" ccache --show-stats

@@ -19,6 +19,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Restore the compiler cache
+        uses: actions/cache@v6
+        with:
+          path: .ccache
+          key: ccache-${{ github.sha }}
+          restore-keys: ccache-
+
       - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
         run: tests/nested/ci/vgem.sh
 

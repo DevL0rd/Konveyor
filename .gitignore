@@ -2,5 +2,6 @@
 /build-*/
 /compile_commands.json
 /.cache/
+/.ccache/
 __pycache__/
 /report/

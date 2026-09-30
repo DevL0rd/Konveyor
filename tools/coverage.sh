@@ -27,10 +27,12 @@ python3 tools/coverage/pycoverage.py prepare --data "$OUTPUT/python"
 
 for label in "${LABELS[@]}"; do
     step "$label tests with coverage"
+    jobs=$(nproc)
+    [[ $label == nested ]] && jobs=2
     LLVM_PROFILE_FILE="$OUTPUT/profiles/%p-%m.profraw" \
         KONVEYOR_PYCOVERAGE_DIR="$OUTPUT/python" \
         PYTHONPATH="$PWD/tools/coverage/site${PYTHONPATH:+:$PYTHONPATH}" \
-        ctest --test-dir "$BUILD_DIR" --output-on-failure -L "^${label}\$"
+        ctest --test-dir "$BUILD_DIR" --output-on-failure -L "^${label}\$" -j "$jobs"
 done
 
 step "merge the C++ profiles"

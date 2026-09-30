@@ -87,11 +87,11 @@ else
     cmake --build "$BUILD_DIR"
 
     step "unit tests"
-    ctest --test-dir "$BUILD_DIR" --output-on-failure -L unit
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -L unit -j "$(nproc)"
 
     if $NESTED; then
         step "nested KWin tests"
-        ctest --test-dir "$BUILD_DIR" --output-on-failure -L nested
+        ctest --test-dir "$BUILD_DIR" --output-on-failure -L nested -j 2
     fi
 
     step "clang build (compile database for clang-tidy)"
