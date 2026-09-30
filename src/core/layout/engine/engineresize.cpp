@@ -10,11 +10,12 @@ bool Engine::beginResize(WindowId id, quint8 edges)
         return false;
     }
     d->finishResize();
-    if (!workspace->beginResize(id, edges)) {
-        return false;
+    const bool began = workspace->beginResize(id, edges);
+    if (began) {
+        d->resizeWindow = id;
     }
-    d->resizeWindow = id;
-    return true;
+    d->refresh();
+    return began;
 }
 
 void Engine::updateResize(const QPointF &delta)

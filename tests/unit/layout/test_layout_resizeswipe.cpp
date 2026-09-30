@@ -246,6 +246,27 @@ private Q_SLOTS:
         QVERIFY(row.fixture.frame(row.first).left() >= 0.0);
         VERIFY_INVARIANTS(row.fixture);
     }
+    void resizeEndedByAnotherResizeLetsTheFirstRowSettle()
+    {
+        Config::Config config = linearAnimationConfig();
+        Fixture fixture(config);
+        const auto first = fixture.add(QStringLiteral("a"));
+        const auto second = fixture.add(QStringLiteral("b"));
+        fixture.perform(QStringLiteral("focus-column-left"));
+        fixture.addOutput(Secondary, QRectF(1920, 0, 1920, 1080));
+        fixture.engine().focusOutput(Secondary);
+        const auto other = fixture.add(QStringLiteral("c"));
+        fixture.advanceInSteps(400);
+        config.layout.struts.left = 200;
+        fixture.setConfig(config);
+        fixture.advanceInSteps(48);
+        QVERIFY(fixture.engine().beginResize(second, RightEdge));
+        QVERIFY(fixture.engine().beginResize(other, RightEdge));
+        fixture.settle();
+        QCOMPARE(fixture.frame(first).left(), 200.0 + 16.0);
+        fixture.engine().endResize();
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutResizeSwipe)
