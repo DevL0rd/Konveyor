@@ -17,9 +17,10 @@ PlasmoidItem {
     property bool portrait: false
     property bool known: false
     property bool busy: false
+    property string failure: ""
 
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
-    readonly property string stateText: !known ? i18n("Checking…") : portrait ? i18n("Portrait") : i18n("Landscape")
+    readonly property string stateText: failure ? i18n("Rotation failed") : !known ? i18n("Checking…") : portrait ? i18n("Portrait") : i18n("Landscape")
     readonly property string actionText: portrait ? i18n("Rotate to landscape") : i18n("Rotate to portrait")
 
     function toggleRotation() {
@@ -33,7 +34,7 @@ PlasmoidItem {
     Plasmoid.title: i18n("Screen Rotate")
     preferredRepresentation: inPanel ? compactRepresentation : fullRepresentation
     toolTipMainText: i18n("Screen Rotate")
-    toolTipSubText: portrait ? i18n("Portrait - click for landscape") : i18n("Landscape - click for portrait")
+    toolTipSubText: failure ? failure : portrait ? i18n("Portrait - click for landscape") : i18n("Landscape - click for portrait")
 
     P5Support.DataSource {
         id: runner
@@ -42,6 +43,12 @@ PlasmoidItem {
 
         onNewData: function (source, data) {
             disconnectSource(source)
+            if (data["exit code"] !== 0) {
+                root.failure = (data["stderr"] || "").trim() || i18n("The screen rotate helper failed")
+                root.busy = false
+                return
+            }
+            root.failure = ""
             if (source === root.readCommand) {
                 root.portrait = (data["stdout"] || "").indexOf("portrait") !== -1
                 root.known = true
