@@ -3,6 +3,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -32,6 +33,7 @@ private Q_SLOTS:
     void missingFileReadsNothing();
     void writeCreatesFolders();
     void writeFailureIsReported();
+    void writeKeepsASymlinkedConfigAndItsPermissions();
 };
 
 void TestSettingsHistory::undoReturnsSnapshotsNewestFirst()
@@ -135,6 +137,22 @@ void TestSettingsHistory::writeFailureIsReported()
     const auto written = writeConfigText(blocker + QStringLiteral("/config.kdl"), QStringLiteral("x\n"));
     QVERIFY(!written.has_value());
     QVERIFY2(written.error().startsWith(QStringLiteral("Could not write ") + blocker), qPrintable(written.error()));
+}
+
+void TestSettingsHistory::writeKeepsASymlinkedConfigAndItsPermissions()
+{
+    QTemporaryDir dir;
+    QVERIFY(QDir(dir.path()).mkpath(QStringLiteral("dotfiles")));
+    const QString target = dir.filePath(QStringLiteral("dotfiles/config.kdl"));
+    const QString link = dir.filePath(QStringLiteral("config.kdl"));
+    QVERIFY(writeConfigText(target, QStringLiteral("a\n")).has_value());
+    const QFileDevice::Permissions permissions = QFileDevice::ReadOwner | QFileDevice::WriteOwner;
+    QVERIFY(QFile::setPermissions(target, permissions));
+    QVERIFY(QFile::link(target, link));
+    QVERIFY(writeConfigText(link, QStringLiteral("b\n")).has_value());
+    QVERIFY(QFileInfo(link).isSymLink());
+    QCOMPARE(readConfigText(target).value(), QStringLiteral("b\n"));
+    QCOMPARE(QFile::permissions(target) & ~(QFileDevice::ReadUser | QFileDevice::WriteUser | QFileDevice::ExeUser), permissions);
 }
 
 QTEST_GUILESS_MAIN(TestSettingsHistory)
