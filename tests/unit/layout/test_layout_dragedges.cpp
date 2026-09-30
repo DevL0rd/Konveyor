@@ -2,6 +2,8 @@
 
 using namespace LayoutTest;
 
+Q_DECLARE_METATYPE(Konveyor::Config::DndEdgeScroll)
+
 namespace
 {
 
@@ -194,6 +196,92 @@ private Q_SLOTS:
         row.fixture.settle();
         QCOMPARE(row.fixture.frame(row.first).left(), before);
         row.fixture.engine().endDataDrag();
+    }
+
+    void rowEdgeScrollFollowsTheTriggerWidthAndDelay_data()
+    {
+        QTest::addColumn<double>("triggerWidth");
+        QTest::addColumn<double>("delayMs");
+        QTest::addColumn<double>("pointerX");
+        QTest::addColumn<bool>("scrolls");
+        QTest::newRow("pointer past the default trigger width") << 30.0 << 100.0 << 100.0 << false;
+        QTest::newRow("pointer inside a wider trigger width") << 200.0 << 100.0 << 100.0 << true;
+        QTest::newRow("trigger width of zero") << 0.0 << 100.0 << 0.0 << false;
+        QTest::newRow("delay longer than the hold") << 30.0 << 1000.0 << 5.0 << false;
+        QTest::newRow("no delay") << 30.0 << 0.0 << 5.0 << true;
+    }
+
+    void rowEdgeScrollFollowsTheTriggerWidthAndDelay()
+    {
+        QFETCH(double, triggerWidth);
+        QFETCH(double, delayMs);
+        QFETCH(double, pointerX);
+        QFETCH(bool, scrolls);
+        Config::Config config = animatedWideColumns();
+        config.gestures.dndEdgeViewScroll = Config::DndEdgeScroll {triggerWidth, delayMs, 1500};
+        Row row(Primary, config);
+        const double before = row.fixture.frame(row.first).left();
+        row.fixture.engine().beginDataDrag();
+        row.holdDataDragAt(QPointF(pointerX, 500), 4);
+        QCOMPARE(row.fixture.frame(row.first).left() > before, scrolls);
+        row.fixture.engine().endDataDrag();
+        VERIFY_INVARIANTS(row.fixture);
+    }
+
+    void rowEdgeScrollSpeedFollowsMaxSpeed()
+    {
+        const auto scrolledBy = [](double maxSpeed) {
+            Config::Config config = animatedWideColumns();
+            config.gestures.dndEdgeViewScroll.maxSpeed = maxSpeed;
+            Row row(Primary, config);
+            const double before = row.fixture.frame(row.first).left();
+            row.fixture.engine().beginDataDrag();
+            row.holdDataDragAt(QPointF(0, 500), 4);
+            const double distance = row.fixture.frame(row.first).left() - before;
+            row.fixture.engine().endDataDrag();
+            return distance;
+        };
+        const double slow = scrolledBy(1000);
+        QVERIFY(slow > 0.0);
+        QCOMPARE(scrolledBy(2000), 2.0 * slow);
+    }
+
+    void holdingADragAtTheBottomEdgeOfTheOverviewSwitchesWorkspace_data()
+    {
+        QTest::addColumn<bool>("overview");
+        QTest::addColumn<Config::DndEdgeScroll>("settings");
+        QTest::addColumn<double>("pointerY");
+        QTest::addColumn<int>("workspace");
+        const Config::DndEdgeScroll defaults {50, 100, 1500};
+        QTest::newRow("at the bottom edge") << true << defaults << 1075.0 << 2;
+        QTest::newRow("above the trigger height") << true << defaults << 900.0 << 1;
+        QTest::newRow("inside a taller trigger height") << true << Config::DndEdgeScroll {250, 100, 1500} << 900.0 << 2;
+        QTest::newRow("trigger height of zero") << true << Config::DndEdgeScroll {0, 100, 1500} << 1080.0 << 1;
+        QTest::newRow("delay longer than the hold") << true << Config::DndEdgeScroll {50, 5000, 1500} << 1075.0 << 1;
+        QTest::newRow("max speed too low to get there") << true << Config::DndEdgeScroll {50, 100, 300} << 1075.0 << 1;
+        QTest::newRow("overview closed") << false << defaults << 1075.0 << 1;
+    }
+
+    void holdingADragAtTheBottomEdgeOfTheOverviewSwitchesWorkspace()
+    {
+        QFETCH(bool, overview);
+        QFETCH(Config::DndEdgeScroll, settings);
+        QFETCH(double, pointerY);
+        QFETCH(int, workspace);
+        Config::Config config = animatedWideColumns();
+        config.gestures.dndEdgeWorkspaceSwitch = settings;
+        Row row(Primary, config);
+        row.fixture.engine().setOverviewOpen(overview);
+        row.fixture.engine().beginDataDrag();
+        row.holdDataDragAt(QPointF(960, pointerY), 16);
+        row.fixture.engine().endDataDrag();
+        row.fixture.advanceInSteps(1000);
+        int active = 0;
+        for (const Layout::WorkspaceState &state : row.fixture.engine().workspaceStates()) {
+            active = state.isActive ? state.index : active;
+        }
+        QCOMPARE(active, workspace);
+        VERIFY_INVARIANTS(row.fixture);
     }
 
     void dataDragEdgeScrollOnAnUnknownOutputDoesNothing()
