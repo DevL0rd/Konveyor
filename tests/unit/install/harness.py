@@ -138,11 +138,11 @@ class Harness:
         return subprocess.run(["git", *arguments], cwd=cwd or self.source, env=self.environment, check=True,
                               capture_output=True, text=True).stdout.strip()
 
-    def push_upstream_commit(self, name="upstream.txt"):
+    def push_upstream_commit(self, name="upstream.txt", content=None):
         other = self.root / "other"
         if not other.exists():
             self.git("clone", "-q", str(self.root / "origin.git"), str(other), cwd=self.root)
-        (other / name).write_text(name)
+        (other / name).write_text(name if content is None else content)
         self.git("add", name, cwd=other)
         self.git("commit", "-qm", f"Add {name}", cwd=other)
         self.git("push", "-q", "origin", "main", cwd=other)

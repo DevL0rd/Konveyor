@@ -158,9 +158,15 @@ pull_checkout() {
 }
 
 login_update() {
-    if ! pull_checkout && [[ $(system_fingerprint) == "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/null)" ]]; then
-        return 0
+    if pull_checkout; then
+        copy_updater "$KONVEYOR_USER_UPDATER_DIR"
+        exec "$KONVEYOR_USER_UPDATER_DIR/install" --login-rebuild
     fi
+    [[ $(system_fingerprint) == "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/null)" ]] && return 0
+    login_rebuild
+}
+
+login_rebuild() {
     grep -qx "widgets=false" "$OPTIONS_FILE" 2>/dev/null && WIDGETS=false
     notify_owner "Updating Konveyor" "The system changed, so Konveyor is rebuilding for it. This takes a few minutes."
     install_dependencies

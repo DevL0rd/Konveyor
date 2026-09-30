@@ -55,10 +55,13 @@ pull_updates() {
     log "updated to $(git_owner rev-parse --short HEAD)"
 }
 
-if pull_updates || [[ $(system_fingerprint) != "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/null)" ]]; then
+pulled=false
+pull_updates && pulled=true
+if $pulled || [[ $(system_fingerprint) != "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/null)" ]]; then
     if [[ $(kwin_headers_version) != "$(kwin_version)" ]]; then
         log "KWin $(kwin_version) and its development files $(kwin_headers_version) don't match yet, waiting for the update to finish"
         exit 0
     fi
+    $pulled && SOURCE_DIR="$source_dir" copy_updater "$SUPPORT"
     KONVEYOR_OWNER="$owner" KONVEYOR_SOURCE_DIR="$source_dir" KONVEYOR_INSTALL_SUPPORT="$SUPPORT" "$SUPPORT/install" --system-update
 fi

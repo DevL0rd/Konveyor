@@ -18,11 +18,14 @@ class TestRebuild(HarnessTest):
             shutil.copy2(self.harness.source / "extras" / "packaging" / name, self.support / name)
         self.installed = self.harness.root / "installed"
         installer = self.support / "install"
-        installer.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" "$KONVEYOR_OWNER" "$KONVEYOR_SOURCE_DIR" >{self.installed}\n')
+        installer.write_text(self.recorder("installed"))
         installer.chmod(0o755)
         self.state = self.harness.prefix / "share" / "konveyor"
         self.register(self.harness.source, "tester")
         self.harness.write(self.state / "built-for", self.harness.functions("system_fingerprint").stdout)
+
+    def recorder(self, version):
+        return f'#!/bin/sh\nprintf "%s\\n" "$*" "$KONVEYOR_OWNER" "$KONVEYOR_SOURCE_DIR" >{self.harness.root / version}\n'
 
     def register(self, source, owner):
         self.harness.write(self.state / "update-source", f"{source}\n{owner}\n")
@@ -53,12 +56,13 @@ class TestRebuild(HarnessTest):
         self.assertEqual(self.rebuild(), "")
         self.assertFalse(self.installed.exists())
 
-    def test_new_upstream_commits_are_merged_and_installed(self):
-        self.harness.push_upstream_commit()
+    def test_new_upstream_commits_are_merged_and_installed_by_their_own_installer(self):
+        self.harness.push_upstream_commit("install.sh", self.recorder("pulled"))
         log = self.rebuild()
         self.assertIn(f"konveyor: updated to {self.harness.git('rev-parse', '--short', 'origin/main')}", log)
         self.assertEqual(self.harness.git("rev-parse", "HEAD"), self.harness.git("rev-parse", "origin/main"))
-        self.assertRebuilt()
+        self.assertFalse(self.installed.exists())
+        self.assertEqual((self.harness.root / "pulled").read_text().splitlines(), ["--system-update", "tester", str(self.harness.source)])
         git = [call for call in self.harness.calls("runuser")]
         self.assertTrue(all(call[:4] == ["runuser", "-u", "tester", "--"] for call in git))
 
