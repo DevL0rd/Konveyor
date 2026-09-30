@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Screenshot the focus ring and tab indicator, and recolour the ring by changing the KDE accent colour live."""
+"""Screenshot the focus ring and tab indicator, recolour the ring by changing the KDE accent colour live, and draw gradient borders relative to each window and to the workspace view."""
 import re
 import sys
 from pathlib import Path
