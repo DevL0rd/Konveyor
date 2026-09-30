@@ -16,6 +16,7 @@ Prints the requested section of the latest snapshot as JSON on stdout.
 """
 import fcntl
 import json
+import math
 import os
 import signal
 import sys
@@ -55,9 +56,32 @@ def log(msg):
         pass
 
 
+NUMBER_SETTINGS = (("poll_interval", 0.5, 0.25), ("slow_every", 10, 1), ("cache_ttl", 1.8, 0))
+
+
 def load_config():
     with open(CONFIG) as f:
-        return json.load(f)
+        cfg = json.load(f)
+    if not isinstance(cfg, dict):
+        raise ValueError(f"{CONFIG} does not hold a JSON object")
+    for key, default, low in NUMBER_SETTINGS:
+        value = cfg.get(key, default)
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            number = math.nan
+        if not math.isfinite(number):
+            log(f"ignoring {key} {value!r} in {CONFIG}, using {default}")
+            number = default
+        cfg[key] = max(low, number)
+    return cfg
+
+
+def config_stamp():
+    try:
+        return os.stat(CONFIG).st_mtime_ns
+    except OSError:
+        return None
 
 
 def ssh_base(cfg):
@@ -346,7 +370,7 @@ def build(cfg, prev):
     # SLOW (every slow_every) = nvram statics, per-radio meta, leases, firewall;
     # PING + AdGuard, even less often. Slow/ping/agh values are carried forward.
     tick = int(prev.get("tick", 0)) + 1
-    slow_every = max(1, int(cfg.get("slow_every", 10)))
+    slow_every = int(cfg["slow_every"])
     do_slow = (prev.get("slow") is None) or (tick % slow_every == 0)
     # Ping and AdGuard are fetched by the caller (serve) so their latency
     # (~2.6s and ~0.6s) never blocks the fast snapshot. build() carries both.
@@ -658,14 +682,18 @@ def serve():
     write_pidfile()
     prev = {}
     was_online = False
+    stamp = cfg = config_error = None
+    loaded = False
     while True:
         start = time.monotonic()
-        try:
-            cfg = load_config()
-        except (ValueError, OSError):
-            time.sleep(2)
-            continue
-        interval = float(cfg.get("poll_interval", 0.5))
+        if not loaded or config_stamp() != stamp:
+            stamp, loaded = config_stamp(), True
+            try:
+                cfg, config_error = load_config(), None
+            except (ValueError, OSError) as e:
+                cfg, config_error = None, f"{CONFIG} could not be read: {e}"
+                log(config_error)
+        interval = cfg["poll_interval"] if cfg else 2.0
         if os.path.exists(PAUSE):
             try:
                 data = json.load(open(CACHE))
@@ -673,6 +701,10 @@ def serve():
                 data = {"online": True}
             data["paused"] = True
             _atomic_write(CACHE, data)
+        elif cfg is None:
+            snap, prev = local_network_fallback({}, prev, config_error)
+            _atomic_write(CACHE, snap)
+            was_online = False
         elif not cfg.get("host"):
             snap, prev = local_network_fallback(cfg, prev, NOT_SET_UP)
             _atomic_write(CACHE, snap)
@@ -701,7 +733,7 @@ def serve():
             was_online = now_online
             # SLOW tick: AdGuard (~0.6s) + WAN ping (~2.6s), each fetched after the
             # fast write and written separately so they never block fast data
-            slow_every = max(1, int(cfg.get("slow_every", 10)))
+            slow_every = int(cfg["slow_every"])
             tick = prev.get("tick", 0)
             slow_due = tick == 1 or tick % slow_every == 0
             if ok and (prev.get("dns_cache") is None or slow_due):
@@ -737,7 +769,7 @@ def main():
         return
 
     cfg = load_config()
-    ttl = float(cfg.get("cache_ttl", 1.8))
+    ttl = cfg["cache_ttl"]
 
     fresh = os.path.exists(CACHE) and (time.time() - os.path.getmtime(CACHE)) < ttl
     if not fresh:

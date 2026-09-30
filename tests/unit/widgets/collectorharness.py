@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import unittest
 import warnings
 from pathlib import Path
@@ -78,8 +79,11 @@ class FakeClock:
         if self.mono > self.until:
             raise Stop
 
+    def __getattr__(self, name):
+        return getattr(time, name)
+
     def patch(self, module):
-        return mock.patch.multiple(module.time, time=self.time, monotonic=self.monotonic, sleep=self.sleep)
+        return mock.patch.object(module, "time", self)
 
 
 def load_script(path, name):

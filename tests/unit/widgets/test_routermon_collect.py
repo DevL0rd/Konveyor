@@ -5,7 +5,7 @@ import json
 import unittest
 from unittest import mock
 
-from collectorharness import RECORDING_STUB, WIDGETS, CollectorTest, write_stub
+from collectorharness import RECORDING_STUB, WIDGETS, CollectorTest, FakeClock, Stop, write_stub
 
 SCRIPT = WIDGETS / "router-monitor" / "bin" / "routermon-collect"
 UNREACHABLE = RECORDING_STUB + """sys.stderr.write("ssh: connect to host router port 22: No route to host\\n")
@@ -224,6 +224,66 @@ class TestRoutermonOffline(CollectorTest):
     def test_a_missing_config_fails_loudly(self):
         with self.assertRaises(FileNotFoundError):
             self.run_main()
+
+
+class TestRoutermonServe(CollectorTest):
+    def setUp(self):
+        super().setUp()
+        write_stub(self.stubs, "ping", PING)
+        self.fake.write("/proc/net/route", "Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\n")
+        self.module = self.load(SCRIPT, "routermon_collect")
+        (self.config / "Linux-Router-Monitor").mkdir(parents=True)
+        self.reachable = []
+        self.fetches = []
+        self.cache = self.runtime / "Linux-Router-Monitor" / "data.json"
+        self.log_file = self.home / ".local/state/Linux-Router-Monitor/monitor.log"
+
+    def configure(self, text):
+        (self.config / "Linux-Router-Monitor" / "config.json").write_text(text)
+
+    def fetch_remote(self, cfg, do_ping=True, do_slow=True, do_static=False):
+        self.fetches.append("static" if do_static else "poll")
+        if self.reachable and not self.reachable.pop(0):
+            raise RuntimeError("remote collect failed: ssh: connect to host router port 22: No route to host")
+        return STATIC if do_static else REMOTE
+
+    def serve(self, until, on_sleep=None):
+        caches = []
+        clock = FakeClock(until)
+
+        def sleep(seconds):
+            caches.append(json.loads(self.cache.read_text()))
+            if on_sleep:
+                on_sleep(len(caches))
+            FakeClock.sleep(clock, seconds)
+        clock.sleep = sleep
+        with clock.patch(self.module), mock.patch.object(self.module, "fetch_remote", side_effect=self.fetch_remote), \
+                self.assertRaises(Stop):
+            self.module.serve()
+        return caches
+
+    def test_a_bad_interval_setting_is_logged_once_and_the_default_used(self):
+        for value in ("fast", None, "inf", 0, -5):
+            with self.subTest(value=value):
+                self.log_file.unlink(missing_ok=True)
+                self.configure(json.dumps({"host": "", "poll_interval": value, "slow_every": "often"}))
+                caches = self.serve(until=10)
+                self.assertGreaterEqual(len(caches), 10 / (0.25 if value in (0, -5) else 0.5) - 1)
+                self.assertLessEqual(len(caches), 10 / 0.25 + 1)
+                if value not in (0, -5):
+                    self.assertEqual(self.log_file.read_text().count("poll_interval"), 1)
+                self.assertEqual(self.log_file.read_text().count("slow_every"), 1)
+
+    def test_an_unreadable_config_is_shown_until_it_is_fixed(self):
+        self.configure('{"host": "router",')
+
+        def fix(count):
+            if count == 2:
+                self.configure(json.dumps({"host": "router"}))
+        caches = self.serve(until=6, on_sleep=fix)
+        self.assertFalse(caches[0]["online"])
+        self.assertIn("config.json", caches[0]["error"])
+        self.assertTrue(caches[-1]["online"])
 
 
 if __name__ == "__main__":
