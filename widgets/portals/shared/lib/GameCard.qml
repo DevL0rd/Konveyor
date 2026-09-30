@@ -17,6 +17,7 @@ Item {
     property bool disarmOnExit: true
     property bool lift: true
     readonly property bool hovered: hover.hovered
+    readonly property point hoverPoint: hover.point.scenePosition
     readonly property real radius: Kirigami.Units.cornerRadius * 2.5
 
     signal cardClicked()

@@ -153,7 +153,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onEntered: launcher.select(card.grid, card.index)
+        onEntered: if (launcher.pointerMoved(mapToItem(null, mouseX, mouseY))) launcher.select(card.grid, card.index)
         onClicked: card.activate()
     }
 }

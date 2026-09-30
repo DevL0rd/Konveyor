@@ -15,7 +15,7 @@ MouseArea {
 
     implicitHeight: Math.max(keys.implicitHeight, label.implicitHeight) + Kirigami.Units.smallSpacing * 2.5
     hoverEnabled: true
-    onContainsMouseChanged: if (containsMouse) row.hovered()
+    onContainsMouseChanged: if (containsMouse && launcher.pointerMoved(mapToItem(null, mouseX, mouseY))) row.hovered()
 
     Rectangle {
         anchors.fill: parent

@@ -5,9 +5,21 @@ class TestLauncherSearchPointerQml : public AppsTest::TestCase
     Q_OBJECT
 
 private Q_SLOTS:
+    void typingHighlightsWhatEnterOpens_data()
+    {
+        QTest::addColumn<QPoint>("pointer");
+        QTest::newRow("pointer away") << QPoint(2, 2);
+        for (const int y : {160, 240, 320, 400}) {
+            QTest::addRow("pointer resting at %d", y) << QPoint(300, y);
+        }
+    }
+
     void typingHighlightsWhatEnterOpens()
     {
+        QFETCH(QPoint, pointer);
         QVERIFY(openLibrary(false));
+        QTest::mouseMove(m_harness.window(), QPoint(2, 2));
+        QTest::mouseMove(m_harness.window(), pointer);
         const QString lit
             = QStringLiteral("launcher.liveSections().map(s => { const out = []; for (let i = 0; i < s.shownCount; ++i) { "
                              "const t = s.itemAtIndex(i); if (t && (t.selected === true || (s.sectionActive && s.currentIndex === i))) "
@@ -17,6 +29,7 @@ private Q_SLOTS:
             TRY_COMPARE(eval(QStringLiteral("launcher.presentedTerm")).toString(), eval(QStringLiteral("launcher.term")).toString());
             QTRY_VERIFY2_WITH_TIMEOUT(
                 eval(QStringLiteral("launcher.searchSettled && launcher.liveSections().length > 0")).toBool(), term, 30000);
+            QTest::qWait(200);
             const int sections = eval(QStringLiteral("launcher.liveSections().length")).toInt();
             QString expected = QStringLiteral("0");
             for (int section = 1; section < sections; ++section) {

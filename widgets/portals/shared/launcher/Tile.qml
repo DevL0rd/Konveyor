@@ -151,7 +151,7 @@ Item {
         hoverEnabled: true
         preventStealing: (tile.reorderable && !launcher.touchMode) || dragging
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onEntered: tile.hovered()
+        onEntered: if (launcher.pointerMoved(mapToItem(null, mouseX, mouseY))) tile.hovered()
         onPressed: function(event) {
             pressPoint = Qt.point(event.x, event.y)
             suppressClick = false

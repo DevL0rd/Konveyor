@@ -218,6 +218,7 @@ protected:
     void hover(QQuickItem *item)
     {
         const QPoint target = item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
+        QTest::mouseMove(m_harness.window(), QPoint(1, 1));
         QTest::mouseMove(m_harness.window(), target);
     }
 

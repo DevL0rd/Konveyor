@@ -49,7 +49,7 @@ Item {
         property bool suppressClick: false
         property bool held: false
         preventStealing: dragging
-        onEntered: tile.hovered()
+        onEntered: if (launcher.pointerMoved(mapToItem(null, mouseX, mouseY))) tile.hovered()
         onPressed: function(event) {
             pressPoint = Qt.point(event.x, event.y)
             suppressClick = false

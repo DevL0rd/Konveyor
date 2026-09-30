@@ -39,7 +39,7 @@ Item {
         friendCount: tile.playing.length
         friends: tile.playing
         selected: tile.GridView.isCurrentItem && tile.grid.sectionActive
-        onHoveredChanged: if (hovered) launcher.select(tile.grid, tile.index)
+        onHoveredChanged: if (hovered && launcher.pointerMoved(hoverPoint)) launcher.select(tile.grid, tile.index)
         onCardClicked: tile.activate()
         onMenuRequested: {
             launcher.select(tile.grid, tile.index)

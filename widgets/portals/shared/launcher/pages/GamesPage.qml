@@ -270,7 +270,7 @@ ColumnLayout {
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
-                    onEntered: launcher.select(row.grid, row.index)
+                    onEntered: if (launcher.pointerMoved(mapToItem(null, mouseX, mouseY))) launcher.select(row.grid, row.index)
                     onPressAndHold: function(event) {
                         if (!launcher.touchMode) {
                             event.accepted = false

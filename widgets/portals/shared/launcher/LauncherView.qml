@@ -30,6 +30,20 @@ FocusScope {
     property bool touchDown: false
     property var pendingMenu: null
     property bool activationPending: false
+    property point restingPointer
+    property bool pointerKnown: false
+    readonly property point pointerAt: pointerWatch.point.scenePosition
+    onPointerAtChanged: {
+        restingPointer = pointerAt
+        pointerKnown = true
+    }
+    onShownChanged: pointerKnown = false
+    HoverHandler {
+        id: pointerWatch
+    }
+    function pointerMoved(at) {
+        return pointerKnown && (Math.abs(at.x - restingPointer.x) >= 0.5 || Math.abs(at.y - restingPointer.y) >= 0.5)
+    }
     readonly property real railPinHeight: Kirigami.Units.gridUnit * (compact ? 2.3 : 2.5)
     readonly property real railPinIcon: compact ? Kirigami.Units.iconSizes.smallMedium + 4 : Kirigami.Units.iconSizes.medium
     property bool warm: false
