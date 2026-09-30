@@ -69,12 +69,18 @@ private Q_SLOTS:
         QCOMPARE(area, QRectF(10, 30, 970, 730));
     }
 
-    void workingAreaClampsToZero()
+    void strutsWiderThanTheOutputLeaveAQuarterOfIt()
     {
-        Config::Struts struts {2000, 2000, 2000, 2000};
+        Config::Struts struts {2000, 2000, 2400, 800};
         const QRectF area = workAreaWithStruts(QRectF(0, 0, 1000, 800), 1.0, struts);
-        QCOMPARE(area.width(), 0.0);
-        QCOMPARE(area.height(), 0.0);
+        QCOMPARE(area, QRectF(375, 450, 250, 200));
+    }
+
+    void negativeStrutsStillWidenTheWorkArea()
+    {
+        Config::Struts struts {-50, 0, 0, -20};
+        const QRectF area = workAreaWithStruts(QRectF(0, 0, 1000, 800), 1.0, struts);
+        QCOMPARE(area, QRectF(-50, 0, 1050, 820));
     }
 
     void computesViewOffsetForFittingColumn() { QCOMPARE(scrollToReveal(0.0, 1920.0, 0.0, 936.0, 16.0), -16.0); }

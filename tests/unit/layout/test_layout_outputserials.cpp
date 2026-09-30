@@ -98,6 +98,19 @@ private Q_SLOTS:
         QVERIFY2(fixture.frame(id).height() >= 110.0 - 1.0 / 1.25, qPrintable(QString::number(fixture.frame(id).height())));
         VERIFY_INVARIANTS(fixture);
     }
+    void strutsWiderThanASmallOutputStillLeaveRoomForWindows()
+    {
+        Config::Config config = instantConfig();
+        config.layout.struts = Config::Struts {700, 700, 500, 500};
+        Fixture fixture(config);
+        fixture.removeOutput(QStringLiteral("DP-1"));
+        fixture.addOutput(makeOutput(QStringLiteral("DP-1"), QRectF(0, 0, 1280, 800)));
+        const auto id = fixture.add(QStringLiteral("a"));
+        QCOMPARE(fixture.frame(id), QRectF(496, 316, (320 - 16) / 2.0 - 16, 168));
+        fixture.addOutput(makeOutput(QStringLiteral("DP-1"), QRectF(0, 0, 3840, 2160)));
+        QCOMPARE(fixture.frame(id).height(), 2160.0 - 1000.0 - 2 * 16.0);
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutOutputSerials)
