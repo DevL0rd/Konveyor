@@ -69,33 +69,18 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
-    container:
-      image: archlinux:base-devel
     steps:
-      - name: Install the coverage and nested session tools
-        run: >-
-          pacman -Syu --noconfirm --needed git cmake ninja clang llvm wayland-protocols dbus mesa xorg-xwayland qt6-wayland qt6-declarative
-          python python-dbus python-gobject python-pillow python-xlib plasma-workspace plasma-keyboard breeze libkscreen kcmutils chromium
-
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Mark checkout as safe
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
+        run: tests/nested/ci/vgem.sh
 
-      - name: Install Konveyor's dependencies
-        run: extras/packaging/dependencies.sh
-
-      - name: Let kwin_wayland start in a container, which does not grant its CAP_SYS_NICE file capability
-        run: setcap -r "$(command -v kwin_wayland)"
-
-      - name: Measure coverage of the unit and nested KWin tests and check it against tests/coverage/thresholds.json
-        run: |
-          useradd -m tester
-          chown -R tester: "$GITHUB_WORKSPACE"
-          install -d -m 700 -o tester /tmp/runtime-tester
-          runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester ./tools/coverage.sh --nested
+      - name: Measure coverage of the unit and nested KWin tests on Arch Linux and check it against tests/coverage/thresholds.json
+        run: >-
+          docker run --rm --device /dev/dri --shm-size 2g --security-opt seccomp=unconfined
+          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh coverage
 
       - name: Publish the coverage summary
         if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
@@ -126,7 +111,7 @@ jobs:
       - name: Build and run the nested KWin tests as a normal user on Arch Linux
         run: >-
           docker run --rm --device /dev/dri --shm-size 2g --security-opt seccomp=unconfined
-          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh
+          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh nested
 
   distros:
     name: Install dependencies and build on ${{ matrix.name }}
