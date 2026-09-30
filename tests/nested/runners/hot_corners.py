@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
@@ -18,29 +20,39 @@ def overview_open():
     return json.loads(konveyor("OverviewState"))["is_open"]
 
 
+def edge_setting(key):
+    return int(subprocess.run(["kreadconfig6", "--file", "kwinrc", "--group", "Windows", "--key", key], capture_output=True, text=True, check=True).stdout)
+
+
+def edge_cooldown():
+    delay = edge_setting("ElectricBorderDelay")
+    return (max(delay + 50, edge_setting("ElectricBorderCooldown")) - delay) / 1000
+
+
+EDGE_COOLDOWN = edge_cooldown()
+last_push = {}
+
+
 def push(corner):
     move(*HOME, settle=False)
+    time.sleep(max(0.0, last_push.get(corner, float("-inf")) + EDGE_COOLDOWN - time.monotonic()))
     move(*corner, settle=False)
-
-
-def push_until(corner, wanted):
-    for _ in range(5):
-        push(corner)
-        if wait_for(lambda: overview_open() == wanted, 6):
-            return True
-    return False
+    last_push[corner] = time.monotonic()
 
 
 def reserved_corner(checks):
     checks.equal(overview_open(), False, "the overview starts closed")
-    checks.expect(push_until(TOP_LEFT, True), "the top-left hot corner opens the overview")
-    checks.expect(push_until(TOP_LEFT, False), "the top-left hot corner closes it again")
+    push(TOP_LEFT)
+    checks.equal(overview_open(), True, "the top-left hot corner opens the overview")
+    push(TOP_LEFT)
+    checks.equal(overview_open(), False, "the top-left hot corner closes it again")
 
 
 def per_output_override(checks):
     push(TOP_RIGHT)
     checks.equal(overview_open(), False, "the top-right corner of Virtual-1, where hot corners are off, does nothing")
-    checks.expect(push_until(TOP_LEFT, True), "the top-left corner of Virtual-0 still opens the overview")
+    push(TOP_LEFT)
+    checks.equal(overview_open(), True, "the top-left corner of Virtual-0 still opens the overview")
     konveyor_action("close-overview")
     checks.expect(wait_for(lambda: not overview_open()), "close-overview closes it")
 
