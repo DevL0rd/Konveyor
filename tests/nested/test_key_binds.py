@@ -17,7 +17,7 @@ Use=true
 def main():
     from nested import run_runner
 
-    return run_runner(HERE / "runners" / "key_binds.py", timeout=300, global_shortcuts=True, clients=("A",), files={"config/kxkbrc": KXKBRC})
+    return run_runner(HERE / "runners" / "key_binds.py", timeout=300, global_shortcuts=True, clients=(), files={"config/kxkbrc": KXKBRC})
 
 
 if __name__ == "__main__":

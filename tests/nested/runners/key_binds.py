@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -6,10 +8,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from bindlog import fired, last_bind, missed
-from checks import Checks, load_config
+from checks import Checks, default_config, load_config
 from fakepointer import Held, chord, move, tap
-from keycodes import KEY_CODES, MODIFIER_CODES
-from kwinsession import qdbus, wait_for
+from keycodes import KEY_CODES, MODIFIER_CODES, evdev_codes
+from kwinsession import konveyor, qdbus, wait_for
 
 SUPER, SHIFT = MODIFIER_CODES["Super"], MODIFIER_CODES["Shift"]
 RIGHT_ALT = 100
@@ -75,8 +77,23 @@ def level3_mod_key(checks):
     checks.expect(missed(lambda: chord([], "button:274:1", "button:274:0"), sentinel, "Super+J"), "a plain middle click runs no bind")
 
 
+def every_letter_and_digit_bind_on_the_russian_layout(checks):
+    config = re.sub(r"\{ spawn [^;]*; \}", '{ spawn "true"; }', default_config()).replace("{ show-hotkey-overlay; }", '{ spawn "true"; }')
+    checks.expect(load_config(config), "the default config loads")
+    checks.expect(set_layout(1), "the Russian layout is active")
+    binds = [bind for bind in json.loads(konveyor("Binds")) if re.fullmatch(r"(\w+\+)*[A-Z0-9]", bind["key"])]
+    checks.expect(len(binds) > 30, f"{len(binds)} default binds end in a letter or digit")
+    wrong = []
+    for bind in binds:
+        codes = evdev_codes(bind["key"])
+        if codes is None or fired(lambda: tap(*codes)) != bind["key"]:
+            wrong.append((bind["key"], last_bind()))
+    checks.equal(wrong, [], "letter and digit binds that did not run on the Russian layout")
+    set_layout(0)
+
+
 def main():
-    Checks().run(binds_on_a_layout_without_the_letter, level3_mod_key)
+    Checks().run(binds_on_a_layout_without_the_letter, level3_mod_key, every_letter_and_digit_bind_on_the_russian_layout)
 
 
 if __name__ == "__main__":
