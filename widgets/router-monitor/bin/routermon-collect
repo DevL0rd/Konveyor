@@ -10,12 +10,14 @@ once per interval no matter how many widgets are running:
 
 Usage:  routermon-collect [section]
         section = all (default) | system | network | wifi | dns | clients | info
+        routermon-collect --serve | --restart
 
 Prints the requested section of the latest snapshot as JSON on stdout.
 """
 import fcntl
 import json
 import os
+import signal
 import sys
 import time
 # subprocess / urllib / base64 are imported lazily inside the refresh + AdGuard
@@ -30,6 +32,9 @@ STATE = os.path.join(RUNDIR, "state.json")
 LOCK = os.path.join(RUNDIR, "refresh.lock")
 SOCK = os.path.join(RUNDIR, "cm.sock")
 PAUSE = os.path.join(RUNDIR, "paused")
+PIDFILE = os.path.join(RUNDIR, "serve.pid")
+NAME = "routermon-collect"
+SERVICE = "konveyor-widgets.service"
 NOT_SET_UP = "Router not set up yet"
 LOGDIR = os.path.expanduser(f"~/.local/state/{APP}")
 LOG = os.path.join(LOGDIR, "monitor.log")
@@ -611,6 +616,35 @@ def _atomic_write(path, obj):
     os.replace(tmp, path)
 
 
+def write_pidfile():
+    tmp = PIDFILE + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(str(os.getpid()))
+    os.replace(tmp, PIDFILE)
+
+
+def serving_pid():
+    try:
+        with open(PIDFILE) as f:
+            pid = int(f.read())
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            arguments = f.read().split(b"\0")
+    except (OSError, ValueError):
+        return None
+    if b"--serve" in arguments and any(os.path.basename(argument) == NAME.encode() for argument in arguments):
+        return pid
+    return None
+
+
+def restart():
+    pid = serving_pid()
+    if pid is not None:
+        os.kill(pid, signal.SIGTERM)
+        return 0
+    import subprocess
+    return subprocess.run(["systemctl", "--user", "start", SERVICE], check=False).returncode
+
+
 def serve():
     """Resident mode: one long-lived process that keeps the cache fresh, so the
     widgets never have to spawn anything (they read the cache file in-process).
@@ -621,6 +655,7 @@ def serve():
         fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         return  # another server is already running
+    write_pidfile()
     prev = {}
     was_online = False
     while True:
@@ -685,6 +720,8 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--serve":
         serve()
         return
+    if len(sys.argv) > 1 and sys.argv[1] == "--restart":
+        return restart()
 
     section = sys.argv[1] if len(sys.argv) > 1 else "all"
     os.makedirs(RUNDIR, exist_ok=True)
@@ -722,4 +759,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

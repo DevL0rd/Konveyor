@@ -77,8 +77,9 @@ Item {
             icon: root.panelIcon
             title: i18n("Process Monitor")
             subtitle: root.hasData ? i18n("%1 processes · CPU %2% · VRAM %3", root.summary.count, Math.round(root.summary.cpu), Style.bytes(root.summary.vram)) : ""
-            statusColor: root.hasData ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
-            statusText: root.hasData ? i18n("Live") : i18n("Waiting for the collector")
+            statusColor: root.collectorStale ? Kirigami.Theme.negativeTextColor
+                       : root.hasData ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
+            statusText: root.collectorStale ? i18n("Collector stopped") : root.hasData ? i18n("Live") : i18n("Waiting for the collector")
             searchPlaceholder: i18n("Search by name or PID…")
             matchCount: root.searchText.trim() === "" ? -1 : root.rows.count
             onCloseRequested: if (full.overlayMode) full.overlayCloseRequested(); else root.expanded = false

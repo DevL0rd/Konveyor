@@ -28,7 +28,8 @@ sub-sections / charts to show.
 **Router (Panel)** puts everything above into one panel button. The button
 shows live download and upload speed over a faint speed graph, plus ping (or
 devices online, or DNS blocked %). A small badge on the router icon turns amber
-when the internet is down, red when the router can't be reached, and shows a
+when the internet is down, red when the router can't be reached or the
+collector has stopped writing (the widget then restarts it), and shows a
 pause sign while monitoring is paused. Middle-click pauses or resumes
 monitoring.
 

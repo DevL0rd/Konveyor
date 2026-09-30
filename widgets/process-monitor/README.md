@@ -20,6 +20,8 @@ the router/log collectors:
 * **The widget reads the snapshot in-process** via `file://` XHR (needs
   `QML_XHR_ALLOW_FILE_READ=1`, set by `install.sh` via `environment.d`) -- no
   process is spawned per refresh.
+* **If the helper stops writing snapshots** the widget says *Collector
+  stopped* and restarts it (`procmon-collect --restart`).
 
 GPU usage is **per-process NVIDIA SM utilisation** from `nvidia-smi pmon`
 (shows `0` on machines without an NVIDIA GPU, or for processes not using it).

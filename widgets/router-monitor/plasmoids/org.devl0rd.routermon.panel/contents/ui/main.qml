@@ -58,11 +58,13 @@ PlasmoidItem {
     readonly property bool wanUp: network.wan_up === true
     readonly property int onlineCount: leases.filter(lease => lease.connected === true).length
 
-    readonly property string routerState: paused ? "paused" : !online ? "offline" : !wanUp && ready ? "wandown" : "ok"
+    readonly property bool collectorStale: routerData.stale
+    readonly property string routerState: collectorStale ? "stale" : paused ? "paused" : !online ? "offline" : !wanUp && ready ? "wandown" : "ok"
     readonly property color stateColor: routerState === "ok" ? Kirigami.Theme.positiveTextColor
                                       : routerState === "wandown" || routerState === "paused" ? Kirigami.Theme.neutralTextColor
                                       : Kirigami.Theme.negativeTextColor
-    readonly property string stateText: routerState === "paused" ? i18n("Monitoring paused")
+    readonly property string stateText: routerState === "stale" ? i18n("Collector stopped")
+                                      : routerState === "paused" ? i18n("Monitoring paused")
                                       : routerState === "offline" ? i18n("Router not connected")
                                       : routerState === "wandown" ? i18n("Internet is down") : i18n("Online")
 
@@ -382,6 +384,8 @@ PlasmoidItem {
     toolTipMainText: info.model ? i18n("%1 · %2", info.model, network.wan_ip || i18n("no WAN")) : i18n("Router")
     property bool tooltipWanted: false
     function tooltipText() {
+        if (routerState === "stale")
+            return stateText
         if (localFallback)
             return i18n("Router not connected · showing this computer's network I/O and ping")
         if (routerState === "paused" || routerState === "offline")

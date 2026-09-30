@@ -111,7 +111,7 @@ stage_lib_into() {
     rm -rf "${lib:?}"
     mkdir -p "$lib"
     cp "$SHARED_DIR/"*.qml "$SHARED_DIR/"*.js "$lib/"
-    cp "$WIDGETS_DIR/shared/MonitorOverlay.qml" "$lib/"
+    cp "$WIDGETS_DIR/shared/"*.qml "$lib/"
     local extra
     for extra in "$@"; do
         cp -r "$extra/." "$lib/"

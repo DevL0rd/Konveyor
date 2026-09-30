@@ -162,7 +162,10 @@ void PlasmoidHarness::stage()
     for (const QString &name : common.entryList({QStringLiteral("*.qml"), QStringLiteral("*.js")}, QDir::Files)) {
         replaceFile(common.filePath(name), ui + QStringLiteral("/lib/") + name);
     }
-    replaceFile(widgetsDir() + QStringLiteral("/shared/MonitorOverlay.qml"), ui + QStringLiteral("/lib/MonitorOverlay.qml"));
+    const QDir shared(widgetsDir() + QStringLiteral("/shared"));
+    for (const QString &name : shared.entryList({QStringLiteral("*.qml")}, QDir::Files)) {
+        replaceFile(shared.filePath(name), ui + QStringLiteral("/lib/") + name);
+    }
     for (const QString &lib : std::as_const(m_spec.libs)) {
         copyTree(widgetsDir() + QLatin1Char('/') + lib, ui + QStringLiteral("/lib"));
     }

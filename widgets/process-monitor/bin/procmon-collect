@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, json, time, glob, resource
+import os, sys, json, time, glob, resource, signal
 from ctypes import byref, c_uint, c_ulonglong
 
 try:
@@ -15,6 +15,9 @@ DATA = os.path.join(RUNDIR, "data.json")
 PANEL_DIR = os.path.join(RUNDIR, "panel")
 PANEL = os.path.join(PANEL_DIR, "panel.json")
 FOCUS = os.path.join(RUNDIR, "focus")
+PIDFILE = os.path.join(RUNDIR, "serve.pid")
+NAME = "procmon-collect"
+SERVICE = "konveyor-widgets.service"
 CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 CONFIG = os.path.join(CONFIG_HOME, APP, "config.json")
 
@@ -626,7 +629,38 @@ def write_snapshot(snap):
     os.replace(tmp, DATA)
 
 
+def write_pidfile():
+    os.makedirs(RUNDIR, exist_ok=True)
+    tmp = PIDFILE + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(str(os.getpid()))
+    os.replace(tmp, PIDFILE)
+
+
+def serving_pid():
+    try:
+        with open(PIDFILE) as f:
+            pid = int(f.read())
+        with open("/proc/%d/cmdline" % pid, "rb") as f:
+            arguments = f.read().split(b"\0")
+    except (OSError, ValueError):
+        return None
+    if b"--serve" in arguments and any(os.path.basename(argument) == NAME.encode() for argument in arguments):
+        return pid
+    return None
+
+
+def cmd_restart():
+    pid = serving_pid()
+    if pid is not None:
+        os.kill(pid, signal.SIGTERM)
+        return 0
+    import subprocess
+    return subprocess.run(["systemctl", "--user", "start", SERVICE], check=False).returncode
+
+
 def cmd_serve():
+    write_pidfile()
     build()
     time.sleep(0.5)
     snap = build()
@@ -689,10 +723,10 @@ def cmd_snapshot():
 
 def main():
     arg = sys.argv[1] if len(sys.argv) > 1 else "--once"
-    command = {"--serve": cmd_serve, "--snapshot": cmd_snapshot,
+    command = {"--serve": cmd_serve, "--snapshot": cmd_snapshot, "--restart": cmd_restart,
                "--set-interval": cmd_set_interval, "--once": cmd_once}.get(arg)
     if command is None:
-        sys.stderr.write("usage: procmon-collect [--serve | --snapshot | --once | --set-interval SECONDS]\n")
+        sys.stderr.write("usage: procmon-collect [--serve | --snapshot | --once | --restart | --set-interval SECONDS]\n")
         return 2
     return command()
 

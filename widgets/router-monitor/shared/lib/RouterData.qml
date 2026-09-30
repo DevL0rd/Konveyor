@@ -64,7 +64,22 @@ Item {
     }
 
     // event-driven: re-read the instant the collector rewrites the snapshot (no polling)
-    FileWatcher { path: root.active ? root.cachePath : ""; onChanged: root.read() }
+    FileWatcher {
+        path: root.active ? root.cachePath : ""
+        onChanged: {
+            watchdog.beat()
+            root.read()
+        }
+    }
+
+    readonly property bool stale: watchdog.stale
+    property int staleAfter: 60000
+    CollectorWatchdog {
+        id: watchdog
+        active: root.active && root.cachePath !== ""
+        staleAfter: root.staleAfter
+        restartCommand: root.tool + " --restart"
+    }
 
     Component.onCompleted: helper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Linux-Router-Monitor/data.json\"")
 }

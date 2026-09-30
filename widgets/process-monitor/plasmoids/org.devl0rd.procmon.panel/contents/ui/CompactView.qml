@@ -40,6 +40,7 @@ MouseArea {
         widthProbe.restart()
     }
 
+    opacity: root.collectorStale ? 0.5 : 1
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
     onContainsMouseChanged: root.tooltipWanted = containsMouse

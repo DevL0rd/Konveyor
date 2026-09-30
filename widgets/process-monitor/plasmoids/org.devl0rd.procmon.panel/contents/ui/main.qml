@@ -273,8 +273,19 @@ PlasmoidItem {
             worker.sendMessage({ path: cachePath, state: workerState() })
     }
     FileWatcher {
-        path: root.dataWanted && !root.compactOnly ? root.cachePath : ""
-        onChanged: root.read()
+        path: root.dataWanted ? root.cachePath : ""
+        onChanged: {
+            watchdog.beat()
+            if (!root.compactOnly)
+                root.read()
+        }
+    }
+    readonly property bool collectorStale: watchdog.stale
+    CollectorWatchdog {
+        id: watchdog
+        active: root.dataWanted && root.runtimeDir !== ""
+        staleAfter: Math.max(2000, Plasmoid.configuration.updateInterval * 4)
+        restartCommand: "$HOME/.local/bin/procmon-collect --restart"
     }
     FileWatcher {
         path: root.dataWanted && root.compactOnly ? root.panelPath : ""
@@ -519,6 +530,8 @@ PlasmoidItem {
     toolTipMainText: focusProc ? focusName + " · PID " + focusProc.pid : i18n("Process Monitor")
     property bool tooltipWanted: false
     function tooltipText() {
+        if (collectorStale)
+            return i18n("Collector stopped")
         if (!focusProc)
             return hasData ? i18n("%1 processes", summary.count) : i18n("Waiting for the collector")
         const lines = [i18n("CPU %1% · GPU %2% · VRAM %3 · RAM %4", Math.round(focusProc.cpu), Math.round(focusProc.gpu), Style.bytes(focusProc.vram), Style.bytes(focusProc.ram))]
