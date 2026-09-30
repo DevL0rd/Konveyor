@@ -257,7 +257,7 @@ Item {
     }
     function keyText(key) {
         const names = { super: "Meta", mod: "Meta", page_down: "PgDn", page_up: "PgUp", bracketleft: "[", bracketright: "]", comma: ",", period: ".", minus: "−", equal: "=", return: "Enter" }
-        return key.split("+").map(part => names[part.toLowerCase()] || part).join(" + ")
+        return key.split(/\+(?!$)/).map(part => names[part.toLowerCase()] || part).join(" + ")
     }
     function shortcutMatches(term, limit) {
         const query = term.toLowerCase()

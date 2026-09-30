@@ -34,7 +34,7 @@ RowLayout {
     spacing: Kirigami.Units.smallSpacing / 2
 
     Repeater {
-        model: caps.keyName.length ? caps.keyName.split("+") : []
+        model: caps.keyName.length ? caps.keyName.split(/\+(?!$)/) : []
 
         Rectangle {
             required property string modelData
