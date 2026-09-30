@@ -256,8 +256,8 @@ void Engine::updateWindowProperties(WindowId id, const WindowProperties &propert
         window.setProperties(properties);
         window.setUrgent(properties.isUrgent);
         window.markRulesDirty();
-        if (parentChanged) {
-            workspace->childrenAdded(id);
+        if (parentChanged && properties.parent) {
+            workspace->childrenAdded(*properties.parent);
         }
         break;
     }

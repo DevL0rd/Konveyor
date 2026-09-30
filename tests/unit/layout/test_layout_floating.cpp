@@ -296,6 +296,26 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void dialogThatGetsItsParentLateIsNotLeftBehindIt()
+    {
+        Fixture fixture;
+        fixture.add(QStringLiteral("main"));
+        Layout::WindowProperties parentProperties = makeWindow(QStringLiteral("parent"), QStringLiteral("parent"), QSizeF(400, 300));
+        parentProperties.isDialog = true;
+        const auto parent = fixture.addWith(parentProperties);
+        Layout::WindowProperties childProperties = makeWindow(QStringLiteral("child"), QStringLiteral("child"), QSizeF(200, 100));
+        childProperties.isDialog = true;
+        const auto child = fixture.addWith(childProperties);
+        fixture.engine().activateWindow(parent);
+        fixture.settle();
+        QVERIFY(fixture.state(child).stackingIndex < fixture.state(parent).stackingIndex);
+        childProperties.parent = parent;
+        fixture.engine().updateWindowProperties(child, childProperties);
+        fixture.settle();
+        QVERIFY(fixture.state(child).stackingIndex > fixture.state(parent).stackingIndex);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void setWindowWidthOnFloatingWindow()
     {
         Fixture fixture;
