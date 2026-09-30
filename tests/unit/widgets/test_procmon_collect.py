@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest import mock
 
-from collectorharness import WIDGETS, CollectorTest, run_main
+from collectorharness import WIDGETS, CollectorTest, ServeLoopTests, run_main
 
 SCRIPT = WIDGETS / "process-monitor" / "bin" / "procmon-collect"
 
@@ -14,7 +14,14 @@ def stat_line(pid, comm, ppid, ticks, threads, rss_pages, start=100):
     return "%d (%s) %s\n" % (pid, comm, " ".join(str(field) for field in fields))
 
 
-class TestProcmonCollect(CollectorTest):
+class TestProcmonCollect(ServeLoopTests, CollectorTest):
+    APP = "Linux-Process-Mon"
+    DEFAULT_INTERVAL = 0.5
+
+    def serving_module(self):
+        self.process(1, "init", 0)
+        return self.module()
+
     def setUp(self):
         super().setUp()
         self.fake.write("/proc/meminfo", "MemTotal: 16000000 kB\nMemFree: 1 kB\n")
@@ -35,7 +42,7 @@ class TestProcmonCollect(CollectorTest):
         return module
 
     def build_at(self, module, when):
-        with mock.patch.object(module.time, "time", return_value=when):
+        with mock.patch.object(module.time, "time", return_value=when), mock.patch.object(module.time, "monotonic", return_value=when):
             return module.build()
 
     def rows(self, snapshot):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, json, time, glob, resource, signal
+import os, sys, json, math, time, glob, resource, signal
 from ctypes import byref, c_uint, c_ulonglong
 
 try:
@@ -136,7 +136,7 @@ def resolve_icon(comm):
     if icon is not None:
         return icon
     if _icon_map is None:
-        refresh_icon_map(time.time())
+        refresh_icon_map(time.monotonic())
     c = comm.lower()
     icon = ICON_ALIASES.get(c) or ("" if c in GENERIC_COMMS else _icon_map.get(c, "")) or ""
     _icon_resolved[comm] = icon
@@ -173,9 +173,22 @@ def process_identity(pid, fallback_name, fallback_icon):
 def load_config():
     try:
         with open(CONFIG) as f:
-            return json.load(f)
+            config = json.load(f)
     except Exception:
         return {}
+    return config if isinstance(config, dict) else {}
+
+
+def poll_interval(default):
+    value = load_config().get("poll_interval", default)
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        seconds = math.nan
+    if not math.isfinite(seconds):
+        sys.stderr.write(f"{NAME}: ignoring poll_interval {value!r} in {CONFIG}, polling every {default} s\n")
+        return default
+    return max(0.25, seconds)
 
 
 _O_RDONLY = os.O_RDONLY
@@ -439,13 +452,14 @@ def _base_row(pid, comm, ppid, own):
 
 def build():
     now = time.time()
-    refresh_icon_map(now)
+    tick = time.monotonic()
+    refresh_icon_map(tick)
     procs, stat_changed = read_procs()
     io, io_changed = read_io(procs)
     gpu = gpu_usage()
     frames = frame_rates()
     when = _prev["when"]
-    dt = (now - when) if when else 0
+    dt = (tick - when) if when is not None else 0
     pt, pio = _prev["t"], _prev["io"]
     cpu_scale = 100.0 / CLK / dt / NCPU if dt > 0 else 0.0
     disk_scale = 1.0 / dt if dt > 0 else 0.0
@@ -500,7 +514,7 @@ def build():
                 row[key] = value
     _prev["t"] = ticks
     _prev["io"] = io
-    _prev["when"] = now
+    _prev["when"] = tick
     focus_pid = _read_focus()
     focused = rows.get(focus_pid)
     if focused is not None:
@@ -666,7 +680,7 @@ def cmd_serve():
     snap = build()
     write_snapshot(snap)
     panel_snapshot(snap)
-    last = time.time()
+    last = time.monotonic()
     global _poll_interval
     config_stamp = None
     interval = 0.5
@@ -677,11 +691,11 @@ def cmd_serve():
             stamp = 0
         if stamp != config_stamp:
             config_stamp = stamp
-            interval = max(0.25, float(load_config().get("poll_interval", 0.5)))
+            interval = poll_interval(0.5)
         _poll_interval = interval
-        elapsed = time.time() - last
+        elapsed = time.monotonic() - last
         if elapsed >= interval:
-            last = time.time()
+            last = time.monotonic()
             try:
                 snap = build()
                 write_snapshot(snap)
