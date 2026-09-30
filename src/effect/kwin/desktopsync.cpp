@@ -10,6 +10,8 @@
 
 #include <QScopedValueRollback>
 
+#include <algorithm>
+
 namespace Konveyor
 {
 
@@ -55,14 +57,39 @@ DesktopSync::~DesktopSync()
             desktop->setName(it.value());
         }
     }
+    restoreDesktops();
     manager()->setPerOutputVirtualDesktops(m_previousPerOutput);
     manager()->setRows(m_previousRows);
+}
+
+void DesktopSync::restoreDesktops()
+{
+    const QScopedValueRollback guard(m_applying, true);
+    const auto isOriginal = [this](const KWin::VirtualDesktop *desktop) {
+        return std::ranges::any_of(m_previousDesktops, [desktop](const auto &previous) { return previous.first == desktop->id(); });
+    };
+    for (qsizetype position = 0; position < m_previousDesktops.size(); ++position) {
+        const QString &name = m_previousDesktops.at(position).second;
+        if (KWin::VirtualDesktop *desktop = manager()->desktops().value(position, nullptr)) {
+            if (!isOriginal(desktop) && desktop->name() != name) {
+                desktop->setName(name);
+            }
+        } else {
+            manager()->createVirtualDesktop(static_cast<uint>(position), name);
+        }
+    }
+    while (manager()->desktops().size() > std::max<qsizetype>(m_previousDesktops.size(), 1)) {
+        manager()->removeVirtualDesktop(manager()->desktops().constLast());
+    }
 }
 
 void DesktopSync::start()
 {
     m_previousPerOutput = manager()->isPerOutputVirtualDesktops();
     m_previousRows = manager()->rows();
+    for (const KWin::VirtualDesktop *desktop : manager()->desktops()) {
+        m_previousDesktops.append({desktop->id(), desktop->name()});
+    }
     manager()->setPerOutputVirtualDesktops(true);
     connect(KWin::workspace(), &KWin::Workspace::currentDesktopChanged, this,
         [this](KWin::VirtualDesktop *previous, KWin::VirtualDesktop *current, KWin::LogicalOutput *output) {

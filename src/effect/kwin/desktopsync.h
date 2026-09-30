@@ -41,6 +41,7 @@ private:
     void applyWindowDesktops(const QList<Layout::WindowState> &windows);
     void watchWindowDesktops(KWin::Window *window, Layout::WindowId id);
     void onCurrentDesktopChanged(KWin::VirtualDesktop *previous, KWin::VirtualDesktop *current, KWin::LogicalOutput *output);
+    void restoreDesktops();
 
     const WindowRegistry &m_windows;
     const OutputRegistry &m_outputs;
@@ -48,6 +49,7 @@ private:
     bool m_previousPerOutput = false;
     uint m_previousRows = 1;
     QHash<QString, QString> m_originalNames;
+    QList<std::pair<QString, QString>> m_previousDesktops;
 };
 
 }

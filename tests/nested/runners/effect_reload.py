@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
 from kwinsession import (CLIENTS, activate, active_title, for_window, konveyor, konveyor_action, konveyor_windows, managed_now, open_client,
-                         reload_konveyor, run_script, wait_for, window_state)
+                         qdbus, reload_konveyor, run_script, wait_for, window_state)
 
 def reload_effect(checks, titles):
     checks.expect(reload_konveyor(titles), f"the reloaded effect manages the open windows ({sorted(managed_now())})")
@@ -65,8 +65,18 @@ def fullscreen_survives(checks):
                       f"{title} is still fullscreen after the effect reloaded ({window_state(title)})")
 
 
+def desktop_names():
+    return run_script('for (const d of workspace.desktops) print("MARK|" + d.name);')
+
+
+def unload_gives_back_desktops(checks):
+    print("desktops while Konveyor runs:", desktop_names())
+    qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.unloadEffect", "konveyor_effect")
+    checks.equal(desktop_names(), ["Mail", "Web", "Chat", "Music"], "unloading gives back KDE's four desktops with their names")
+
+
 def main():
-    Checks().run(layout_survives, fullscreen_survives)
+    Checks().run(layout_survives, fullscreen_survives, unload_gives_back_desktops)
 
 
 if __name__ == "__main__":

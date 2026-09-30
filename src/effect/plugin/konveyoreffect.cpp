@@ -70,6 +70,8 @@ KonveyorEffect::KonveyorEffect()
 KonveyorEffect::~KonveyorEffect()
 {
     LayoutHandoff::give(d->engine, d->windows);
+    disconnect(&d->windows, nullptr, this, nullptr);
+    disconnect(&d->desktops, nullptr, this, nullptr);
     if (d->memorySaveTimer.isActive()) {
         d->memoryStore.save(d->engine.windowMemory());
     }
