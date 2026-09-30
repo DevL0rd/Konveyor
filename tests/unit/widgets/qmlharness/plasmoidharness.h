@@ -48,7 +48,7 @@ public:
     QString stagedPath(const QString &relative) const;
     QList<QObject *> findAll(const char *type) const;
     QQuickItem *scene() const;
-    bool watching(const QString &directory) const;
+    bool watching(const QString &path) const;
     QVariant eval(const QString &expression, QObject *scope = nullptr) const;
     QVariant config(const QString &key) const;
     void setConfig(const QString &key, const QVariant &value);
@@ -74,4 +74,4 @@ private:
 QQuickItem *findItem(QQuickItem *item, const std::function<bool(QQuickItem *)> &match);
 QStringList visibleTexts(QQuickItem *item);
 QList<QObject *> findByType(QObject *root, const char *type);
-bool watching(QObject *root, const QString &directory);
+bool watching(QObject *root, const QString &path);

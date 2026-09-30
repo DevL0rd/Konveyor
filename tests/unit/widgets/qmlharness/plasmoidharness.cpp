@@ -286,10 +286,9 @@ void PlasmoidHarness::writeFile(const QString &path, const QByteArray &content) 
 
 bool PlasmoidHarness::deliver(const QString &path, const QByteArray &content, const std::function<bool()> &arrived) const
 {
-    const QString directory = QFileInfo(path).absolutePath();
-    QDir().mkpath(directory);
-    if (!QTest::qWaitFor([&] { return watching(directory); })) {
-        qWarning("nothing watches %s", qPrintable(directory));
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    if (!QTest::qWaitFor([&] { return watching(path); })) {
+        qWarning("nothing watches %s", qPrintable(path));
         return false;
     }
     writeFile(path, content);
@@ -387,25 +386,23 @@ QList<QObject *> PlasmoidHarness::findAll(const char *type) const
     return found;
 }
 
-bool watching(QObject *root, const QString &directory)
+bool watching(QObject *root, const QString &path)
 {
-    const QUrl folder = QUrl::fromLocalFile(directory);
+    const QFileInfo file(path);
+    const QUrl folder = QUrl::fromLocalFile(file.absolutePath());
     const QList<QAbstractItemModel *> models = root->findChildren<QAbstractItemModel *>();
-    for (QAbstractItemModel *model : models) {
-        if (model->inherits("QQuickFolderListModel") && model->property("folder").toUrl() == folder
-            && model->property("status").toInt() == 1) {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(models.cbegin(), models.cend(), [&](QAbstractItemModel *model) {
+        return model->inherits("QQuickFolderListModel") && model->property("folder").toUrl() == folder
+            && model->property("status").toInt() == 1 && model->property("nameFilters").toStringList().contains(file.fileName());
+    });
 }
 
-bool PlasmoidHarness::watching(const QString &directory) const
+bool PlasmoidHarness::watching(const QString &path) const
 {
-    if (::watching(m_root.get(), directory)) {
+    if (::watching(m_root.get(), path)) {
         return true;
     }
-    return std::any_of(m_shown.cbegin(), m_shown.cend(), [&](QObject *shown) { return ::watching(shown, directory); });
+    return std::any_of(m_shown.cbegin(), m_shown.cend(), [&](QObject *shown) { return ::watching(shown, path); });
 }
 
 QQuickItem *PlasmoidHarness::scene() const

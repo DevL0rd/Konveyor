@@ -63,7 +63,7 @@ private Q_SLOTS:
     {
         const QString path = m_dir->filePath(QStringLiteral("data.json"));
         m_watcher->setProperty("path", path);
-        QTRY_VERIFY(watching(m_watcher.get(), m_dir->path()));
+        QTRY_VERIFY(watching(m_watcher.get(), path));
         replaceFile(path, "1");
         QTRY_COMPARE(m_changed->count(), 1);
     }
@@ -72,9 +72,9 @@ private Q_SLOTS:
     {
         const QString path = m_dir->filePath(QStringLiteral("a/b/data.json"));
         m_watcher->setProperty("path", path);
-        QTRY_VERIFY(watching(m_watcher.get(), m_dir->path()));
+        QTRY_VERIFY(watching(m_watcher.get(), m_dir->filePath(QStringLiteral("a"))));
         QVERIFY(QDir().mkpath(m_dir->filePath(QStringLiteral("a/b"))));
-        QTRY_VERIFY(watching(m_watcher.get(), m_dir->filePath(QStringLiteral("a/b"))));
+        QTRY_VERIFY(watching(m_watcher.get(), path));
         replaceFile(path, "1");
         QTRY_COMPARE(m_changed->count(), 1);
         replaceFile(path, "22");
@@ -92,7 +92,7 @@ private Q_SLOTS:
         QVERIFY(QDir(m_dir->filePath(QStringLiteral("a"))).removeRecursively());
         QTRY_VERIFY(!m_watcher->property("exists").toBool());
         QVERIFY(QDir().mkpath(m_dir->filePath(QStringLiteral("a"))));
-        QTRY_VERIFY(watching(m_watcher.get(), m_dir->filePath(QStringLiteral("a"))));
+        QTRY_VERIFY(watching(m_watcher.get(), path));
         replaceFile(path, "22");
         QTRY_COMPARE(m_changed->count(), 2);
     }
@@ -117,7 +117,7 @@ private Q_SLOTS:
         m_watcher->setProperty("path", QString());
         replaceFile(path, "22");
         m_watcher->setProperty("path", m_dir->filePath(QStringLiteral("sentinel.json")));
-        QTRY_VERIFY(watching(m_watcher.get(), m_dir->path()));
+        QTRY_VERIFY(watching(m_watcher.get(), m_dir->filePath(QStringLiteral("sentinel.json"))));
         replaceFile(m_dir->filePath(QStringLiteral("sentinel.json")), "1");
         QTRY_COMPARE(m_changed->count(), 2);
     }

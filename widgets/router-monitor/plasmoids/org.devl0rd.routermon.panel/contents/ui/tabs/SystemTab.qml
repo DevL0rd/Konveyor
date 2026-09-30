@@ -176,7 +176,7 @@ PopScroll {
                 visible: Plasmoid.configuration.showWebUI && !!root.info.admin_url
                 text: i18n("Open web UI")
                 icon.name: "internet-web-browser"
-                onClicked: root.launch("xdg-open " + root.info.admin_url)
+                onClicked: root.launch("xdg-open " + root.shq(root.info.admin_url))
             }
             PlasmaComponents.Button {
                 text: root.paused ? i18n("Resume monitoring") : i18n("Pause monitoring")

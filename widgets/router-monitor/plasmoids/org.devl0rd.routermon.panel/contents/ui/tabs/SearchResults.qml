@@ -50,8 +50,8 @@ Item {
         { keywords: ["pause", "resume", "stop monitoring", "monitoring"], text: root.paused ? i18n("Resume monitoring") : i18n("Pause monitoring"), icon: root.paused ? "media-playback-start" : "media-playback-pause", run: () => root.ctlRun("pause toggle"), visible: true },
         { keywords: ["protection", "adguard", "adblock", "block ads"], text: root.dns && root.dns.protection ? i18n("Turn AdGuard protection off") : i18n("Turn AdGuard protection on"), icon: "security-high", run: () => root.ctlRun("protection " + (root.dns && root.dns.protection ? "off" : "on")), visible: root.dns !== null },
         { keywords: ["speed test", "speedtest", "test speed", "bandwidth"], text: i18n("Run speed test"), icon: "speedometer", run: () => root.runSpeedTest(), visible: !root.testing },
-        { keywords: ["web ui", "admin", "router page", "settings"], text: i18n("Open router web UI"), icon: "internet-web-browser", run: () => root.launch("xdg-open " + root.info.admin_url), visible: !!root.info.admin_url },
-        { keywords: ["adguard", "dns page"], text: i18n("Open AdGuard Home"), icon: "security-high", run: () => root.launch("xdg-open " + root.info.agh_url), visible: !!root.info.agh_url }
+        { keywords: ["web ui", "admin", "router page", "settings"], text: i18n("Open router web UI"), icon: "internet-web-browser", run: () => root.launch("xdg-open " + root.shq(root.info.admin_url)), visible: !!root.info.admin_url },
+        { keywords: ["adguard", "dns page"], text: i18n("Open AdGuard Home"), icon: "security-high", run: () => root.launch("xdg-open " + root.shq(root.info.agh_url)), visible: !!root.info.agh_url }
     ].filter(action => action.visible && action.keywords.some(word => word.indexOf(needle) >= 0 || (needle.length > 3 && needle.indexOf(word) >= 0)))
 
     readonly property int count: devices.length + radios.length + ports.length + domains.length + actions.length

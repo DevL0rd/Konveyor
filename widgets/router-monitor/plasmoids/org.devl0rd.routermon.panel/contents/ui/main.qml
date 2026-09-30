@@ -180,6 +180,9 @@ PlasmoidItem {
             disconnectSource(source)
         }
     }
+    function shq(text) {
+        return "'" + String(text).replace(/'/g, "'\\''") + "'"
+    }
     function ctlRun(args) {
         ctlRunner.connectSource(ctl + " " + args)
     }

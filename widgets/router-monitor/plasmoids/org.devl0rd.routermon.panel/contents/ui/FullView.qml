@@ -89,7 +89,7 @@ Item {
                     icon.name: "internet-web-browser"
                     display: PlasmaComponents.AbstractButton.IconOnly
                     text: i18n("Open router web UI")
-                    onClicked: root.launch("xdg-open " + root.info.admin_url)
+                    onClicked: root.launch("xdg-open " + root.shq(root.info.admin_url))
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: text
                 },
@@ -98,7 +98,7 @@ Item {
                     icon.name: "security-high"
                     display: PlasmaComponents.AbstractButton.IconOnly
                     text: i18n("Open AdGuard Home")
-                    onClicked: root.launch("xdg-open " + root.info.agh_url)
+                    onClicked: root.launch("xdg-open " + root.shq(root.info.agh_url))
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: text
                 },
@@ -199,10 +199,7 @@ Item {
                     const value = promptField.text.trim()
                     if (!value)
                         return
-                    if (mode === "rename")
-                        root.ctlRun("rename " + mac + " '" + value.replace(/'/g, "") + "'")
-                    else
-                        root.ctlRun("reserve " + mac + " " + value)
+                    root.ctlRun(mode + " " + root.shq(mac) + " " + root.shq(value))
                 }
             }
             Connections {

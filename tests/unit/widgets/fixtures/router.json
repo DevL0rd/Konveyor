@@ -1,0 +1,43 @@
+{
+  "ts": 1790000000,
+  "online": true,
+  "paused": false,
+  "info": {"model": "RT-AX88U", "fw": "388.1", "lan_ip": "192.168.1.1", "admin_url": "http://192.168.1.1",
+           "agh_url": "http://192.168.1.1:3000", "uptime": 90061},
+  "system": {
+    "cpu": {"total": 42.5, "cores": [40, 45]},
+    "load": [0.1, 0.2, 0.3], "procs": "1/100", "cores": 2,
+    "mem_total": 1048576, "mem_avail": 262144, "mem_used_pct": 75.0,
+    "swap_total": 0, "swap_used": 0, "swap_used_pct": 0.0,
+    "cpu_temp": 55.5, "conntrack": 10, "conntrack_max": 100
+  },
+  "network": {
+    "wan_proto": "pppoe", "wan_ip": "203.0.113.5", "wan_gw": "203.0.113.1", "wan_dns": "1.1.1.1", "wan_up": true,
+    "down_mbps": 250.5, "up_mbps": 20.25, "ping_rtt": 11.26, "ping_loss": 0,
+    "ports": [{"port": "LAN1", "link": "Up 1000"}, {"port": "WAN", "link": "Up 1000"}],
+    "ifaces": {"br0": {"rx_mbps": 5.5, "tx_mbps": 6.5}, "ppp0": {"rx_mbps": 250.5, "tx_mbps": 20.25}}
+  },
+  "wifi": {
+    "radios": [
+      {"band": "5GHz-1", "ssid": "Home Net", "on": true, "txpower": 100, "chan": 36, "width": "160", "noise": -90, "temp": 50,
+       "busy": 12, "glitch": 1, "badplcp": 2, "dfs": "0", "clients": 1},
+      {"band": "2.4GHz", "ssid": "Home Net 2G", "on": false, "txpower": 80, "chan": 6, "width": "20", "noise": -85, "temp": 45,
+       "busy": 3, "glitch": 0, "badplcp": 0, "dfs": "0", "clients": 0}
+    ],
+    "stations": [
+      {"mac": "AA:BB:CC:00:00:01", "band": "5GHz-1", "rssi": -55, "tx_mbps": 866.0, "rx_mbps": 433.0, "phy_mbps": 1200, "traffic_bps": 1000000}
+    ]
+  },
+  "clients": {"count": 3, "leases": [
+    {"mac": "aa:bb:cc:00:00:01", "ip": "192.168.1.10", "name": "laptop", "connected": true, "blocked": false, "traffic_bps": 1000000},
+    {"mac": "aa:bb:cc:00:00:02", "ip": "192.168.1.9", "name": "tv", "connected": true, "blocked": true, "traffic_bps": -1},
+    {"mac": "aa:bb:cc:00:00:03", "ip": "192.168.1.100", "name": "Printer", "connected": false, "blocked": false, "traffic_bps": -1}
+  ]},
+  "dns": {
+    "queries_total": 1000, "blocked_total": 250, "blocked_pct": 25.0, "qps": 1.5, "avg_ms": 3.2, "malware": 1, "parental": 0,
+    "top_queried": [{"name": "example.com", "count": 50}], "top_blocked": [{"name": "ads.example", "count": 20}],
+    "top_clients": [{"name": "192.168.1.10", "count": 300}], "protection": true, "url": "http://192.168.1.1:3000",
+    "history": [1, 2, 3], "history_blocked": [0, 1, 1], "time_units": "hours"
+  },
+  "security": {"wrs_protect": true, "wrs_mals": false}
+}
