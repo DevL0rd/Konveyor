@@ -10,6 +10,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QDBusConnection>
+#include <QDBusConnectionInterface>
 #include <QDir>
 #include <QFile>
 #include <QQmlApplicationEngine>
@@ -27,6 +28,13 @@ void registerToggleShortcut(QAction &action, Konveyor::KontrolPanelService &serv
     action.setProperty("componentDisplayName", QStringLiteral("Kontrol Panel"));
     QObject::connect(&action, &QAction::triggered, &service, &Konveyor::KontrolPanelService::Toggle);
     KGlobalAccel::setGlobalShortcut(&action, QList<QKeySequence> {QKeySequence(Qt::Key_Meta), QKeySequence(Qt::ALT | Qt::Key_F1)});
+}
+
+int alreadyRunning()
+{
+    qCritical("konveyor-kontrol-panel: could not register %s on the session bus; is it already running?",
+        Konveyor::KontrolPanelService::serviceName);
+    return 1;
 }
 
 }
@@ -52,14 +60,10 @@ int main(int argc, char *argv[])
     KLocalizedString::setApplicationDomain("plasma_applet_org.devl0rd.portal.launcher");
 
     Konveyor::KontrolPanelService service;
-    if (!service.registerOn(QDBusConnection::sessionBus())) {
-        qCritical("konveyor-kontrol-panel: could not register %s on the session bus; is it already running?",
-            Konveyor::KontrolPanelService::serviceName);
-        return 1;
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (bus.interface() && bus.interface()->isServiceRegistered(QLatin1String(Konveyor::KontrolPanelService::serviceName))) {
+        return alreadyRunning();
     }
-
-    QAction toggle;
-    registerToggleShortcut(toggle, service);
 
     KConfigLoader loader(KSharedConfig::openConfig(QStringLiteral("konveyor/kontrolpanelrc")), &schema);
     KConfigPropertyMap config(&loader);
@@ -70,8 +74,17 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextObject(new KLocalizedQmlContext(&engine));
     engine.setInitialProperties(
         {{QStringLiteral("service"), QVariant::fromValue(&service)}, {QStringLiteral("config"), QVariant::fromValue(&config)}});
-    QObject::connect(
-        &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
-    engine.load(QUrl::fromLocalFile(directory.filePath(QStringLiteral("Main.qml"))));
+    const QString main = directory.filePath(QStringLiteral("Main.qml"));
+    engine.load(QUrl::fromLocalFile(main));
+    if (engine.rootObjects().isEmpty()) {
+        qCritical("konveyor-kontrol-panel: could not load %s", qPrintable(main));
+        return 1;
+    }
+
+    if (!service.registerOn(bus)) {
+        return alreadyRunning();
+    }
+    QAction toggle;
+    registerToggleShortcut(toggle, service);
     return QApplication::exec();
 }

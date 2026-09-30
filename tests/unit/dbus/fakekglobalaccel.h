@@ -8,6 +8,7 @@
 #include <QDBusMetaType>
 #include <QDBusObjectPath>
 #include <QKeySequence>
+#include <QRegularExpression>
 
 namespace Konveyor::Test
 {
@@ -133,7 +134,9 @@ private:
             return message.createReply();
         }
         if (member == QLatin1String("getComponent")) {
-            return message.createReply(QVariant::fromValue(QDBusObjectPath(QStringLiteral("/component/") + arguments.value(0).toString())));
+            QString name = arguments.value(0).toString();
+            name.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9_]")), QStringLiteral("_"));
+            return message.createReply(QVariant::fromValue(QDBusObjectPath(QStringLiteral("/component/") + name)));
         }
         if (member == QLatin1String("shortcutKeys") || member == QLatin1String("defaultShortcutKeys")) {
             const FakeShortcut *shortcut = find(actionId.value(0), actionId.value(1));

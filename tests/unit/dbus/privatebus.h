@@ -191,9 +191,9 @@ private:
 
         bool handleMessage(const QDBusMessage &message, const QDBusConnection &connection) override
         {
-            if (message.interface() == QLatin1String("org.freedesktop.DBus.Introspectable")
-                || message.interface() == QLatin1String("org.freedesktop.DBus.Properties")) {
-                return false;
+            if (message.interface() == QLatin1String("org.freedesktop.DBus.Introspectable")) {
+                connection.send(message.createReply(QStringLiteral("<node/>")));
+                return true;
             }
             {
                 const QMutexLocker locker(&m_service->m_mutex);
