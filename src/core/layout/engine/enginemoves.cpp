@@ -1,7 +1,6 @@
 #include "layout/engine/engineprivate.h"
 
 #include <algorithm>
-#include <cmath>
 #include <utility>
 
 namespace Konveyor::Layout
@@ -38,33 +37,32 @@ double axisValue(QPointF point, bool horizontal)
     return horizontal ? point.x() : point.y();
 }
 
-struct Candidate
+bool overlapsAcross(const QRectF &candidate, const QRectF &active, bool horizontal)
 {
-    std::optional<std::size_t> index;
-    double primary = 0;
-    double secondary = 0;
+    const double start = horizontal ? candidate.top() : candidate.left();
+    const double end = horizontal ? candidate.bottom() : candidate.right();
+    const double activeStart = horizontal ? active.top() : active.left();
+    const double activeEnd = horizontal ? active.bottom() : active.right();
+    return start < activeEnd && activeStart < end;
+}
 
-    bool isBetterThan(double otherPrimary, double otherSecondary) const
-    {
-        return !index || otherPrimary < primary || (otherPrimary == primary && otherSecondary < secondary);
-    }
-};
-
-std::optional<std::size_t> nearestInDirection(const std::vector<QPointF> &centers, std::size_t active, DirectionAxis axis)
+std::optional<std::size_t> nearestInDirection(const std::vector<QRectF> &geometries, std::size_t active, DirectionAxis axis)
 {
-    Candidate best;
-    for (std::size_t idx = 0; idx < centers.size(); ++idx) {
-        const double delta = axisValue(centers[idx], axis.horizontal) - axisValue(centers[active], axis.horizontal);
-        const double primary = axis.positive ? delta : -delta;
-        if (idx == active || primary <= 0.0) {
+    std::optional<std::size_t> best;
+    double bestDistance = 0.0;
+    const QPointF activeCenter = geometries[active].center();
+    for (std::size_t idx = 0; idx < geometries.size(); ++idx) {
+        const double delta = axisValue(geometries[idx].center(), axis.horizontal) - axisValue(activeCenter, axis.horizontal);
+        const double distance = axis.positive ? delta : -delta;
+        if (idx == active || distance <= 0.0 || !overlapsAcross(geometries[idx], geometries[active], axis.horizontal)) {
             continue;
         }
-        const double secondary = std::abs(axisValue(centers[idx], !axis.horizontal) - axisValue(centers[active], !axis.horizontal));
-        if (best.isBetterThan(primary, secondary)) {
-            best = {idx, primary, secondary};
+        if (!best || distance < bestDistance) {
+            best = idx;
+            bestDistance = distance;
         }
     }
-    return best.index;
+    return best;
 }
 
 }
@@ -87,12 +85,12 @@ std::optional<std::size_t> Engine::Private::monitorInDirection(const QString &di
         return std::nullopt;
     }
 
-    std::vector<QPointF> centers;
-    centers.reserve(count);
+    std::vector<QRectF> geometries;
+    geometries.reserve(count);
     for (const Monitor &monitor : monitors) {
-        centers.push_back(outputInfos.value(monitor.outputName()).geometry.center());
+        geometries.push_back(outputInfos.value(monitor.outputName()).geometry);
     }
-    return nearestInDirection(centers, active, *axis);
+    return nearestInDirection(geometries, active, *axis);
 }
 
 void Engine::Private::moveWindowToMonitor(std::optional<WindowId> window, std::size_t monitorIndex, bool activate)
