@@ -1,21 +1,32 @@
-import time
 from contextlib import contextmanager
 
 from fakepointer import Held, move
 from kwinsession import frame, konveyor_windows, wait_for
+from nested import REPO
 
 META = 125
 LEFT_BUTTON = 0x110
+
+
+def drag_config(hint=None):
+    config = (REPO / "data" / "default-config.kdl").read_text()
+    moving = config.replace('titlebar-drag "scroll-view"', 'titlebar-drag "move-window"')
+    if hint is not None:
+        moving = moving.replace("    gaps 16\n", "    gaps 16\n    insert-hint {\n" + hint + "    }\n", 1)
+    if moving.count('titlebar-drag "move-window"') != 1 or (hint is not None and moving.count("insert-hint") != 1):
+        raise RuntimeError("the default config no longer has the titlebar-drag and gaps lines the drag tests rewrite")
+    return moving
 
 
 def settled(title):
     previous = [None]
 
     def still():
-        current, previous[0] = frame(title), frame(title)
-        return current == previous[0] and current
+        current = frame(title)
+        stable = current == previous[0]
+        previous[0] = current
+        return stable and current
 
-    time.sleep(0.3)
     return wait_for(still, 10, 0.3)
 
 
