@@ -244,6 +244,15 @@ target_compile_options(test_touchpad_contacts PRIVATE -Wall -Wextra -Werror)
 add_test(NAME test_touchpad_contacts COMMAND test_touchpad_contacts)
 set_tests_properties(test_touchpad_contacts PROPERTIES LABELS "unit;input")
 
+find_package(KF6 REQUIRED COMPONENTS Notifications)
+add_executable(test_config_manager unit/plugin/test_config_manager.cpp ${PROJECT_SOURCE_DIR}/src/effect/plugin/configmanager.cpp
+    ${PROJECT_SOURCE_DIR}/src/effect/plugin/notifications.cpp)
+target_include_directories(test_config_manager PRIVATE ${PROJECT_SOURCE_DIR}/src/effect)
+target_link_libraries(test_config_manager PRIVATE konveyor_config KF6::Notifications Qt6::Test)
+target_compile_options(test_config_manager PRIVATE -Wall -Wextra -Werror)
+add_test(NAME test_config_manager COMMAND test_config_manager)
+set_tests_properties(test_config_manager PROPERTIES LABELS "unit;plugin" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
+
 find_package(KF6 REQUIRED COMPONENTS KCMUtils)
 add_executable(test_kcm_plugin unit/kcm/test_kcm_plugin.cpp)
 target_link_libraries(test_kcm_plugin PRIVATE KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Qml Qt6::Quick Qt6::Test)

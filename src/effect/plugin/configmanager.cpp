@@ -159,25 +159,22 @@ void ConfigManager::ensureConfigFileExists() const
 
 void ConfigManager::watch(const QStringList &files)
 {
-    if (!m_watcher.files().isEmpty()) {
-        m_watcher.removePaths(m_watcher.files());
-    }
-    if (!m_watcher.directories().isEmpty()) {
-        m_watcher.removePaths(m_watcher.directories());
-    }
-    QStringList directories;
+    QStringList wanted;
     for (const QString &file : files) {
-        directories.append(QFileInfo(file).absolutePath());
+        wanted.append(QFileInfo(file).absolutePath());
     }
-    directories.removeDuplicates();
-    m_watcher.addPaths(directories);
-    const QStringList existing = [&files]() {
-        QStringList result;
-        std::ranges::copy_if(files, std::back_inserter(result), [](const QString &file) { return QFileInfo::exists(file); });
-        return result;
-    }();
-    if (!existing.isEmpty()) {
-        m_watcher.addPaths(existing);
+    std::ranges::copy_if(files, std::back_inserter(wanted), [](const QString &file) { return QFileInfo::exists(file); });
+    wanted.removeDuplicates();
+    const QStringList watched = m_watcher.files() + m_watcher.directories();
+    QStringList unwanted;
+    std::ranges::copy_if(watched, std::back_inserter(unwanted), [&wanted](const QString &path) { return !wanted.contains(path); });
+    QStringList missing;
+    std::ranges::copy_if(wanted, std::back_inserter(missing), [&watched](const QString &path) { return !watched.contains(path); });
+    if (!unwanted.isEmpty()) {
+        m_watcher.removePaths(unwanted);
+    }
+    if (!missing.isEmpty()) {
+        m_watcher.addPaths(missing);
     }
 }
 
