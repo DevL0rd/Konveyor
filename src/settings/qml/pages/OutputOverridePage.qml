@@ -4,6 +4,7 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import "../components"
 import "../components/monitors"
+import "../components/monitors/MonitorSummary.js" as MonitorSummary
 import "../previews"
 import "../sections"
 import org.kde.konveyor.settings
@@ -15,7 +16,7 @@ SettingsPage {
     readonly property var output: SettingsStore.revision >= 0 ? SettingsStore.node(outputPath) : ({})
     readonly property bool exists: output.name !== undefined
     readonly property string outputName: exists && output.args.length ? String(output.args[0]) : ""
-    readonly property var connected: SettingsStore.live.outputs.find(entry => entry.name === outputName)
+    readonly property var connected: SettingsStore.live.outputs.find(entry => MonitorSummary.sameOutput(entry.name, outputName))
 
     title: exists ? "Monitor: " + outputName : "Monitor override"
     preview: SettingsStore.live.outputs.length > 0 ? arrangement : null

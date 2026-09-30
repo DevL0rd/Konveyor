@@ -121,7 +121,7 @@ SettingsPage {
                 iconName: "monitor"
                 heading: MonitorSummary.nameOf(modelData)
                 subtitle: {
-                    const connected = SettingsStore.live.outputs.find(output => output.name === heading);
+                    const connected = SettingsStore.live.outputs.find(output => MonitorSummary.sameOutput(output.name, heading));
                     return connected ? (connected.description || "Connected") : "Not connected right now";
                 }
                 detail: {
@@ -129,7 +129,7 @@ SettingsPage {
                     const corners = (modelData.node.children || []).some(child => child.name === "hot-corners");
                     return (count === 1 ? "1 layout change" : count + " layout changes") + (corners ? " · own hot corners" : "");
                 }
-                active: SettingsStore.live.outputs.some(output => output.name === heading)
+                active: SettingsStore.live.outputs.some(output => MonitorSummary.sameOutput(output.name, heading))
                 showOrder: false
                 onOpened: SettingsNavigation.push("pages/OutputOverridePage.qml", { outputPath: modelData.path })
                 onDeleted: SettingsStore.remove(modelData.path)
@@ -143,14 +143,14 @@ SettingsPage {
 
             OutputPicker {
                 id: newOutput
-                value: SettingsStore.live.outputs.map(output => output.name).find(name => !page.overrideNames.includes(name)) || ""
+                value: SettingsStore.live.outputs.map(output => output.name).find(name => !MonitorSummary.includesOutput(page.overrideNames, name)) || ""
                 onPicked: name => value = name
             }
 
             QQC2.Button {
                 icon.name: "list-add"
                 text: "Add override"
-                enabled: newOutput.value.length > 0 && !page.overrideNames.includes(newOutput.value)
+                enabled: newOutput.value.length > 0 && !MonitorSummary.includesOutput(page.overrideNames, newOutput.value)
                 onClicked: {
                     const path = SettingsStore.append("", Kdl.block("output", [], [newOutput.value]));
                     if (path.length) {

@@ -90,22 +90,22 @@ QVariantMap layoutValues(const Config::Layout &layout)
 
 Config::Layout scopedLayout(const Config::Config &config, const QString &kind, const QString &name)
 {
-    const auto layoutOf = [&name, &config](const auto &list) {
+    const auto layoutOf = [&name, &config](const auto &list, Qt::CaseSensitivity sensitivity) {
         for (const auto &entry : list) {
-            if (entry.name == name && entry.layout) {
+            if (entry.name.compare(name, sensitivity) == 0 && entry.layout) {
                 return *entry.layout;
             }
         }
         return config.layout;
     };
     if (kind == QLatin1String("output")) {
-        return layoutOf(config.outputs);
+        return layoutOf(config.outputs, Qt::CaseInsensitive);
     }
     if (kind == QLatin1String("monitor-profile")) {
-        return layoutOf(config.monitorProfiles);
+        return layoutOf(config.monitorProfiles, Qt::CaseSensitive);
     }
     if (kind == QLatin1String("workspace")) {
-        return layoutOf(config.workspaces);
+        return layoutOf(config.workspaces, Qt::CaseInsensitive);
     }
     return config.layout;
 }

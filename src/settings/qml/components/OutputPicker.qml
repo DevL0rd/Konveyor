@@ -16,19 +16,19 @@ QQC2.ComboBox {
         const seen = new Set();
         for (const output of SettingsStore.live.outputs) {
             const logical = output.logical || {};
-            seen.add(output.name);
+            seen.add(output.name.toLowerCase());
             list.push({ name: output.name, label: output.name + " · " + (output.description || "") + " · " + logical.width + "×" + logical.height });
         }
         if (SettingsStore.revision >= 0) {
             for (const entry of SettingsStore.children("", "output")) {
                 const name = String((entry.node.args || [])[0] || "");
-                if (name.length && !seen.has(name)) {
-                    seen.add(name);
+                if (name.length && !seen.has(name.toLowerCase())) {
+                    seen.add(name.toLowerCase());
                     list.push({ name: name, label: name + " · not connected" });
                 }
             }
         }
-        if (value.length && !seen.has(value)) {
+        if (value.length && !seen.has(value.toLowerCase())) {
             list.push({ name: value, label: value + " · not connected" });
         }
         return list;
@@ -38,7 +38,7 @@ QQC2.ComboBox {
     textRole: "label"
     valueRole: "name"
     editable: true
-    currentIndex: Math.max(0, entries.findIndex(entry => entry.name === value))
+    currentIndex: Math.max(0, entries.findIndex(entry => entry.name.toLowerCase() === value.toLowerCase()))
     implicitWidth: Kirigami.Units.gridUnit * 16
     onActivated: index => picked(entries[index].name)
     onAccepted: {

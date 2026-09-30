@@ -89,6 +89,14 @@ function overrideCount(node) {
     return layout && layout.children ? layout.children.length : 0;
 }
 
+function sameOutput(first, second) {
+    return String(first).toLowerCase() === String(second).toLowerCase();
+}
+
+function includesOutput(names, name) {
+    return names.some(entry => sameOutput(entry, name));
+}
+
 function nameOf(entry) {
     return String((entry.node.args || [])[0] || "");
 }
