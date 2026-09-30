@@ -308,6 +308,26 @@ void registerMoveActions(ActionTable &table)
         });
 }
 
+namespace
+{
+
+std::optional<QString> invalidProperty(const Config::Action &action)
+{
+    for (const auto &[key, value] : action.properties) {
+        const bool isWindow = key == QLatin1String("id") || key == QLatin1String("window-id");
+        const bool isFlag = key == QLatin1String("focus") || key == QLatin1String("from-native");
+        if (isWindow && !parseIndex(value)) {
+            return parseIndex(value).error();
+        }
+        if (isFlag && !parseBool(value)) {
+            return parseBool(value).error();
+        }
+    }
+    return std::nullopt;
+}
+
+}
+
 const ActionTable &actionTable()
 {
     static const ActionTable table = [] {
@@ -330,6 +350,9 @@ ActionResult Engine::perform(const Config::Action &action, std::optional<WindowI
     const auto handler = table.constFind(action.name);
     if (handler == table.constEnd()) {
         return actionError(QStringLiteral("unknown action: %1").arg(action.name));
+    }
+    if (const auto invalid = invalidProperty(action)) {
+        return actionError(*invalid);
     }
     d->layoutFocused = true;
     const ActionResult result = (*handler)(*d, action, target);

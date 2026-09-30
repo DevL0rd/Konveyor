@@ -179,6 +179,26 @@ private Q_SLOTS:
         QVERIFY(!fixture.perform(QStringLiteral("set-workspace-name")).ok);
     }
 
+    void malformedIdAndFlagPropertiesAreRejected()
+    {
+        Fixture fixture;
+        const auto id = fixture.add();
+        const QList<std::pair<QString, std::pair<QString, QString>>> cases {
+            {QStringLiteral("move-window-to-workspace-down"), {QStringLiteral("focus"), QStringLiteral("maybe")}},
+            {QStringLiteral("move-column-to-workspace-down"), {QStringLiteral("focus"), QStringLiteral("1")}},
+            {QStringLiteral("toggle-window-floating"), {QStringLiteral("id"), QStringLiteral("abc")}},
+            {QStringLiteral("toggle-window-floating"), {QStringLiteral("window-id"), QStringLiteral("-3")}},
+            {QStringLiteral("switch-preset-column-width"), {QStringLiteral("from-native"), QStringLiteral("yes")}}};
+        for (const auto &[name, property] : cases) {
+            QVERIFY2(!fixture.perform(name, {}, {property}).ok, qPrintable(name));
+        }
+        QCOMPARE(fixture.state(id).workspaceIndex, 1);
+        QVERIFY(!fixture.state(id).isFloating);
+        QVERIFY(
+            fixture.perform(QStringLiteral("move-window-to-workspace-down"), {}, {{QStringLiteral("focus"), QStringLiteral("#false")}}).ok);
+        QCOMPARE(fixture.state(id).workspaceIndex, 2);
+    }
+
     void closeWindowUsesHook()
     {
         Clock clock = Clock::frozenAt(Duration::zero());
