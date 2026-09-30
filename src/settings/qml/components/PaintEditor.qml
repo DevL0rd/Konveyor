@@ -23,15 +23,7 @@ RowLayout {
     }
 
     function writeGradient(changes) {
-        const next = Object.assign({}, gradient, changes);
-        const props = { from: Kdl.cssColor(Qt.color(next.from)), to: Kdl.cssColor(Qt.color(next.to)), angle: Math.round(next.angle) };
-        if (next["relative-to"] !== "window") {
-            props["relative-to"] = next["relative-to"];
-        }
-        if (next["in"] !== "srgb") {
-            props["in"] = next["in"];
-        }
-        SettingsStore.setValue(blockPath + "/" + gradientName, [], props);
+        SettingsStore.setValue(blockPath + "/" + gradientName, [], Kdl.gradientProps(Object.assign({}, gradient, changes)));
     }
 
     spacing: Kirigami.Units.smallSpacing

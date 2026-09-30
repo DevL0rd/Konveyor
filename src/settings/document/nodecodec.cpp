@@ -179,7 +179,7 @@ QString writeNode(const QVariantMap &node, const QString &indent)
     if (!onlyChild.isEmpty() && !onlyChild.contains(QStringLiteral("children"))) {
         return text + QStringLiteral(" { ") + writeNodeHead(onlyChild) + QStringLiteral("; }");
     }
-    const QString inner = indent + QStringLiteral("    ");
+    const QString inner = indent + IndentStep;
     text += QStringLiteral(" {\n");
     for (const QVariant &child : children) {
         text += inner + writeNode(child.toMap(), inner) + QLatin1Char('\n');

@@ -53,6 +53,7 @@ public:
     Q_INVOKABLE bool isDefault(const QString &path) const;
     Q_INVOKABLE bool resetToDefault(const QString &path);
     Q_INVOKABLE QVariantMap node(const QString &path) const;
+    Q_INVOKABLE QVariantMap defaultNode(const QString &path) const;
     Q_INVOKABLE QVariantList children(const QString &parentPath, const QString &name) const;
     Q_INVOKABLE QVariantMap scope(const QString &layoutPath) const;
     Q_INVOKABLE bool setNode(const QString &path, const QVariantMap &node);

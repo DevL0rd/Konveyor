@@ -9,6 +9,17 @@ function cssColor(color) {
     return color.a >= 0.999 ? base : base + hex2(color.a);
 }
 
+function gradientProps(gradient) {
+    const props = { from: cssColor(Qt.color(gradient.from)), to: cssColor(Qt.color(gradient.to)), angle: Math.round(gradient.angle) };
+    if (gradient["relative-to"] && gradient["relative-to"] !== "window") {
+        props["relative-to"] = gradient["relative-to"];
+    }
+    if (gradient["in"] && gradient["in"] !== "srgb") {
+        props["in"] = gradient["in"];
+    }
+    return props;
+}
+
 function leaf(name, args, props) {
     return { name: name, args: args || [], props: props || {} };
 }

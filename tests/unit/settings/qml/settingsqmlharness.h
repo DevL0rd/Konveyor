@@ -2,6 +2,8 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QSignalSpy>
@@ -147,6 +149,33 @@ inline bool saveAndWait(QObject *store)
     QSignalSpy saved(store, SIGNAL(saved()));
     QMetaObject::invokeMethod(store, "save");
     return saved.count() > 0 || saved.wait(SignalTimeoutMs);
+}
+
+constexpr QByteArrayView ScriptHost = R"(
+import "catalog/Kdl.js" as Kdl
+import "catalog/RuleSummary.js" as RuleSummary
+import "catalog/MotionMath.js" as MotionMath
+import "sections/LayoutKeys.js" as LayoutKeys
+import "sections/CornerRule.js" as CornerRule
+import "components/rules/RulePaint.js" as RulePaint
+import "components/monitors/MonitorSummary.js" as MonitorSummary
+QtObject {
+    readonly property var libraries: ({ Kdl: Kdl, RuleSummary: RuleSummary, MotionMath: MotionMath, LayoutKeys: LayoutKeys,
+        CornerRule: CornerRule, RulePaint: RulePaint, MonitorSummary: MonitorSummary })
+    function run(library, name, args) {
+        const result = libraries[library][name].apply(null, args.map(arg => arg === "@store" ? SettingsStore : arg));
+        return JSON.stringify(result === undefined ? null : result);
+    }
+    function color(text) { return Qt.color(text) }
+}
+)";
+
+inline QVariant script(QObject *host, const QString &library, const QString &name, const QVariantList &arguments)
+{
+    QVariant json;
+    QMetaObject::invokeMethod(
+        host, "run", Q_RETURN_ARG(QVariant, json), Q_ARG(QVariant, library), Q_ARG(QVariant, name), Q_ARG(QVariant, arguments));
+    return QJsonDocument::fromJson(QByteArray("[") + json.toString().toUtf8() + "]").array().first().toVariant();
 }
 
 }

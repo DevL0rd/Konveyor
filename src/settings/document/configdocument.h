@@ -40,6 +40,8 @@ private:
     std::expected<Located, QString> locate(const QString &path) const;
     EditResult ensure(const NodePath &path);
     EditResult insertChild(const NodePath &parentPath, const QVariantMap &node);
+    static bool sameChildNames(const QList<Kdl::Node> &children, const QVariantMap &node);
+    EditResult updateInPlace(const NodePath &path, const QVariantMap &node);
     EditResult commit(std::u32string text, const QString &resultPath);
     QString slice(qsizetype from, qsizetype to) const;
     qsizetype size() const;

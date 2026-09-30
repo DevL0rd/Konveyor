@@ -8,15 +8,7 @@ function paintNodes(prefix, paint) {
     const colorName = prefix ? prefix + "-color" : "color";
     const gradientName = prefix ? prefix + "-gradient" : "gradient";
     if (paint.gradient) {
-        const g = paint.gradient;
-        const props = { from: Kdl.cssColor(Qt.color(g.from)), to: Kdl.cssColor(Qt.color(g.to)), angle: Math.round(g.angle) };
-        if (g["relative-to"] && g["relative-to"] !== "window") {
-            props["relative-to"] = g["relative-to"];
-        }
-        if (g["in"] && g["in"] !== "srgb") {
-            props["in"] = g["in"];
-        }
-        return [Kdl.leaf(gradientName, [], props)];
+        return [Kdl.leaf(gradientName, [], Kdl.gradientProps(paint.gradient))];
     }
     return [Kdl.leaf(colorName, [paint.source === "color" ? Kdl.cssColor(Qt.color(paint.color)) : paint.source])];
 }
@@ -71,9 +63,17 @@ function write(store, scopePath, key, value) {
     return store.setNode(scopePath + "/" + key, nodeFor(key, value));
 }
 
-function writeFlag(store, scopePath, overrideMode, key, on, defaultOn) {
-    if (overrideMode || on !== (defaultOn === true)) {
-        return store.setValue(scopePath + "/" + key, on ? [] : [false]);
+function flagValue(node, fallback) {
+    if (!node || node.name === undefined) {
+        return fallback;
     }
-    return store.remove(scopePath + "/" + key);
+    return node.args.length === 0 || node.args[0] === true;
+}
+
+function writeFlag(store, scopePath, overrideMode, key, on, defaultOn) {
+    const path = scopePath + "/" + key;
+    if (!overrideMode && on === flagValue(store.defaultNode(path), defaultOn)) {
+        return store.resetToDefault(path);
+    }
+    return store.setValue(path, on ? [] : [false]);
 }

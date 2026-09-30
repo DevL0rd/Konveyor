@@ -188,6 +188,12 @@ QVariantMap SettingsStore::node(const QString &path) const
     return found ? nodeToVariant(*found) : QVariantMap();
 }
 
+QVariantMap SettingsStore::defaultNode(const QString &path) const
+{
+    const Kdl::Node *found = m_defaults.find(path);
+    return found ? nodeToVariant(*found) : QVariantMap();
+}
+
 QVariantList SettingsStore::children(const QString &parentPath, const QString &name) const
 {
     return m_document.childPaths(parentPath, name);

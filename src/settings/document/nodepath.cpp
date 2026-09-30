@@ -38,6 +38,11 @@ QString formatPath(const NodePath &path)
     return parts.join(QLatin1Char('/'));
 }
 
+NodePath parentOf(const NodePath &path)
+{
+    return path.mid(0, path.size() - 1);
+}
+
 const Kdl::Node *findChild(const QList<Kdl::Node> &nodes, const PathSegment &segment)
 {
     qsizetype seen = 0;

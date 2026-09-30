@@ -111,7 +111,7 @@ ColumnLayout {
 
             ScopedSwitch {
                 isOn: root.values["float-child-windows"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "float-child-windows", on)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "float-child-windows", on, false)
             }
         }
 
@@ -187,7 +187,7 @@ ColumnLayout {
 
             ScopedSwitch {
                 isOn: root.values["always-center-single-column"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "always-center-single-column", on)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "always-center-single-column", on, false)
             }
         }
 
@@ -214,7 +214,7 @@ ColumnLayout {
 
             ScopedSwitch {
                 isOn: root.values["remember-window-sizes"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "remember-window-sizes", on)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "remember-window-sizes", on, false)
             }
         }
 
@@ -228,7 +228,7 @@ ColumnLayout {
 
             ScopedSwitch {
                 isOn: root.values["remember-window-positions"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "remember-window-positions", on)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "remember-window-positions", on, false)
             }
         }
     }

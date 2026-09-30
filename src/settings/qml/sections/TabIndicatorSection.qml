@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import "../components"
+import "LayoutKeys.js" as LayoutKeys
 import org.kde.konveyor.settings
 
 ColumnLayout {
@@ -17,11 +18,7 @@ ColumnLayout {
     readonly property bool shown: tab.enabled === true
 
     function writeFlag(name, on) {
-        if (on || root.overrideMode) {
-            SettingsStore.setValue(blockPath + "/" + name, on ? [] : [false]);
-        } else {
-            SettingsStore.remove(blockPath + "/" + name);
-        }
+        LayoutKeys.writeFlag(SettingsStore, blockPath, overrideMode, name, on, false);
     }
 
     spacing: 0

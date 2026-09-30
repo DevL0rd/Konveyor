@@ -11,6 +11,8 @@
 namespace Konveyor::Settings
 {
 
+inline constexpr QLatin1StringView IndentStep("    ");
+
 std::u32string toCodePoints(const QString &text);
 QVariantMap nodeToVariant(const Kdl::Node &node);
 QVariantMap withPropertyOrder(QVariantMap node, const Kdl::Node &existing);

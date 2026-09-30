@@ -5,6 +5,7 @@ include(ECMQmlModule)
 add_library(konveyor_settings_model STATIC
     document/configdocument.cpp
     document/configdocument.h
+    document/configdocumenttext.cpp
     document/nodecodec.cpp
     document/nodecodec.h
     document/nodepath.cpp

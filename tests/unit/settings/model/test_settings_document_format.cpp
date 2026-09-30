@@ -18,6 +18,8 @@ private Q_SLOTS:
     void removeSharedLineKeepsNeighbour();
     void setNodeKeepsSurroundingComments();
     void setNodeKeepsCommentsInsideBlock();
+    void sameShapeBlockKeepsComments();
+    void sameShapeFailureRollsBack();
     void oneLineBlockBecomesMultiLine();
     void oneLineBlockWithChildrenKeepsThem();
     void keepsTabIndentation();
@@ -107,6 +109,39 @@ void TestSettingsDocumentFormat::setNodeKeepsCommentsInsideBlock()
                      return d.setNode(QStringLiteral("output"), block(QStringLiteral("output"), {}, {QStringLiteral("DP-1")}));
                  }),
         QStringLiteral("output \"DP-1\" {}\n"));
+}
+
+void TestSettingsDocumentFormat::sameShapeBlockKeepsComments()
+{
+    const QString text
+        = QStringLiteral("layout {\n    struts {\n        // screen edge\n        left 1 // px\n        right 2\n    }\n}\n");
+    const QVariantMap struts = block(QStringLiteral("struts"), {leaf(QStringLiteral("left"), {8}), leaf(QStringLiteral("right"), {2})});
+    QCOMPARE(edited(text, [&](ConfigDocument &d) { return d.setNode(QStringLiteral("layout/struts"), struts); }),
+        QStringLiteral("layout {\n    struts {\n        // screen edge\n        left 8 // px\n        right 2\n    }\n}\n"));
+    const QVariantMap widths
+        = block(QStringLiteral("w"), {leaf(QStringLiteral("proportion"), {0.25}), leaf(QStringLiteral("proportion"), {0.75})});
+    QCOMPARE(edited(QStringLiteral("w { proportion 0.5; /* mid */ proportion 1.0; }\n"),
+                 [&](ConfigDocument &d) { return d.setNode(QStringLiteral("w"), widths); }),
+        QStringLiteral("w { proportion 0.25; /* mid */ proportion 0.75; }\n"));
+    const QVariantMap ring
+        = block(QStringLiteral("ring"), {block(QStringLiteral("inner"), {leaf(QStringLiteral("x"), {2})})}, {QStringLiteral("b")});
+    QCOMPARE(edited(QStringLiteral("ring \"a\" {\n    inner {\n        x 1 // keep\n    }\n}\n"),
+                 [&](ConfigDocument &d) { return d.setNode(QStringLiteral("ring"), ring); }),
+        QStringLiteral("ring \"b\" {\n    inner {\n        x 2 // keep\n    }\n}\n"));
+    const QVariantMap reordered
+        = block(QStringLiteral("w"), {leaf(QStringLiteral("fixed"), {9}), leaf(QStringLiteral("proportion"), {0.5})});
+    QCOMPARE(edited(QStringLiteral("w {\n    // gone\n    proportion 0.5\n    fixed 9\n}\n"),
+                 [&](ConfigDocument &d) { return d.setNode(QStringLiteral("w"), reordered); }),
+        QStringLiteral("w {\n    fixed 9\n    proportion 0.5\n}\n"));
+}
+
+void TestSettingsDocumentFormat::sameShapeFailureRollsBack()
+{
+    const QString text = QStringLiteral("s {\n    a 1\n    b 2\n}\n");
+    const QVariantMap broken = block(QStringLiteral("t"), {leaf(QStringLiteral("a"), {3}), leaf(QStringLiteral("b"), {qQNaN()})});
+    QVERIFY(failure(text, [&](ConfigDocument &d) {
+        return d.setNode(QStringLiteral("s"), broken);
+    }).startsWith(QStringLiteral("edit produced invalid KDL")));
 }
 
 void TestSettingsDocumentFormat::oneLineBlockBecomesMultiLine()
