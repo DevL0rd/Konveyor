@@ -75,8 +75,8 @@ private:
     };
 
     Placement outline(const OutlineRequest &request, const Layout::DecorationState &decoration, const Layout::WindowState &state) const;
-    Placement tab(
-        const QRectF &frame, const QRectF &rect, const Layout::ResolvedPaint &paint, const QRectF &workspaceView, double scale) const;
+    Placement tab(const QRectF &frame, const QRectF &rect, const Config::CornerRadius &radius, const Layout::ResolvedPaint &paint,
+        const QRectF &workspaceView, double scale) const;
     void fillPaint(
         Render::BorderSpec &spec, const Layout::ResolvedPaint &paint, const QRectF &globalRect, const QRectF &workspaceView) const;
 

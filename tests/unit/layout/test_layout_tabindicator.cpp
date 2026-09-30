@@ -197,6 +197,51 @@ private Q_SLOTS:
         fixture.remove(tabs[0]);
         QCOMPARE(fixture.frame(tabs[1]), QRectF(16, 16, 936, 1048));
     }
+
+    void roundnessRoundsEveryTab_data()
+    {
+        QTest::addColumn<double>("radius");
+        QTest::addColumn<double>("expected");
+        QTest::newRow("square") << 0.0 << 0.0;
+        QTest::newRow("small") << 2.0 << 2.0;
+        QTest::newRow("half the thickness") << 5.0 << 5.0;
+        QTest::newRow("more than the thickness allows") << 40.0 << 5.0;
+    }
+
+    void roundnessRoundsEveryTab()
+    {
+        QFETCH(double, radius);
+        QFETCH(double, expected);
+        for (const auto position : {Config::TabIndicatorPosition::Left, Config::TabIndicatorPosition::Right,
+                 Config::TabIndicatorPosition::Top, Config::TabIndicatorPosition::Bottom}) {
+            Config::Config config = tabbedConfig(position, 10, 5);
+            config.layout.tabIndicator.cornerRadius = radius;
+            Fixture fixture(config);
+            const QList<Layout::WindowId> tabs = addTabs(fixture, 3);
+            fixture.advance(1);
+            const Layout::TabBarState bar = fixture.state(tabs[2]).tabBar;
+            QCOMPARE(bar.tabRadii.size(), bar.tabRects.size());
+            for (const Config::CornerRadius &corners : bar.tabRadii) {
+                QCOMPARE(corners, (Config::CornerRadius {expected, expected, expected, expected}));
+            }
+        }
+    }
+
+    void roundnessFollowsTheShorterSideOfTinyTabs()
+    {
+        Config::Config config = tabbedConfig(Config::TabIndicatorPosition::Top, 40, 5);
+        config.layout.tabIndicator.cornerRadius = 30;
+        config.layout.tabIndicator.lengthTotalProportion = 0.01;
+        Fixture fixture(config);
+        const QList<Layout::WindowId> tabs = addTabs(fixture, 3);
+        fixture.advance(1);
+        const Layout::TabBarState bar = fixture.state(tabs[2]).tabBar;
+        for (qsizetype i = 0; i < bar.tabRects.size(); ++i) {
+            const double half = std::min(bar.tabRects[i].width(), bar.tabRects[i].height()) / 2.0;
+            QCOMPARE(bar.tabRadii[i].topLeft, half);
+            QVERIFY(half < 20.0);
+        }
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutTabIndicator)

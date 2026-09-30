@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Screenshot tabbed columns: the shown tab follows focus and the tab indicator gets room on every side."""
+"""Screenshot tabbed columns: the shown tab follows focus and the tab indicator gets room on every side and rounds its tabs."""
 import sys
 from pathlib import Path
 

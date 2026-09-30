@@ -17,8 +17,8 @@ INACTIVE = (0, 255, 255)
 GAPS = 16
 
 
-def write_config(position="left", width=8, gap=5):
-    block = (f'    tab-indicator {{\n        position "{position}"\n        width {width}\n        gap {gap}\n'
+def write_config(position="left", width=8, gap=5, radius=0):
+    block = (f'    tab-indicator {{\n        position "{position}"\n        width {width}\n        gap {gap}\n        corner-radius {radius}\n'
              f'        active-color "#ff00ff"\n        inactive-color "#00ffff"\n    }}\n\n    struts {{')
     config_path().write_text(re.sub(r"    struts \{", block, default_config(), count=1))
 
@@ -102,8 +102,27 @@ def thick_tabs_get_room(checks):
     checks.expect(wait_for(lambda: room_beside("B", "left") == GAPS, 30), "a thin indicator fits in the gap and moves nothing")
 
 
+def first_tab_corner(title, width, gap):
+    x, y, _, height = frame(title)
+    image = screenshot()
+    left, top = x - gap - width, y + (height - round(height * 0.5)) / 2
+    return pixel(image, left + width / 2, top + 1), pixel(image, left + 1, top + 1)
+
+
+def corner_is(rounded):
+    edge, corner = first_tab_corner("B", 16, 5)
+    return edge is not None and corner is not None and is_tab(edge) and is_tab(corner) != rounded
+
+
+def roundness_rounds_the_tabs(checks):
+    write_config(width=16, gap=5, radius=8)
+    checks.expect(wait_for(lambda: corner_is(rounded=True), 30, 0.3), f"a corner radius of 8 cuts the corners of the tabs {first_tab_corner('B', 16, 5)}")
+    write_config(width=16, gap=5, radius=0)
+    checks.expect(wait_for(lambda: corner_is(rounded=False), 30, 0.3), f"a corner radius of 0 keeps them square {first_tab_corner('B', 16, 5)}")
+
+
 def main():
-    Checks().run(switching_tabs_changes_the_shown_window, thick_tabs_get_room)
+    Checks().run(switching_tabs_changes_the_shown_window, thick_tabs_get_room, roundness_rounds_the_tabs)
 
 
 if __name__ == "__main__":

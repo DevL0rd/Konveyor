@@ -96,6 +96,7 @@ struct TabBarState
     bool visible = false;
     QRectF rect;
     QList<QRectF> tabRects;
+    QList<Config::CornerRadius> tabRadii;
     QList<ResolvedPaint> tabPaints;
     bool operator==(const TabBarState &) const = default;
 };

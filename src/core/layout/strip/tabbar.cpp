@@ -113,6 +113,12 @@ QList<QRectF> TabBar::tabRects(QRectF area, std::size_t count, double scale) con
     return rects;
 }
 
+Config::CornerRadius TabBar::cornerRadius(QRectF tab) const
+{
+    const double radius = std::clamp(m_config.cornerRadius, 0.0, std::min(tab.width(), tab.height()) / 2.0);
+    return {radius, radius, radius, radius};
+}
+
 bool TabBar::isShown(std::size_t count) const
 {
     return m_config.enabled && (!m_config.hideWhenSingleTab || count != 1);

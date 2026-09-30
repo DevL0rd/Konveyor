@@ -61,7 +61,7 @@ void DecorationLayer::update(KWin::Window *window, const Layout::WindowState &st
     decorations.tabs.resize(static_cast<size_t>(tabCount));
     for (qsizetype i = 0; i < tabCount; ++i) {
         apply(decorations.tabs[static_cast<size_t>(i)], parent,
-            tab(frame, state.tabBar.tabRects[i], state.tabBar.tabPaints.value(i), workspaceView, scale));
+            tab(frame, state.tabBar.tabRects[i], state.tabBar.tabRadii[i], state.tabBar.tabPaints.value(i), workspaceView, scale));
     }
 }
 
@@ -156,13 +156,14 @@ DecorationLayer::Placement DecorationLayer::outline(
     return placement;
 }
 
-DecorationLayer::Placement DecorationLayer::tab(
-    const QRectF &frame, const QRectF &rect, const Layout::ResolvedPaint &paint, const QRectF &workspaceView, double scale) const
+DecorationLayer::Placement DecorationLayer::tab(const QRectF &frame, const QRectF &rect, const Config::CornerRadius &radius,
+    const Layout::ResolvedPaint &paint, const QRectF &workspaceView, double scale) const
 {
     Placement placement;
     placement.visible = !rect.isEmpty();
     placement.position = rect.topLeft() - frame.topLeft();
     placement.spec.size = rect.size();
+    placement.spec.outerRadius = radius;
     placement.spec.scale = scale;
     placement.filled = true;
     fillPaint(placement.spec, paint, rect, workspaceView);

@@ -99,6 +99,7 @@ TabBarState tabBarFor(const Column &column, const Workspace &workspace, QPointF 
     const Config::Border border = tabIndicatorBorder(column.tabBar.config(), workspace.options()->layout.focusRing);
     for (const QRectF &rect : column.tabBar.tabRects(area, column.tiles.size(), scale)) {
         state.tabRects.append(rect.translated(columnOrigin));
+        state.tabRadii.append(column.tabBar.cornerRadius(rect));
     }
     for (std::size_t i = 0; i < column.tiles.size(); ++i) {
         const LayoutWindow &window = column.tiles[i].window();
