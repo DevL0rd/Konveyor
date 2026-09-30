@@ -39,7 +39,7 @@ def build_dir():
 
 class NestedSession:
     def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1,
-                 input_method=None, files=None, notifications=False, hidden_data=()):
+                 input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=()):
         self.output_count = output_count
         self.width = width
         self.height = height
@@ -66,6 +66,11 @@ class NestedSession:
             path.write_text(text)
         (self.root / "bus.conf").write_text(BUS_CONFIG)
         self.data_dirs = self.hide_data(hidden_data) if hidden_data else None
+        self.plugins = self.root / "plugins"
+        for name in effect_copies:
+            copy = self.plugins / "kwin" / "effects" / "plugins" / f"{name}.so"
+            copy.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(build_dir() / "bin" / "kwin" / "effects" / "plugins" / "konveyor_effect.so", copy)
         self.global_shortcuts = global_shortcuts
         self.xwayland = xwayland
         self.input_method = input_method
@@ -95,7 +100,7 @@ class NestedSession:
             env["XDG_DATA_DIRS"] = self.data_dirs
         env["KONVEYOR_TEST_ROOT"] = str(self.root)
         env["KONVEYOR_NOTIFICATIONS_LOG"] = str(self.notifications_log)
-        env["QT_PLUGIN_PATH"] = f"{build_dir() / 'bin'}:{os.environ.get('QT_PLUGIN_PATH', '/usr/lib/qt6/plugins')}"
+        env["QT_PLUGIN_PATH"] = f"{self.plugins}:{build_dir() / 'bin'}:{os.environ.get('QT_PLUGIN_PATH', '/usr/lib/qt6/plugins')}"
         env["KWIN_SCREENSHOT_NO_PERMISSION_CHECKS"] = "1"
         env["KWIN_WAYLAND_NO_PERMISSION_CHECKS"] = "1"
         env["QT_LOGGING_RULES"] = "kwin_*.debug=false"

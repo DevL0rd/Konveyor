@@ -4,6 +4,7 @@
 
 #include <QDBusConnection>
 #include <QDBusError>
+#include <QDBusServiceWatcher>
 #include <QJsonObject>
 
 namespace Konveyor
@@ -26,13 +27,33 @@ DBusService::~DBusService()
 
 bool DBusService::registerService()
 {
-    QDBusConnection bus = QDBusConnection::sessionBus();
-    const bool objectRegistered = bus.registerObject(Ipc::dbusPath, this, QDBusConnection::ExportScriptableContents);
-    m_registered = objectRegistered && bus.registerService(Ipc::dbusService);
-    if (!m_registered) {
-        qWarning() << "konveyor: failed to register D-Bus service" << Ipc::dbusService << bus.lastError().message();
+    if (tryRegister()) {
+        return true;
     }
-    return m_registered;
+    qWarning() << "konveyor: could not register" << Ipc::dbusService
+               << "yet, waiting for its current owner to let go:" << QDBusConnection::sessionBus().lastError().message();
+    m_waitForName = std::make_unique<QDBusServiceWatcher>(
+        Ipc::dbusService, QDBusConnection::sessionBus(), QDBusServiceWatcher::WatchForUnregistration);
+    connect(m_waitForName.get(), &QDBusServiceWatcher::serviceUnregistered, this, [this] {
+        if (tryRegister()) {
+            m_waitForName.release()->deleteLater();
+        }
+    });
+    return false;
+}
+
+bool DBusService::tryRegister()
+{
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    if (!bus.registerObject(Ipc::dbusPath, this, QDBusConnection::ExportScriptableContents)) {
+        return false;
+    }
+    if (!bus.registerService(Ipc::dbusService)) {
+        bus.unregisterObject(Ipc::dbusPath);
+        return false;
+    }
+    m_registered = true;
+    return true;
 }
 
 QString DBusService::compact(const QJsonDocument &document)

@@ -4,6 +4,9 @@
 #include <QObject>
 
 #include <functional>
+#include <memory>
+
+class QDBusServiceWatcher;
 
 namespace Konveyor
 {
@@ -56,11 +59,13 @@ Q_SIGNALS:
 
 private:
     static QString compact(const QJsonDocument &document);
+    bool tryRegister();
 
     bool m_multiTouchActive = false;
 
     DBusHandlers m_handlers;
     bool m_registered = false;
+    std::unique_ptr<QDBusServiceWatcher> m_waitForName;
 };
 
 }

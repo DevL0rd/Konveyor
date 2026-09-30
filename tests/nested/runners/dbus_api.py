@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -9,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, cli, config_path, default_config, notifications
 from fakepointer import touch
-from kwinsession import activate, for_window, konveyor, konveyor_action, run_script, wait_for, watch_signals
+from kwinsession import activate, for_window, konveyor, konveyor_action, qdbus, run_script, wait_for, watch_signals
 from nested import REPO
 
 ROOT = Path(os.environ["KONVEYOR_TEST_ROOT"])
@@ -150,8 +151,22 @@ def multitouch(checks):
     checks.equal(konveyor("MultiTouchActive"), "false", "MultiTouchActive after the touch")
 
 
+def answers():
+    return subprocess.run(["qdbus6", "org.kde.Konveyor", "/Konveyor", "org.kde.Konveyor.Version"], capture_output=True).returncode == 0
+
+
+def versioned_reinstall(checks):
+    effects = ("org.kde.KWin", "/Effects")
+    checks.equal(qdbus(*effects, "org.kde.kwin.Effects.loadEffect", "konveyor_effect_2"), "true", "a second copy of the effect loads")
+    checks.expect(answers(), "org.kde.Konveyor still answers")
+    qdbus(*effects, "org.kde.kwin.Effects.unloadEffect", "konveyor_effect")
+    checks.equal(qdbus(*effects, "org.kde.kwin.Effects.isEffectLoaded", "konveyor_effect"), "false", "the first copy unloads")
+    checks.expect(wait_for(answers), "the second copy takes over org.kde.Konveyor")
+    checks.equal(sorted(window["title"] for window in json.loads(konveyor("Windows"))), ["A", "B", "C"], "and manages the windows")
+
+
 def main():
-    Checks().run(version, queries, focused_window, actions, load_config_file, reload_invalid, multitouch)
+    Checks().run(version, queries, focused_window, actions, load_config_file, reload_invalid, multitouch, versioned_reinstall)
 
 
 if __name__ == "__main__":
