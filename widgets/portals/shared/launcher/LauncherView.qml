@@ -495,6 +495,20 @@ FocusScope {
         sections[next].reset()
         applySection(sections, next)
     }
+    property var railPins: []
+    Connections {
+        target: launcherData
+        function onSidebarPinsChanged() { launcher.followRailPin() }
+    }
+    function followRailPin() {
+        const pins = launcherData.sidebarPins
+        const key = railIndex >= 0 ? launcherData.sidebarKey(railPins[railIndex]) : ""
+        railPins = pins
+        if (railIndex < 0)
+            return
+        const at = pins.findIndex(pin => launcherData.sidebarKey(pin) === key)
+        railIndex = at >= 0 ? at : Math.min(railIndex, pins.length - 1)
+    }
     function currentPin() {
         return railIndex >= 0 ? launcherData.sidebarPins[railIndex] || null : null
     }
@@ -1255,7 +1269,6 @@ FocusScope {
                         maximumFlickVelocity: 2400
                         model: launcherData.sidebarPins
                         delegate: RailPin {}
-                        onCountChanged: if (launcher.railIndex >= count) launcher.railIndex = count - 1
                         onMovingChanged: if (moving) launcher.hoveredPin = null
 
                         Rectangle {

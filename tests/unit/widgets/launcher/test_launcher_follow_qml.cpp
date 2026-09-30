@@ -22,6 +22,8 @@ private:
 
     QString lastTriggered() { return eval(QStringLiteral("launcherData.favorites.triggered.slice(-1)[0].favoriteId")).toString(); }
 
+    QStringList rail() { return eval(QStringLiteral("launcherData.sidebarPins.map(p => p.id)")).toStringList(); }
+
 private Q_SLOTS:
     void pinnedTilesFollowTheFavorites()
     {
@@ -74,6 +76,26 @@ private Q_SLOTS:
         QVERIFY(hoverLightsOnlyThat(session, 2));
         QTest::keyClick(m_harness.window(), Qt::Key_Return);
         TRY_COMPARE(eval(QStringLiteral("launcherData.system.triggered.slice(-1)[0].favoriteId")).toString(), QStringLiteral("suspend"));
+    }
+
+    void theRailKeepsItsPinWhenPinsChange()
+    {
+        QVERIFY(m_harness.openHost(false));
+        eval(QStringLiteral("launcherData.sidebarPins = [{ kind: 'app', id: 'a', name: 'A' }, { kind: 'app', id: 'b', name: 'B' }, "
+                            "{ kind: 'app', id: 'c', name: 'C' }]"));
+        eval(QStringLiteral("launcher.enterRail()"));
+        QTest::keyClick(m_harness.window(), Qt::Key_Down);
+        QCOMPARE(eval(QStringLiteral("launcher.currentPin().id")).toString(), QStringLiteral("b"));
+        eval(QStringLiteral("launcherData.sidebarPins = launcherData.sidebarPins.slice(1)"));
+        QCOMPARE(rail(), QStringList({QStringLiteral("b"), QStringLiteral("c")}));
+        QCOMPARE(eval(QStringLiteral("launcher.currentPin().id")).toString(), QStringLiteral("b"));
+        eval(QStringLiteral("launcherData.sidebarPins = [{ kind: 'app', id: 'z', name: 'Z' }].concat(launcherData.sidebarPins)"));
+        QCOMPARE(eval(QStringLiteral("launcher.currentPin().id")).toString(), QStringLiteral("b"));
+        QCOMPARE(eval(QStringLiteral("launcher.railIndex")).toInt(), 1);
+        eval(QStringLiteral("launcherData.sidebarPins = launcherData.sidebarPins.filter(p => p.id !== 'b')"));
+        QCOMPARE(eval(QStringLiteral("launcher.currentPin().id")).toString(), QStringLiteral("c"));
+        eval(QStringLiteral("launcherData.sidebarPins = launcherData.sidebarPins.filter(p => p.id !== 'c')"));
+        QCOMPARE(eval(QStringLiteral("launcher.currentPin().id")).toString(), QStringLiteral("z"));
     }
 };
 
