@@ -82,7 +82,7 @@ def detect_steamid():
         for m in re.finditer(r'"(7656\d{13})"\s*\{(.*?)\}', txt, re.S):
             sid, body = m.group(1), m.group(2)
             best = best or sid
-            if '"MostRecent"' in body and '"1"' in body:
+            if re.search(r'"MostRecent"\s*"1"', body, re.I):
                 return sid
         if best:
             return best

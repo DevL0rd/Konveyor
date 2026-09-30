@@ -115,6 +115,11 @@ class TestPortalFriends(unittest.TestCase):
         self.box.write(self.box.home / ".local" / "share" / "Steam" / "config" / "loginusers.vdf", LOGINUSERS.replace('"MostRecent" "1"', '"MostRecent" "0"'))
         self.assertEqual(self.module.detect_steamid(), "76561198000000002")
 
+    def test_the_most_recent_account_wins_when_another_remembers_its_password(self):
+        loginusers = LOGINUSERS.replace('"AccountName" "old"', '"AccountName" "old"\n        "RememberPassword" "1"\n        "AllowAutoLogin" "1"')
+        self.box.write(self.box.home / ".steam" / "steam" / "config" / "loginusers.vdf", loginusers)
+        self.assertEqual(self.module.detect_steamid(), ME)
+
     def test_a_configured_steamid_wins(self):
         self.box.write(self.box.home / ".steam" / "steam" / "config" / "loginusers.vdf", LOGINUSERS)
         self.configure(steam_api_key=KEY, steamid=" 76561198000000009 ")
