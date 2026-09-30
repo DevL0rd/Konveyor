@@ -58,16 +58,25 @@ std::optional<QSizeF> nonZeroSize(QSize size)
 namespace
 {
 
+int stackingOrder(const Column &column, std::size_t tile)
+{
+    if (!column.isTabbed() || tile < column.activeTileIndex) {
+        return static_cast<int>(tile);
+    }
+    return tile == column.activeTileIndex ? static_cast<int>(column.tiles.size()) - 1 : static_cast<int>(tile) - 1;
+}
+
 QHash<WindowId, TileIndex> collectIndices(const Workspace &workspace)
 {
     QHash<WindowId, TileIndex> indices;
     int stacking = 0;
     const std::vector<Column> &columns = workspace.scrolling().columns();
     for (std::size_t c = 0; c < columns.size(); ++c) {
-        for (std::size_t t = 0; t < columns[c].tiles.size(); ++t) {
-            indices.insert(columns[c].tiles[t].id(), {static_cast<int>(c), static_cast<int>(t), stacking});
-            stacking += 1;
+        const Column &column = columns[c];
+        for (std::size_t t = 0; t < column.tiles.size(); ++t) {
+            indices.insert(column.tiles[t].id(), {static_cast<int>(c), static_cast<int>(t), stacking + stackingOrder(column, t)});
         }
+        stacking += static_cast<int>(column.tiles.size());
     }
     const std::vector<Tile> &floating = workspace.floating().tiles();
     for (std::size_t i = floating.size(); i > 0; --i) {
