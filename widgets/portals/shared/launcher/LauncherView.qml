@@ -371,6 +371,8 @@ FocusScope {
         const current = currentSection()
         if (!current || current.currentIndex < 0 || current.currentIndex >= current.shownCount)
             resetSelection()
+        else if (railIndex < 0 && !current.sectionActive)
+            applySection(liveSections(), sectionIndex, false)
         activatePending()
     }
     function activatePending() {

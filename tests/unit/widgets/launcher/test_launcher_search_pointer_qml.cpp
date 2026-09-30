@@ -1,0 +1,32 @@
+#include "appsharness.h"
+
+class TestLauncherSearchPointerQml : public AppsTest::TestCase
+{
+    Q_OBJECT
+
+private Q_SLOTS:
+    void typingHighlightsWhatEnterOpens()
+    {
+        QVERIFY(openLibrary(false));
+        const QString lit
+            = QStringLiteral("launcher.liveSections().map(s => { const out = []; for (let i = 0; i < s.shownCount; ++i) { "
+                             "const t = s.itemAtIndex(i); if (t && (t.selected === true || (s.sectionActive && s.currentIndex === i))) "
+                             "out.push(i) } return out.join('+') }).join('|')");
+        for (const char *term : {"a", "al", "p", "portal", "@a", "@e", "celeste", "e", "kon", "dol", "o"}) {
+            eval(QStringLiteral("launcher.setQuery('%1')").arg(QLatin1String(term)));
+            TRY_COMPARE(eval(QStringLiteral("launcher.presentedTerm")).toString(), eval(QStringLiteral("launcher.term")).toString());
+            QTRY_VERIFY2_WITH_TIMEOUT(
+                eval(QStringLiteral("launcher.searchSettled && launcher.liveSections().length > 0")).toBool(), term, 30000);
+            const int sections = eval(QStringLiteral("launcher.liveSections().length")).toInt();
+            QString expected = QStringLiteral("0");
+            for (int section = 1; section < sections; ++section) {
+                expected += QLatin1Char('|');
+            }
+            QVERIFY2(eval(lit).toString() == expected, qPrintable(QStringLiteral("%1: %2").arg(QLatin1String(term), eval(lit).toString())));
+            QCOMPARE(eval(QStringLiteral("launcher.currentSection() === launcher.liveSections()[0]")).toBool(), true);
+        }
+    }
+};
+
+LAUNCHER_TEST_MAIN(TestLauncherSearchPointerQml)
+#include "test_launcher_search_pointer_qml.moc"
