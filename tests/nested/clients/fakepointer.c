@@ -80,10 +80,22 @@ static int send_event(struct wl_display *display, const char *token)
         org_kde_kwin_fake_input_axis(fake, code, wl_fixed_from_double(value));
     } else if (sscanf(token, "button:%u:%u", &code, &state) == 2) {
         org_kde_kwin_fake_input_button(fake, code, state);
+    } else if (sscanf(token, "touchdown:%u:%lf:%lf", &code, &value, &y) == 3) {
+        org_kde_kwin_fake_input_touch_down(fake, code, wl_fixed_from_double(value), wl_fixed_from_double(y));
+        org_kde_kwin_fake_input_touch_frame(fake);
+    } else if (sscanf(token, "touchmotion:%u:%lf:%lf", &code, &value, &y) == 3) {
+        org_kde_kwin_fake_input_touch_motion(fake, code, wl_fixed_from_double(value), wl_fixed_from_double(y));
+        org_kde_kwin_fake_input_touch_frame(fake);
+    } else if (sscanf(token, "touchup:%u", &code) == 1) {
+        org_kde_kwin_fake_input_touch_up(fake, code);
+        org_kde_kwin_fake_input_touch_frame(fake);
+    } else if (strcmp(token, "touchcancel") == 0) {
+        org_kde_kwin_fake_input_touch_cancel(fake);
     } else if (sscanf(token, "%u:%u", &code, &state) == 2) {
         org_kde_kwin_fake_input_keyboard_key(fake, code, state);
     } else {
-        fprintf(stderr, "fakepointer: events are CODE:STATE, button:CODE:STATE, axis:AXIS:VALUE or move:X:Y\n");
+        fprintf(stderr, "fakepointer: events are CODE:STATE, button:CODE:STATE, axis:AXIS:VALUE, move:X:Y, touchdown:ID:X:Y, "
+                        "touchmotion:ID:X:Y, touchup:ID or touchcancel\n");
         return 0;
     }
     wl_display_roundtrip(display);

@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from fakepointer import touch
+from fakepointer import Held, touch
 from kwinsession import active_title, konveyor_action, konveyor_windows, qdbus, run_script, wait_for
 from screenshot import capture_workspace
 
@@ -256,9 +256,35 @@ def check_floating_drag(problems):
     settle()
 
 
+def multi_touch_active():
+    return qdbus("org.kde.Konveyor", "/Konveyor", "org.kde.Konveyor.MultiTouchActive") == "true"
+
+
+def check_cancelled_touch(problems):
+    set_widths("80%")
+    before = columns()
+    with Held() as held:
+        held.send(*(f"touchdown:{finger}:{1300 + finger * 60}:540" for finger in range(3)))
+        active = wait_for(multi_touch_active, 30)
+        held.send(*(f"touchmotion:{finger}:{1000 + finger * 60}:540" for finger in range(3)))
+        held.send("touchcancel")
+    released = wait_for(lambda: not multi_touch_active(), 30)
+    settle()
+    after = columns()
+    print(f"cancelled 3-finger touch: multi-touch while down {active}, after the cancel {not released}, row {before} -> {after}")
+    if not active:
+        problems.append("three fingers down did not report multi-touch")
+    if not released:
+        problems.append("a cancelled touch left MultiTouchActive on")
+    touch(3, 600, 540, dx=900, radius=50, steps=40, settle=False)
+    if not wait_for(lambda: columns()[0][0] > after[0][0] + 100, 60):
+        problems.append(f"a 3-finger swipe after a cancelled touch did not scroll the row back ({after} -> {columns()})")
+    settle()
+
+
 def main():
     problems = []
-    for check in (check_swipe, check_workspace_swipe, check_pinch, check_window_swipes, check_tap, check_three_finger_tap, check_quick_drag_scrolls, check_long_press, check_floating_drag):
+    for check in (check_swipe, check_workspace_swipe, check_pinch, check_window_swipes, check_tap, check_three_finger_tap, check_quick_drag_scrolls, check_long_press, check_floating_drag, check_cancelled_touch):
         check(problems)
     capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
     for problem in problems:

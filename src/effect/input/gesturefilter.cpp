@@ -113,6 +113,9 @@ bool GestureFilter::touchCancel()
     }
     m_touchGestureTaken = false;
     m_handlers.touchCancel();
+    if (m_handlers.multiTouchChanged) {
+        m_handlers.multiTouchChanged(false);
+    }
     return false;
 }
 
