@@ -28,6 +28,7 @@ struct TwinOutputs
     }
 
     QString outputOf(Layout::WindowId id) { return fixture.state(id).output; }
+    bool eachAtHome() { return outputOf(left) == QLatin1String("DP-2") && outputOf(right) == QLatin1String("DP-3"); }
 };
 
 }
@@ -48,8 +49,7 @@ private Q_SLOTS:
     {
         QFETCH(QString, serial);
         TwinOutputs twins(serial);
-        QCOMPARE(twins.outputOf(twins.left), QStringLiteral("DP-2"));
-        QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-3"));
+        QVERIFY(twins.eachAtHome());
         VERIFY_INVARIANTS(twins.fixture);
     }
 
@@ -74,12 +74,10 @@ private Q_SLOTS:
         twins.fixture.removeOutput(QStringLiteral("DP-3"));
         QCOMPARE(twins.outputOf(twins.right), Plain);
         twins.fixture.addOutput(acme(QStringLiteral("DP-3"), 3840));
-        QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-3"));
-        QCOMPARE(twins.outputOf(twins.left), QStringLiteral("DP-2"));
+        QVERIFY(twins.eachAtHome());
         twins.fixture.removeOutput(QStringLiteral("DP-2"));
         twins.fixture.addOutput(acme(QStringLiteral("DP-2"), 1920));
-        QCOMPARE(twins.outputOf(twins.left), QStringLiteral("DP-2"));
-        QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-3"));
+        QVERIFY(twins.eachAtHome());
         VERIFY_INVARIANTS(twins.fixture);
     }
 
@@ -94,8 +92,7 @@ private Q_SLOTS:
         QCOMPARE(twins.outputOf(twins.left), QStringLiteral("DP-3"));
         QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-3"));
         twins.fixture.addOutput(acme(QStringLiteral("DP-2"), 1920));
-        QCOMPARE(twins.outputOf(twins.left), QStringLiteral("DP-2"));
-        QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-3"));
+        QVERIFY(twins.eachAtHome());
         VERIFY_INVARIANTS(twins.fixture);
     }
 
@@ -108,8 +105,7 @@ private Q_SLOTS:
         twins.fixture.addOutput(acme(QStringLiteral("DP-3"), 3840));
         twins.fixture.addOutput(acme(QStringLiteral("DP-2"), 1920));
         twins.fixture.addOutput(makeOutput(Plain, QRectF(0, 0, 1920, 1080)));
-        QCOMPARE(twins.outputOf(twins.left), QStringLiteral("DP-2"));
-        QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-3"));
+        QVERIFY(twins.eachAtHome());
         VERIFY_INVARIANTS(twins.fixture);
     }
 
@@ -133,8 +129,7 @@ private Q_SLOTS:
         QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-2"));
         twins.fixture.removeOutput(QStringLiteral("DP-3"));
         twins.fixture.addOutput(acme(QStringLiteral("DP-3"), 3840));
-        QCOMPARE(twins.outputOf(twins.right), QStringLiteral("DP-3"));
-        QCOMPARE(twins.outputOf(twins.left), QStringLiteral("DP-2"));
+        QVERIFY(twins.eachAtHome());
         VERIFY_INVARIANTS(twins.fixture);
     }
 
