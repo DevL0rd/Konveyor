@@ -24,7 +24,7 @@ Item {
     property var game: null
     property bool emphasize: false
     property var sidebarEntry: null
-    readonly property bool containsMouse: mouse.containsMouse
+    readonly property bool containsMouse: pointer.hovered
     default property alias extra: extraRow.data
     signal clicked()
     signal rightClicked()
@@ -34,22 +34,25 @@ Item {
         anchors.fill: parent
         anchors.margins: 2
         radius: Kirigami.Units.cornerRadius * 2.5
-        color: tile.selected ? launcher.selectedFill : mouse.containsMouse ? launcher.hoverFill : "transparent"
+        color: tile.selected ? launcher.selectedFill : pointer.hovered ? launcher.hoverFill : "transparent"
         border.width: tile.selected ? 1 : 0
         border.color: launcher.selectedLine
+    }
+
+    HoverHandler {
+        id: pointer
+        onHoveredChanged: if (hovered && launcher.pointerMoved(point.scenePosition)) tile.hovered()
     }
 
     MouseArea {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         property point pressPoint
         property bool dragging: false
         property bool suppressClick: false
         property bool held: false
         preventStealing: dragging
-        onEntered: if (launcher.pointerMoved(mapToItem(null, mouseX, mouseY))) tile.hovered()
         onPressed: function(event) {
             pressPoint = Qt.point(event.x, event.y)
             suppressClick = false

@@ -454,6 +454,7 @@ PopScroll {
                 delegate: KickerRow {
                     sourceModel: page.appGroup
                     sourceIndex: DelegateModel.itemsIndex
+                    position: DelegateModel.shownIndex
                     function activate() {
                         launcher.trigger(page.appGroup, DelegateModel.itemsIndex, favoriteId)
                     }

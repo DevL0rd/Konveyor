@@ -39,6 +39,31 @@ private Q_SLOTS:
             QCOMPARE(eval(QStringLiteral("launcher.currentSection() === launcher.liveSections()[0]")).toBool(), true);
         }
     }
+
+    void searchRowsLightUpUnderThePointer()
+    {
+        QVERIFY(openLibrary(false));
+        for (const char *term :
+            {"a", "al", "p", "portal", "@a", "@e", "celeste", "e", "kon", "dol", "fire", "k", "o", "zz", "o", "dolphin", "d"}) {
+            eval(QStringLiteral("launcher.setQuery('%1')").arg(QLatin1String(term)));
+            TRY_COMPARE(eval(QStringLiteral("launcher.presentedTerm")).toString(), eval(QStringLiteral("launcher.term")).toString());
+            QTRY_VERIFY2_WITH_TIMEOUT(
+                eval(QStringLiteral("launcher.searchSettled && launcher.liveSections().length > 0")).toBool(), term, 30000);
+            const int sections = eval(QStringLiteral("launcher.liveSections().length")).toInt();
+            QVERIFY2(sections > 0, term);
+            for (int section = 0; section < sections; ++section) {
+                const QString grid = QStringLiteral("launcher.liveSections()[%1]").arg(section);
+                QCOMPARE(hitsOtherTiles(grid), QString());
+                QCOMPARE(staleTiles(grid), QString());
+                const int shown = eval(grid + QStringLiteral(".shownCount")).toInt();
+                for (int position = 0; position < shown; ++position) {
+                    QVERIFY2(hoverLightsOnlyThat(grid, position),
+                        qPrintable(
+                            QStringLiteral("%1: %2").arg(QLatin1String(term), tileOf(grid, position)->property("label").toString())));
+                }
+            }
+        }
+    }
 };
 
 LAUNCHER_TEST_MAIN(TestLauncherSearchPointerQml)

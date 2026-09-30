@@ -9,6 +9,7 @@ Tile {
     readonly property string favoriteId: model.favoriteId || ""
     property var sourceModel: grid ? grid.model : null
     property int sourceIndex: index
+    property int position: index
     sidebarEntry: launcherData.sidebarEntryFor(favoriteId, model.url, model.display)
 
     width: grid ? grid.cellWidth : 0
@@ -49,10 +50,10 @@ Tile {
         launcher.openMenu(launcher.kickerEntries(sourceModel, sourceIndex, model.hasActionList ? model.actionList : [], favoriteId, model.url), tile)
     }
 
-    onHovered: launcher.select(grid, index)
+    onHovered: launcher.select(grid, position)
     onClicked: activate()
     onRightClicked: {
-        launcher.select(grid, index)
+        launcher.select(grid, position)
         openMenu()
     }
 }

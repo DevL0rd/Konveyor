@@ -4,12 +4,89 @@
 
 using namespace AppsTest;
 
+namespace
+{
+
+const QString places = QStringLiteral("launcher.currentView().sections[0]");
+const QString appResults = QStringLiteral("launcher.currentView().sections.find(g => g && g.parent && g.parent.title === 'Applications')");
+
+}
+
 class TestLauncherRowsQml : public AppsTest::TestCase
 {
     Q_OBJECT
 
+private:
+    bool searchApps(const QString &term)
+    {
+        eval(QStringLiteral("launcher.setQuery('%1')").arg(term));
+        return QTest::qWaitFor(
+            [this, &term] {
+                return eval(QStringLiteral("launcher.presentedTerm")).toString() == term
+                    && eval(appResults + QStringLiteral(" !== undefined")).toBool()
+                    && tilesOf(appResults, QStringLiteral("label")).size() > 1
+                    && eval(QStringLiteral("launcher.liveSections()[0].sectionActive && launcher.liveSections()[0].currentIndex === 0"))
+                           .toBool();
+            },
+            30000);
+    }
+
+    bool reopen()
+    {
+        m_harness.root()->setProperty("open", true);
+        return QTest::qWaitFor([this] { return m_harness.view()->property("progress").toDouble() == 1.0; }, 30000);
+    }
+
 private Q_SLOTS:
     void initTestCase() { m_harness.useSystemKicker(); }
+
+    void placesHighlightThePlaceUnderThePointer()
+    {
+        QVERIFY(m_harness.openHost(false));
+        QVERIFY(goTo(QStringLiteral("files")));
+        TRY_COMPARE(tilesOf(places, QStringLiteral("label")),
+            QStringList({QStringLiteral("Home"), QStringLiteral("Trash"), QStringLiteral("Network"), QStringLiteral("Recent Files"),
+                QStringLiteral("Recent Locations")}));
+        for (int position = 0; position < 5; ++position) {
+            QVERIFY2(hoverLightsOnlyThat(places, position), qPrintable(QString::number(position)));
+        }
+        for (int position = 4; position >= 0; --position) {
+            QVERIFY2(hoverLightsOnlyThat(places, position), qPrintable(QString::number(position)));
+        }
+    }
+
+    void searchedAppsHighlightTheRowUnderThePointer_data()
+    {
+        QTest::addColumn<QString>("term");
+        for (const char *term : {"k", "ka", "kr", "s", "st", "dol"}) {
+            QTest::newRow(term) << QString::fromLatin1(term);
+        }
+    }
+
+    void searchedAppsHighlightTheRowUnderThePointer()
+    {
+        QFETCH(QString, term);
+        QVERIFY(openApps());
+        QVERIFY(searchApps(term));
+        const QStringList labels = tilesOf(appResults, QStringLiteral("label"));
+        QCOMPARE(tilesOf(appResults, QStringLiteral("model.display")), labels);
+        QVERIFY(!labels.contains(eval(QStringLiteral("launcher.currentView().sections[0].itemAtIndex(0).label")).toString()));
+        for (int position = 0; position < labels.size(); ++position) {
+            QVERIFY2(hoverLightsOnlyThat(appResults, position), qPrintable(QString::number(position)));
+        }
+        for (int position = 0; position < labels.size(); ++position) {
+            if (position > 0) {
+                QVERIFY(reopen());
+                QVERIFY(searchApps(term));
+            }
+            const QString label = tilesOf(appResults, QStringLiteral("label")).value(position);
+            QVERIFY(hoverLightsOnlyThat(appResults, position));
+            const qsizetype before = m_harness.launched().size();
+            QTest::keyClick(m_harness.window(), Qt::Key_Return);
+            TRY_COMPARE(m_harness.launched().size(), before + 1);
+            QCOMPARE(m_harness.launched().constLast(), idOf(label));
+        }
+    }
 
     void everyResultIsTheTileUnderItsOwnPointer()
     {

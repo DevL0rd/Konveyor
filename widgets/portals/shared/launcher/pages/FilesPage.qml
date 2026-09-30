@@ -35,6 +35,7 @@ PopScroll {
         delegate: KickerTile {
             sourceModel: launcherData.places
             sourceIndex: DelegateModel.itemsIndex
+            position: DelegateModel.locationsIndex
         }
     }
 
