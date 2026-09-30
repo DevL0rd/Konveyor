@@ -1,11 +1,13 @@
 #include "plasma/plasmashellsync.h"
 
 #include <effect/effecthandler.h>
+#include <window.h>
 #include <workspace.h>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusPendingCall>
+#include <QDBusPendingCallWatcher>
 
 namespace Konveyor
 {
@@ -57,7 +59,13 @@ void callPlasma(const QString &script)
     QDBusMessage message = QDBusMessage::createMethodCall(QStringLiteral("org.kde.plasmashell"), QStringLiteral("/PlasmaShell"),
         QStringLiteral("org.kde.PlasmaShell"), QStringLiteral("evaluateScript"));
     message.setArguments({script});
-    QDBusConnection::sessionBus().asyncCall(message);
+    auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(message));
+    QObject::connect(watcher, &QDBusPendingCallWatcher::finished, watcher, [](QDBusPendingCallWatcher *call) {
+        if (call->isError()) {
+            qWarning() << "konveyor: plasmashell did not apply the panel and widget settings:" << call->error().message();
+        }
+        call->deleteLater();
+    });
 }
 
 }
@@ -70,6 +78,13 @@ PlasmaShellSync::PlasmaShellSync(QObject *parent)
     connect(&m_debounce, &QTimer::timeout, this, &PlasmaShellSync::apply);
 }
 
+PlasmaShellSync::~PlasmaShellSync()
+{
+    if (m_started && m_seenLayout) {
+        send(false, false);
+    }
+}
+
 void PlasmaShellSync::start()
 {
     m_started = true;
@@ -78,6 +93,12 @@ void PlasmaShellSync::start()
     m_shellWatcher.setWatchMode(QDBusServiceWatcher::WatchForRegistration);
     m_shellWatcher.addWatchedService(QStringLiteral("org.kde.plasmashell"));
     connect(&m_shellWatcher, &QDBusServiceWatcher::serviceRegistered, this, &PlasmaShellSync::scheduleApply);
+    connect(KWin::workspace(), &KWin::Workspace::windowAdded, this, [this](KWin::Window *window) {
+        if (window->isDock()) {
+            connect(window, &KWin::Window::outputChanged, this, &PlasmaShellSync::scheduleApply);
+            scheduleApply();
+        }
+    });
     scheduleApply();
 }
 
@@ -129,13 +150,17 @@ void PlasmaShellSync::scheduleApply()
 
 void PlasmaShellSync::apply()
 {
-    const bool showingDesktop = KWin::workspace()->showingDesktop();
+    send(m_hideDesktopWidgets && !KWin::workspace()->showingDesktop(), m_fillPanels);
+}
+
+void PlasmaShellSync::send(bool hideWidgets, bool fillPanels)
+{
     QList<bool> hidden;
     QList<bool> filled;
     for (const QString &output : std::as_const(m_outputOrder)) {
         const ScreenState screen = m_screens.value(output);
-        hidden.append(m_hideDesktopWidgets && !showingDesktop && screen.occupied);
-        filled.append(m_fillPanels && screen.expanded);
+        hidden.append(hideWidgets && screen.occupied);
+        filled.append(fillPanels && screen.expanded);
     }
     callPlasma(syncScript().arg(screenMap(hidden), screenMap(filled)));
 }

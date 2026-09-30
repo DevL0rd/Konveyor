@@ -17,6 +17,7 @@ class PlasmaShellSync : public QObject
 
 public:
     explicit PlasmaShellSync(QObject *parent = nullptr);
+    ~PlasmaShellSync() override;
 
     void start();
     void update(const QList<Layout::WindowState> &states, const QStringList &outputOrder);
@@ -33,6 +34,7 @@ private:
 
     void scheduleApply();
     void apply();
+    void send(bool hideWidgets, bool fillPanels);
 
     QTimer m_debounce;
     QDBusServiceWatcher m_shellWatcher;
