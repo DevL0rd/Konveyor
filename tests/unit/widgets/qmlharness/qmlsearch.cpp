@@ -6,6 +6,7 @@
 #include <QQuickWindow>
 #include <QRegularExpression>
 #include <QTest>
+#include <QtQuickTest/quicktest.h>
 
 QStringList visibleTexts(QQuickItem *item)
 {
@@ -101,5 +102,6 @@ void clickAt(QQuickItem *item, Qt::MouseButton button, QPointF local)
     if (local.x() < 0) {
         local = QPointF(item->width() / 2, item->height() / 2);
     }
+    QQuickTest::qWaitForPolish(item->window());
     QTest::mouseClick(item->window(), button, {}, item->mapToScene(local).toPoint());
 }

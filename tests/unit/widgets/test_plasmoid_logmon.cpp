@@ -1,58 +1,15 @@
-#include "plasmoidharness.h"
+#include "logmonfixture.h"
 
-#include <QDateTime>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QSignalSpy>
 #include <QTest>
+
+using Logmon::feed;
+using Logmon::logPath;
+using Logmon::rowField;
+using Logmon::snapshot;
+using Logmon::started;
 
 namespace
 {
-
-const PlasmoidSpec journal {QStringLiteral("system-log/plasmoids/org.devl0rd.logmon.journal"), QStringLiteral("org.devl0rd.logmon.journal"),
-    QStringLiteral("utilities-log-viewer"), {QStringLiteral("system-log/shared/lib")}};
-
-QString logPath()
-{
-    return qEnvironmentVariable("XDG_RUNTIME_DIR") + QStringLiteral("/Linux-Log-Monitor/log.json");
-}
-
-QJsonObject line(qint64 secondsAgo, int priority, const char *ident, const char *message)
-{
-    const qint64 micros = (QDateTime::currentMSecsSinceEpoch() - secondsAgo * 1000) * 1000;
-    return {{QStringLiteral("t"), micros}, {QStringLiteral("p"), priority}, {QStringLiteral("id"), QLatin1String(ident)},
-        {QStringLiteral("u"), QString()}, {QStringLiteral("pid"), QStringLiteral("12")}, {QStringLiteral("m"), QString::fromUtf8(message)}};
-}
-
-QByteArray snapshot(qint64 age = 0, bool alive = true)
-{
-    const QJsonArray lines {line(67, 6, "kernel", "boot ok"), line(37, 3, "sshd", "Failed password\nsecond line"),
-        line(22, 4, "kwin_wayland", "slow frame"), line(7, 6, "kded6", "\x1b[31mred\x1b[0m text")};
-    const QJsonObject object {{QStringLiteral("ts"), double(QDateTime::currentSecsSinceEpoch() - age)}, {QStringLiteral("alive"), alive},
-        {QStringLiteral("lines"), lines}};
-    return QJsonDocument(object).toJson(QJsonDocument::Compact);
-}
-
-std::unique_ptr<PlasmoidHarness> started(int form, const QVariantMap &config = {})
-{
-    return PlasmoidHarness::started(journal, form, config);
-}
-
-bool feed(PlasmoidHarness &harness, const QByteArray &json = snapshot())
-{
-    QSignalSpy updated(harness.eval(QStringLiteral("logData")).value<QObject *>(), SIGNAL(updated()));
-    return harness.deliver(logPath(), json, [&updated] { return updated.count() > 0; });
-}
-
-QStringList rowField(PlasmoidHarness &harness, const char *field)
-{
-    return harness
-        .eval(QStringLiteral(
-            "(function() { const out = []; for (let i = 0; i < rows.count; ++i) out.push(String(rows.get(i).%1)); return out })()")
-                .arg(QLatin1String(field)))
-        .toStringList();
-}
 
 const QString journalPrefix = QStringLiteral("journalctl -o json");
 

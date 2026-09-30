@@ -49,7 +49,7 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: function(event) {
             if (event.button === Qt.RightButton)
-                menuComponent.createObject(row).popup()
+                menuComponent.createObject(row, { entry: { time: row.time, app: row.app, pid: row.pid, msg: row.msg, prio: row.prio } }).popup()
             else
                 root.toggleExpand(row.index)
         }
@@ -160,11 +160,13 @@ Rectangle {
     Component {
         id: menuComponent
         QQC2.Menu {
+            id: menu
+            required property var entry
             onClosed: destroy()
             QQC2.MenuItem {
                 text: i18n("Copy line")
                 icon.name: "edit-copy"
-                onTriggered: root.copyText(root.lineText(row))
+                onTriggered: root.copyText(root.lineText(menu.entry))
             }
             QQC2.MenuItem {
                 text: i18n("Copy all")
@@ -173,19 +175,19 @@ Rectangle {
             }
             QQC2.MenuSeparator {}
             QQC2.MenuItem {
-                text: i18n("Only \"%1\"", row.app)
+                text: i18n("Only \"%1\"", menu.entry.app)
                 icon.name: "view-filter"
-                onTriggered: root.searchRequested(row.app)
+                onTriggered: root.searchRequested(menu.entry.app)
             }
             QQC2.MenuItem {
-                text: i18n("Mute \"%1\"", row.app)
+                text: i18n("Mute \"%1\"", menu.entry.app)
                 icon.name: "audio-volume-muted"
-                onTriggered: root.muteApp(row.app)
+                onTriggered: root.muteApp(menu.entry.app)
             }
             QQC2.MenuItem {
                 text: i18n("Ask Claude")
                 icon.name: "help-hint"
-                onTriggered: root.askClaude(row.time, row.app, row.pid, row.msg, row.prio)
+                onTriggered: root.askClaude(menu.entry.time, menu.entry.app, menu.entry.pid, menu.entry.msg, menu.entry.prio)
             }
         }
     }
