@@ -53,7 +53,14 @@ std::vector<Workspace> Monitor::releaseWorkspaces()
 
 void Monitor::applyOptions()
 {
+    const bool wasEmptyAbove = m_options->layout.emptyWorkspaceAboveFirst;
     m_options = resolveMonitorOptions(m_globalOptions, m_layoutOverride);
+    if (wasEmptyAbove != m_options->layout.emptyWorkspaceAboveFirst) {
+        if (m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.front().isOccupiedOrNamed()) {
+            prependEmptyWorkspace();
+        }
+        pruneWorkspaces();
+    }
     for (Workspace &workspace : m_workspaces) {
         workspace.updateConfig(m_options);
     }
@@ -61,18 +68,7 @@ void Monitor::applyOptions()
 
 void Monitor::updateConfig(OptionsPtr globalOptions)
 {
-    const bool wasEmptyAbove = m_options->layout.emptyWorkspaceAboveFirst;
     m_globalOptions = std::move(globalOptions);
-    const OptionsPtr updated = resolveMonitorOptions(m_globalOptions, m_layoutOverride);
-    if (wasEmptyAbove != updated->layout.emptyWorkspaceAboveFirst && m_workspaces.size() > 1) {
-        m_options = updated;
-        if (updated->layout.emptyWorkspaceAboveFirst) {
-            prependEmptyWorkspace();
-        } else if (!m_transition && m_activeWorkspaceIndex != 0) {
-            m_workspaces.erase(m_workspaces.begin());
-            m_activeWorkspaceIndex -= 1;
-        }
-    }
     applyOptions();
 }
 

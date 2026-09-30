@@ -190,6 +190,22 @@ private Q_SLOTS:
         QVERIFY(dock.contains(fixture.frame(floating)));
         VERIFY_INVARIANTS(fixture);
     }
+
+    void outputLayoutCanTurnOnTheEmptyWorkspaceAboveFirst()
+    {
+        Fixture fixture;
+        const auto id = fixture.add(QStringLiteral("a"));
+        Config::Config config = instantConfig();
+        Config::Layout layout = config.layout;
+        layout.emptyWorkspaceAboveFirst = true;
+        config.outputs.append(Config::OutputConfig {QStringLiteral("DP-1"), layout, std::nullopt, std::nullopt});
+        fixture.setConfig(config);
+        QCOMPARE(workspacesOn(fixture, QStringLiteral("DP-1")).first().activeWindow, std::optional<Layout::WindowId>());
+        QCOMPARE(fixture.state(id).workspaceIndex, 2);
+        fixture.setConfig(instantConfig());
+        QCOMPARE(fixture.state(id).workspaceIndex, 1);
+        VERIFY_INVARIANTS(fixture);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestLayoutOutputs)
