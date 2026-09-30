@@ -29,6 +29,7 @@ FocusScope {
     property bool touchMode: false
     property bool touchDown: false
     property var pendingMenu: null
+    property bool activationPending: false
     readonly property real railPinHeight: Kirigami.Units.gridUnit * (compact ? 2.3 : 2.5)
     readonly property real railPinIcon: compact ? Kirigami.Units.iconSizes.smallMedium + 4 : Kirigami.Units.iconSizes.medium
     property bool warm: false
@@ -50,6 +51,7 @@ FocusScope {
     property string presentedQuery: ""
     readonly property bool searchSettled: presentedQuery === rawQuery
     onRawQueryChanged: {
+        activationPending = false
         if (rawQuery.trim() === "") {
             searchSettle.stop()
             presentedQuery = rawQuery
@@ -232,6 +234,7 @@ FocusScope {
         Qt.callLater(resetSelection)
     }
     function closeNow() {
+        activationPending = false
         hoveredPin = null
         sidebarDrag = null
         railIndex = -1
@@ -368,6 +371,14 @@ FocusScope {
         const current = currentSection()
         if (!current || current.currentIndex < 0 || current.currentIndex >= current.shownCount)
             resetSelection()
+        activatePending()
+    }
+    function activatePending() {
+        const section = currentSection()
+        if (!activationPending || launcherData.runner.querying || !section || !section.currentItem)
+            return
+        activationPending = false
+        section.activate()
     }
     function currentSection() {
         const sections = liveSections()
@@ -481,8 +492,10 @@ FocusScope {
             return
         }
         const section = currentSection()
-        if (section)
+        if (section && (section.currentItem || !searching))
             section.activate()
+        else
+            activationPending = searching
     }
     function menuForCurrent() {
         const pin = currentPin()

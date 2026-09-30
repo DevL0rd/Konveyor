@@ -11,6 +11,9 @@ QVariantMap window(const QString &title, const QString &appName, const QString &
     return row;
 }
 
+const QVariantMap onlyWindowResults {
+    {QStringLiteral("searchCalculator"), false}, {QStringLiteral("searchCommands"), false}, {QStringLiteral("searchPackages"), false}};
+
 const QVariantList openWindows {
     window(QStringLiteral("notes.txt"), QStringLiteral("KWrite"), QStringLiteral("org.kde.kwrite.desktop"),
         {{QStringLiteral("GenericName"), QStringLiteral("Text Editor")}}),
@@ -57,6 +60,20 @@ private:
             30000);
     }
 
+    QObject *pressEnterBeforeAnyResult()
+    {
+        fixture()->setProperty("windows", QVariantList());
+        QObject *host = m_harness.openHost(false, onlyWindowResults);
+        if (!host || !QTest::qWaitFor([this] { return eval(QStringLiteral("field.activeFocus")).toBool(); }, 30000)
+            || !search(QStringLiteral("dev.zed"))
+            || !QTest::qWaitFor([this] { return !eval(QStringLiteral("launcherData.runner.querying")).toBool(); }, 30000)
+            || results(QStringLiteral("totalResults")).toInt() != 0) {
+            return nullptr;
+        }
+        QTest::keyClick(m_harness.window(), Qt::Key_Return);
+        return host;
+    }
+
     QVariant onPage(const QString &expression) { return eval(QStringLiteral("(p => %1)(searchLoader.item)").arg(expression)); }
 
     QString windowSection()
@@ -99,12 +116,34 @@ private Q_SLOTS:
     {
         QObject *host = openWithWindows();
         QVERIFY(host);
-        QVERIFY(search(QStringLiteral("zed")));
+        QVERIFY(search(QStringLiteral("dev.zed")));
         QVERIFY(windowRows(1));
         eval(QStringLiteral("launcher.select(searchLoader.item.windowSection.grid, 0); launcher.activateCurrent()"));
         QCOMPARE(host->property("hideCount").toInt(), 1);
         QCOMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(),
             QStringList {QStringLiteral("main.cpp - Konveyor")});
+    }
+
+    void enterBeforeAnyResultShowsOpensTheFirstOnceItDoes()
+    {
+        QObject *host = pressEnterBeforeAnyResult();
+        QVERIFY(host);
+        QCOMPARE(host->property("hideCount").toInt(), 0);
+        fixture()->setProperty("windows", openWindows);
+        TRY_COMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(),
+            QStringList {QStringLiteral("main.cpp - Konveyor")});
+        QCOMPARE(host->property("hideCount").toInt(), 1);
+    }
+
+    void typingAgainDropsAnEnterThatFoundNothing()
+    {
+        QObject *host = pressEnterBeforeAnyResult();
+        QVERIFY(host);
+        QVERIFY(search(QStringLiteral("dev.ze")));
+        fixture()->setProperty("windows", openWindows);
+        QVERIFY(windowRows(1));
+        QCOMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(), QStringList());
+        QCOMPARE(host->property("hideCount").toInt(), 0);
     }
 
     void clickingAWindowSwitchesToIt()

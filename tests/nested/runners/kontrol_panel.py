@@ -38,11 +38,8 @@ def type_text(text):
 
 
 def switch_with_enter():
-    for _ in range(5):
-        keys((KEY_CODES["Return"], 1), (KEY_CODES["Return"], 0))
-        if wait_for(lambda: active_title() == PROBE and not window_minimized(PROBE), 5):
-            return True
-    return False
+    keys((KEY_CODES["Return"], 1), (KEY_CODES["Return"], 0))
+    return wait_for(lambda: active_title() == PROBE and not window_minimized(PROBE), 30)
 
 
 def main():

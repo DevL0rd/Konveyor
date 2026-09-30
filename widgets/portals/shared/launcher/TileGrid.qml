@@ -28,6 +28,7 @@ GridView {
     boundsBehavior: Flickable.StopAtBounds
     clip: scrolling || limit >= 0
     onCountChanged: if (visible) Qt.callLater(launcher.ensureSelection)
+    onCurrentItemChanged: if (currentItem && launcher.activationPending) Qt.callLater(launcher.activatePending)
     reuseItems: true
     cacheBuffer: scrolling ? cellHeight * 2 : 0
 
@@ -71,12 +72,12 @@ GridView {
         return true
     }
     function activate() {
-        const item = currentIndex >= 0 && currentIndex < shownCount ? itemAtIndex(currentIndex) : null
+        const item = currentIndex >= 0 && currentIndex < shownCount ? currentItem : null
         if (item)
             item.activate()
     }
     function openMenu() {
-        const item = currentIndex >= 0 && currentIndex < shownCount ? itemAtIndex(currentIndex) : null
+        const item = currentIndex >= 0 && currentIndex < shownCount ? currentItem : null
         if (item)
             item.openMenu()
     }
