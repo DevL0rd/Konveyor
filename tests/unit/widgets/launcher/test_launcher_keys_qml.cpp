@@ -120,6 +120,24 @@ private Q_SLOTS:
         QVERIFY(eval(QStringLiteral("launcher.currentSection().sectionActive")).toBool());
     }
 
+    void leftAndRightEditTheSearchAndControlArrowsStillNavigate()
+    {
+        QVERIFY(open());
+        eval(QStringLiteral("launcherData.sidebarPins = [{ kind: 'app', id: 'firefox', name: 'Firefox' }]"));
+        for (const char key : {'k', 'o', 'n'}) {
+            QTest::keyClick(m_harness.window(), key);
+        }
+        press(Qt::Key_Left);
+        QCOMPARE(eval(QStringLiteral("field.cursorPosition")).toInt(), 2);
+        QCOMPARE(eval(QStringLiteral("launcher.railIndex")).toInt(), -1);
+        QTest::keyClick(m_harness.window(), 's');
+        QCOMPARE(eval(QStringLiteral("field.text")).toString(), QStringLiteral("kosn"));
+        press(Qt::Key_Left, Qt::ControlModifier);
+        QCOMPARE(eval(QStringLiteral("launcher.railIndex")).toInt(), 0);
+        QCOMPARE(eval(QStringLiteral("field.text")).toString(), QStringLiteral("kosn"));
+        QVERIFY(eval(QStringLiteral("field.activeFocus")).toBool());
+    }
+
     void tabCyclesSections()
     {
         QVERIFY(open());
@@ -132,13 +150,25 @@ private Q_SLOTS:
         QCOMPARE(eval(QStringLiteral("launcher.sectionIndex")).toInt(), 2);
     }
 
-    void menuKeyOpensTheMenuForTheSelection()
+    void menuKeyAndAltEnterOpenTheMenuForTheSelection_data()
     {
-        QVERIFY(open());
+        QTest::addColumn<int>("key");
+        QTest::addColumn<Qt::KeyboardModifiers>("modifiers");
+        QTest::newRow("Menu") << int(Qt::Key_Menu) << Qt::KeyboardModifiers();
+        QTest::newRow("Alt+Enter") << int(Qt::Key_Return) << Qt::KeyboardModifiers(Qt::AltModifier);
+    }
+
+    void menuKeyAndAltEnterOpenTheMenuForTheSelection()
+    {
+        QFETCH(int, key);
+        QFETCH(Qt::KeyboardModifiers, modifiers);
+        QObject *host = open();
+        QVERIFY(host);
         TRY_COMPARE(eval(QStringLiteral("launcher.currentSection() ? launcher.currentSection().currentIndex : -2")).toInt(), 0);
-        press(Qt::Key_Menu);
+        press(key, modifiers);
         TRY_VERIFY(m_harness.view()->property("menuOpen").toBool());
         QCOMPARE(eval(QStringLiteral("menu.entries[0].text")).toString(), QStringLiteral("Open"));
+        QCOMPARE(host->property("hideCount").toInt(), 0);
     }
 
     void holdingAltShowsTheHints()
