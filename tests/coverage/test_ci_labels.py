@@ -11,9 +11,17 @@ from completeness import REPO, CompletenessCase, read
 WORKFLOW = REPO / ".github" / "workflows" / "ci.yml"
 
 
+def ci_lines():
+    workflow = read(WORKFLOW)
+    lines = workflow.splitlines()
+    for script in dict.fromkeys(re.findall(r"\b(tests/[\w/.-]+\.sh)\b", workflow)):
+        lines += read(REPO / script).splitlines()
+    return lines
+
+
 def labels_run_by_ci():
     labels = set()
-    for line in read(WORKFLOW).splitlines():
+    for line in ci_lines():
         labels.update(re.findall(r"\bctest\b.*?\s-L\s+[\"']?\^?([\w-]+)", line))
         for script in re.findall(r"tools/(?:check|coverage)\.sh\b(.*)", line):
             labels.add("unit")
