@@ -816,8 +816,13 @@ Item {
         const xhr = new XMLHttpRequest()
         xhr.open("GET", "file://" + friendsPath)
         xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || !xhr.responseText)
+            if (xhr.readyState !== XMLHttpRequest.DONE)
                 return
+            if (!xhr.responseText) {
+                launcherData.friendsError = i18n("No snapshot — is the collector running?")
+                launcherData.friendsNeedsApiKey = false
+                return
+            }
             let parsed = null
             try {
                 parsed = JSON.parse(xhr.responseText)

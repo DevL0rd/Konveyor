@@ -129,6 +129,19 @@ private Q_SLOTS:
         QVERIFY(eval(QStringLiteral("launcherData.friendsNeedsApiKey")).toBool());
     }
 
+    void aMissingSnapshotSaysTheCollectorIsNotRunning()
+    {
+        m_harness.respondWithLibrary();
+        QVERIFY(m_harness.openHost(false));
+        QVERIFY(goTo(QStringLiteral("friends")));
+        TRY_COMPARE(
+            eval(QStringLiteral("launcherData.friendsError")).toString(), QStringLiteral("No snapshot — is the collector running?"));
+        QVERIFY(!eval(QStringLiteral("launcherData.friendsNeedsApiKey")).toBool());
+        QVERIFY(m_harness.writeFile(m_harness.friendsPath(), LauncherTest::fixture("friends.json")));
+        TRY_COMPARE(eval(QStringLiteral("launcherData.friends.length")).toInt(), 5);
+        QCOMPARE(eval(QStringLiteral("launcherData.friendsError")).toString(), QString());
+    }
+
     void friendsOffReadsNothing()
     {
         m_harness.respondWithLibrary();
