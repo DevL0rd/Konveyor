@@ -11,7 +11,7 @@ namespace Konveyor::Settings
 std::optional<QString> readConfigText(const QString &path)
 {
     QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {
         return std::nullopt;
     }
     return QString::fromUtf8(file.readAll());
@@ -21,7 +21,7 @@ std::expected<void, QString> writeConfigText(const QString &path, const QString 
 {
     QDir().mkpath(QFileInfo(path).path());
     QSaveFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::WriteOnly)) {
         return std::unexpected(QStringLiteral("Could not write %1: %2").arg(path, file.errorString()));
     }
     file.write(text.toUtf8());
