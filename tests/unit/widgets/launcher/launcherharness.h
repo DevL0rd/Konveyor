@@ -63,6 +63,10 @@ public:
                 return false;
             }
         }
+        if (!QFile::setPermissions(
+                root.filePath(QStringLiteral("runtime")), QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner)) {
+            return false;
+        }
         qputenv("HOME", root.filePath(QStringLiteral("home")).toUtf8());
         qputenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/konveyor-test-bus");
         qputenv("QT_QPA_PLATFORM", "offscreen");
