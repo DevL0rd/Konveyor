@@ -73,9 +73,11 @@ public:
         }
     }
 
+    void addImports(QQmlEngine &engine) const { engine.addImportPath(QDir(m_home.path()).filePath(QStringLiteral("qml"))); }
+
     std::unique_ptr<QObject> create(QQmlEngine &engine, const QByteArray &body, QString *error = nullptr) const
     {
-        engine.addImportPath(QDir(m_home.path()).filePath(QStringLiteral("qml")));
+        addImports(engine);
         QQmlComponent component(&engine);
         component.setData(
             "import QtQuick\nimport org.kde.konveyor.settings\n" + body, QUrl::fromLocalFile(sourcePath(QStringLiteral("inline.qml"))));

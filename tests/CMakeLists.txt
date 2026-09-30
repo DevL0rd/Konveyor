@@ -243,3 +243,13 @@ target_link_libraries(test_touchpad_contacts PRIVATE Qt6::Core Qt6::Test)
 target_compile_options(test_touchpad_contacts PRIVATE -Wall -Wextra -Werror)
 add_test(NAME test_touchpad_contacts COMMAND test_touchpad_contacts)
 set_tests_properties(test_touchpad_contacts PROPERTIES LABELS "unit;input")
+
+find_package(KF6 REQUIRED COMPONENTS KCMUtils)
+add_executable(test_kcm_plugin unit/kcm/test_kcm_plugin.cpp)
+target_link_libraries(test_kcm_plugin PRIVATE KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Qml Qt6::Quick Qt6::Test)
+target_compile_options(test_kcm_plugin PRIVATE -Wall -Wextra -Werror)
+target_compile_definitions(test_kcm_plugin PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}" KONVEYOR_BINARY_DIR="${PROJECT_BINARY_DIR}"
+    KONVEYOR_KCM_PLUGIN="$<TARGET_FILE:kcm_konveyor>")
+add_dependencies(test_kcm_plugin kcm_konveyor konveyor_settings)
+add_test(NAME test_kcm_plugin COMMAND test_kcm_plugin)
+set_tests_properties(test_kcm_plugin PROPERTIES LABELS "unit;settings" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
