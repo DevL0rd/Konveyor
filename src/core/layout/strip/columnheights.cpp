@@ -28,6 +28,15 @@ std::optional<std::size_t> nonAutoIndex(const std::vector<TileSizing> &data)
     return static_cast<std::size_t>(std::distance(data.begin(), it));
 }
 
+double autoWeightOf(const std::vector<TileSizing> &data)
+{
+    double total = 0.0;
+    for (const TileSizing &sizing : data) {
+        total += sizing.height.isAuto() ? sizing.height.value : 0.0;
+    }
+    return total;
+}
+
 double totalAutoWeight(const std::vector<WindowHeight> &heights)
 {
     double total = 0.0;
@@ -121,6 +130,38 @@ void applyExactConstraints(std::vector<WindowHeight> &heights, const std::vector
     }
 }
 
+}
+
+std::optional<CarriedHeight> Column::heightToCarry(std::size_t idx) const
+{
+    if (isTabbed()) {
+        return std::nullopt;
+    }
+    const WindowHeight &height = data[idx].height;
+    return CarriedHeight {height, height.isAuto() ? height.value / autoWeightOf(data) : 1.0};
+}
+
+WindowHeight Column::insertedHeight(const Tile &tile)
+{
+    const std::optional<CarriedHeight> &carried = tile.carriedHeight;
+    if (!carried || isTabbed()) {
+        return WindowHeight::autoWeight(1.0);
+    }
+    const WindowHeight &height = carried->height;
+    if (height.isAuto()) {
+        const double total = autoWeightOf(data);
+        if (carried->share >= 1.0 || total <= 0.0) {
+            return WindowHeight::autoWeight(1.0);
+        }
+        return WindowHeight::autoWeight(carried->share * total / (1.0 - carried->share));
+    }
+    if (std::ranges::any_of(data, [](const TileSizing &sizing) { return !sizing.height.isAuto(); })) {
+        resetHeightsToAuto();
+    }
+    if (height.kind == WindowHeight::Kind::Preset && std::cmp_greater_equal(height.preset, m_options->layout.presetWindowHeights.size())) {
+        return WindowHeight::fixed(tile.windowSize().height());
+    }
+    return height;
 }
 
 void Column::layoutTiles(bool animate)

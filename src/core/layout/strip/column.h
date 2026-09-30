@@ -58,6 +58,7 @@ public:
     bool selectTile(std::size_t idx);
     void activateWindow(WindowId id);
     void insertTile(std::size_t idx, Tile tile);
+    std::optional<CarriedHeight> heightToCarry(std::size_t idx) const;
     void updateWindow(WindowId id);
 
     QSizeF reservedSize() const;
@@ -128,6 +129,7 @@ private:
     ColumnWidth computeNewWidth(SizeChange change, std::optional<std::size_t> tileIndex) const;
     double computeNewWindowHeight(SizeChange change, std::size_t tileIndex) const;
     void swapActive(std::size_t newIndex);
+    WindowHeight insertedHeight(const Tile &tile);
 
     std::optional<SlideAnimation> m_slideX;
     std::optional<SlideAnimation> m_slideY;

@@ -112,6 +112,7 @@ public:
     std::optional<QPointF> savedFloatingPosition;
     std::optional<std::size_t> floatingWidthPresetIndex;
     std::optional<std::size_t> floatingHeightPresetIndex;
+    std::optional<CarriedHeight> carriedHeight;
     QPointF dragOffset;
 
 private:

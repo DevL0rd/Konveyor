@@ -96,6 +96,7 @@ void FloatingLayer::addTile(Tile tile, bool activate)
 void FloatingLayer::insertTile(std::size_t idx, Tile tile, bool activate)
 {
     tile.updateConfig(m_viewSize, m_scale, m_options);
+    tile.carriedHeight.reset();
     tile.window().setExpansionForceResizable(false);
     prepareTileSize(tile);
     keepWithinSizeLimits(tile);

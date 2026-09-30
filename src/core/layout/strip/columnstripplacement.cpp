@@ -268,6 +268,7 @@ DetachedTile ColumnStrip::detachTileAt(std::size_t columnIndex, std::size_t tile
 {
     if (m_columns[columnIndex].tiles.size() == 1) {
         Column column = detachColumnAt(columnIndex, anim);
+        column.tiles[tileIndex].carriedHeight = column.heightToCarry(tileIndex);
         return DetachedTile {std::move(column.tiles[tileIndex]), column.widthSetting, column.fillsWidth, false};
     }
 
@@ -287,6 +288,7 @@ DetachedTile ColumnStrip::detachTileAt(std::size_t columnIndex, std::size_t tile
     const bool wasNormal = column.sizingMode() == WindowMode::Normal;
     const auto pos = static_cast<std::ptrdiff_t>(tileIndex);
     Tile tile = std::move(column.tiles[tileIndex]);
+    tile.carriedHeight = column.heightToCarry(tileIndex);
     column.tiles.erase(column.tiles.begin() + pos);
     column.data.erase(column.data.begin() + pos);
 

@@ -216,7 +216,8 @@ void Column::insertTile(std::size_t idx, Tile tile)
         maximizePending = false;
     }
 
-    TileSizing tileData {WindowHeight::autoWeight(1.0), false};
+    TileSizing tileData {insertedHeight(tile), false};
+    tile.carriedHeight.reset();
     tileData.update(tile);
     const auto offset = static_cast<std::ptrdiff_t>(idx);
     data.insert(data.begin() + offset, tileData);

@@ -69,6 +69,12 @@ struct WindowHeight
     bool operator==(const WindowHeight &) const = default;
 };
 
+struct CarriedHeight
+{
+    WindowHeight height;
+    double share = 1.0;
+};
+
 struct PresetExtent
 {
     bool isTile = true;
