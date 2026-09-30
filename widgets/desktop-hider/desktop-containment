@@ -3,8 +3,8 @@ set -uo pipefail
 
 HIDER_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-SYSTEM_CONTAINMENT="/usr/share/plasma/plasmoids/org.kde.desktopcontainment"
-TARGET="$DATA_HOME/plasma/plasmoids/org.kde.desktopcontainment"
+CONTAINMENT_PATH="plasma/plasmoids/org.kde.desktopcontainment"
+TARGET="$DATA_HOME/$CONTAINMENT_PATH"
 MARKER=".konveyor-managed"
 LEGACY_MARKER=".linux-widget-hider-managed"
 LEGACY_SCRIPT="$DATA_HOME/kwin/scripts/devl0rd-hide-desktop-widgets"
@@ -26,19 +26,32 @@ remove_legacy_hider() {
     rm -f "$CONFIG_HOME/systemd/user/plasma-plasmashell.service.d/linux-widget-hider.conf" "$CONFIG_HOME/environment.d/linux-widget-hider.conf"
 }
 
+system_containment() {
+    local directory directories
+    IFS=: read -r -a directories <<<"${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    for directory in "${directories[@]}"; do
+        if [[ -n $directory && -d $directory/$CONTAINMENT_PATH ]]; then
+            printf '%s\n' "$directory/$CONTAINMENT_PATH"
+            return 0
+        fi
+    done
+    return 1
+}
+
 install_containment() {
     remove_legacy_hider
     if [[ -e $TARGET ]] && ! managed; then
         note "Skipping desktop widget hiding: $TARGET is someone else's override"
         return 0
     fi
-    if [[ ! -d $SYSTEM_CONTAINMENT ]]; then
-        note "Skipping desktop widget hiding: Plasma's desktop containment isn't at $SYSTEM_CONTAINMENT"
+    local system
+    if ! system=$(system_containment); then
+        note "Skipping desktop widget hiding: Plasma's desktop containment isn't in any of ${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
         return 0
     fi
     local staging
     staging=$(mktemp -d)
-    cp -a "$SYSTEM_CONTAINMENT" "$staging/org.kde.desktopcontainment"
+    cp -a "$system" "$staging/org.kde.desktopcontainment"
     if ! GIT_CEILING_DIRECTORIES="$staging" git -C "$staging/org.kde.desktopcontainment" apply -p1 <"$HIDER_DIR/patches/desktopcontainment.patch" >/dev/null 2>&1; then
         rm -rf "$staging"
         managed && rm -rf "$TARGET"
