@@ -20,7 +20,7 @@ def main():
         ("focus-column-left", lambda: konveyor_action("focus-column-left"), "B"),
         ("kwin activates A", lambda: activate("A"), "A"),
         ("focus-column-last", lambda: konveyor_action("focus-column-last"), "C"),
-        ("close-window", lambda: konveyor_action("close-window"), "A"),
+        ("close-window", lambda: konveyor_action("close-window"), "B"),
     ]
     for step, run, expected in steps:
         run()

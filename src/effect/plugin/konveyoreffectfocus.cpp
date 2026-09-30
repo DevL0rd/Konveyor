@@ -28,6 +28,15 @@ void KonveyorEffect::handlePointerMotion(const QPointF &position, qint64 timesta
     }
 }
 
+void KonveyorEffect::onActiveWindowChanged()
+{
+    if (d->followedWindow && d->followedWindow->isDeleted() && d->windows.idOf(d->followedWindow)) {
+        d->followAfterClose = true;
+        return;
+    }
+    followActiveWindow();
+}
+
 void KonveyorEffect::followActiveWindow()
 {
     KWin::Window *active = KWin::workspace()->activeWindow();

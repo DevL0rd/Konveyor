@@ -138,6 +138,7 @@ struct KonveyorEffect::Private
     QString lastBindAction;
     std::optional<Layout::WindowId> focusRequest;
     QPointer<KWin::Window> followedWindow;
+    bool followAfterClose = false;
     std::optional<Layout::WindowId> titlebarDrag;
     std::optional<Layout::WindowId> windowedMove;
     std::optional<Layout::WindowId> cancelledMove;

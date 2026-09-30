@@ -170,6 +170,9 @@ void KonveyorEffect::connectWindowLifecycle()
             releaseQuickTiling();
         }
         changeEngine().removeWindow(id);
+        if (std::exchange(d->followAfterClose, false) && !d->focusRequest) {
+            followActiveWindow();
+        }
         d->decorations.remove(id);
         d->fullscreenShade.remove(id);
         d->applier.forget(id);
@@ -190,7 +193,7 @@ void KonveyorEffect::connectWindowLifecycle()
             changeEngine().updateWindowProperties(id, d->windows.propertiesOf(window));
         }
     });
-    connect(&d->windows, &WindowRegistry::activeWindowChanged, this, &KonveyorEffect::followActiveWindow);
+    connect(&d->windows, &WindowRegistry::activeWindowChanged, this, &KonveyorEffect::onActiveWindowChanged);
 }
 
 void KonveyorEffect::connectWindowState()

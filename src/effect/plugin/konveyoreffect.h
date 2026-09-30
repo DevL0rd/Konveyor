@@ -74,6 +74,7 @@ private:
     void showKdeOverview(bool open);
     void connectOverviewSync();
     void followActiveWindow();
+    void onActiveWindowChanged();
     void followActiveOutput(const QString &name);
     void moveActiveOutputHome(Layout::WindowId id);
     void applyFocusRequest();
