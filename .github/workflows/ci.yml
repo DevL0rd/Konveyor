@@ -87,6 +87,9 @@ jobs:
       - name: Install Konveyor's dependencies
         run: extras/packaging/dependencies.sh
 
+      - name: Let kwin_wayland start in a container, which does not grant its CAP_SYS_NICE file capability
+        run: setcap -r "$(command -v kwin_wayland)"
+
       - name: Measure coverage of the unit and nested KWin tests and check it against tests/coverage/thresholds.json
         run: |
           useradd -m tester
@@ -134,6 +137,9 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build build
+
+      - name: Let kwin_wayland start in a container, which does not grant its CAP_SYS_NICE file capability
+        run: setcap -r "$(command -v kwin_wayland)"
 
       - name: Run the nested KWin tests as a normal user
         run: |
