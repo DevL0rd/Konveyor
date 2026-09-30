@@ -124,4 +124,30 @@ Workspace *Engine::Private::workspaceForTarget(std::optional<WindowId> requested
     return activeWorkspace();
 }
 
+std::optional<WindowId> Engine::windowAt(const QPointF &globalPos) const
+{
+    const std::optional<WindowHit> hit = hitAt(globalPos);
+    return hit ? std::optional(hit->id) : std::nullopt;
+}
+
+std::optional<WindowHit> Engine::hitAt(const QPointF &globalPos) const
+{
+    for (const Monitor &monitor : d->monitors) {
+        const QPointF origin = d->originOf(monitor.outputName());
+        const QRectF geometry(origin, monitor.area().viewSize);
+        if (!geometry.contains(globalPos)) {
+            continue;
+        }
+        const QPointF local = globalPos - origin;
+        const std::vector<double> offsets = monitor.workspaceRenderOffsets();
+        for (std::size_t idx = 0; idx < monitor.workspaces().size(); ++idx) {
+            const auto hit = monitor.workspaces()[idx].windowUnder(local - QPointF(0.0, offsets[idx]));
+            if (hit) {
+                return hit;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
 }
