@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from checks import Checks, config_path, default_config
+from checks import Checks, default_config, load_config
 from fakepointer import click
 from kwinsession import active_title, frame, frames, konveyor_action, for_window, run_script, wait_for
 from screenshot import capture_workspace
@@ -19,12 +19,12 @@ GAPS = 16
 BORDER = 4
 
 
-def write_config(position="left", width=8, gap=5, radius=0, inside=False, border=False):
+def use_config(position="left", width=8, gap=5, radius=0, inside=False, border=False):
     lines = [f'position "{position}"', f"width {width}", f"gap {gap}", f"corner-radius {radius}", 'active-color "#ff00ff"',
              'inactive-color "#00ffff"'] + (["place-within-column"] if inside else [])
     block = "    tab-indicator {\n" + "".join(f"        {line}\n" for line in lines) + "    }\n\n    struts {"
     config = re.sub(r"    struts \{", block, default_config(), count=1)
-    config_path().write_text(config.replace("    border {\n        off\n", "    border {\n") if border else config)
+    return load_config(config.replace("    border {\n        off\n", "    border {\n") if border else config)
 
 
 def screenshot():
@@ -79,7 +79,7 @@ def make_tabs():
 
 
 def switching_tabs_changes_the_shown_window(checks):
-    write_config()
+    checks.expect(use_config(), "the tab indicator config loads")
     checks.expect(make_tabs(), "A and B share one tabbed column")
     checks.expect(wait_for(lambda: shown("B"), 30, 0.3), "the focused tab B is shown")
     konveyor_action("focus-window-up")
@@ -119,14 +119,14 @@ def room_beside(title, position):
 
 def thick_tabs_get_room(checks):
     for position in ("left", "right", "top", "bottom"):
-        write_config(position=position, width=32, gap=5)
+        checks.expect(use_config(position=position, width=32, gap=5), f"a 32 pixel {position} tab indicator config loads")
         painted = wait_for(lambda: band_painted("B", position, 32, 5), 30, 0.3)
         checks.expect(painted, f"a 32 pixel {position} tab indicator is fully visible beside the window")
-        room = room_beside("B", position)
-        checks.expect(room >= 5 + 32 + 5, f"the window keeps room for a 32 pixel {position} indicator and its distance on both sides ({room})")
-    write_config(width=32)
+        roomy = wait_for(lambda: room_beside("B", position) >= 5 + 32 + 5, 30)
+        checks.expect(roomy, f"the window keeps room for a 32 pixel {position} indicator and its distance on both sides ({room_beside('B', position)})")
+    checks.expect(use_config(width=32), "a 32 pixel left tab indicator config loads")
     checks.expect(wait_for(lambda: room_beside("B", "left") == 42, 30), "a thick left indicator moves the window right")
-    write_config(width=4)
+    checks.expect(use_config(width=4), "a 4 pixel left tab indicator config loads")
     checks.expect(wait_for(lambda: room_beside("B", "left") == GAPS, 30), "a thin indicator fits in the gap and moves nothing")
 
 
@@ -145,16 +145,16 @@ def corner_is(rounded):
 def every_side_inside_and_outside(checks):
     for position in ("left", "right", "top", "bottom"):
         for inside in (False, True):
-            write_config(position=position, width=12, gap=4, inside=inside, border=True)
             where = f"{position} {'inside' if inside else 'outside'} the column with borders"
+            checks.expect(use_config(position=position, width=12, gap=4, inside=inside, border=True), f"a tab indicator {where} config loads")
             checks.expect(wait_for(lambda: band_painted("B", position, 12, 4 + BORDER), 30, 0.3), f"the tab indicator {where} is fully visible")
-    write_config()
+    checks.expect(use_config(), "the thin tab indicator config loads again")
 
 
 def roundness_rounds_the_tabs(checks):
-    write_config(width=16, gap=5, radius=8)
+    checks.expect(use_config(width=16, gap=5, radius=8), "a tab indicator config with a corner radius of 8 loads")
     checks.expect(wait_for(lambda: corner_is(rounded=True), 30, 0.3), f"a corner radius of 8 cuts the corners of the tabs {first_tab_corner('B', 16, 5)}")
-    write_config(width=16, gap=5, radius=0)
+    checks.expect(use_config(width=16, gap=5, radius=0), "a tab indicator config with a corner radius of 0 loads")
     checks.expect(wait_for(lambda: corner_is(rounded=False), 30, 0.3), f"a corner radius of 0 keeps them square {first_tab_corner('B', 16, 5)}")
 
 
