@@ -186,6 +186,7 @@ void KonveyorEffect::scheduleFlush()
 void KonveyorEffect::flush()
 {
     const QList<Layout::WindowState> states = readEngine().windowStates();
+    endMoveIntoFullscreen(states);
     d->desktops.apply(readEngine().workspaceStates(), states);
     d->fullscreenGuard.update(states);
     d->applier.apply(states);

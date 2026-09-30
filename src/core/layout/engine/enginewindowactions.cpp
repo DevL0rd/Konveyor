@@ -57,6 +57,7 @@ ActionResult toggleWindowedFullscreen(Engine::Private &d, const Config::Action &
     if (!window) {
         return actionError(QStringLiteral("no window to toggle windowed fullscreen for"));
     }
+    d.dropDraggedWindow(window);
     Workspace *workspace = d.workspaceOf(*window);
     if (!workspace) {
         return actionError(QStringLiteral("no such window"));
@@ -68,6 +69,16 @@ ActionResult toggleWindowedFullscreen(Engine::Private &d, const Config::Action &
     if (Tile *updated = workspace->tileFor(*window)) {
         LayoutWindow &layoutWindow = updated->window();
         layoutWindow.requestWindowedFullscreen(!layoutWindow.windowedFullscreenRequested());
+    }
+    return {};
+}
+
+ActionResult toggleFullscreen(Engine::Private &d, const Config::Action &action, std::optional<WindowId> target)
+{
+    const auto window = d.target(actionWindowId(action, target));
+    d.dropDraggedWindow(window);
+    if (Workspace *workspace = window ? d.workspaceOf(*window) : nullptr) {
+        workspace->toggleFullscreen(*window);
     }
     return {};
 }
@@ -94,12 +105,7 @@ void registerSizeActions(ActionTable &table)
                 ws.cycleExpansion(*id);
             }
         });
-    addTargetAction(
-        table, "fullscreen-window", +[](Workspace &ws, std::optional<WindowId> id) {
-            if (id) {
-                ws.toggleFullscreen(*id);
-            }
-        });
+    addEngineAction(table, "fullscreen-window", toggleFullscreen);
     addEngineAction(table, "toggle-windowed-fullscreen", toggleWindowedFullscreen);
 }
 

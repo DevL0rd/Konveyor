@@ -94,6 +94,8 @@ private:
     void placeMonitorOverlays(Layout::WindowId id);
     void placeMonitorPanels(Layout::WindowId id);
     void onInteractive(Layout::WindowId id, bool isMove, int phase);
+    void trackWindowedMove(Layout::WindowId id, int phase);
+    void endMoveIntoFullscreen(const QList<Layout::WindowState> &states);
     void flush();
     void stepAnimations();
     Layout::Engine &changeEngine();

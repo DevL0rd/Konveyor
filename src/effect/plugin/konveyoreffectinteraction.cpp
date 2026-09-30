@@ -6,6 +6,11 @@ namespace Konveyor
 namespace
 {
 
+bool isFullscreenLike(const Layout::WindowState &state)
+{
+    return state.requestedSizingMode == Layout::WindowMode::Fullscreen || state.isWindowedFullscreen;
+}
+
 quint8 resizeEdgesFor(KWin::Gravity gravity)
 {
     const auto edges = [](std::initializer_list<Layout::ResizeEdge> list) {
@@ -66,8 +71,11 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
     if (!window) {
         return;
     }
+    if (isMove) {
+        trackWindowedMove(id, phase);
+    }
     if (isFloatingWindow(id)) {
-        if (phase == interactivePhaseEnd) {
+        if (phase == interactivePhaseEnd || (isMove && phase == interactivePhaseStep)) {
             changeEngine().setFloatingFrame(id, window->moveResizeGeometry());
         }
         return;
@@ -86,6 +94,28 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
     }
     if (lifted && phase == interactivePhaseEnd) {
         d->touchLift.reset();
+    }
+}
+
+void KonveyorEffect::trackWindowedMove(Layout::WindowId id, int phase)
+{
+    if (phase == interactivePhaseStart) {
+        const std::optional<Layout::WindowState> state = readEngine().windowState(id);
+        d->windowedMove = state && !isFullscreenLike(*state) ? std::optional(id) : std::nullopt;
+    } else if (phase == interactivePhaseEnd && d->windowedMove == id) {
+        d->windowedMove.reset();
+    }
+}
+
+void KonveyorEffect::endMoveIntoFullscreen(const QList<Layout::WindowState> &states)
+{
+    const auto state = std::ranges::find_if(states, [this](const Layout::WindowState &each) { return each.id == d->windowedMove; });
+    if (state == states.end() || !isFullscreenLike(*state)) {
+        return;
+    }
+    d->windowedMove.reset();
+    if (KWin::Window *window = d->windows.windowOf(state->id); window && window->isInteractiveMove()) {
+        window->endInteractiveMoveResize();
     }
 }
 

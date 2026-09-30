@@ -336,6 +336,9 @@ void Engine::setLayoutFocused(bool focused)
 
 void Engine::setWindowFullscreen(WindowId id, bool fullscreen)
 {
+    if (fullscreen) {
+        d->dropDraggedWindow(id);
+    }
     if (Workspace *workspace = d->workspaceOf(id)) {
         workspace->setFullscreen(id, fullscreen);
         d->refresh();

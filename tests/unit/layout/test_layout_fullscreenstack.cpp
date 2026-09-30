@@ -203,7 +203,7 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void fullscreenDuringADragIsIgnoredAndTheDropStaysNormal()
+    void fullscreenDuringADragDropsTheWindowAndTakesEffect()
     {
         Fixture fixture;
         fixture.add(QStringLiteral("a"));
@@ -211,14 +211,14 @@ private Q_SLOTS:
         QVERIFY(fixture.engine().beginWindowDrag(dragged, fixture.frame(dragged).center()));
         fixture.engine().updateWindowDrag(QPointF(200, 500), QStringLiteral("DP-1"));
         fixture.engine().setWindowFullscreen(dragged, true);
-        QVERIFY(!fixture.perform(QStringLiteral("toggle-windowed-fullscreen"), {}, {{QStringLiteral("id"), QString::number(dragged)}}).ok);
+        fixture.settle();
+        QCOMPARE(fixture.state(dragged).columnIndex, 0);
+        QCOMPARE(fixture.frame(dragged), QRectF(0, 0, 1920, 1080));
+        QVERIFY(fixture.perform(QStringLiteral("toggle-windowed-fullscreen"), {}, {{QStringLiteral("id"), QString::number(dragged)}}).ok);
         fixture.engine().endWindowDrag();
         fixture.settle();
-        QCOMPARE(fixture.state(dragged).sizingMode, Layout::WindowMode::Normal);
+        QVERIFY(fixture.state(dragged).isWindowedFullscreen);
         QCOMPARE(fixture.state(dragged).columnIndex, 0);
-        fixture.engine().setWindowFullscreen(dragged, true);
-        fixture.settle();
-        QCOMPARE(fixture.frame(dragged), QRectF(0, 0, 1920, 1080));
         VERIFY_INVARIANTS(fixture);
     }
 

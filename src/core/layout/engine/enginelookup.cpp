@@ -110,7 +110,10 @@ Workspace *Engine::Private::workspaceById(WorkspaceId id)
 
 std::optional<WindowId> Engine::Private::target(std::optional<WindowId> requested) const
 {
-    return requested ? requested : focused;
+    if (requested) {
+        return requested;
+    }
+    return windowDrag && windowDrag->moving ? std::optional(windowDrag->window) : focused;
 }
 
 Workspace *Engine::Private::workspaceForTarget(std::optional<WindowId> requested)

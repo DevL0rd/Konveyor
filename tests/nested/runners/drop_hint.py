@@ -2,19 +2,15 @@
 import os
 import sys
 import tempfile
-import time
-from contextlib import contextmanager
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
-from fakepointer import Held, move
-from kwinsession import activate, frame, konveyor_windows, wait_for
+from dragging import dragging, placement, settled
+from kwinsession import activate, frame, wait_for
 from screenshot import capture_workspace
 
-META = 125
-LEFT_BUTTON = 0x110
 MAGENTA = (255, 0, 255)
 WINDOW = (47, 48, 51)
 DRAGGED_OPACITY = 0.75
@@ -43,40 +39,6 @@ def painted(image, *colors, step=4):
         return None
     xs, ys = [x for x, _ in points], [y for _, y in points]
     return min(xs), min(ys), max(xs) + step, max(ys) + step
-
-
-def settled(title):
-    previous = [None]
-
-    def still():
-        current, previous[0] = frame(title), frame(title)
-        return current == previous[0] and current
-
-    time.sleep(0.3)
-    return wait_for(still, 10, 0.3)
-
-
-def center(title):
-    x, y, width, height = frame(title)
-    return round(x + width / 2), round(y + height / 2)
-
-
-def placement(title):
-    window = next(window for window in konveyor_windows() if window["title"] == title)
-    return window["layout"]["pos_in_scrolling_layout"]
-
-
-@contextmanager
-def dragging(title, goal, grab=None):
-    start = grab or center(title)
-    lifted = (start[0], start[1] - 300 if start[1] > 540 else start[1] + 300)
-    with Held() as pointer:
-        pointer.send((META, 1), f"move:{start[0]}:{start[1]}", f"button:{LEFT_BUTTON}:1")
-        pointer.glide(start, lifted, 8)
-        pointer.glide(lifted, goal, 16)
-        yield pointer
-        pointer.send(f"button:{LEFT_BUTTON}:0", (META, 0))
-    move(960, 1070)
 
 
 def hint_for_new_column(checks):

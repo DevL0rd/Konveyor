@@ -166,6 +166,7 @@ struct Engine::Private
     void moveDragToActiveOutput();
     void updateDropHint();
     void interactiveMoveFinish();
+    void dropDraggedWindow(std::optional<WindowId> window);
     void dropInteractiveTile(Monitor &monitor, const Monitor::InsertTarget &insertTarget);
 };
 

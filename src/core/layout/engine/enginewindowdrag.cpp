@@ -276,6 +276,13 @@ void Engine::Private::interactiveMoveFinish()
     windowDrag.reset();
 }
 
+void Engine::Private::dropDraggedWindow(std::optional<WindowId> window)
+{
+    if (windowDrag && window == windowDrag->window) {
+        interactiveMoveFinish();
+    }
+}
+
 void Engine::endWindowDrag()
 {
     d->interactiveMoveFinish();
