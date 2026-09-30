@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest import mock
 
-from collectorharness import WIDGETS, CollectorTest, run_main
+from collectorharness import WIDGETS, CollectorTest, ServeLoopTests, run_main
 
 SCRIPT = WIDGETS / "system-monitor" / "bin" / "sysmon-collect"
 
@@ -41,7 +41,14 @@ def stat(cpu, cores):
     return "\n".join(lines + ["intr 1 2 3", "ctxt 5"]) + "\n"
 
 
-class TestSysmonCollect(CollectorTest):
+class TestSysmonCollect(ServeLoopTests, CollectorTest):
+    APP = "Linux-System-Monitor"
+    DEFAULT_INTERVAL = 2.0
+
+    def serving_module(self):
+        self.write_minimal()
+        return self.load(SCRIPT, "sysmon_collect")
+
     def write_minimal(self):
         self.fake.write("/proc/stat", stat((0, 200), [(0, 100), (0, 100)]))
         self.fake.write("/proc/meminfo", "MemTotal: 8000000 kB\nMemAvailable: 2000000 kB\nSwapTotal: 1000000 kB\nSwapFree: 500000 kB\n")
@@ -73,12 +80,13 @@ class TestSysmonCollect(CollectorTest):
         self.fake.write(rapl + "constraint_0_max_power_uw", "125000000\n")
 
     def build_twice(self, module, second_stat, energy=None, interval=2.0):
-        with mock.patch.object(module.time, "time", return_value=1000.0):
+        with mock.patch.object(module.time, "time", return_value=1000.0), mock.patch.object(module.time, "monotonic", return_value=50.0):
             module.build()
         self.fake.write("/proc/stat", second_stat)
         if energy is not None:
             self.fake.write("/sys/class/powercap/intel-rapl:0/energy_uj", "%d\n" % energy)
-        with mock.patch.object(module.time, "time", return_value=1000.0 + interval):
+        with mock.patch.object(module.time, "time", return_value=1000.0 + interval), \
+                mock.patch.object(module.time, "monotonic", return_value=50.0 + interval):
             return module.build()
 
     def test_splits_a_hybrid_cpu_into_performance_and_efficiency_cores(self):
@@ -127,6 +135,27 @@ class TestSysmonCollect(CollectorTest):
         self.assertEqual((cpu["clock_max"], cpu["power_max"], cpu["fan_max"]), (0.0, 0, 0))
         self.assertEqual((snapshot["cpu_model"], snapshot["uptime"], snapshot["load"]), ("", 0, [0, 0, 0]))
         self.assertIsNone(snapshot["gpu"])
+
+    def test_offline_cpus_leave_the_online_cores_readings_in_place(self):
+        self.write_hybrid()
+        def sparse(busy, rounds):
+            lines = ["cpu 0 0 0 %d 0 0 0\n" % (300 * rounds - sum(busy.values()))]
+            return "".join(lines + ["cpu%d %d 0 0 %d 0 0 0\n" % (n, u, 100 * rounds - u) for n, u in busy.items()])
+        idle, loaded = sparse({0: 0, 2: 0, 3: 0}, 1), sparse({0: 50, 2: 80, 3: 20}, 2)
+        self.fake.write("/proc/stat", idle)
+        cpu = self.build_twice(self.load(SCRIPT, "sysmon_collect"), loaded)["cpu"]
+        self.assertEqual((cpu["p"], cpu["e"]), ([50.0], [80.0, 20.0]))
+        self.fake.write("/sys/devices/cpu_core/cpus", "")
+        self.fake.write("/proc/stat", idle)
+        snapshot = self.build_twice(self.load(SCRIPT, "sysmon_collect_flat"), loaded)
+        self.assertEqual((snapshot["cpu"]["cores"], snapshot["ncpu"]), ([50.0, 80.0, 20.0], 3))
+
+    def test_an_unreadable_frequency_sensor_does_not_stop_the_snapshots(self):
+        self.write_hybrid()
+        self.fake.write("/sys/devices/system/cpu/cpu3/cpufreq/scaling_cur_freq", "<unknown>\n")
+        module = self.load(SCRIPT, "sysmon_collect")
+        cpu = module.build()["cpu"]
+        self.assertEqual((cpu["p_freq"], cpu["freq"]), (4.0, 3.33))
 
     def test_reads_the_nvidia_gpu_through_nvml(self):
         self.write_minimal()

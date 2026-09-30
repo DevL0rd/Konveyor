@@ -56,6 +56,32 @@ class FakeRoot:
         ]
 
 
+class Stop(Exception):
+    pass
+
+
+class FakeClock:
+    def __init__(self, until):
+        self.wall = 1000.0
+        self.mono = 0.0
+        self.until = until
+
+    def time(self):
+        return self.wall
+
+    def monotonic(self):
+        return self.mono
+
+    def sleep(self, seconds):
+        self.wall += seconds + 0.001
+        self.mono += seconds + 0.001
+        if self.mono > self.until:
+            raise Stop
+
+    def patch(self, module):
+        return mock.patch.multiple(module.time, time=self.time, monotonic=self.monotonic, sleep=self.sleep)
+
+
 def load_script(path, name):
     loader = importlib.machinery.SourceFileLoader(name, str(path))
     spec = importlib.util.spec_from_loader(loader.name, loader)
@@ -111,3 +137,37 @@ def run_main(module, name, *arguments):
             contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
         code = module.main()
     return code, output.getvalue(), errors.getvalue()
+
+
+class ServeLoopTests:
+    def serve(self, module, clock, on_write=None):
+        written = []
+
+        def record(snapshot):
+            written.append(snapshot)
+            if on_write:
+                on_write(len(written))
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(clock.patch(module))
+            stack.enter_context(mock.patch.object(module, "write_snapshot", side_effect=record))
+            if hasattr(module, "panel_snapshot"):
+                stack.enter_context(mock.patch.object(module, "panel_snapshot"))
+            errors = stack.enter_context(mock.patch.object(module.sys, "stderr"))
+            stack.enter_context(self.assertRaises(Stop))
+            module.cmd_serve()
+        return written, "".join(call.args[0] for call in errors.write.call_args_list)
+
+    def test_a_clock_set_back_does_not_stall_the_snapshots(self):
+        clock = FakeClock(until=20)
+        written, _ = self.serve(self.serving_module(), clock, lambda count: count == 2 and setattr(clock, "wall", clock.wall - 3600))
+        self.assertGreaterEqual(len(written), 20 / self.DEFAULT_INTERVAL - 1)
+
+    def test_a_bad_poll_interval_is_reported_and_the_default_used(self):
+        for value in ("fast", None, [2], "inf", "nan"):
+            with self.subTest(value=value):
+                self.config.joinpath(self.APP).mkdir(parents=True, exist_ok=True)
+                self.config.joinpath(self.APP, "config.json").write_text(json.dumps({"poll_interval": value}))
+                written, errors = self.serve(self.serving_module(), FakeClock(until=20))
+                self.assertGreaterEqual(len(written), 20 / self.DEFAULT_INTERVAL - 1)
+                self.assertIn("poll_interval", errors)
+

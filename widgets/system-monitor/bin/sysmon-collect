@@ -13,7 +13,7 @@ swap, and NVIDIA GPU (util, VRAM, temp, power, clocks, fan).
 
 Modes: --serve | --snapshot | --once
 """
-import os, re, sys, json, time, glob, socket
+import os, re, sys, json, math, time, glob, socket
 
 APP = "Linux-System-Monitor"
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
@@ -25,9 +25,22 @@ CONFIG = os.path.join(CONFIG_HOME, APP, "config.json")
 def load_config():
     try:
         with open(CONFIG) as f:
-            return json.load(f)
+            config = json.load(f)
     except Exception:
         return {}
+    return config if isinstance(config, dict) else {}
+
+
+def poll_interval(default):
+    value = load_config().get("poll_interval", default)
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        seconds = math.nan
+    if not math.isfinite(seconds):
+        sys.stderr.write(f"sysmon-collect: ignoring poll_interval {value!r} in {CONFIG}, polling every {default} s\n")
+        return default
+    return max(0.25, seconds)
 
 
 # ---------------------------------------------------------------- cpu topology
@@ -145,12 +158,11 @@ def cpu_freqs():
     """logical cpu index -> current MHz."""
     _sensors_fresh()
     f = {}
-    try:
-        for n, fd in _sensors["freq"]:
+    for n, fd in _sensors["freq"]:
+        try:
             f[n] = _read_number(fd) / 1000.0
-    except (OSError, ValueError):
-        _scan_sensors(time.monotonic())
-        return {n: _read_number(fd) / 1000.0 for n, fd in _sensors["freq"]}
+        except (OSError, ValueError):
+            _sensors["when"] = None
     return f
 
 
@@ -357,24 +369,25 @@ def _avg(xs):
 
 def build():
     now = time.time()
+    tick = time.monotonic()
     stat = read_stat()
     freqs = cpu_freqs()
     prev = _prev["stat"]
 
     total = round(_usage("cpu", prev, stat), 1)
-    ncpu = sum(1 for k in stat if k != "cpu")
-    per = {n: round(_usage("cpu%d" % n, prev, stat), 1) for n in range(ncpu)}
+    per = {int(k[3:]): round(_usage(k, prev, stat), 1) for k in stat if k != "cpu"}
+    ncpu = len(per)
 
     cpu = {"total": total, "hybrid": HYBRID, "temp": cpu_temp()}
     if HYBRID:
-        cpu["p"] = [per.get(n, 0) for n in P_CPUS]
-        cpu["e"] = [per.get(n, 0) for n in E_CPUS]
+        cpu["p"] = [per[n] for n in P_CPUS if n in per]
+        cpu["e"] = [per[n] for n in E_CPUS if n in per]
         cpu["p_total"] = _avg(cpu["p"])
         cpu["e_total"] = _avg(cpu["e"])
         cpu["p_freq"] = round(_avg([freqs.get(n, 0) for n in P_CPUS]) / 1000.0, 2)
         cpu["e_freq"] = round(_avg([freqs.get(n, 0) for n in E_CPUS]) / 1000.0, 2)
     else:
-        cpu["cores"] = [per.get(n, 0) for n in range(ncpu)]
+        cpu["cores"] = [per[n] for n in sorted(per)]
     cpu["freq"] = round(_avg(list(freqs.values())) / 1000.0, 2)
     cpu["fan"] = cpu_fan()
     cpu["clock_max"] = CPU_CLOCK_MAX                      # graph full-scale (GHz)
@@ -383,7 +396,7 @@ def build():
 
     # RAPL package watts
     energy = rapl_energy()
-    dt = (now - _prev["when"]) if _prev["when"] else 0
+    dt = (tick - _prev["when"]) if _prev["when"] is not None else 0
     if energy is not None and _prev["energy"] is not None and dt > 0:
         de = energy - _prev["energy"]
         if de < 0:                                       # counter wrapped
@@ -397,7 +410,7 @@ def build():
 
     _prev["stat"] = stat
     _prev["energy"] = energy
-    _prev["when"] = now
+    _prev["when"] = tick
 
     try:
         uptime = float(open("/proc/uptime").read().split()[0])
@@ -428,7 +441,7 @@ def cmd_serve():
     build()
     time.sleep(0.3)
     write_snapshot(build())
-    last = time.time()
+    last = time.monotonic()
     config_stamp = None
     interval = 2.0
     while True:
@@ -438,10 +451,10 @@ def cmd_serve():
             stamp = 0
         if stamp != config_stamp:
             config_stamp = stamp
-            interval = max(0.25, float(load_config().get("poll_interval", 2)))
-        elapsed = time.time() - last
+            interval = poll_interval(2.0)
+        elapsed = time.monotonic() - last
         if elapsed >= interval:
-            last = time.time()
+            last = time.monotonic()
             try:
                 write_snapshot(build())
             except Exception as e:
