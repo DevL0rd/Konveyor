@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, cli, config_path, default_config, notifications
 from fakepointer import touch
-from kwinsession import activate, for_window, konveyor, konveyor_action, qdbus, run_script, wait_for, watch_signals
+from kwinsession import activate, active_title, for_window, konveyor, konveyor_action, qdbus, run_script, wait_for, watch_signals
 from nested import REPO
 
 ROOT = Path(os.environ["KONVEYOR_TEST_ROOT"])
@@ -62,6 +62,10 @@ def queries(checks):
         checks.expect(cli("msg", request).returncode == 0, f"konveyor msg {request} succeeds")
 
 
+def widths():
+    return {window["title"]: round(window["layout"]["tile_size"][0]) for window in json.loads(konveyor("Windows"))}
+
+
 def focused_window(checks):
     activate("B")
     checks.expect(wait_for(lambda: json.loads(konveyor("FocusedWindow") or "null") and json.loads(konveyor("FocusedWindow"))["title"] == "B"),
@@ -83,6 +87,19 @@ def actions(checks):
     checks.expect(konveyor("Action", json.dumps({"name": "close-window", "arguments": [], "properties": {}, "id": 99999})) != "",
                   "Action targeting a window that does not exist fails")
     checks.equal(konveyor_action("focus-column-left"), "", "a valid Action")
+    activate("B")
+    windows = {window["title"]: window for window in json.loads(konveyor("Windows"))}
+    before = widths()
+    checks.equal(konveyor("Action", json.dumps({"name": "set-column-width", "arguments": ["30%"], "properties": {}, "id": windows["C"]["id"]})), "",
+                 "Action with an id")
+    checks.expect(wait_for(lambda: widths()["C"] < before["C"] and widths()["B"] == before["B"]),
+                  f"Action with an id resizes that window's column, not the focused one ({before} -> {widths()})")
+    checks.equal(cli("msg", "action", "set-column-width", "70%", "--id", str(windows["A"]["id"])).returncode, 0, "konveyor msg action --id")
+    checks.expect(wait_for(lambda: widths()["A"] > before["A"] and widths()["B"] == before["B"]),
+                  f"konveyor msg action --id resizes that window's column ({widths()})")
+    checks.equal(active_title(), "B", "acting on other windows by id leaves focus alone")
+    for title in ("A", "C"):
+        konveyor("Action", json.dumps({"name": "set-column-width", "arguments": ["50%"], "properties": {}, "id": windows[title]["id"]}))
     checks.equal(cli("msg", "action", "focus-column-right").returncode, 0, "konveyor msg action")
     checks.equal(cli("msg", "action", "no-such-action").returncode, 1, "konveyor msg action with an unknown action")
     checks.equal(cli("msg", "no-such-request").returncode, 1, "konveyor msg with an unknown request")
