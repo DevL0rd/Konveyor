@@ -21,6 +21,12 @@ QString betweenMessage(Range range)
 
 }
 
+DecodeError::DecodeError(const QString &message, const Kdl::Location &location)
+    : std::runtime_error(message.toStdString())
+    , message(message)
+    , location(location)
+{ }
+
 void failAt(const Kdl::Location &location, const QString &message)
 {
     throw DecodeError {message, location};

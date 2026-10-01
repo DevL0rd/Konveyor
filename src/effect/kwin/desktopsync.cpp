@@ -173,7 +173,7 @@ void DesktopSync::applyWindowDesktops(const QList<Layout::WindowState> &windows)
 
 void DesktopSync::watchWindowDesktops(KWin::Window *window, Layout::WindowId id)
 {
-    connect(window, &KWin::Window::desktopsChanged, this, [this, window, id]() {
+    connect(window, &KWin::Window::desktopsChanged, this, [this, window, id] {
         if (m_applying || m_windows.idOf(window) != id || window->desktops().size() != 1) {
             return;
         }
