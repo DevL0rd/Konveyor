@@ -225,6 +225,10 @@ Konveyor comes with a set of Plasma widgets built to match: a full-screen launch
 
 <p align="center"><img alt="The Kontrol Panel opening, searching, browsing games, shortcuts and settings" src="docs/media/widgets/launcher.gif" width="92%"></p>
 
+### ↔️ Konveyor Taskbar
+
+Add the optional **Konveyor Taskbar** widget to order columns by dragging app icons. Pin apps to keep their order between launches, follow Konveyor grouping or choose grouped or separate icons, click active tasks to minimize, and middle-click to close. Completed column moves also update icon order without changing saved pins. Existing taskbars, stacks, window-position rules and shortcuts stay intact. See [the taskbar behavior and exceptions](docs/configuration.md#companion-taskbar).
+
 ### 🚀 Kontrol Panel
 
 Press <kbd>Meta</kbd> and the desktop dims behind the Kontrol Panel, one place for your apps, games, friends, files, shortcuts and every Konveyor setting. Start typing and apps, games, friends, settings, shortcuts, files, maths, unit conversions, commands and even installable packages show up together, best match first.

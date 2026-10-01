@@ -1,0 +1,15 @@
+{
+    "KPlugin": {
+        "Id": "org.devl0rd.konveyor.taskbar",
+        "Name": "Konveyor Taskbar",
+        "Description": "An optional taskbar that orders Konveyor columns",
+        "Icon": "preferences-system-windows",
+        "Authors": [{ "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }],
+        "Category": "Windows and Tasks",
+        "License": "GPL-3.0",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Konveyor"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

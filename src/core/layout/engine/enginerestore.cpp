@@ -28,6 +28,9 @@ void Engine::addWindow(WindowId id, const WindowProperties &properties, const QS
     if (restoring && restore->isFloating) {
         d->restoreFloatingFrame(id, restore->floatingFrame);
     }
+    if (!restoring) {
+        d->taskbarLaunches.insert(id);
+    }
     d->refresh();
 }
 

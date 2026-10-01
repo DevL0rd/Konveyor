@@ -54,6 +54,7 @@ public:
 
     bool contains(WindowId id) const;
     std::optional<Config::ColumnPosition> pinnedPosition() const;
+    bool taskbarEligible() const;
     std::optional<std::size_t> position(WindowId id) const;
     bool selectTile(std::size_t idx);
     void activateWindow(WindowId id);

@@ -92,6 +92,9 @@ inline QStringList actionArguments(Dice &dice, const QString &name)
         QStringLiteral("set-column-width"), QStringLiteral("set-window-width"), QStringLiteral("set-window-height")};
     static const QStringList monitors {QStringLiteral("focus-monitor"), QStringLiteral("move-window-to-monitor"),
         QStringLiteral("move-column-to-monitor"), QStringLiteral("move-workspace-to-monitor")};
+    if (name == QLatin1String("order-taskbar-columns")) {
+        return {pickOf(dice, outputNames()), QStringLiteral("[[6],[5],[4],[3],[2],[1]]")};
+    }
     if (indexed.contains(name)) {
         return {QString::number(dice.below(7))};
     }

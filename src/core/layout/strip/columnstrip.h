@@ -3,6 +3,7 @@
 #include "layout/strip/column.h"
 #include "layout/strip/stripscroll.h"
 
+#include <QHash>
 #include <QPointF>
 #include <QRectF>
 #include <QSizeF>
@@ -68,6 +69,7 @@ public:
     void addToAppStack(const std::vector<std::size_t> &appColumns, Tile tile, bool activate, std::size_t maxRows);
     void markPlacementStack(WindowId window);
     void reflowForLayout(const Config::Layout &from, const Config::Layout &to);
+    void orderTaskbarColumns(const QHash<WindowId, int> &ranks);
     void addColumn(std::optional<std::size_t> idx, Column column, bool activate, std::optional<Config::AnimationParams> anim);
     DetachedTile removeTile(WindowId id);
     DetachedTile detachTileAt(std::size_t columnIndex, std::size_t tileIndex, std::optional<Config::AnimationParams> anim);

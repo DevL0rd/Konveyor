@@ -142,6 +142,8 @@ struct WindowState
     TabBarState tabBar;
     int columnIndex = 0;
     int tileIndex = 0;
+    Config::GroupAppWindows taskbarGrouping = Config::GroupAppWindows::Beside;
+    bool taskbarEligible = false;
     std::optional<int> widthPresetIndex;
     std::optional<int> nativeWidthSuccessorIndex;
     int widthPresetCount = 0;
@@ -169,6 +171,10 @@ struct WorkspaceState
     bool isFocused = false;
     bool isUrgent = false;
     std::optional<WindowId> activeWindow;
+    quint64 taskbarRevision = 0;
+    QString taskbarSource;
+    bool taskbarInteractive = false;
+    Config::GroupAppWindows taskbarGrouping = Config::GroupAppWindows::Beside;
     bool operator==(const WorkspaceState &) const = default;
 };
 

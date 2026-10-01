@@ -3,6 +3,7 @@
 #include "layout/monitor/monitor.h"
 
 #include <QHash>
+#include <QSet>
 
 #include <cstddef>
 #include <functional>
@@ -67,6 +68,13 @@ struct WorkspaceRenderContext
     bool visible = true;
 };
 
+struct TaskbarOrder
+{
+    QList<QList<WindowId>> columns;
+    quint64 revision = 0;
+    QString source;
+};
+
 struct Engine::Private
 {
     Private(Anim::Clock &clock, Hooks hooks);
@@ -81,6 +89,10 @@ struct Engine::Private
     QHash<QString, OutputInfo> outputInfos;
     QHash<QString, WorkspaceId> lastActiveWorkspace;
     QHash<WindowId, quint64> focusOrder;
+    QHash<WorkspaceId, TaskbarOrder> taskbarOrders;
+    QSet<WindowId> taskbarLaunches;
+    quint64 taskbarRevision = 0;
+    bool taskbarAction = false;
     quint64 focusCounter = 0;
     std::optional<WindowId> focused;
     std::optional<WindowId> announcedFocus;
@@ -129,6 +141,7 @@ struct Engine::Private
 
     void refresh();
     void refreshWorkspaces();
+    void refreshTaskbarOrders();
     bool focusWindow(WindowId id);
     void takeLayoutFocus();
     void updateFocus();
@@ -204,6 +217,7 @@ void addForwardedAction(ActionTable &table, const char *name);
 
 void registerFocusActions(ActionTable &table);
 void registerMoveActions(ActionTable &table);
+void registerTaskbarActions(ActionTable &table);
 void registerWorkspaceActions(ActionTable &table);
 void registerMonitorActions(ActionTable &table);
 void registerSizeActions(ActionTable &table);

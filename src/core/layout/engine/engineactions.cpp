@@ -272,6 +272,7 @@ ActionResult moveColumnOrMonitor(Engine::Private &d, const QString &direction)
 void registerMoveActions(ActionTable &table)
 {
     registerSimpleMoveActions(table);
+    registerTaskbarActions(table);
     addEngineAction(table, "move-column-to-index", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
         const auto index = parseIndex(actionArgument(action, 0));
         if (!index) {
@@ -346,7 +347,10 @@ ActionResult Engine::perform(const Config::Action &action, std::optional<WindowI
     if (const auto invalid = invalidProperty(action)) {
         return actionError(*invalid);
     }
-    d->takeLayoutFocus();
+    if (action.name != QLatin1String("order-taskbar-columns")) {
+        d->takeLayoutFocus();
+    }
+    d->taskbarAction = action.name == QLatin1String("order-taskbar-columns");
     const ActionResult result = (*handler)(*d, action, target);
     d->refresh();
     return result;

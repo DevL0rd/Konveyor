@@ -64,7 +64,12 @@ QJsonDocument KonveyorEffect::windowsJson() const
     const QList<Layout::WindowState> states = readEngine().windowStates();
     for (const Layout::WindowState &state : states) {
         if (KWin::Window *window = d->windows.windowOf(state.id)) {
-            array.append(Ipc::windowToJson({state.id, window->caption(), window->resourceClass(), window->pid()}, state));
+            QJsonObject entry = Ipc::windowToJson({state.id, window->caption(), window->resourceClass(), window->pid()}, state);
+            entry[QStringLiteral("task_id")] = window->internalId().toString();
+            entry[QStringLiteral("output")] = state.output;
+            entry[QStringLiteral("taskbar_grouping")] = static_cast<int>(state.taskbarGrouping);
+            entry[QStringLiteral("taskbar_eligible")] = state.taskbarEligible && !window->skipTaskbar();
+            array.append(entry);
         }
     }
     return QJsonDocument(array);
@@ -75,7 +80,12 @@ QJsonDocument KonveyorEffect::workspacesJson() const
     QJsonArray array;
     const QList<Layout::WorkspaceState> states = readEngine().workspaceStates();
     for (const Layout::WorkspaceState &state : states) {
-        array.append(Ipc::workspaceToJson(state));
+        QJsonObject entry = Ipc::workspaceToJson(state);
+        entry[QStringLiteral("taskbar_revision")] = static_cast<qint64>(state.taskbarRevision);
+        entry[QStringLiteral("taskbar_source")] = state.taskbarSource;
+        entry[QStringLiteral("taskbar_interactive")] = state.taskbarInteractive;
+        entry[QStringLiteral("taskbar_grouping")] = static_cast<int>(state.taskbarGrouping);
+        array.append(entry);
     }
     return QJsonDocument(array);
 }
