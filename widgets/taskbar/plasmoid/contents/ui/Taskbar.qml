@@ -123,7 +123,7 @@ TaskbarView {
             initialized = true
             return
         }
-        const groups = Order.groups(entries, scoped, outputName)
+        const groups = Order.groups(entries, scoped, outputName, launched && !edited)
         const action = {name: "order-taskbar-columns", arguments: [outputName, JSON.stringify(groups), String(workspace.id), String(revision)]}
         busy = true
         call("Action", [JSON.stringify(action)], result => {

@@ -56,6 +56,29 @@ private Q_SLOTS:
         QCOMPARE(close.first().first().toMap().value(QStringLiteral("appId")).toString(), QStringLiteral("b"));
     }
 
+    void launchesPreserveInterleavedGroupsUntilAnExplicitIconEdit()
+    {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(
+            "import QtQml\nimport \"Order.js\" as Order\nQtObject { function ordered(preserve) { return Order.groups(["
+            "{group:true,windowIds:['a1','a2']},{windowIds:['b']},{windowIds:['c']}], ["
+            "{task_id:'a1',id:1,output:'DP-1',taskbar_eligible:true,layout:{pos_in_scrolling_layout:[1,1]}},"
+            "{task_id:'b',id:2,output:'DP-1',taskbar_eligible:true,layout:{pos_in_scrolling_layout:[2,1]}},"
+            "{task_id:'a2',id:3,output:'DP-1',taskbar_eligible:true,layout:{pos_in_scrolling_layout:[3,1]}},"
+            "{task_id:'c',id:4,output:'DP-1',taskbar_eligible:true,layout:{pos_in_scrolling_layout:[4,1]}}], 'DP-1', preserve) } }",
+            QUrl::fromLocalFile(ui() + QStringLiteral("launch.qml")));
+        const std::unique_ptr<QObject> root(component.create());
+        QVERIFY2(root, qPrintable(component.errorString()));
+        for (const bool preserve : {true, false}) {
+            QVariant result;
+            QVERIFY(QMetaObject::invokeMethod(root.get(), "ordered", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, preserve)));
+            const auto value = result.value<QJSValue>().toVariant();
+            QCOMPARE(QJsonDocument::fromVariant(value).toJson(QJsonDocument::Compact),
+                preserve ? QByteArray("[[],[2],[4]]") : QByteArray("[[1,3],[2],[4]]"));
+        }
+    }
+
     void taskIdsAreNormalizedDeduplicatedAndScoped()
     {
         QQmlEngine engine;
