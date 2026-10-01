@@ -9,12 +9,15 @@
 
 #include <functional>
 #include <optional>
+#include <stdexcept>
 
 namespace Konveyor::Config
 {
 
-struct DecodeError
+struct DecodeError : std::runtime_error
 {
+    DecodeError(const QString &message, const Kdl::Location &location);
+
     QString message;
     Kdl::Location location;
 };

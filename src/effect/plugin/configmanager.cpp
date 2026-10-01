@@ -66,8 +66,8 @@ ConfigManager::ConfigManager(QObject *parent)
 {
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(reloadDebounceMs);
-    connect(&m_debounce, &QTimer::timeout, this, [this]() { load(); });
-    const auto schedule = [this]() { m_debounce.start(); };
+    connect(&m_debounce, &QTimer::timeout, this, [this] { load(); });
+    const auto schedule = [this] { m_debounce.start(); };
     connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, schedule);
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, schedule);
 }
