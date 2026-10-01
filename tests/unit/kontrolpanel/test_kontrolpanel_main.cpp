@@ -182,6 +182,61 @@ private Q_SLOTS:
         QCOMPARE(config.group(QStringLiteral("General")).readEntry("tileSize", 0), 64);
     }
 
+    void panelUsesPlasmaColors_data()
+    {
+        QTest::addColumn<QString>("plasmaTheme");
+        QTest::addColumn<QString>("applicationScheme");
+        QTest::addColumn<QString>("expectedColors");
+        QTest::newRow("Breeze Twilight") << QStringLiteral("breeze-dark") << QStringLiteral("BreezeLight")
+                                         << QStringLiteral("#fcfcfc;#202326;#fcfcfc");
+        QTest::newRow("light Plasma with dark applications")
+            << QStringLiteral("breeze-light") << QStringLiteral("BreezeDark") << QStringLiteral("#232629;#eff0f1;#232629");
+    }
+
+    void panelUsesPlasmaColors()
+    {
+        QFETCH(QString, plasmaTheme);
+        QFETCH(QString, applicationScheme);
+        QFETCH(QString, expectedColors);
+        const QString configDirectory = m_session->dir(QStringLiteral("config"));
+        QVERIFY(writeFile(configDirectory + QStringLiteral("/plasmarc"), QStringLiteral("[Theme]\nname=%1\n").arg(plasmaTheme).toUtf8()));
+        QFile applicationColors(QStringLiteral("/usr/share/color-schemes/%1.colors").arg(applicationScheme));
+        QVERIFY(applicationColors.open(QIODevice::ReadOnly));
+        QVERIFY(writeFile(configDirectory + QStringLiteral("/kdeglobals"), applicationColors.readAll()));
+        QVERIFY(writeFile(configPath(), "[General]\nappsCategory=\n"));
+        QVERIFY(writeFile(m_directory + QStringLiteral("/Main.qml"), R"(import QtQuick
+import QtQuick.Window
+import org.kde.ksvg as KSvg
+import org.kde.plasma.components as PlasmaComponents
+import org.kde.kirigami as Kirigami
+Window {
+    visible: true
+    required property QtObject service
+    required property var config
+    readonly property color ink: Kirigami.Theme.textColor
+    KSvg.FrameSvgItem { anchors.fill: parent; imagePath: "dialogs/background" }
+    PlasmaComponents.Label { id: label; text: "Kontrol Panel" }
+    Timer {
+        interval: 100
+        running: true
+        onTriggered: config.appsCategory = ink + ";" + Kirigami.Theme.backgroundColor + ";" + label.color
+    }
+}
+)"));
+        start();
+        KConfig config(configPath(), KConfig::SimpleConfig);
+        QString colors;
+        QTRY_VERIFY(([&] {
+            config.reparseConfiguration();
+            colors = config.group(QStringLiteral("General")).readEntry("appsCategory");
+            return colors.contains(QLatin1Char(';'));
+        })());
+        qInfo().noquote() << "Plasma text;background;label:" << colors;
+        QCOMPARE(colors, expectedColors);
+        QVERIFY(QFile::remove(configDirectory + QStringLiteral("/plasmarc")));
+        QVERIFY(QFile::remove(configDirectory + QStringLiteral("/kdeglobals")));
+    }
+
     void runsWithoutKGlobalAccel()
     {
         start();
