@@ -35,7 +35,20 @@ def point(index):
     return frame[0] + 24 + 48 * index, frame[1] + 24
 
 
+def icons_follow_columns():
+    windows = {str(window["task_id"]).strip("{}").lower(): window for window in konveyor_windows() if window["taskbar_eligible"]}
+    ranks = []
+    for entry in OBSERVATION.state().get("entries", []):
+        positions = [windows[str(task).strip("{}").lower()]["layout"]["pos_in_scrolling_layout"][0]
+                     for task in entry["ids"] if str(task).strip("{}").lower() in windows]
+        if positions:
+            ranks.append(min(positions))
+    return ranks == sorted(ranks)
+
+
 def snapshot(name):
+    if not wait_for(icons_follow_columns):
+        raise RuntimeError("taskbar icons did not settle to the completed column order")
     active = next(item["id"] for item in json.loads(konveyor("Workspaces")) if item["output"] == "Virtual-0" and item["is_active"])
     windows = [window for window in konveyor_windows() if window["title"].startswith("App ") and window["workspace_id"] == active]
     clean_snapshot(ROOT / f"taskbar-{name}.png", windows)
