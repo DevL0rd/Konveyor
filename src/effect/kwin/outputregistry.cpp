@@ -8,6 +8,8 @@
 
 #include <QTimer>
 
+#include <utility>
+
 namespace Konveyor
 {
 
@@ -17,7 +19,7 @@ OutputRegistry::OutputRegistry(QObject *parent)
 
 void OutputRegistry::start()
 {
-    const auto queue = [this]() { scheduleRefresh(); };
+    const auto queue = [this] { scheduleRefresh(); };
     connect(KWin::workspace(), &KWin::Workspace::outputsChanged, this, queue);
     connect(KWin::workspace(), &KWin::Workspace::geometryChanged, this, queue);
     connect(KWin::workspace(), &KWin::Workspace::aboutToRearrange, this, queue);
@@ -51,7 +53,7 @@ void OutputRegistry::watchKeyboard()
         return;
     }
     connect(inputMethod, &KWin::InputMethod::visibleChanged, this, &OutputRegistry::scheduleRefresh);
-    connect(inputMethod, &KWin::InputMethod::panelChanged, this, [this, inputMethod]() {
+    connect(inputMethod, &KWin::InputMethod::panelChanged, this, [this, inputMethod] {
         if (KWin::InputPanelV1Window *panel = inputMethod->panel()) {
             connect(panel, &KWin::Window::frameGeometryChanged, this, &OutputRegistry::scheduleRefresh, Qt::UniqueConnection);
         }
@@ -100,7 +102,7 @@ void OutputRegistry::scheduleRefresh()
         return;
     }
     m_refreshQueued = true;
-    QTimer::singleShot(0, this, [this]() {
+    QTimer::singleShot(0, this, [this] {
         m_refreshQueued = false;
         refresh();
     });
@@ -126,7 +128,7 @@ void OutputRegistry::refresh()
             Q_EMIT outputChanged(*it);
         }
     }
-    m_known = current;
+    m_known = std::move(current);
 }
 
 }

@@ -26,7 +26,7 @@ struct RadixPrefix
 };
 
 constexpr std::array<RadixPrefix, 3> radixPrefixes {{{U'x', 16, "hexadecimal"}, {U'o', 8, "octal"}, {U'b', 2, "binary"}}};
-constexpr quint64 maxMagnitude = quint64(1) << 63;
+constexpr quint64 maxMagnitude = quint64(1) << 63U;
 constexpr qint64 saturatedExponentLimit = 1000000;
 
 char32_t characterAt(std::u32string_view token, std::size_t index)

@@ -130,6 +130,9 @@ WindowState buildWindowState(
     state.ruleOpacity = window.isIgnoringOpacityRule() ? 1.0 : window.rules().opacity.value_or(1.0);
     state.onActiveWorkspace = context.onActive;
     state.isFloating = workspace.isFloating(window.id());
+    state.taskbarGrouping = window.rules().groupAppWindows.value_or(workspace.options()->layout.groupAppWindows);
+    const Column *column = state.isFloating ? nullptr : workspace.scrolling().columnFor(window.id());
+    state.taskbarEligible = column && column->taskbarEligible();
     state.isForceResizable = window.isForceResizable();
     state.isForceResizableByRule = window.isForceResizableByRule();
     state.isExpansionForceResizable = window.isExpansionForceResizable();
@@ -320,6 +323,11 @@ QList<WorkspaceState> Engine::workspaceStates() const
             state.isFocused = state.isActive && monitorIndex == d->activeMonitorIndex;
             state.isUrgent = workspace.isUrgent();
             state.activeWindow = workspace.activeWindow();
+            const TaskbarOrder order = d->taskbarOrders.value(workspace.id());
+            state.taskbarRevision = order.revision;
+            state.taskbarSource = order.source;
+            state.taskbarInteractive = d->windowDrag.has_value() || d->resizeWindow.has_value();
+            state.taskbarGrouping = workspace.options()->layout.groupAppWindows;
             states.append(state);
         }
     }

@@ -91,7 +91,7 @@ void TelemetryEffect::track(KWin::EffectWindow *window)
         return;
     }
     m_rates.insert(window, {});
-    connect(window, &KWin::EffectWindow::windowDamaged, this, [this, window]() {
+    connect(window, &KWin::EffectWindow::windowDamaged, this, [this, window] {
         const qint64 pid = window->pid();
         const std::optional<double> frametime = m_rates[window].addFrame(m_clock.nsecsElapsed());
         if (frametime && m_watchedPids.contains(pid)) {

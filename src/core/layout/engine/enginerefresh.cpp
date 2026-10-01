@@ -28,6 +28,7 @@ void Engine::Private::refresh()
         refreshWorkspaces();
     }
     rememberWindows();
+    refreshTaskbarOrders();
 }
 
 void Engine::Private::takeLayoutFocus()

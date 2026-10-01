@@ -59,6 +59,7 @@ constexpr ActionSpec kSpecialActions[] = {
     {"focus-window-in-column", 1, 1, ArgumentKind::Index, ""},
     {"focus-column", 1, 1, ArgumentKind::Index, ""},
     {"move-column-to-index", 1, 1, ArgumentKind::Index, ""},
+    {"order-taskbar-columns", 2, 4, ArgumentKind::Text, ""},
     {"set-column-display", 1, 1, ArgumentKind::Display, ""},
     {"focus-workspace", 1, 1, ArgumentKind::Workspace, ""},
     {"move-window-to-workspace-down", 0, 0, ArgumentKind::None, "focus"},

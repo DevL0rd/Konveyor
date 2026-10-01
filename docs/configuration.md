@@ -132,3 +132,19 @@ If a config file has a mistake, Konveyor keeps running with the last good one an
 konveyor msg windows
 konveyor msg action set-column-width +10%
 ```
+
+## Companion taskbar
+
+Add **Konveyor Taskbar** through Plasma's **Add Widgets** menu after a normal Konveyor widget installation. It is optional and does not replace your existing task manager or change shortcuts. Use one Konveyor Taskbar per screen; each instance orders that screen's active workspace.
+
+Drag an icon to order its eligible columns. Right-click an icon to pin or unpin its application, or cycle **Grouping** between **Follow Konveyor** (the default), **Grouped**, and **Separate**. Pins and grouping are saved in the widget's Plasma configuration. Pinned order also determines column order when apps start in a different order, independently of **Where new windows open**. Pins without running windows reserve an ordering position, not an empty column.
+
+Left-click an active task to minimize its window, or click an inactive task to activate it. Middle-click closes the window. For a grouped task these actions use its active window, or its first window if none is active. Clicking a pinned launcher starts the application.
+
+Grouped icons move an application's eligible columns together while preserving their relative order. Ungrouped window icons order their owning columns; multiple windows in one column are deduplicated at their first appearance. Mixed-app columns, floating windows, and columns with explicit `column-position` rules are excluded from reordering. Existing stacks and rules remain intact, so their positions can prevent an exact icon-to-column match. Numbered workspace shortcuts remain unchanged.
+
+**Follow Konveyor** uses each window's effective grouping settings, including output, workspace and window rules. Off produces separate icons; Beside and Stack produce application groups. Conflicting effective settings for windows of the same application produce separate icons. Explicit Grouped and Separate overrides affect icons without changing existing stacks.
+
+Adding the widget projects the existing column order without rearranging it. Completed column moves update icon order on the same screen and workspace without modifying saved launcher pins. An interleaved application group follows its first eligible column; this projection and subsequent launches leave the interleaved layout intact until you explicitly drag an icon. Icon drags save pinned order and reorder eligible columns. New launches use saved pins even after a column move changed the current icon order. Synchronization pauses during interactive window moves and resizing and resumes afterward. Floating windows, mixed-app stacks and explicit column-position rules remain excluded, and other outputs and workspaces remain untouched.
+
+The companion uses its own KDE task model. Dragging icons in an existing Plasma task manager does not control Konveyor columns.
