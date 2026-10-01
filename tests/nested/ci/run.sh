@@ -15,6 +15,9 @@ git -C /tmp/xunused checkout b81e0ef
 if [[ ! -f /usr/include/clang/Driver/Options.h ]]; then
     sed -i 's|#include "clang/Driver/Options.h"|#include "clang/Options/Options.h"|' /tmp/xunused/main.cpp
 fi
+if [[ ! -f /usr/include/clang/Index/USRGeneration.h ]]; then
+    sed -i 's|#include "clang/Index/USRGeneration.h"|#include "clang/UnifiedSymbolResolution/USRGeneration.h"|' /tmp/xunused/main.cpp
+fi
 cmake -S /tmp/xunused -B /tmp/xunused/build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build /tmp/xunused/build
 install -Dm755 /tmp/xunused/build/xunused /usr/local/bin/xunused
