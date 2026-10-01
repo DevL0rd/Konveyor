@@ -9,6 +9,8 @@
 #include <QDBusPendingCall>
 #include <QDBusPendingCallWatcher>
 
+#include <utility>
+
 namespace Konveyor
 {
 
@@ -136,7 +138,7 @@ void PlasmaShellSync::update(const QList<Layout::WindowState> &states, const QSt
     if (screens == m_screens && outputOrder == m_outputOrder) {
         return;
     }
-    m_screens = screens;
+    m_screens = std::move(screens);
     m_outputOrder = outputOrder;
     scheduleApply();
 }

@@ -151,11 +151,12 @@ QString ShortcutManager::actionName(const Config::Bind &bind)
 QList<QKeySequence> ShortcutManager::keySequences(const Config::Bind &bind)
 {
     const Qt::KeyboardModifiers modifiers = toQtModifiers(bind.resolvedModifiers);
-    QList<QKeySequence> sequences {QKeySequence(static_cast<int>(modifiers.toInt()) | bind.key)};
+    QList<QKeySequence> sequences {
+        QKeySequence(static_cast<int>(static_cast<unsigned>(modifiers.toInt()) | static_cast<unsigned>(bind.key)))};
     const int shifted = shiftedKey(bind);
     if (shifted != 0) {
         const Qt::KeyboardModifiers withoutShift = modifiers & ~Qt::ShiftModifier;
-        sequences.append(QKeySequence(static_cast<int>(withoutShift.toInt()) | shifted));
+        sequences.append(QKeySequence(static_cast<int>(static_cast<unsigned>(withoutShift.toInt()) | static_cast<unsigned>(shifted))));
     }
     return sequences;
 }
@@ -172,7 +173,7 @@ void ShortcutManager::registerKeyBind(const Config::Bind &bind)
     action->setProperty("componentName", QStringLiteral("konveyor"));
     action->setProperty("componentDisplayName", QStringLiteral("Konveyor"));
     action->setAutoRepeat(bind.repeat);
-    connect(action, &QAction::triggered, this, [this, bind]() { invoke(bind); });
+    connect(action, &QAction::triggered, this, [this, bind] { invoke(bind); });
     KGlobalAccel::self()->setShortcut(action, keySequences(bind), KGlobalAccel::NoAutoloading);
     m_actions.insert(name, action);
 }
