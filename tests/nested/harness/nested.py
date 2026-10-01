@@ -154,7 +154,7 @@ class NestedSession:
         script.chmod(0o755)
         prelude = NOTIFICATIONS_PRELUDE.format(server=HARNESS / "notifications.py", log=self.notifications_log) if self.notifications else ""
         log = open(self.log_path, "w")
-        command = ["dbus-run-session", f"--config-file={self.root / 'bus.conf'}", "--", "sh", "-c", prelude + 'exec kwin_wayland "$@"', "kwin",
+        command = ["dbus-run-session", f"--config-file={self.root / 'bus.conf'}", "--", "sh", "-c", prelude + 'DBUS_SYSTEM_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" exec kwin_wayland "$@"', "kwin",
                    *self.kwin_arguments(script)]
         self.proc = subprocess.Popen(command, env=self.env(), stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         return self.proc

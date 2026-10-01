@@ -28,6 +28,7 @@ def locked_row(checks):
     activate("B")
     before = row()
     windows_before = window_ids()
+    checks.equal(screensaver("GetActive"), "false", "the isolated screen starts unlocked")
     screensaver("Lock")
     checks.expect(wait_for(lambda: screensaver("GetActive") == "true"), "the screen locks")
     checks.expect(wait_for(lambda: window_ids() - windows_before), f"the lock screen window mapped ({kwin_titles()})")
