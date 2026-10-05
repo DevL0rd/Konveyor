@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 import virtualtouchpad
 from fakepointer import Held, click, move
 from kwinsession import activate, active_title, for_window, frames, intersects, konveyor_action, konveyor_windows, open_client, run_script, wait_for
-from screenshot import capture_workspace
+from screenshot import capture_workspace, close
 
 CLIENT_COLOR = (0x2F, 0x30, 0x33)
 ROOT = Path(os.environ["KONVEYOR_TEST_ROOT"])
@@ -29,7 +29,7 @@ def client_pixels_in(image, rect):
     count = 0
     for y in range(top, top + height, 7):
         for x in range(left, left + width, 7):
-            if image.getpixel((x, y))[:3] == CLIENT_COLOR:
+            if close(image.getpixel((x, y)), CLIENT_COLOR):
                 count += 1
     return count
 
