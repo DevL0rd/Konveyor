@@ -16,6 +16,8 @@ private Q_SLOTS:
     void parsesInput();
     void rejectsUnknownInputOptions();
     void parsesConfigNotification();
+    void warnsWhenRowSwipesHideWindowSwipes_data();
+    void warnsWhenRowSwipesHideWindowSwipes();
 };
 
 void TestConfigInput::parsesGestures()
@@ -142,6 +144,39 @@ void TestConfigInput::parsesConfigNotification()
 {
     const Config config = parsed(QStringLiteral("config-notification {\n disable-failed\n}\n"));
     QCOMPARE(config.configNotificationDisableFailed, true);
+}
+
+void TestConfigInput::warnsWhenRowSwipesHideWindowSwipes_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<QStringList>("warnings");
+    const auto clash = [](const QString &device, int fingers) {
+        return QStringLiteral(
+            "%1 swipe-fingers and window-swipe-fingers are both %2, so the window swipes never start; give them different finger counts")
+            .arg(device)
+            .arg(fingers);
+    };
+    QTest::newRow("defaults") << QString() << QStringList();
+    QTest::newRow("touchpad") << QStringLiteral("gestures {\n touchpad {\n swipe-fingers 4\n }\n}\n")
+                              << QStringList {clash(QStringLiteral("touchpad"), 4)};
+    QTest::newRow("touchscreen") << QStringLiteral("gestures {\n touchscreen {\n window-swipe-fingers 3\n swipe-fingers 3\n }\n}\n")
+                                 << QStringList {clash(QStringLiteral("touchscreen"), 3)};
+    QTest::newRow("row swipes off") << QStringLiteral(
+        "gestures {\n touchpad {\n swipe-fingers 4\n horizontal-swipe \"off\"\n vertical-swipe \"off\"\n }\n}\n")
+                                    << QStringList();
+    QTest::newRow("window swipes off") << QStringLiteral(
+        "gestures {\n touchpad {\n swipe-fingers 4\n window-horizontal-swipe \"off\"\n window-vertical-swipe \"off\"\n }\n}\n")
+                                       << QStringList();
+    QTest::newRow("touchpad off") << QStringLiteral("gestures {\n touchpad {\n off\n swipe-fingers 4\n }\n}\n") << QStringList();
+}
+
+void TestConfigInput::warnsWhenRowSwipesHideWindowSwipes()
+{
+    QFETCH(QString, text);
+    QFETCH(QStringList, warnings);
+    const auto result = loadString(text, QStringLiteral("config.kdl"));
+    QVERIFY2(result, result ? "" : qPrintable(result.error().toString()));
+    QCOMPARE(result->warnings, warnings);
 }
 
 QTEST_MAIN(TestConfigInput)
