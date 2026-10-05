@@ -9,9 +9,8 @@ import org.kde.plasma.workspace.dbus as DBus
 import org.kde.taskmanager as TaskManager
 import "lib"
 import "lib/PopStyle.js" as Style
-import "lib/Ring.js" as Ring
 
-PlasmoidItem {
+ProcessFrameTimes {
     id: root
 
     readonly property bool overlayHost: Plasmoid.pluginName === "org.devl0rd.procmon.overlay"
@@ -20,22 +19,6 @@ PlasmoidItem {
     readonly property string panelIcon: Plasmoid.configuration.panelIcon || "utilities-system-monitor"
     Plasmoid.icon: panelIcon
     Plasmoid.title: i18n("Process Monitor")
-
-    readonly property var allColumns: [
-        { key: "cpu", label: i18n("CPU"), kind: "pct", heat: true, show: true },
-        { key: "ram", label: i18n("RAM"), kind: "bytes", heat: false, show: true },
-        { key: "gpu", label: i18n("GPU"), kind: "pct", heat: true, show: Plasmoid.configuration.showGpuColumn },
-        { key: "fps", label: i18n("FPS"), kind: "fps", heat: true, show: Plasmoid.configuration.showFpsColumn, noagg: true },
-        { key: "dec", label: i18n("DEC"), kind: "pct", heat: true, show: Plasmoid.configuration.showDecColumn },
-        { key: "enc", label: i18n("ENC"), kind: "pct", heat: true, show: Plasmoid.configuration.showEncColumn },
-        { key: "vram", label: i18n("VRAM"), kind: "bytes", heat: false, show: Plasmoid.configuration.showVramColumn },
-        { key: "disk", label: i18n("Disk"), kind: "rate", heat: false, show: Plasmoid.configuration.showDiskColumn },
-        { key: "threads", label: i18n("Threads"), kind: "int", heat: false, show: Plasmoid.configuration.showThreadsColumn },
-        { key: "pid", label: i18n("PID"), kind: "int", heat: false, show: Plasmoid.configuration.showPidColumn, noagg: true }
-    ]
-    readonly property var columns: allColumns.filter(column => column.show)
-    readonly property var columnConfigKeys: ({ gpu: "showGpuColumn", fps: "showFpsColumn", dec: "showDecColumn", enc: "showEncColumn", vram: "showVramColumn",
-                                               disk: "showDiskColumn", threads: "showThreadsColumn", pid: "showPidColumn" })
 
     readonly property int histLen: 40
     readonly property var histKeys: ["cpu", "ram", "gpu", "dec", "enc", "vram", "disk", "threads"]
@@ -46,8 +29,6 @@ PlasmoidItem {
     property var procByPid: ({})
     property var sortHistByPid: ({})
     property var overlayProcByPid: ({})
-    property var frametimeRings: ({})
-    property int frametimeGeneration: 0
     property var expandedRows: ({})
     property int expandedPid: 0
     property string searchText
@@ -128,62 +109,6 @@ PlasmoidItem {
         requestRebuild()
     }
     onFocusAppNameChanged: writeFocus()
-    readonly property var frametimeWatchPids: {
-        const seen = {}
-        const result = []
-        function add(pid) {
-            pid = Number(pid) || 0
-            if (pid > 0 && seen[pid] !== true) {
-                seen[pid] = true
-                result.push(pid)
-            }
-        }
-        add(focusPid)
-        if (focusProc)
-            add(focusProc.framePid)
-        for (const pid of monitorOverlay.pids) {
-            add(pid)
-            const proc = overlayProcByPid[pid]
-            if (proc)
-                add(proc.framePid)
-        }
-        return result.sort((a, b) => a - b)
-    }
-    readonly property string frametimeWatchKey: frametimeWatchPids.join(",")
-    onFrametimeWatchKeyChanged: syncFrametimeWatch()
-
-    function syncFrametimeWatch() {
-        const message = {
-            service: "org.devl0rd.ProcessMonitor.FrameTelemetry",
-            path: "/FrameTelemetry",
-            iface: "org.devl0rd.ProcessMonitor.FrameTelemetry",
-            member: "Watch",
-            arguments: [JSON.stringify(frametimeWatchPids)]
-        }
-        DBus.SessionBus.asyncCall(message)
-        const keep = {}
-        for (const pid of frametimeWatchPids)
-            if (frametimeRings[pid]) keep[pid] = frametimeRings[pid]
-        frametimeRings = keep
-    }
-
-    function recordFrametime(pid, frametime) {
-        if (pid <= 0 || frametime <= 0 || frametime > 2000)
-            return
-        let ring = frametimeRings[pid]
-        if (!ring) {
-            ring = Ring.make(240)
-            frametimeRings[pid] = ring
-        }
-        Ring.push(ring, frametime)
-        frametimeGeneration++
-    }
-
-    function frametimesFor(pid) {
-        frametimeGeneration
-        const ring = frametimeRings[pid]
-        return ring ? Ring.values(ring) : []
-    }
 
     DBus.SignalWatcher {
         enabled: root.dataWanted
@@ -200,53 +125,6 @@ PlasmoidItem {
     function writeFocus() {
         if (runtimeDir)
             run("printf '%s\\n%s\\n' " + focusPid + " " + shq(focusAppName) + " > " + shq(runtimeDir + "/focus"))
-    }
-
-    function colOf(key) {
-        return allColumns.find(column => column.key === key) || null
-    }
-    function colVal(p, column) {
-        if (column.noagg) return p[column.key] || 0
-        if (Plasmoid.configuration.aggregateChildren) {
-            const aggregate = p["a" + column.key]
-            return aggregate === undefined ? (p[column.key] || 0) : aggregate
-        }
-        return p[column.key] || 0
-    }
-    function fmtValue(value, kind) {
-        if (kind === "pct") return Math.round(value) + "%"
-        if (kind === "bytes") return value > 0 ? Style.bytes(value) : "—"
-        if (kind === "rate") return value > 0 ? Style.bytes(value) + "/s" : "—"
-        return value + ""
-    }
-    function fmtCol(p, column) {
-        if (column.kind === "fps") return p.fps === undefined ? "—" : Math.round(p.fps) + ""
-        return fmtValue(colVal(p, column), column.kind)
-    }
-    function heatColor(value, theme) {
-        const colors = theme || Kirigami.Theme
-        if (!Plasmoid.configuration.colorizeUsage || value <= 0)
-            return colors.textColor
-        const t = Math.max(0, Math.min(1, value / 100))
-        return Qt.hsla((1 - t) * 0.33, 0.62, Style.isDark(colors) ? 0.62 : 0.42, 1)
-    }
-    function colColor(p, column, theme) {
-        const colors = theme || Kirigami.Theme
-        if (column.kind === "fps" && p.fps !== undefined) return fpsColor(p.fps, colors)
-        return column.heat && column.kind === "pct" ? heatColor(colVal(p, column), colors) : colors.textColor
-    }
-    function graphMax(key) {
-        if (key === "ram") return summary.memTotal
-        if (key === "vram") return summary.vramTotal
-        if (key === "fps") return 0
-        const column = colOf(key)
-        return column && column.kind === "pct" ? 100 : 0
-    }
-    function fpsColor(fps, theme) {
-        const colors = theme || Kirigami.Theme
-        if (fps >= Plasmoid.configuration.fpsGood) return colors.positiveTextColor
-        if (fps >= Plasmoid.configuration.fpsWarn) return colors.neutralTextColor
-        return colors.negativeTextColor
     }
 
     property string runtimeDir
@@ -455,63 +333,6 @@ PlasmoidItem {
             rowsView.positionViewAtBeginning()
         Plasmoid.configuration.sortColumn = key
         Plasmoid.configuration.sortDescending = descending
-    }
-
-    function shq(text) {
-        return "'" + String(text).replace(/'/g, "'\\''") + "'"
-    }
-    P5Support.DataSource {
-        id: runner
-        engine: "executable"
-        onNewData: function(source, data) { disconnectSource(source) }
-    }
-    P5Support.DataSource {
-        id: reader
-        engine: "executable"
-        property var callbacks: ({})
-        onNewData: function(source, data) {
-            const callback = callbacks[source]
-            disconnectSource(source)
-            if (callback)
-                callback((data.stdout || "").trim())
-        }
-    }
-    function run(command) {
-        runner.connectSource(command)
-    }
-    function readCommand(command, callback) {
-        const next = Object.assign({}, reader.callbacks)
-        next[command] = callback
-        reader.callbacks = next
-        reader.connectSource(command)
-    }
-    TextEdit { id: clipboard; visible: false }
-    function copyText(text) {
-        clipboard.text = text
-        clipboard.selectAll()
-        clipboard.copy()
-        clipboard.text = ""
-    }
-    function commandLineCommand(pid) {
-        return "tr '\\0' ' ' < /proc/" + pid + "/cmdline"
-    }
-    function copyCmdline(pid) {
-        readCommand(commandLineCommand(pid), text => root.copyText(text))
-    }
-    function signalProc(pid, signal) {
-        run("kill -" + signal + " " + pid)
-    }
-    function openLocation(pid) {
-        run("sh -c " + shq("d=$(dirname \"$(readlink -f /proc/" + pid + "/exe 2>/dev/null)\"); [ -d \"$d\" ] && xdg-open \"$d\""))
-    }
-    function openJournal(name) {
-        run("konsole -e journalctl _COMM=" + shq(name) + " -e")
-    }
-    function restartProc(pid) {
-        run("bash -c " + shq("p=" + pid + "; mapfile -d '' a < /proc/$p/cmdline; cwd=$(readlink /proc/$p/cwd); kill \"$p\"; cd \"$cwd\" 2>/dev/null; setsid \"${a[@]}\" >/dev/null 2>&1 &"))
-    }
-    function forceKillAsRoot(pid) {
-        run("pkexec kill -9 " + pid)
     }
 
     function revealFocused() {
