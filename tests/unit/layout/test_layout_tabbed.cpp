@@ -232,6 +232,24 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void aConsumedTabFollowsHeightPresetsAndTheReset()
+    {
+        Fixture fixture(tabbedConfig());
+        const auto first = fixture.add(QStringLiteral("a"));
+        const auto second = fixture.add(QStringLiteral("b"));
+        fixture.perform(QStringLiteral("focus-column-left"));
+        fixture.perform(QStringLiteral("consume-window-into-column"));
+        fixture.perform(QStringLiteral("switch-preset-window-height"));
+        verifySameFrame(fixture, {first, second}, QRectF(16, 16, 936, 250));
+        fixture.perform(QStringLiteral("focus-window-down"));
+        QCOMPARE(fixture.focused(), std::optional(second));
+        fixture.perform(QStringLiteral("switch-preset-window-height"));
+        verifySameFrame(fixture, {first, second}, QRectF(16, 16, 936, 339));
+        fixture.perform(QStringLiteral("reset-window-height"));
+        verifySameFrame(fixture, {first, second}, QRectF(16, 16, 936, 1048));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void expelLeavesTheRestTabbed()
     {
         Fixture fixture(tabbedConfig());

@@ -55,12 +55,37 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void onOverflowCountsTheBorderWhenTheNeighbourWouldOnlyFitWithoutIt()
+    {
+        Config::Config config = centeringConfig(Config::CenterFocusedColumn::OnOverflow, 930);
+        config.layout.border.enabled = true;
+        config.layout.border.width = 8;
+        Fixture fixture(config);
+        const QList<Layout::WindowId> row = addColumns(fixture, 3);
+        QCOMPARE(fixture.frame(row[2]).x(), 1920.0 - 16.0 - 8.0 - 930.0);
+        fixture.perform(QStringLiteral("focus-column-left"));
+        QCOMPARE(fixture.frame(row[1]).x(), (1920.0 - 946.0) / 2.0 + 8.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void neverModeOnlyRevealsTheColumn()
     {
         Fixture fixture(centeringConfig(Config::CenterFocusedColumn::Never, 1000));
         const QList<Layout::WindowId> row = addColumns(fixture, 3);
         fixture.perform(QStringLiteral("focus-column-left"));
         QCOMPARE(fixture.frame(row[1]).x(), 16.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void neverModeRevealsTheColumnInsideTheStruts()
+    {
+        Config::Config config = centeringConfig(Config::CenterFocusedColumn::Never, 1000);
+        config.layout.struts = Config::Struts {100, 200, 0, 0};
+        Fixture fixture(config);
+        const QList<Layout::WindowId> row = addColumns(fixture, 3);
+        QCOMPARE(fixture.frame(row[2]).x(), 1920.0 - 200.0 - 16.0 - 1000.0);
+        fixture.perform(QStringLiteral("focus-column-left"));
+        QCOMPARE(fixture.frame(row[1]).x(), 116.0);
         VERIFY_INVARIANTS(fixture);
     }
 
@@ -135,6 +160,22 @@ private Q_SLOTS:
         const auto b = fixture.add(QStringLiteral("b"));
         QCOMPARE(fixture.frame(a), QRectF(120, 20, 600, 1040));
         QCOMPARE(fixture.frame(b).x(), 120.0 + 600.0 + 4.0 + 16.0 + 4.0);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void centerSingleWithoutExpandCentersInsideTheStruts()
+    {
+        Config::Config config = centeringConfig(Config::CenterFocusedColumn::Never, 600);
+        config.layout.alwaysCenterSingleColumn = true;
+        config.layout.struts = Config::Struts {300, 100, 0, 0};
+        Fixture fixture(config);
+        const auto a = fixture.add(QStringLiteral("a"));
+        QCOMPARE(fixture.frame(a), QRectF(300.0 + (1520.0 - 600.0) / 2.0, 16, 600, 1048));
+        const auto b = fixture.add(QStringLiteral("b"));
+        QCOMPARE(fixture.frame(a).x(), 316.0);
+        QCOMPARE(fixture.frame(b).x(), 932.0);
+        fixture.remove(b);
+        QCOMPARE(fixture.frame(a), QRectF(300.0 + (1520.0 - 600.0) / 2.0, 16, 600, 1048));
         VERIFY_INVARIANTS(fixture);
     }
 
