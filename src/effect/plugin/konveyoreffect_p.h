@@ -17,6 +17,7 @@
 #include "kwin/outputregistry.h"
 #include "kwin/windowapplier.h"
 #include "kwin/windowregistry.h"
+#include "plasma/kontrolpanelstacking.h"
 #include "plasma/plasmashellsync.h"
 #include "plugin/configmanager.h"
 #include "plugin/layouthandoff.h"
@@ -116,6 +117,7 @@ struct KonveyorEffect::Private
     DesktopSync desktops;
     ShortcutManager shortcuts;
     PlasmaShellSync plasmaShell;
+    KontrolPanelStacking kontrolPanelStacking;
     std::unique_ptr<SpillInputFilter> spillInput;
     std::unique_ptr<InputFilter> input;
     std::unique_ptr<AxisFilter> axisInput;

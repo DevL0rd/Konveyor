@@ -65,6 +65,7 @@ KonveyorEffect::KonveyorEffect()
     d->focusRequest.reset();
     followActiveWindow();
     d->plasmaShell.start();
+    d->kontrolPanelStacking.start();
     scheduleFlush();
 }
 
