@@ -26,7 +26,8 @@ struct HandedOverPlacement
 class LayoutHandoff
 {
 public:
-    static void give(const Layout::Engine &engine, const WindowRegistry &windows);
+    static void give(const Layout::Engine &engine, const WindowRegistry &windows,
+        const QHash<KWin::Window *, Layout::RestorePlacement> &hiddenPlacements);
     static LayoutHandoff take();
 
     bool comesBefore(KWin::Window *first, KWin::Window *second) const;

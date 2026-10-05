@@ -48,6 +48,20 @@ def layout_survives(checks):
     checks.expect(wait_for(lambda: layout()["C"][0] == 2), "moving a window that was open before the reload to another KDE desktop moves it to that workspace")
 
 
+def minimized(title, value):
+    run_script(for_window(title, f"w.minimized = {'true' if value else 'false'};"))
+
+
+def minimized_window_survives(checks):
+    before = layout()
+    minimized("A", True)
+    checks.expect(wait_for(lambda: "A" not in layout()), "minimizing A takes it out of the layout")
+    reload_effect(checks, [title for title in before if title != "A"])
+    minimized("A", False)
+    checks.expect(wait_for(lambda: layout().get("A") == before["A"], 10),
+                  f"A comes back where it was after a reload while minimized ({before['A']} -> {layout().get('A')})")
+
+
 def rules_apply_on_load(checks):
     rule = '\nwindow-rule {\n    match title="^Ruled$"\n    open-floating true\n}\n'
     checks.expect(load_config(default_config() + rule), "a config with an open-floating rule loads")
@@ -87,7 +101,7 @@ def unload_gives_back_desktops(checks):
 
 
 def main():
-    Checks().run(layout_survives, rules_apply_on_load, fullscreen_survives, unload_gives_back_desktops)
+    Checks().run(layout_survives, minimized_window_survives, rules_apply_on_load, fullscreen_survives, unload_gives_back_desktops)
 
 
 if __name__ == "__main__":

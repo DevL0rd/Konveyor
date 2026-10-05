@@ -175,14 +175,9 @@ void KonveyorEffect::connectWindowLifecycle()
         d->homeOutputs.remove(id);
     });
     connect(&d->windows, &WindowRegistry::windowHiding, this, [this](Layout::WindowId id, KWin::Window *window) {
-        const std::optional<Layout::RestorePlacement> placement = readEngine().placementOf(id);
-        if (!placement) {
-            return;
+        if (const std::optional<Layout::RestorePlacement> placement = readEngine().placementOf(id)) {
+            rememberHiddenPlacement(window, *placement);
         }
-        if (!d->hiddenPlacements.contains(window)) {
-            connect(window, &QObject::destroyed, this, [this, window] { d->hiddenPlacements.remove(window); });
-        }
-        d->hiddenPlacements.insert(window, *placement);
     });
     connect(&d->windows, &WindowRegistry::propertiesChanged, this, [this](Layout::WindowId id) {
         if (KWin::Window *window = d->windows.windowOf(id)) {
@@ -271,6 +266,27 @@ void KonveyorEffect::connectDesktopSync()
         qCInfo(lcKonveyor) << "konveyor: KDE moved window" << id << "to desktop" << index;
         changeEngine().perform({QStringLiteral("move-window-to-workspace"), {QString::number(index)}, {}}, id);
     });
+}
+
+void KonveyorEffect::rememberHiddenPlacement(KWin::Window *window, const Layout::RestorePlacement &placement)
+{
+    if (!d->hiddenPlacements.contains(window)) {
+        connect(window, &QObject::destroyed, this, [this, window] { d->hiddenPlacements.remove(window); });
+    }
+    d->hiddenPlacements.insert(window, placement);
+}
+
+void KonveyorEffect::takeHandedOverHiddenPlacements()
+{
+    for (KWin::Window *window : KWin::workspace()->windows()) {
+        if (d->windows.idOf(window)) {
+            continue;
+        }
+        if (const std::optional<HandedOverPlacement> handed = d->handoff.takePlacement(window, readEngine())) {
+            qCInfo(lcKonveyor) << "konveyor: keeping the place of hidden window" << window->resourceClass() << "through the reload";
+            rememberHiddenPlacement(window, handed->placement);
+        }
+    }
 }
 
 void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)

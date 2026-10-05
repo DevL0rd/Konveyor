@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <algorithm>
 #include <tuple>
 
 namespace Konveyor
@@ -29,12 +30,12 @@ QRectF rectFromJson(const QJsonArray &array)
     return {array.at(0).toDouble(), array.at(1).toDouble(), array.at(2).toDouble(), array.at(3).toDouble()};
 }
 
-QJsonObject entryToJson(const QUuid &window, const Layout::WindowState &state, const Layout::RestorePlacement &placement)
+QJsonObject entryToJson(const QUuid &window, const QString &output, int workspaceIndex, const Layout::RestorePlacement &placement)
 {
     return {
         {QStringLiteral("window"), window.toString()},
-        {QStringLiteral("output"), state.output},
-        {QStringLiteral("workspace"), state.workspaceIndex},
+        {QStringLiteral("output"), output},
+        {QStringLiteral("workspace"), workspaceIndex},
         {QStringLiteral("floating"), placement.isFloating},
         {QStringLiteral("frame"), rectToJson(placement.floatingFrame)},
         {QStringLiteral("column"), static_cast<qint64>(placement.columnIndex)},
@@ -46,7 +47,8 @@ QJsonObject entryToJson(const QUuid &window, const Layout::WindowState &state, c
 
 }
 
-void LayoutHandoff::give(const Layout::Engine &engine, const WindowRegistry &windows)
+void LayoutHandoff::give(
+    const Layout::Engine &engine, const WindowRegistry &windows, const QHash<KWin::Window *, Layout::RestorePlacement> &hiddenPlacements)
 {
     QJsonArray entries;
     const QList<Layout::WindowState> states = engine.windowStates();
@@ -54,7 +56,14 @@ void LayoutHandoff::give(const Layout::Engine &engine, const WindowRegistry &win
         const KWin::Window *window = windows.windowOf(state.id);
         const std::optional<Layout::RestorePlacement> placement = engine.placementOf(state.id);
         if (window && placement) {
-            entries.append(entryToJson(window->internalId(), state, *placement));
+            entries.append(entryToJson(window->internalId(), state.output, state.workspaceIndex, *placement));
+        }
+    }
+    const QList<Layout::WorkspaceState> workspaces = engine.workspaceStates();
+    for (auto hidden = hiddenPlacements.constBegin(); hidden != hiddenPlacements.constEnd(); ++hidden) {
+        const auto workspace = std::ranges::find(workspaces, hidden->workspace, &Layout::WorkspaceState::id);
+        if (workspace != workspaces.end()) {
+            entries.append(entryToJson(hidden.key()->internalId(), workspace->output, workspace->index, *hidden));
         }
     }
     KWin::workspace()->setProperty(handoffProperty, QJsonDocument(entries).toJson(QJsonDocument::Compact));

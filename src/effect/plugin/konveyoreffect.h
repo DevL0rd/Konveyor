@@ -97,6 +97,8 @@ private:
     void connectDesktopSync();
     void applyConfig(const Config::Config &config);
     void onWindowAdded(Layout::WindowId id, KWin::Window *window);
+    void rememberHiddenPlacement(KWin::Window *window, const Layout::RestorePlacement &placement);
+    void takeHandedOverHiddenPlacements();
     bool placedBefore(KWin::Window *first, KWin::Window *second) const;
     void observeMonitorOverlay(KWin::Window *window);
     void forgetMonitorOverlay(KWin::Window *window);

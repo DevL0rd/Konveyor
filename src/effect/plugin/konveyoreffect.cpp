@@ -62,6 +62,7 @@ KonveyorEffect::KonveyorEffect()
     d->desktops.start();
     d->handoff = LayoutHandoff::take();
     d->windows.start([this](KWin::Window *first, KWin::Window *second) { return d->handoff.comesBefore(first, second); });
+    takeHandedOverHiddenPlacements();
     d->focusRequest.reset();
     followActiveWindow();
     d->plasmaShell.start();
@@ -71,7 +72,7 @@ KonveyorEffect::KonveyorEffect()
 
 KonveyorEffect::~KonveyorEffect()
 {
-    LayoutHandoff::give(d->engine, d->windows);
+    LayoutHandoff::give(d->engine, d->windows, d->hiddenPlacements);
     disconnect(&d->windows, nullptr, this, nullptr);
     disconnect(&d->desktops, nullptr, this, nullptr);
     if (d->memorySaveTimer.isActive()) {
