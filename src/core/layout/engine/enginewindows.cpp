@@ -1,5 +1,6 @@
 #include "layout/engine/engineprivate.h"
 
+#include "config/log.h"
 #include "layout/common/geometry.h"
 
 #include <algorithm>
@@ -246,6 +247,7 @@ void Engine::updateWindowProperties(WindowId id, const WindowProperties &propert
     }
     LayoutWindow &window = tile->window();
     const bool parentChanged = window.properties().parent != properties.parent;
+    const bool wasLocked = d->isLockedToOutputSize(id);
     window.setProperties(properties);
     window.setUrgent(properties.isUrgent);
     window.markRulesDirty();
@@ -256,6 +258,9 @@ void Engine::updateWindowProperties(WindowId id, const WindowProperties &propert
         workspace->updateWindow(id);
     } else {
         tile->updateWindow();
+    }
+    if (!wasLocked && window.requestedMode() != WindowMode::Fullscreen && d->isLockedToOutputSize(id)) {
+        d->floatOverOutput(id);
     }
     d->refresh();
 }
@@ -278,7 +283,13 @@ void Engine::windowSizeCommitted(WindowId id, const QSizeF &frameSize)
 
 void Engine::setFloatingFrame(WindowId id, const QRectF &frame)
 {
-    Monitor *monitor = d->monitorOf(id);
+    d->setFloatingFrame(id, frame);
+    d->refresh();
+}
+
+void Engine::Private::setFloatingFrame(WindowId id, const QRectF &frame)
+{
+    Monitor *monitor = monitorOf(id);
     const std::optional<std::size_t> index = monitor ? monitor->workspaceOfWindow(id) : std::nullopt;
     if (!index) {
         return;
@@ -288,13 +299,45 @@ void Engine::setFloatingFrame(WindowId id, const QRectF &frame)
     if (!tile || !workspace.isFloating(id)) {
         return;
     }
-    const QPointF origin = d->originOf(monitor->outputName()) + QPointF(0.0, monitor->workspaceRenderOffsets()[*index]);
+    const QPointF origin = originOf(monitor->outputName()) + QPointF(0.0, monitor->workspaceRenderOffsets()[*index]);
     workspace.setFloatingFrame(id, frame.topLeft() - origin - tile->windowOffset(), frame.size());
-    d->refresh();
+}
+
+bool Engine::Private::isLockedToOutputSize(WindowId id)
+{
+    const Tile *tile = tileOf(id);
+    const Monitor *monitor = monitorOf(id);
+    if (!tile || !monitor) {
+        return false;
+    }
+    const WindowProperties &properties = tile->window().properties();
+    const auto output = outputInfos.constFind(monitor->outputName());
+    if (properties.isResizable || output == outputInfos.constEnd() || properties.minSize.isEmpty()
+        || properties.minSize != properties.maxSize) {
+        return false;
+    }
+    const QSizeF screen = output->geometry.size();
+    return std::abs(properties.minSize.width() - screen.width()) < 1.0 && std::abs(properties.minSize.height() - screen.height()) < 1.0;
+}
+
+void Engine::Private::floatOverOutput(WindowId id)
+{
+    Workspace *workspace = workspaceOf(id);
+    const Monitor *monitor = monitorOf(id);
+    if (!workspace || !monitor) {
+        return;
+    }
+    const QRectF screen = outputInfos.value(monitor->outputName()).geometry;
+    qCInfo(lcKonveyor) << "konveyor: window" << id << "is locked to the size of" << monitor->outputName() << "so it floats over" << screen;
+    if (!workspace->isFloating(id)) {
+        workspace->placeWindowFloating(id, true);
+    }
+    setFloatingFrame(id, screen);
 }
 
 void Engine::activateWindow(WindowId id)
 {
+    qCInfo(lcKonveyor) << "konveyor: layout activating window" << id;
     if (d->focusWindow(id)) {
         d->announcedFocus = id;
         d->refresh();
@@ -328,17 +371,23 @@ void Engine::setLayoutFocused(bool focused)
 
 void Engine::setWindowFullscreen(WindowId id, bool fullscreen)
 {
+    qCInfo(lcKonveyor) << "konveyor: layout fullscreen for window" << id << "=" << fullscreen
+                       << "known =" << (d->workspaceOf(id) != nullptr);
     if (fullscreen) {
         d->dropDraggedWindow(id);
     }
     if (Workspace *workspace = d->workspaceOf(id)) {
         workspace->setFullscreen(id, fullscreen);
+        if (!fullscreen && d->isLockedToOutputSize(id)) {
+            d->floatOverOutput(id);
+        }
         d->refresh();
     }
 }
 
 void Engine::toggleWindowFillWidth(WindowId id)
 {
+    qCInfo(lcKonveyor) << "konveyor: toggling fill width for window" << id;
     d->focusWindow(id);
     if (Workspace *workspace = d->workspaceOf(id)) {
         workspace->toggleFillWidth(id);

@@ -1,5 +1,7 @@
 #include "layout/engine/engineprivate.h"
 
+#include "config/log.h"
+
 #include <algorithm>
 
 namespace Konveyor::Layout
@@ -24,15 +26,27 @@ void Engine::addWindow(WindowId id, const WindowProperties &properties, const QS
             }
         }
     }
+    qCInfo(lcKonveyor).nospace() << "konveyor: placing window " << id << " app=" << properties.appId << " title=" << properties.title
+                                 << " output=" << preferredOutput << " policy=" << static_cast<int>(policy)
+                                 << " floating=" << plan.isFloating << " fullscreen=" << plan.wantsFullscreen
+                                 << " maximized=" << plan.wantsMaximized << " fillsWidth=" << plan.fillsWidth << " restoring=" << restoring
+                                 << " dialog=" << properties.isDialog
+                                 << " parent=" << (properties.parent ? static_cast<qint64>(*properties.parent) : -1)
+                                 << " resizable=" << properties.isResizable << " frame=" << properties.frameSize
+                                 << " min=" << properties.minSize << " max=" << properties.maxSize << " monitor=" << plan.monitorIndex;
     d->placeNewWindow(id, properties, plan, restoring ? restore : std::nullopt);
     if (restoring && restore->isFloating) {
         d->restoreFloatingFrame(id, restore->floatingFrame);
+    }
+    if (!plan.wantsFullscreen && d->isLockedToOutputSize(id)) {
+        d->floatOverOutput(id);
     }
     d->refresh();
 }
 
 void Engine::removeWindow(WindowId id)
 {
+    qCInfo(lcKonveyor) << "konveyor: removing window" << id;
     const bool dragged = d->windowDrag && d->windowDrag->window == id;
     if (dragged) {
         d->windowDrag.reset();

@@ -1,5 +1,6 @@
 #include "layout/engine/engineprivate.h"
 
+#include "config/log.h"
 #include "layout/common/sizechange.h"
 
 #include <algorithm>
@@ -346,8 +347,12 @@ ActionResult Engine::perform(const Config::Action &action, std::optional<WindowI
     if (const auto invalid = invalidProperty(action)) {
         return actionError(*invalid);
     }
+    qCInfo(lcKonveyor) << "konveyor: action" << action.name << action.arguments << "target" << (target ? static_cast<qint64>(*target) : -1);
     d->takeLayoutFocus();
     const ActionResult result = (*handler)(*d, action, target);
+    if (!result.ok) {
+        qCInfo(lcKonveyor) << "konveyor: action" << action.name << "failed:" << result.error;
+    }
     d->refresh();
     return result;
 }

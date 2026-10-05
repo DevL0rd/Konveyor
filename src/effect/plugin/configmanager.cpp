@@ -2,6 +2,7 @@
 
 #include "config/forceresizable.h"
 #include "config/loader.h"
+#include "config/log.h"
 #include "plugin/notifications.h"
 
 #include <QDir>
@@ -85,6 +86,7 @@ QString ConfigManager::load(const QString &path)
     auto result = Config::loadFile(target);
     if (!result) {
         const QString message = result.error().toString();
+        qCInfo(lcKonveyor).noquote() << "konveyor: config" << target << "failed to load:" << message;
         notifyFailure(message);
         if (target == m_path) {
             watch(result.error().files);
@@ -96,6 +98,7 @@ QString ConfigManager::load(const QString &path)
         return message;
     }
     m_loadedOnce = true;
+    qCInfo(lcKonveyor).noquote() << "konveyor: config loaded from" << target << "files:" << result->files.join(QStringLiteral(", "));
     m_path = target;
     watch(result->files);
     notifyWarnings(result->warnings);

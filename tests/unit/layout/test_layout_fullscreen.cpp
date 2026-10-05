@@ -230,6 +230,39 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void windowLockedToOutputSizeFloatsOverItWhenLeavingFullscreen()
+    {
+        Fixture fixture;
+        fixture.add();
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(1920, 1080));
+        properties.isResizable = false;
+        properties.minSize = QSizeF(1920, 1080);
+        properties.maxSize = QSizeF(1920, 1080);
+        properties.wantsFullscreen = true;
+        const auto id = fixture.addWith(properties);
+        QCOMPARE(fixture.state(id).sizingMode, Layout::WindowMode::Fullscreen);
+        fixture.engine().setWindowFullscreen(id, false);
+        fixture.settle();
+        QVERIFY(fixture.state(id).isFloating);
+        QCOMPARE(fixture.state(id).requestedSizingMode, Layout::WindowMode::Normal);
+        QCOMPARE(fixture.frame(id), QRectF(0, 0, 1920, 1080));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void windowOpeningLockedToOutputSizeFloatsOverIt()
+    {
+        Fixture fixture;
+        fixture.add();
+        Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(1920, 1080));
+        properties.isResizable = false;
+        properties.minSize = QSizeF(1920, 1080);
+        properties.maxSize = QSizeF(1920, 1080);
+        const auto id = fixture.addWith(properties);
+        QVERIFY(fixture.state(id).isFloating);
+        QCOMPARE(fixture.frame(id), QRectF(0, 0, 1920, 1080));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void toggleWindowedFullscreen()
     {
         Fixture fixture;

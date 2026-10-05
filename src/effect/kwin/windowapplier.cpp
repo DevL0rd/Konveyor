@@ -2,6 +2,7 @@
 
 #include "kwin/windowregistry.h"
 
+#include "config/log.h"
 #include "layout/common/geometry.h"
 
 #include <KDecoration3/Decoration>
@@ -50,6 +51,7 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
         if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
             window->setOpacity(state.ruleOpacity);
         }
+        logTargetChange(window, state);
         if (isUserManipulated(window)) {
             continue;
         }
@@ -89,6 +91,24 @@ bool WindowApplier::isEchoOfAppliedFrame(Layout::WindowId id, const QRectF &fram
 void WindowApplier::forget(Layout::WindowId id)
 {
     m_appliedFrames.remove(id);
+    m_loggedTargets.remove(id);
+}
+
+void WindowApplier::logTargetChange(KWin::Window *window, const Layout::WindowState &state)
+{
+    const LoggedTarget target {state.targetFrame, state.output, state.workspace, state.columnIndex, state.isFloating, state.sizingMode,
+        state.requestedSizingMode, state.isWindowedFullscreen, window->isFullScreen()};
+    const auto previous = m_loggedTargets.constFind(state.id);
+    if (previous != m_loggedTargets.constEnd() && *previous == target) {
+        return;
+    }
+    m_loggedTargets.insert(state.id, target);
+    qCInfo(lcKonveyor).nospace() << "konveyor: target for window " << state.id << " (" << window->resourceClass()
+                                 << ") frame=" << target.frame << " output=" << target.output << " workspace=" << target.workspace
+                                 << " column=" << target.column << " floating=" << target.floating
+                                 << " sizing=" << static_cast<int>(target.sizing) << " requested=" << static_cast<int>(target.requested)
+                                 << " windowedFullscreen=" << target.windowedFullscreen << " kwinFullscreen=" << target.kwinFullscreen
+                                 << " current=" << window->frameGeometry() << " active=" << window->isActive();
 }
 
 QRectF WindowApplier::frameFor(const Layout::WindowState &state)
@@ -164,9 +184,13 @@ void WindowApplier::applySizingMode(KWin::Window *window, const Layout::WindowSt
 {
     const bool fullscreen = state.requestedSizingMode == Layout::WindowMode::Fullscreen && !state.isWindowedFullscreen;
     if (window->isFullScreen() != fullscreen && window->isFullScreenable()) {
+        qCInfo(lcKonveyor) << "konveyor: setting" << window->resourceClass() << "fullscreen =" << fullscreen
+                           << "requested mode =" << static_cast<int>(state.requestedSizingMode)
+                           << "windowed fullscreen =" << state.isWindowedFullscreen;
         window->setFullScreen(fullscreen);
     }
     if (window->requestedMaximizeMode() != KWin::MaximizeRestore && window->isMaximizable()) {
+        qCInfo(lcKonveyor) << "konveyor: restoring" << window->resourceClass() << "from KWin maximize";
         window->maximize(KWin::MaximizeRestore);
     }
     if (window->requestedTile()) {

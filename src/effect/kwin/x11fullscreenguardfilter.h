@@ -29,6 +29,7 @@ public:
 
 private:
     void handleDestroy(const xcb_destroy_notify_event_t &event);
+    static void logConfigureRequest(const xcb_configure_request_event_t &event);
     bool handleFocus(const xcb_focus_in_event_t &event);
     bool handleProperty(const xcb_property_notify_event_t &event);
     bool handleClientMessage(const xcb_client_message_event_t &event);

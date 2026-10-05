@@ -1,6 +1,7 @@
 #include "layout/engine/engineprivate.h"
 
 #include "config/loader.h"
+#include "config/log.h"
 #include "layout/common/geometry.h"
 #include "layout/monitor/monitorprofiles.h"
 
@@ -92,6 +93,8 @@ void Engine::refreshRules()
 
 void Engine::addOutput(const OutputInfo &output)
 {
+    qCInfo(lcKonveyor) << "konveyor: output added" << output.name << output.geometry << "work area" << output.workArea << "scale"
+                       << output.scale;
     if (d->monitorIndexByName(output.name)) {
         updateOutput(output);
         return;
@@ -123,6 +126,8 @@ void Engine::addOutput(const OutputInfo &output)
 
 void Engine::updateOutput(const OutputInfo &output)
 {
+    qCInfo(lcKonveyor) << "konveyor: output changed" << output.name << output.geometry << "work area" << output.workArea << "scale"
+                       << output.scale;
     if (!d->monitorIndexByName(output.name)) {
         addOutput(output);
         return;
@@ -139,6 +144,7 @@ void Engine::updateOutput(const OutputInfo &output)
 
 void Engine::removeOutput(const QString &name)
 {
+    qCInfo(lcKonveyor) << "konveyor: output removed" << name;
     const auto idx = d->monitorIndexByName(name);
     if (!idx) {
         return;
@@ -180,6 +186,7 @@ std::optional<QString> Engine::focusedOutput() const
 
 void Engine::focusWorkspace(const QString &output, int index)
 {
+    qCInfo(lcKonveyor) << "konveyor: focusing workspace" << index << "on" << output;
     Monitor *monitor = d->monitorByName(output);
     if (!monitor || index < 1) {
         return;

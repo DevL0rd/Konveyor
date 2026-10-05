@@ -1,5 +1,7 @@
 #include "plugin/konveyoreffect_p.h"
 
+#include "config/log.h"
+
 #include <keyboard_input.h>
 #include <xkb.h>
 
@@ -194,7 +196,9 @@ void KonveyorEffect::connectWindowState()
 {
     connect(&d->windows, &WindowRegistry::sizeCommitted, this, &KonveyorEffect::handleWindowSizeCommitted);
     connect(&d->windows, &WindowRegistry::fullscreenRequested, this, [this](Layout::WindowId id, bool fullscreen) {
-        if (!d->applier.isApplying()) {
+        if (d->applier.isApplying()) {
+            qCInfo(lcKonveyor) << "konveyor: fullscreen change for window" << id << "=" << fullscreen << "came from Konveyor itself";
+        } else {
             changeEngine().setWindowFullscreen(id, fullscreen);
         }
     });
@@ -227,6 +231,11 @@ void KonveyorEffect::handleWindowSizeCommitted(Layout::WindowId id, const QSizeF
     const bool resizedByUser = !d->applier.isApplying() && window && window->isInteractiveResize();
     const std::optional<Layout::WindowState> state = readEngine().windowState(id);
     const bool resizedByApp = !d->applier.isApplying() && window && !window->isResizable() && state && !state->isForceResizable;
+    if (!acknowledgesRequest && !resizedByUser && !d->applier.isApplying()) {
+        qCInfo(lcKonveyor) << "konveyor: window" << id << (window ? window->resourceClass() : QString()) << "committed unrequested size"
+                           << size << "resizable =" << (window && window->isResizable()) << "taken as app resize =" << resizedByApp
+                           << "target =" << (state ? state->targetFrame : QRectF());
+    }
     if (resizedByApp) {
         changeEngine().updateWindowProperties(id, d->windows.propertiesOf(window));
     }
@@ -254,9 +263,12 @@ void KonveyorEffect::connectOutputs()
 
 void KonveyorEffect::connectDesktopSync()
 {
-    connect(&d->desktops, &DesktopSync::workspaceActivatedByUser, this,
-        [this](const QString &output, int index) { changeEngine().focusWorkspace(output, index); });
+    connect(&d->desktops, &DesktopSync::workspaceActivatedByUser, this, [this](const QString &output, int index) {
+        qCInfo(lcKonveyor) << "konveyor: KDE switched to desktop" << index << "on" << output;
+        changeEngine().focusWorkspace(output, index);
+    });
     connect(&d->desktops, &DesktopSync::windowMovedToWorkspaceByUser, this, [this](Layout::WindowId id, int index) {
+        qCInfo(lcKonveyor) << "konveyor: KDE moved window" << id << "to desktop" << index;
         changeEngine().perform({QStringLiteral("move-window-to-workspace"), {QString::number(index)}, {}}, id);
     });
 }
@@ -268,6 +280,7 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
         = restore == d->hiddenPlacements.constEnd() ? std::nullopt : std::optional(*restore);
     d->hiddenPlacements.remove(window);
     if (const std::optional<HandedOverPlacement> handed = d->handoff.takePlacement(window, readEngine())) {
+        qCInfo(lcKonveyor) << "konveyor: window" << id << window->resourceClass() << "takes a handed-over placement on" << handed->output;
         changeEngine().addWindow(id, d->windows.propertiesOf(window), handed->output, Layout::ActivationPolicy::NoFocus, handed->placement);
     } else {
         changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);

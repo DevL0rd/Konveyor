@@ -3,6 +3,8 @@
 #include "kwin/windowregistry.h"
 #include "kwin/x11fullscreenguardfilter.h"
 
+#include "config/log.h"
+
 #include <core/output.h>
 #include <main.h>
 #include <wayland/clientconnection.h>
@@ -218,7 +220,13 @@ bool FullscreenGuard::suppressFullscreenExit(KWin::Window *window) const
 void FullscreenGuard::handleUnfullscreen(Layout::WindowId id)
 {
     const std::shared_ptr<Entry> entry = m_entries.value(id);
-    if (!entry || !entry->window || suppressFullscreenExit(entry)) {
+    if (!entry || !entry->window) {
+        return;
+    }
+    const bool suppressed = suppressFullscreenExit(entry);
+    qCInfo(lcKonveyor) << "konveyor: Wayland" << entry->window->resourceClass()
+                       << "asked to leave fullscreen, active =" << entry->window->isActive() << "suppressed =" << suppressed;
+    if (suppressed) {
         return;
     }
     entry->window->setFullScreen(false);
@@ -227,7 +235,12 @@ void FullscreenGuard::handleUnfullscreen(Layout::WindowId id)
 void FullscreenGuard::handleMinimize(Layout::WindowId id)
 {
     const std::shared_ptr<Entry> entry = m_entries.value(id);
-    if (!entry || !entry->window || (m_preventFullscreenMinimize && currentlyCoversOutput(entry->window))) {
+    if (!entry || !entry->window) {
+        return;
+    }
+    const bool suppressed = m_preventFullscreenMinimize && currentlyCoversOutput(entry->window);
+    qCInfo(lcKonveyor) << "konveyor: Wayland" << entry->window->resourceClass() << "asked to minimize, suppressed =" << suppressed;
+    if (suppressed) {
         return;
     }
     entry->window->setMinimized(true);
