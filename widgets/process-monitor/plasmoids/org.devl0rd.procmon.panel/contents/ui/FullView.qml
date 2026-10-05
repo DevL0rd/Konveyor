@@ -258,20 +258,20 @@ Item {
             QQC2.Menu {
                 id: processMenu
                 property var proc: ({})
-                QQC2.MenuItem { text: i18n("Copy PID"); icon.name: "edit-copy"; onTriggered: root.copyText(String(processMenu.proc.pid)) }
-                QQC2.MenuItem { text: i18n("Copy name"); icon.name: "edit-copy"; onTriggered: root.copyText(processMenu.proc.name || "") }
-                QQC2.MenuItem { text: i18n("Copy command line"); icon.name: "edit-copy"; onTriggered: root.copyCmdline(processMenu.proc.pid) }
+                QQC2.MenuItem { text: i18n("Copy PID"); icon.name: "edit-copy"; onTriggered: root.actions.copyText(String(processMenu.proc.pid)) }
+                QQC2.MenuItem { text: i18n("Copy name"); icon.name: "edit-copy"; onTriggered: root.actions.copyText(processMenu.proc.name || "") }
+                QQC2.MenuItem { text: i18n("Copy command line"); icon.name: "edit-copy"; onTriggered: root.actions.copyCmdline(processMenu.proc.pid) }
                 QQC2.MenuSeparator {}
-                QQC2.MenuItem { text: i18n("Open file location"); icon.name: "folder-open"; onTriggered: root.openLocation(processMenu.proc.pid) }
-                QQC2.MenuItem { text: i18n("Open journal log"); icon.name: "utilities-log-viewer"; onTriggered: root.openJournal(processMenu.proc.name || "") }
-                QQC2.MenuItem { text: i18n("Restart (best-effort)"); icon.name: "system-reboot"; onTriggered: root.restartProc(processMenu.proc.pid) }
+                QQC2.MenuItem { text: i18n("Open file location"); icon.name: "folder-open"; onTriggered: root.actions.openLocation(processMenu.proc.pid) }
+                QQC2.MenuItem { text: i18n("Open journal log"); icon.name: "utilities-log-viewer"; onTriggered: root.actions.openJournal(processMenu.proc.name || "") }
+                QQC2.MenuItem { text: i18n("Restart (best-effort)"); icon.name: "system-reboot"; onTriggered: root.actions.restartProc(processMenu.proc.pid) }
                 QQC2.MenuSeparator {}
-                QQC2.MenuItem { text: i18n("Stop (SIGSTOP)"); icon.name: "media-playback-pause"; onTriggered: root.signalProc(processMenu.proc.pid, "STOP") }
-                QQC2.MenuItem { text: i18n("Continue (SIGCONT)"); icon.name: "media-playback-start"; onTriggered: root.signalProc(processMenu.proc.pid, "CONT") }
+                QQC2.MenuItem { text: i18n("Stop (SIGSTOP)"); icon.name: "media-playback-pause"; onTriggered: root.actions.signalProc(processMenu.proc.pid, "STOP") }
+                QQC2.MenuItem { text: i18n("Continue (SIGCONT)"); icon.name: "media-playback-start"; onTriggered: root.actions.signalProc(processMenu.proc.pid, "CONT") }
                 QQC2.MenuSeparator {}
-                QQC2.MenuItem { text: i18n("Kill (SIGTERM)"); icon.name: "process-stop"; onTriggered: root.signalProc(processMenu.proc.pid, "TERM") }
-                QQC2.MenuItem { text: i18n("Force kill (SIGKILL)"); icon.name: "process-stop"; onTriggered: root.signalProc(processMenu.proc.pid, "KILL") }
-                QQC2.MenuItem { text: i18n("Force kill as root…"); icon.name: "process-stop"; onTriggered: root.forceKillAsRoot(processMenu.proc.pid) }
+                QQC2.MenuItem { text: i18n("Kill (SIGTERM)"); icon.name: "process-stop"; onTriggered: root.actions.signalProc(processMenu.proc.pid, "TERM") }
+                QQC2.MenuItem { text: i18n("Force kill (SIGKILL)"); icon.name: "process-stop"; onTriggered: root.actions.signalProc(processMenu.proc.pid, "KILL") }
+                QQC2.MenuItem { text: i18n("Force kill as root…"); icon.name: "process-stop"; onTriggered: root.actions.forceKillAsRoot(processMenu.proc.pid) }
             }
         }
     }

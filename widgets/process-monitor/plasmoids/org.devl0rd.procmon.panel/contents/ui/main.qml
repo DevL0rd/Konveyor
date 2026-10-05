@@ -9,7 +9,6 @@ import org.kde.plasma.workspace.dbus as DBus
 import org.kde.taskmanager as TaskManager
 import "lib"
 import "lib/PopStyle.js" as Style
-import "lib/Ring.js" as Ring
 
 PlasmoidItem {
     id: root
@@ -46,8 +45,6 @@ PlasmoidItem {
     property var procByPid: ({})
     property var sortHistByPid: ({})
     property var overlayProcByPid: ({})
-    property var frametimeRings: ({})
-    property int frametimeGeneration: 0
     property var expandedRows: ({})
     property int expandedPid: 0
     property string searchText
@@ -128,78 +125,20 @@ PlasmoidItem {
         requestRebuild()
     }
     onFocusAppNameChanged: writeFocus()
-    readonly property var frametimeWatchPids: {
-        const seen = {}
-        const result = []
-        function add(pid) {
-            pid = Number(pid) || 0
-            if (pid > 0 && seen[pid] !== true) {
-                seen[pid] = true
-                result.push(pid)
-            }
-        }
-        add(focusPid)
-        if (focusProc)
-            add(focusProc.framePid)
-        for (const pid of monitorOverlay.pids) {
-            add(pid)
-            const proc = overlayProcByPid[pid]
-            if (proc)
-                add(proc.framePid)
-        }
-        return result.sort((a, b) => a - b)
+    FrameTimes {
+        id: frameTimes
+        active: root.dataWanted
+        focusPid: root.focusPid
+        focusFramePid: root.focusProc ? root.focusProc.framePid : 0
+        overlayPids: monitorOverlay.pids
+        overlayProcByPid: root.overlayProcByPid
     }
-    readonly property string frametimeWatchKey: frametimeWatchPids.join(",")
-    onFrametimeWatchKeyChanged: syncFrametimeWatch()
-
-    function syncFrametimeWatch() {
-        const message = {
-            service: "org.devl0rd.ProcessMonitor.FrameTelemetry",
-            path: "/FrameTelemetry",
-            iface: "org.devl0rd.ProcessMonitor.FrameTelemetry",
-            member: "Watch",
-            arguments: [JSON.stringify(frametimeWatchPids)]
-        }
-        DBus.SessionBus.asyncCall(message)
-        const keep = {}
-        for (const pid of frametimeWatchPids)
-            if (frametimeRings[pid]) keep[pid] = frametimeRings[pid]
-        frametimeRings = keep
-    }
-
-    function recordFrametime(pid, frametime) {
-        if (pid <= 0 || frametime <= 0 || frametime > 2000)
-            return
-        let ring = frametimeRings[pid]
-        if (!ring) {
-            ring = Ring.make(240)
-            frametimeRings[pid] = ring
-        }
-        Ring.push(ring, frametime)
-        frametimeGeneration++
-    }
-
-    function frametimesFor(pid) {
-        frametimeGeneration
-        const ring = frametimeRings[pid]
-        return ring ? Ring.values(ring) : []
-    }
-
-    DBus.SignalWatcher {
-        enabled: root.dataWanted
-        busType: DBus.BusType.Session
-        service: "org.devl0rd.ProcessMonitor.FrameTelemetry"
-        path: "/FrameTelemetry"
-        iface: "org.devl0rd.ProcessMonitor.FrameTelemetry"
-
-        function dbusFrame(pid, frametime) {
-            root.recordFrametime(Number(pid), Number(frametime))
-        }
-    }
+    readonly property alias frametimeWatchPids: frameTimes.watchPids
+    function frametimesFor(pid) { return frameTimes.frametimesFor(pid) }
 
     function writeFocus() {
         if (runtimeDir)
-            run("printf '%s\\n%s\\n' " + focusPid + " " + shq(focusAppName) + " > " + shq(runtimeDir + "/focus"))
+            actions.run("printf '%s\\n%s\\n' " + focusPid + " " + actions.shq(focusAppName) + " > " + actions.shq(runtimeDir + "/focus"))
     }
 
     function colOf(key) {
@@ -336,14 +275,14 @@ PlasmoidItem {
             if (!message.desired)
                 return
             if (root.sortSyncPending) {
-                root.syncModel(message.desired)
+                rowModel.syncModel(message.desired)
                 root.sortSyncPending = false
                 if (root.rowsView)
                     root.rowsView.positionViewAtBeginning()
             } else if (!root.rowsView || root.rowsView.contentY < Kirigami.Units.gridUnit * 1.7) {
-                root.syncModel(message.desired)
+                rowModel.syncModel(message.desired)
             } else {
-                root.syncFrozen(message.desired)
+                rowModel.syncFrozen(message.desired)
             }
         }
     }
@@ -362,7 +301,7 @@ PlasmoidItem {
     Component.onCompleted: {
         pathHelper.connectSource("printf %s \"$XDG_RUNTIME_DIR/Linux-Process-Mon\"")
         applyInterval()
-        syncFrametimeWatch()
+        frameTimes.sync()
     }
     Component.onDestruction: {
         const message = {
@@ -375,68 +314,12 @@ PlasmoidItem {
         DBus.SessionBus.asyncCall(message)
     }
     function applyInterval() {
-        run("$HOME/.local/bin/procmon-collect --set-interval " + (Math.max(500, Plasmoid.configuration.updateInterval) / 1000))
+        actions.run("$HOME/.local/bin/procmon-collect --set-interval " + (Math.max(500, Plasmoid.configuration.updateInterval) / 1000))
     }
 
-    ListModel { id: rowModel }
+    ProcessRows { id: rowModel }
     readonly property alias rows: rowModel
 
-    function syncFrozen(desired) {
-        const want = {}, map = {}
-        for (const row of desired) {
-            want[row.pid] = true
-            map[row.pid] = row
-        }
-        for (let r = rowModel.count - 1; r >= 0; --r) {
-            if (want[rowModel.get(r).pid] !== true)
-                rowModel.remove(r)
-        }
-        const have = {}
-        for (let x = 0; x < rowModel.count; ++x) {
-            const current = rowModel.get(x)
-            have[current.pid] = true
-            const next = map[current.pid]
-            if (next && (current.depth !== next.depth || current.hasChildren !== next.hasChildren || current.expanded !== next.expanded))
-                rowModel.set(x, next)
-        }
-        for (const row of desired) {
-            if (have[row.pid] !== true)
-                rowModel.append(row)
-        }
-    }
-    function syncModel(desired) {
-        const want = {}
-        for (const row of desired)
-            want[row.pid] = true
-        for (let r = rowModel.count - 1; r >= 0; --r) {
-            if (want[rowModel.get(r).pid] !== true)
-                rowModel.remove(r)
-        }
-        for (let pos = 0; pos < desired.length; ++pos) {
-            const row = desired[pos]
-            if (pos < rowModel.count && rowModel.get(pos).pid === row.pid) {
-                const current = rowModel.get(pos)
-                if (current.depth !== row.depth || current.hasChildren !== row.hasChildren || current.expanded !== row.expanded)
-                    rowModel.set(pos, row)
-                continue
-            }
-            let found = -1
-            for (let x = pos + 1; x < rowModel.count; ++x) {
-                if (rowModel.get(x).pid === row.pid) {
-                    found = x
-                    break
-                }
-            }
-            if (found < 0) {
-                rowModel.insert(pos, row)
-            } else {
-                rowModel.move(found, pos, 1)
-                const moved = rowModel.get(pos)
-                if (moved.depth !== row.depth || moved.hasChildren !== row.hasChildren || moved.expanded !== row.expanded)
-                    rowModel.set(pos, row)
-            }
-        }
-    }
     function toggleTree(pid) {
         const next = Object.assign({}, expandedRows)
         next[pid] = !next[pid]
@@ -457,62 +340,8 @@ PlasmoidItem {
         Plasmoid.configuration.sortDescending = descending
     }
 
-    function shq(text) {
-        return "'" + String(text).replace(/'/g, "'\\''") + "'"
-    }
-    P5Support.DataSource {
-        id: runner
-        engine: "executable"
-        onNewData: function(source, data) { disconnectSource(source) }
-    }
-    P5Support.DataSource {
-        id: reader
-        engine: "executable"
-        property var callbacks: ({})
-        onNewData: function(source, data) {
-            const callback = callbacks[source]
-            disconnectSource(source)
-            if (callback)
-                callback((data.stdout || "").trim())
-        }
-    }
-    function run(command) {
-        runner.connectSource(command)
-    }
-    function readCommand(command, callback) {
-        const next = Object.assign({}, reader.callbacks)
-        next[command] = callback
-        reader.callbacks = next
-        reader.connectSource(command)
-    }
-    TextEdit { id: clipboard; visible: false }
-    function copyText(text) {
-        clipboard.text = text
-        clipboard.selectAll()
-        clipboard.copy()
-        clipboard.text = ""
-    }
-    function commandLineCommand(pid) {
-        return "tr '\\0' ' ' < /proc/" + pid + "/cmdline"
-    }
-    function copyCmdline(pid) {
-        readCommand(commandLineCommand(pid), text => root.copyText(text))
-    }
-    function signalProc(pid, signal) {
-        run("kill -" + signal + " " + pid)
-    }
-    function openLocation(pid) {
-        run("sh -c " + shq("d=$(dirname \"$(readlink -f /proc/" + pid + "/exe 2>/dev/null)\"); [ -d \"$d\" ] && xdg-open \"$d\""))
-    }
-    function openJournal(name) {
-        run("konsole -e journalctl _COMM=" + shq(name) + " -e")
-    }
-    function restartProc(pid) {
-        run("bash -c " + shq("p=" + pid + "; mapfile -d '' a < /proc/$p/cmdline; cwd=$(readlink /proc/$p/cwd); kill \"$p\"; cd \"$cwd\" 2>/dev/null; setsid \"${a[@]}\" >/dev/null 2>&1 &"))
-    }
-    function forceKillAsRoot(pid) {
-        run("pkexec kill -9 " + pid)
-    }
+    ProcessActions { id: processActions }
+    readonly property alias actions: processActions
 
     function revealFocused() {
         if (!focusProc)

@@ -216,12 +216,12 @@ PopCard {
         visible: card.proc !== null
         showText: true
         model: card.procPid > 0 ? [
-            { icon: "process-stop", text: i18n("End"), run: () => root.signalProc(card.procPid, "TERM") },
-            { icon: "process-stop", text: i18n("Force kill"), destructive: true, run: () => root.signalProc(card.procPid, "KILL") },
-            { icon: "media-playback-pause", text: i18n("Pause"), run: () => root.signalProc(card.procPid, "STOP") },
-            { icon: "media-playback-start", text: i18n("Resume"), run: () => root.signalProc(card.procPid, "CONT") },
-            { icon: "folder-open", text: i18n("Open location"), run: () => root.openLocation(card.procPid) },
-            { icon: "edit-copy", text: i18n("Copy command"), run: () => root.copyCmdline(card.procPid) }
+            { icon: "process-stop", text: i18n("End"), run: () => root.actions.signalProc(card.procPid, "TERM") },
+            { icon: "process-stop", text: i18n("Force kill"), destructive: true, run: () => root.actions.signalProc(card.procPid, "KILL") },
+            { icon: "media-playback-pause", text: i18n("Pause"), run: () => root.actions.signalProc(card.procPid, "STOP") },
+            { icon: "media-playback-start", text: i18n("Resume"), run: () => root.actions.signalProc(card.procPid, "CONT") },
+            { icon: "folder-open", text: i18n("Open location"), run: () => root.actions.openLocation(card.procPid) },
+            { icon: "edit-copy", text: i18n("Copy command"), run: () => root.actions.copyCmdline(card.procPid) }
         ] : []
     }
 

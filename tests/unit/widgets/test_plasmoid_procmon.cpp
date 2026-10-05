@@ -138,17 +138,17 @@ private Q_SLOTS:
     {
         auto harness = started(Form::Planar);
         QVERIFY(harness);
-        harness->eval(QStringLiteral("signalProc(200, 'TERM')"));
+        harness->eval(QStringLiteral("actions.signalProc(200, 'TERM')"));
         QCOMPARE(harness->command(QStringLiteral("kill ")), QStringLiteral("kill -TERM 200"));
-        harness->eval(QStringLiteral("forceKillAsRoot(200)"));
+        harness->eval(QStringLiteral("actions.forceKillAsRoot(200)"));
         QCOMPARE(harness->command(QStringLiteral("pkexec")), QStringLiteral("pkexec kill -9 200"));
-        harness->eval(QStringLiteral("openJournal(\"it's\")"));
+        harness->eval(QStringLiteral("actions.openJournal(\"it's\")"));
         QCOMPARE(harness->command(QStringLiteral("konsole")), QStringLiteral("konsole -e journalctl _COMM='it'\\''s' -e"));
-        harness->eval(QStringLiteral("openLocation(200)"));
+        harness->eval(QStringLiteral("actions.openLocation(200)"));
         QVERIFY(harness->command(QStringLiteral("sh -c")).contains(QStringLiteral("/proc/200/exe")));
-        harness->eval(QStringLiteral("restartProc(200)"));
+        harness->eval(QStringLiteral("actions.restartProc(200)"));
         QVERIFY(harness->command(QStringLiteral("bash -c")).startsWith(QStringLiteral("bash -c 'p=200; mapfile")));
-        harness->eval(QStringLiteral("copyCmdline(200)"));
+        harness->eval(QStringLiteral("actions.copyCmdline(200)"));
         QVERIFY(harness->reply(QStringLiteral("tr '\\0' ' ' < /proc/200/cmdline"), QStringLiteral("game --fullscreen \n")));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }

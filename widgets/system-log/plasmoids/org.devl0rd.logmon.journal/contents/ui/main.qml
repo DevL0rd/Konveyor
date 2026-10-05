@@ -5,6 +5,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasma5support as P5Support
 import "lib"
+import "Journal.js" as Journal
 
 PlasmoidItem {
     id: root
@@ -28,13 +29,12 @@ PlasmoidItem {
     property int newErrors: 0
     property int newWarnings: 0
     property double countedT: parseFloat(Plasmoid.configuration.lastSeen || "0") || 0
-    property int warningCount: 0
-    property int errorCount: 0
-    ListModel { id: sourceModel }
-    readonly property alias topSources: sourceModel
-    property var activity: []
-    property var activityAlerts: []
-    property real linesPerMinute: 0
+    readonly property alias warningCount: summary.warningCount
+    readonly property alias errorCount: summary.errorCount
+    readonly property alias topSources: summary.sources
+    readonly property alias activity: summary.activity
+    readonly property alias activityAlerts: summary.activityAlerts
+    readonly property alias linesPerMinute: summary.linesPerMinute
     readonly property int activityBuckets: 40
     readonly property int activityBucketSeconds: 15
 
@@ -61,7 +61,7 @@ PlasmoidItem {
             applyMode()
         } else {
             search = ""
-            tally = null
+            summary.tally = null
             logModel.clear()
             lastT = 0
         }
@@ -149,97 +149,14 @@ PlasmoidItem {
         interval: 1500
         onTriggered: root.refreshSummary()
     }
-    property var tally: null
-    function tallyLine(t, r, sign) {
-        if (isMuted(r))
-            return
-        if (r.p <= levelMax[2]) t.warnings += sign
-        if (r.p <= levelMax[3]) t.errors += sign
-        const n = (t.byApp[r.id] || 0) + sign
-        if (n > 0)
-            t.byApp[r.id] = n
-        else
-            delete t.byApp[r.id]
+    LogSummary {
+        id: summary
+        levelMax: root.levelMax
+        isMuted: r => root.isMuted(r)
+        buckets: root.activityBuckets
+        bucketSeconds: root.activityBucketSeconds
     }
-    function updateTally(lines) {
-        const t = root.tally
-        const prev = t ? t.lines : null
-        let added = 0
-        if (prev && prev.length > 0 && lines.length > 0) {
-            const last = prev[prev.length - 1]
-            let j = lines.length - 1
-            while (j >= 0 && !(lines[j].t === last.t && lines[j].pid === last.pid && lines[j].id === last.id && lines[j].m === last.m))
-                j--
-            added = lines.length - 1 - j
-            const removed = prev.length + added - lines.length
-            if (j >= 0 && removed >= 0 && removed <= prev.length) {
-                for (let i = 0; i < removed; i++)
-                    tallyLine(t, prev[i], -1)
-                for (let i = lines.length - added; i < lines.length; i++)
-                    tallyLine(t, lines[i], 1)
-                t.lines = lines
-                return t
-            }
-        }
-        const fresh = { lines: lines, warnings: 0, errors: 0, byApp: {} }
-        for (let i = 0; i < lines.length; i++)
-            tallyLine(fresh, lines[i], 1)
-        root.tally = fresh
-        return fresh
-    }
-    function refreshSummary() {
-        const lines = logData.lines
-        const t = updateTally(lines)
-        const byApp = t.byApp
-        root.warningCount = t.warnings
-        root.errorCount = t.errors
-        const total = new Array(activityBuckets).fill(0)
-        const alerts = new Array(activityBuckets).fill(0)
-        const nowMicros = Date.now() * 1000
-        const bucketMicros = activityBucketSeconds * 1000000
-        let recent = 0
-        for (let i = lines.length - 1; i >= 0; i--) {
-            const r = lines[i]
-            const back = Math.floor((nowMicros - r.t) / bucketMicros)
-            if (back >= activityBuckets)
-                break
-            if (back < 0 || isMuted(r))
-                continue
-            total[activityBuckets - 1 - back]++
-            if (r.p <= 4)
-                alerts[activityBuckets - 1 - back]++
-            if (back < 4)
-                recent++
-        }
-        if (!sameValues(root.activity, total))
-            root.activity = total
-        if (!sameValues(root.activityAlerts, alerts))
-            root.activityAlerts = alerts
-        root.linesPerMinute = recent
-        const top = Object.keys(byApp)
-            .map(app => ({ app: app, hits: byApp[app] }))
-            .sort((a, b) => b.hits - a.hits)
-            .slice(0, 6)
-        for (let i = 0; i < top.length; i++) {
-            if (i < sourceModel.count) {
-                if (sourceModel.get(i).app !== top[i].app)
-                    sourceModel.setProperty(i, "app", top[i].app)
-                if (sourceModel.get(i).hits !== top[i].hits)
-                    sourceModel.setProperty(i, "hits", top[i].hits)
-            } else {
-                sourceModel.append(top[i])
-            }
-        }
-        if (sourceModel.count > top.length)
-            sourceModel.remove(top.length, sourceModel.count - top.length)
-    }
-    function sameValues(a, b) {
-        if (a.length !== b.length)
-            return false
-        for (let i = 0; i < a.length; i++)
-            if (a[i] !== b[i]) return false
-        return true
-    }
+    function refreshSummary() { summary.refresh(logData.lines) }
 
     P5Support.DataSource {
         id: journalQuery
@@ -271,7 +188,6 @@ PlasmoidItem {
         }
     }
 
-    function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }
     function escapeRegex(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") }
 
     readonly property string journalJson: "journalctl -o json --all --output-fields=MESSAGE,PRIORITY,SYSLOG_IDENTIFIER,_COMM,_SYSTEMD_UNIT,UNIT,_TRANSPORT,_PID,SYSLOG_PID --no-pager"
@@ -298,8 +214,8 @@ PlasmoidItem {
         if (root.search === "") {
             cmd = journalJson + prio + afterCursor("level")
         } else {
-            const reArg = shq(escapeRegex(root.search))
-            const fxArg = shq(root.search)
+            const reArg = Journal.shq(escapeRegex(root.search))
+            const fxArg = Journal.shq(root.search)
             cmd = "TIDS=$(journalctl -F SYSLOG_IDENTIFIER --no-pager 2>/dev/null"
                 + " | grep -iF -- " + fxArg + " | sed 's/.*/-t &/' | tr '\\n' ' '); "
                 + "{ " + journalJson + " --grep " + reArg + prio + afterCursor("grep") + " 2>/dev/null; "
@@ -349,48 +265,7 @@ PlasmoidItem {
                  app: r.id, unit: r.u || "", pid: r.pid, msg: r.m.replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, ""), prio: r.p, expanded: false }
     }
 
-    function decodeUtf8(bytes) {
-        let out = ""
-        let i = 0
-        while (i < bytes.length) {
-            const lead = bytes[i]
-            const size = lead < 0x80 ? 1 : lead >= 0xc2 && lead < 0xe0 ? 2 : lead >= 0xe0 && lead < 0xf0 ? 3 : lead >= 0xf0 && lead < 0xf5 ? 4 : 0
-            let code = size === 1 ? lead : lead & (0xff >> (size + 1))
-            let used = 1
-            while (size > 1 && used < size && (bytes[i + used] & 0xc0) === 0x80) {
-                code = (code << 6) | (bytes[i + used] & 0x3f)
-                used++
-            }
-            const valid = size > 0 && used === size && !(size === 3 && (code < 0x800 || (code >= 0xd800 && code < 0xe000)))
-                && !(size === 4 && (code < 0x10000 || code > 0x10ffff))
-            out += valid ? String.fromCodePoint(code) : "\ufffd"
-            i += valid ? used : Math.max(1, used)
-        }
-        return out
-    }
-
-    function journalText(value, separator) {
-        if (!Array.isArray(value))
-            return String(value)
-        if (value.every(item => typeof item === "number"))
-            return decodeUtf8(value)
-        return value.map(item => journalText(item, separator)).join(separator)
-    }
-
-    function parseRec(line) {
-        let j
-        try { j = JSON.parse(line) } catch (e) { return null }
-        const unit = journalText(j._SYSTEMD_UNIT || j.UNIT || "", ", ")
-        let id = journalText(j.SYSLOG_IDENTIFIER || j._COMM || "", ", ")
-        if (!id)
-            id = (j._TRANSPORT === "kernel") ? "kernel"
-               : (unit.indexOf(".service") >= 0 ? unit.replace(".service", "") : (unit || "?"))
-        const priority = Array.isArray(j.PRIORITY) ? j.PRIORITY[0] : j.PRIORITY
-        return { cursor: String(j.__CURSOR), t: parseInt(j.__REALTIME_TIMESTAMP || 0),
-                 p: parseInt(priority !== undefined ? priority : 6),
-                 id: id.slice(0, 40),
-                 u: unit, pid: journalText(j._PID || j.SYSLOG_PID || "", ", "), m: journalText(j.MESSAGE || "", "\n") }
-    }
+    function parseRec(line) { return Journal.parseRec(line) }
 
     signal rowsAppended(int added)
     signal rowRevealRequested(int index)
@@ -471,39 +346,25 @@ PlasmoidItem {
     }
     Connections {
         target: Plasmoid.configuration
-        function onMutedAppsChanged() { root.refreshMuted(); root.tally = null; root.refreshSummary(); root.applyMode() }
+        function onMutedAppsChanged() { root.refreshMuted(); summary.tally = null; root.refreshSummary(); root.applyMode() }
     }
 
     signal lineCopied()
     signal searchRequested(string text)
-    function copyText(text) {
-        clip.text = text
-        clip.selectAll()
-        clip.copy()
-        root.lineCopied()
-    }
     function lineText(m) {
         return m.time + "  " + m.app + (m.pid ? "[" + m.pid + "]" : "") + ": " + m.msg
     }
-    function copyAll() {
-        const out = []
-        for (let i = 0; i < logModel.count; i++)
-            out.push(lineText(logModel.get(i)))
-        copyText(out.join("\n"))
-    }
-    function askClaude(time, app, pid, msg, prio) {
-        const ctx = "I saw this entry in my systemd journal (journalctl):\n"
-                  + "time: " + time + "\napp: " + app + (pid ? " (pid " + pid + ")" : "")
-                  + "\npriority: " + prio + "\nmessage: " + msg
-                  + "\n\nWhat does it mean, and is there anything I should do about it?"
-        launcher.connectSource("konsole --workdir \"$HOME\" -e claude " + shq(ctx))
+    LogActions {
+        id: logActions
+        model: logModel
+        clipboard: clip
+        lineText: m => root.lineText(m)
+        onCopied: root.lineCopied()
     }
     TextEdit { id: clip; visible: false }
-    P5Support.DataSource {
-        id: launcher
-        engine: "executable"
-        onNewData: function(source, d) { disconnectSource(source) }
-    }
+    function copyText(text) { logActions.copyText(text) }
+    function copyAll() { logActions.copyAll() }
+    function askClaude(time, app, pid, msg, prio) { logActions.askClaude(time, app, pid, msg, prio) }
 
     function middleClick() {
         if (Plasmoid.configuration.middleClickPause)
