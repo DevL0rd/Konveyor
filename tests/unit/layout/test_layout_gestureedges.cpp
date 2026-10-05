@@ -43,6 +43,23 @@ void touchpadSwipe(Layout::GestureRouter &router, int fingers, QPointF delta)
     router.touchpadSwipeEnd();
 }
 
+void touchscreenSwipe(Layout::GestureRouter &router, int fingers, QPointF delta)
+{
+    const QPointF origin(960, 540);
+    for (qint32 id = 0; id < fingers; ++id) {
+        router.touchDown(id, origin + QPointF(id * 40.0, 0.0), 0, Output);
+    }
+    const int steps = 100;
+    for (int step = 1; step <= steps; ++step) {
+        for (qint32 id = 0; id < fingers; ++id) {
+            router.touchMotion(id, origin + QPointF(id * 40.0, 0.0) + delta * step / steps, step * 4);
+        }
+    }
+    for (qint32 id = 0; id < fingers; ++id) {
+        router.touchUp(id, 1000);
+    }
+}
+
 }
 
 class TestLayoutGestureEdges : public QObject
@@ -192,11 +209,20 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void rowSwipeWinsWhenFingerCountsMatch_data()
+    {
+        QTest::addColumn<bool>("touchscreen");
+        QTest::newRow("touchpad") << false;
+        QTest::newRow("touchscreen") << true;
+    }
+
     void rowSwipeWinsWhenFingerCountsMatch()
     {
+        QFETCH(bool, touchscreen);
         Config::Config config = fixedColumns();
-        config.gestures.touchpad.swipeFingers = 4;
-        config.gestures.touchpad.windowSwipeFingers = 4;
+        Config::MultiTouch &touch = touchscreen ? config.gestures.touchscreen : config.gestures.touchpad;
+        touch.swipeFingers = 4;
+        touch.windowSwipeFingers = 4;
         Fixture fixture(config);
         Layout::GestureRouter router(fixture.engine());
         router.setConfig(config.gestures);
@@ -204,7 +230,7 @@ private Q_SLOTS:
         fixture.add(QStringLiteral("right"));
         fixture.add(QStringLiteral("far"));
         fixture.engine().activateWindow(bottom);
-        touchpadSwipe(router, 4, QPointF(-1500, 0));
+        (touchscreen ? touchscreenSwipe : touchpadSwipe)(router, 4, QPointF(touchscreen ? -800 : -1500, 0));
         fixture.settle();
         QCOMPARE(fixture.state(bottom).columnIndex, fixture.state(top).columnIndex);
         QVERIFY(fixture.focused() != std::optional(bottom));
