@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import base64
+import http.server
 import json
 import os
 import stat
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -37,6 +39,19 @@ sys.exit(int(os.environ.get("SSH_CODE", "0")))
 """
 
 
+class FakeAdGuard(http.server.BaseHTTPRequestHandler):
+    login = "Basic " + base64.b64encode(b"admin:pass word").decode()
+
+    def do_GET(self):
+        accepted = self.path == "/control/status" and self.headers.get("Authorization") == self.login
+        self.send_response(200 if accepted else 401)
+        self.end_headers()
+        self.wfile.write(b'{"protection_enabled": true}' if accepted else b"")
+
+    def log_message(self, *arguments):
+        pass
+
+
 class TestRoutermonConfig(RouterTest):
     stubs = ()
 
@@ -59,12 +74,52 @@ class TestRoutermonConfig(RouterTest):
     def test_get_without_a_config_shows_the_defaults(self):
         for arguments in ((), ("get",)):
             self.assertEqual(json.loads(self.config(*arguments).stdout),
-                             {"host": "", "user": "admin", "ssh_key": "~/.ssh/id_ed25519", "remote_script": "/jffs/lrm-collect.sh"})
+                             {"host": "", "user": "admin", "ssh_key": "~/.ssh/id_ed25519", "remote_script": "/jffs/lrm-collect.sh",
+                              "adguard_url": "", "adguard_username": "", "adguard_password_set": False})
 
-    def test_get_shows_only_the_connection(self):
+    def test_get_shows_the_settings_but_never_the_adguard_password(self):
         self.box.write(self.config_path, json.dumps({"host": "10.0.0.1", "user": "me", "ssh_key": "k", "remote_script": "r",
-                                                     "adguard": {"password": "secret"}}))
-        self.assertEqual(self.config("get").stdout, '{"host":"10.0.0.1","user":"me","ssh_key":"k","remote_script":"r"}\n')
+                                                     "adguard": {"url": "http://agh", "username": "admin", "password": "secret"}}))
+        shown = self.config("get").stdout
+        self.assertNotIn("secret", shown)
+        self.assertEqual(json.loads(shown), {"host": "10.0.0.1", "user": "me", "ssh_key": "k", "remote_script": "r",
+                                             "adguard_url": "http://agh", "adguard_username": "admin", "adguard_password_set": True})
+
+    def adguard_server(self):
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeAdGuard)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        return f"127.0.0.1:{server.server_address[1]}"
+
+    def adguard(self, address, username, password, code=0):
+        return self.config("adguard", address, username, base64.b64encode(password.encode()).decode(), code=code)
+
+    def test_adguard_saves_a_working_login(self):
+        self.box.write(self.config_path, json.dumps({"host": "router", "adguard": {"enabled": False}}))
+        address = self.adguard_server()
+        self.assertEqual(self.adguard(f" {address}/ ", " admin ", "pass word").stdout, "AdGuard Home login saved and working\n")
+        self.assertEqual(self.saved(), {"host": "router", "adguard": {"enabled": True, "url": f"http://{address}", "username": "admin",
+                                                                      "password": "pass word"}})
+        self.assertEqual(stat.S_IMODE(self.config_path.stat().st_mode), 0o600)
+
+    def test_an_empty_password_keeps_the_saved_one(self):
+        address = self.adguard_server()
+        self.box.write(self.config_path, json.dumps({"adguard": {"url": "http://old", "username": "admin", "password": "pass word"}}))
+        self.adguard(address, "admin", "")
+        self.assertEqual(self.saved()["adguard"]["password"], "pass word")
+
+    def test_a_rejected_adguard_login_is_saved_and_reported(self):
+        address = self.adguard_server()
+        result = self.adguard(address, "admin", "wrong", code=1)
+        self.assertEqual(result.stderr, "Saved, but AdGuard Home rejected the username or password\n")
+        self.assertEqual(self.saved()["adguard"]["password"], "wrong")
+
+    def test_an_unreachable_adguard_is_reported(self):
+        result = self.adguard("127.0.0.1:9", "admin", "pass word", code=1)
+        self.assertTrue(result.stderr.startswith("Saved, but AdGuard Home is unreachable at http://127.0.0.1:9:"), result.stderr)
+
+    def test_adguard_needs_a_url(self):
+        self.assertEqual(self.config("adguard", " ", "admin", "", code=1).stderr, "AdGuard Home URL cannot be empty\n")
 
     def test_save_keeps_other_settings_and_fills_defaults(self):
         self.box.write(self.config_path, json.dumps({"adguard": {"url": "http://agh"}, "poll_interval": 2}))
@@ -98,7 +153,7 @@ class TestRoutermonConfig(RouterTest):
         self.assertFalse(self.config_path.exists())
 
     def test_unknown_mode(self):
-        self.assertEqual(self.config("wipe", code=1).stderr, "usage: routermon-config [get|save|test|install|authorize|connect]\n")
+        self.assertEqual(self.config("wipe", code=1).stderr, "usage: routermon-config [get|save|test|install|authorize|connect|adguard]\n")
 
     def test_test_connection(self):
         self.assertEqual(self.config("test", *CONNECTION).stdout, "SSH connection succeeded\n")

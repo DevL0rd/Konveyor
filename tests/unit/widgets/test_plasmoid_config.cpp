@@ -200,6 +200,30 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
+    void routerPageSavesTheAdGuardLogin()
+    {
+        PlasmoidHarness harness(router);
+        QObject *page = openPage(harness);
+        QVERIFY2(page, qPrintable(harness.error));
+        QVERIFY(harness.reply(config + QStringLiteral("get"),
+            QStringLiteral("{\"host\":\"router\",\"adguard_url\":\"http://agh:3000\",\"adguard_username\":\"admin\","
+                           "\"adguard_password_set\":true}")));
+        QCOMPARE(harness.eval(QStringLiteral("[adguardUrl.text, adguardUser.text]"), page).toStringList(),
+            (QStringList {QStringLiteral("http://agh:3000"), QStringLiteral("admin")}));
+        QVERIFY(page->property("adguardPasswordSet").toBool());
+        harness.eval(QStringLiteral("adguardPassword.text = 'pa ss'"), page);
+        QMetaObject::invokeMethod(page, "saveAdguard");
+        QVERIFY(harness.command(config + QStringLiteral("adguard"))
+                .startsWith(config + QStringLiteral("adguard 'http://agh:3000' 'admin' 'cGEgc3M=' # ")));
+        QCOMPARE(harness.eval(QStringLiteral("adguardPassword.text"), page).toString(), QString());
+        QVERIFY(harness.reply(config + QStringLiteral("adguard"), QStringLiteral("AdGuard Home login saved and working\n")));
+        QVERIFY(finished(page, QStringLiteral("AdGuard Home login saved and working"), false));
+        QMetaObject::invokeMethod(page, "saveAdguard");
+        QVERIFY(harness.command(config + QStringLiteral("adguard"))
+                .startsWith(config + QStringLiteral("adguard 'http://agh:3000' 'admin' '' # ")));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
     void routerPageShowsAFailedRead()
     {
         PlasmoidHarness harness(router);

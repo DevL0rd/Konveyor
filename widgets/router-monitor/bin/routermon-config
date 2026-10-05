@@ -9,6 +9,8 @@ import stat
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -78,11 +80,47 @@ def ensure_key(config):
     return public
 
 
-def authorize(config, encoded_password):
+def decode_password(encoded_password):
     try:
-        password = base64.b64decode(encoded_password.encode(), validate=True).decode()
+        return base64.b64decode(encoded_password.encode(), validate=True).decode()
     except (ValueError, UnicodeDecodeError) as error:
         raise ValueError("invalid password payload") from error
+
+
+def update_adguard(arguments):
+    if len(arguments) < 3:
+        raise ValueError("AdGuard Home URL, username and password are required")
+    url = arguments[0].strip().rstrip("/")
+    if not url:
+        raise ValueError("AdGuard Home URL cannot be empty")
+    if "://" not in url:
+        url = "http://" + url
+    config = load_config()
+    current = config.get("adguard") or {}
+    password = decode_password(arguments[2]) or current.get("password", "")
+    config["adguard"] = {**current, "enabled": True, "url": url, "username": arguments[1].strip(), "password": password}
+    save_config(config)
+    return config["adguard"]
+
+
+def check_adguard(adguard):
+    login = base64.b64encode(f"{adguard['username']}:{adguard['password']}".encode()).decode()
+    request = urllib.request.Request(adguard["url"] + "/control/status", headers={"Authorization": f"Basic {login}"})
+    try:
+        with urllib.request.urlopen(request, timeout=8):
+            pass
+    except urllib.error.HTTPError as error:
+        if error.code in (401, 403):
+            raise RuntimeError("Saved, but AdGuard Home rejected the username or password") from error
+        raise RuntimeError(f"Saved, but AdGuard Home answered with HTTP {error.code}") from error
+    except (urllib.error.URLError, OSError) as error:
+        reason = getattr(error, "reason", error)
+        raise RuntimeError(f"Saved, but AdGuard Home is unreachable at {adguard['url']}: {reason}") from error
+    print("AdGuard Home login saved and working")
+
+
+def authorize(config, encoded_password):
+    password = decode_password(encoded_password)
     if not password:
         raise ValueError("router password is empty")
     public = ensure_key(config)
@@ -135,6 +173,9 @@ def public_config(config):
         "user": config.get("user", "admin"),
         "ssh_key": config.get("ssh_key", "~/.ssh/id_ed25519"),
         "remote_script": config.get("remote_script", "/jffs/lrm-collect.sh"),
+        "adguard_url": (config.get("adguard") or {}).get("url", ""),
+        "adguard_username": (config.get("adguard") or {}).get("username", ""),
+        "adguard_password_set": bool((config.get("adguard") or {}).get("password")),
     }
 
 
@@ -143,6 +184,8 @@ def main():
     try:
         if mode == "get":
             print(json.dumps(public_config(load_config()), separators=(",", ":")))
+        elif mode == "adguard":
+            check_adguard(update_adguard(sys.argv[2:5]))
         elif mode in ("save", "test", "install", "authorize", "connect"):
             config = update_connection(sys.argv[2:6])
             if mode == "save":
@@ -158,7 +201,7 @@ def main():
                 install_collector(config)
                 print("Router connected")
         else:
-            raise ValueError("usage: routermon-config [get|save|test|install|authorize|connect]")
+            raise ValueError("usage: routermon-config [get|save|test|install|authorize|connect|adguard]")
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print(str(error), file=sys.stderr)
         return 1

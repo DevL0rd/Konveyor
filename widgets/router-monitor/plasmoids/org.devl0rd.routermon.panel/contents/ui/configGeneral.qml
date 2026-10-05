@@ -73,6 +73,7 @@ Kirigami.FormLayout {
     property bool connectionBusy: false
     property string connectionResult
     property bool connectionError: false
+    property bool adguardPasswordSet: false
 
     function shq(value) {
         return "'" + String(value).replace(/'/g, "'\\''") + "'"
@@ -104,6 +105,16 @@ Kirigami.FormLayout {
         connectionError = false
         connectionAction.connectSource(connectionArguments(mode, password))
     }
+    function saveAdguard() {
+        const password = adguardPassword.text
+        adguardPassword.text = ""
+        adguardPasswordSet = adguardPasswordSet || password !== ""
+        connectionBusy = true
+        connectionResult = i18n("Working…")
+        connectionError = false
+        connectionAction.connectSource("$HOME/.local/bin/routermon-config adguard " + shq(adguardUrl.text.trim()) + " "
+            + shq(adguardUser.text.trim()) + " " + shq(base64(password)) + " # " + Date.now())
+    }
     function openRouterSettings() {
         const host = routerHost.text.trim()
         if (host !== "")
@@ -129,6 +140,9 @@ Kirigami.FormLayout {
                 routerUser.text = config.user || "admin"
                 routerKey.text = config.ssh_key || "~/.ssh/id_ed25519"
                 remoteScript.text = config.remote_script || "/jffs/lrm-collect.sh"
+                adguardUrl.text = config.adguard_url || ""
+                adguardUser.text = config.adguard_username || ""
+                form.adguardPasswordSet = config.adguard_password_set === true
                 form.connectionLoaded = true
             } catch (error) {
                 form.connectionResult = i18n("Could not read the router connection settings")
@@ -243,6 +257,28 @@ Kirigami.FormLayout {
         color: form.connectionError ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
         opacity: form.connectionError ? 1 : 0.65
         wrapMode: Text.Wrap
+    }
+    QQC2.TextField {
+        id: adguardUrl
+        Kirigami.FormData.label: i18n("AdGuard Home URL:")
+        placeholderText: "http://192.168.50.1:3000"
+    }
+    QQC2.TextField {
+        id: adguardUser
+        Kirigami.FormData.label: i18n("AdGuard username:")
+    }
+    QQC2.TextField {
+        id: adguardPassword
+        Kirigami.FormData.label: i18n("AdGuard password:")
+        placeholderText: form.adguardPasswordSet ? i18n("Saved, leave empty to keep it") : ""
+        echoMode: TextInput.Password
+        passwordCharacter: "•"
+    }
+    QQC2.Button {
+        text: i18n("Save and test AdGuard login")
+        enabled: form.connectionLoaded && !form.connectionBusy && adguardUrl.text.trim() !== ""
+            && (adguardPassword.text !== "" || form.adguardPasswordSet)
+        onClicked: form.saveAdguard()
     }
 
     Item { Kirigami.FormData.isSection: true }
