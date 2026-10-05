@@ -1077,8 +1077,8 @@ FocusScope {
                         visible: launcherData.config.showTopBarSettings
                         icon.name: "configure-symbolic"
                         display: PlasmaComponents.AbstractButton.IconOnly
-                        text: i18n("Settings (Ctrl+,)")
-                        onClicked: launcher.goToPage("settings")
+                        text: i18n("System Settings")
+                        onClicked: launcher.closeAndRun(() => launcherData.run("systemsettings"))
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
                     }

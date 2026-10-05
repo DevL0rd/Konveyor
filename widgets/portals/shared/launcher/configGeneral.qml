@@ -241,7 +241,7 @@ Kirigami.FormLayout {
 
     QQC2.CheckBox { id: showTopBarFriends; Kirigami.FormData.label: i18n("Top bar shows:"); text: i18n("Friends online"); enabled: showFriends.checked }
     QQC2.CheckBox { id: showTopBarClock; visible: !form.portal; text: i18n("Clock") }
-    QQC2.CheckBox { id: showTopBarSettings; text: i18n("Settings button") }
+    QQC2.CheckBox { id: showTopBarSettings; text: i18n("System Settings button") }
     QQC2.CheckBox { id: showTopBarPower; visible: !form.portal; text: i18n("Power and session button") }
     QQC2.CheckBox { id: showSidebarFriends; Kirigami.FormData.label: i18n("Sidebar shows:"); text: i18n("Friends"); enabled: showFriends.checked }
     QQC2.CheckBox { id: showSidebarSystem; text: i18n("System") }
