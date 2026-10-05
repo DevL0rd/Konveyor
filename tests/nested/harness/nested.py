@@ -46,6 +46,12 @@ for _ in $(seq 200); do [ -e "{log}.ready" ] && break; sleep 0.05; done
 """
 
 
+PLASMASHELL = """
+/usr/lib/kactivitymanagerd > "$KONVEYOR_TEST_ROOT/kactivitymanagerd.log" 2>&1 &
+for _ in $(seq 600); do qdbus6 org.kde.ActivityManager > /dev/null 2>&1 && break; sleep 0.1; done
+plasmashell --no-respawn > "$KONVEYOR_TEST_ROOT/plasmashell.log" 2>&1 &
+"""
+
 def build_dir():
     return Path(os.environ.get("KONVEYOR_BUILD_DIR", REPO / "build"))
 

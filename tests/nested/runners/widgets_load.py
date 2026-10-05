@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parents[3]
 ROOT = Path(os.environ["KONVEYOR_TEST_ROOT"])
 WIDGETS = ROOT / "widgets"
 LOG = ROOT / "plasmashell.log"
-LOAD_ERRORS = ("error when loading applet", "Could not create attached properties object")
+LOAD_ERRORS = ("error when loading applet", "Could not create attached properties object", "TypeError", "ReferenceError", "Required property")
 
 
 def plasma(script):
