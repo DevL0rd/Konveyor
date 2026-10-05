@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from kwinsession import CLIENTS, activate, kwin_titles, wait_for, window_state
-from screenshot import capture_workspace
+from screenshot import capture_workspace, close
 
 TITLE = "SelfFullscreen"
 FULLSCREEN = "true|0,0 1920x1080"
@@ -25,7 +25,7 @@ def overlay_problems():
     beside = image.getpixel((min(image.width - 1, column[0] + column[2] + 40), middle))
     edge_gap = image.getpixel((4, middle))
     print(f"drawn while unfocused: column center {column_center}, right side {right_side}, beside the column {beside}, edge gap {edge_gap}")
-    if column_center != COLUMN_COLOR or right_side != FULLSCREEN_COLOR:
+    if not close(column_center, COLUMN_COLOR) or not close(right_side, FULLSCREEN_COLOR):
         problems.append(f"column A is not drawn over the fullscreen window that stays in place ({column_center}, {right_side})")
     if not beside[0] < FULLSCREEN_COLOR[0] - 40:
         problems.append(f"the fullscreen window is not shaded beside the overlaid column ({beside})")

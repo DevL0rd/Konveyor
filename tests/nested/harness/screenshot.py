@@ -27,3 +27,7 @@ def capture_workspace(path):
 
 if __name__ == "__main__":
     capture_workspace(sys.argv[1])
+
+
+def close(pixel, color, tolerance=16):
+    return all(abs(a - b) <= tolerance for a, b in zip(pixel[:3], color))

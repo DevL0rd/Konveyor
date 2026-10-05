@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, default_config, load_config
 from kwinsession import activate, active_title, frame, konveyor_action, wait_for, watch_signals
-from screenshot import capture_workspace
+from screenshot import capture_workspace, close
 
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
@@ -25,8 +25,7 @@ def screenshot():
     return capture_workspace(tempfile.mktemp(suffix=".png", dir=os.environ["KONVEYOR_TEST_ROOT"]))
 
 
-def close(pixel, color, tolerance=48):
-    return all(abs(a - b) <= tolerance for a, b in zip(pixel[:3], color))
+TOLERANCE = 48
 
 
 def rounded_frame(title):
@@ -42,7 +41,7 @@ def ring_pixel(image, title):
 
 def ring_is(title, color):
     pixel = ring_pixel(screenshot(), title)
-    return pixel is not None and close(pixel, color)
+    return pixel is not None and close(pixel, color, TOLERANCE)
 
 
 def on_screen(title):
@@ -87,8 +86,8 @@ def tab_bar(checks):
     activate("B")
     checks.equal(konveyor_action("consume-or-expel-window-left"), "", "stack B under A")
     checks.equal(konveyor_action("toggle-column-tabbed-display"), "", "show the column as tabs")
-    checks.expect(wait_for(lambda: any(close(pixel, MAGENTA) for pixel in tab_pixels("B")), 30, 0.5), "the active tab is magenta")
-    checks.expect(wait_for(lambda: any(close(pixel, CYAN) for pixel in tab_pixels("B")), 30, 0.5), "the other tab is cyan")
+    checks.expect(wait_for(lambda: any(close(pixel, MAGENTA, TOLERANCE) for pixel in tab_pixels("B")), 30, 0.5), "the active tab is magenta")
+    checks.expect(wait_for(lambda: any(close(pixel, CYAN, TOLERANCE) for pixel in tab_pixels("B")), 30, 0.5), "the other tab is cyan")
 
 
 PURPLE = (128, 0, 128)
@@ -127,7 +126,7 @@ def border_gradients(checks):
 
         def matches():
             image = screenshot()
-            return all(close(left_border(image, title), color) for title, color in expected.items())
+            return all(close(left_border(image, title), color, TOLERANCE) for title, color in expected.items())
 
         checks.expect(wait_for(matches, 30, 0.5),
                       f"relative-to {relative_to}: the left borders of A and B are {expected} ({[left_border(screenshot(), title) for title in expected]})")

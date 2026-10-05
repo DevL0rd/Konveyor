@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from screenshot import capture_workspace
+from screenshot import capture_workspace, close
 
 MAGENTA = (255, 0, 255)
 WINDOW = (47, 48, 51)
@@ -14,10 +14,6 @@ def blend(over, under, alpha):
 
 def screenshot():
     return capture_workspace(tempfile.mktemp(suffix=".png", dir=os.environ["KONVEYOR_TEST_ROOT"])).convert("RGB")
-
-
-def close(pixel, color, tolerance=16):
-    return all(abs(a - b) <= tolerance for a, b in zip(pixel[:3], color))
 
 
 def pixel_close(point, color, tolerance=16):

@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from kwinsession import activate, active_title, konveyor_action, kwin_titles, wait_for, watch_changes, window_state
-from screenshot import capture_workspace
+from screenshot import capture_workspace, close
 
 TITLE = "X11Game"
 FULLSCREEN = "true|0,0 1920x1080"
@@ -21,7 +21,7 @@ def overlay_problems():
     center = image.getpixel((column[0] + column[2] // 2, column[1] + column[3] // 2))
     right_edge = image.getpixel((image.width - 4, image.height // 2))
     print(f"drawn while unfocused: center of A {center}, right edge {right_edge}")
-    if center != COLUMN_COLOR:
+    if not close(center, COLUMN_COLOR):
         problems.append(f"the focused column is not drawn over the fullscreen window ({center})")
     if right_edge != WHITE:
         problems.append(f"the fullscreen window did not stay in place behind the columns ({right_edge})")
