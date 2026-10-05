@@ -25,6 +25,7 @@ git config --global --add safe.directory "$PWD"
 extras/packaging/dependencies.sh
 setcap -r "$(command -v kwin_wayland)"
 useradd -m tester
+chmod a+rw /dev/dri/card* /dev/dri/renderD*
 chown -R tester: .
 install -d -m 700 -o tester /tmp/runtime-tester
 install -d -m 1777 /tmp/.X11-unix

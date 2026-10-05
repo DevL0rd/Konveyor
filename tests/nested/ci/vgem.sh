@@ -16,5 +16,6 @@ else
     make -C "/lib/modules/$release/build" M="$work" modules
     sudo insmod "$work/vgem.ko"
 fi
+sudo udevadm settle
 sudo chmod a+rw /dev/dri/card* /dev/dri/renderD*
 ls -l /dev/dri
