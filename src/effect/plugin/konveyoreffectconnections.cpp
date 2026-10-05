@@ -3,6 +3,7 @@
 #include "config/log.h"
 
 #include <keyboard_input.h>
+#include <virtualdesktops.h>
 #include <xkb.h>
 
 #include <functional>
@@ -289,6 +290,21 @@ void KonveyorEffect::takeHandedOverHiddenPlacements()
     }
 }
 
+void KonveyorEffect::adoptOntoKdeDesktop(Layout::WindowId id, KWin::Window *window)
+{
+    if (window->isOnAllDesktops() || window->desktops().size() != 1) {
+        return;
+    }
+    const int desktop = static_cast<int>(KWin::VirtualDesktopManager::self()->desktops().indexOf(window->desktops().constFirst())) + 1;
+    const std::optional<Layout::WindowState> state = readEngine().windowState(id);
+    if (desktop < 1 || !state || state->workspaceIndex == desktop) {
+        return;
+    }
+    qCInfo(lcKonveyor) << "konveyor: adopting" << window->resourceClass() << "onto workspace" << desktop << "to match its KDE desktop";
+    changeEngine().perform(
+        {QStringLiteral("move-window-to-workspace"), {QString::number(desktop)}, {{QStringLiteral("focus"), QStringLiteral("false")}}}, id);
+}
+
 void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
 {
     const auto restore = d->hiddenPlacements.constFind(window);
@@ -300,6 +316,9 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
         changeEngine().addWindow(id, d->windows.propertiesOf(window), handed->output, Layout::ActivationPolicy::NoFocus, handed->placement);
     } else {
         changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);
+        if (!placement && d->windows.isAdopting()) {
+            adoptOntoKdeDesktop(id, window);
+        }
     }
     connect(window, &KWin::Window::frameGeometryChanged, this, [this, id] {
         placeMonitorOverlays(id);

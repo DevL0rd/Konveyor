@@ -34,6 +34,7 @@ public:
 
     std::optional<Layout::WindowId> idOf(KWin::Window *window) const;
     KWin::Window *windowOf(Layout::WindowId id) const;
+    bool isAdopting() const { return m_adopting; }
 
 Q_SIGNALS:
     void windowAdded(Layout::WindowId id, KWin::Window *window);

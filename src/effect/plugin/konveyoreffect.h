@@ -99,6 +99,7 @@ private:
     void onWindowAdded(Layout::WindowId id, KWin::Window *window);
     void rememberHiddenPlacement(KWin::Window *window, const Layout::RestorePlacement &placement);
     void takeHandedOverHiddenPlacements();
+    void adoptOntoKdeDesktop(Layout::WindowId id, KWin::Window *window);
     bool placedBefore(KWin::Window *first, KWin::Window *second) const;
     void observeMonitorOverlay(KWin::Window *window);
     void forgetMonitorOverlay(KWin::Window *window);

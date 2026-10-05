@@ -73,6 +73,17 @@ def rules_apply_on_load(checks):
     load_config(default_config())
 
 
+def first_load_keeps_desktops(checks):
+    qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.unloadEffect", "konveyor_effect")
+    for title, desktop in (("OnChat", 2), ("OnMusic", 3)):
+        open_client(title, managed=False)
+        run_script(for_window(title, f"w.desktops = [workspace.desktops[{desktop}]];"))
+    checks.expect(reload_konveyor(["OnChat", "OnMusic"]), "the effect loads with windows already open on other KDE desktops")
+    checks.expect(wait_for(lambda: layout()["OnChat"][0] == 3 and layout()["OnMusic"][0] == 4, 10),
+                  f"windows the effect meets for the first time keep the workspace of their KDE desktop ({layout()})")
+    checks.equal((desktop_of("OnChat"), desktop_of("OnMusic")), ("2", "3"), "and stay on their KDE desktops")
+
+
 def fullscreen(title):
     return (window_state(title) or "").startswith("true|")
 
@@ -101,7 +112,8 @@ def unload_gives_back_desktops(checks):
 
 
 def main():
-    Checks().run(layout_survives, minimized_window_survives, rules_apply_on_load, fullscreen_survives, unload_gives_back_desktops)
+    Checks().run(layout_survives, minimized_window_survives, rules_apply_on_load, first_load_keeps_desktops, fullscreen_survives,
+                 unload_gives_back_desktops)
 
 
 if __name__ == "__main__":
