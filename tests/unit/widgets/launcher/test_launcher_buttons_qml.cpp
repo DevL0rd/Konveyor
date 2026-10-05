@@ -59,13 +59,14 @@ private:
     }
 
 private Q_SLOTS:
-    void theDefaultsShowEveryButtonOnce()
+    void theDefaultsShowEveryButton()
     {
         QVERIFY(openHome(false));
+        const QStringList shownInBothPlaces {QStringLiteral("showTopBarSettings"), QStringLiteral("showTopBarPower")};
         for (const Pair &pair : pairs) {
             const bool topBar = shown(QLatin1String(pair.topBarItem));
             const bool elsewhere = shown(QLatin1String(pair.elsewhereItem));
-            QVERIFY2(topBar != elsewhere, pair.topBar);
+            QVERIFY2(shownInBothPlaces.contains(QLatin1String(pair.topBar)) ? topBar && elsewhere : topBar != elsewhere, pair.topBar);
         }
         QVERIFY(shown(QStringLiteral("clock")));
         QVERIFY(!shown(QStringLiteral("homeDate")));
@@ -78,16 +79,16 @@ private Q_SLOTS:
     {
         QVERIFY(m_harness.host(false));
         const QMap<QString, bool> expected {{QStringLiteral("showTopBarFriends"), false}, {QStringLiteral("showTopBarClock"), true},
-            {QStringLiteral("showTopBarSettings"), false}, {QStringLiteral("showTopBarPower"), false},
+            {QStringLiteral("showTopBarSettings"), true}, {QStringLiteral("showTopBarPower"), true},
             {QStringLiteral("showSidebarFriends"), true}, {QStringLiteral("showSidebarSystem"), true},
             {QStringLiteral("showSidebarSettings"), true}, {QStringLiteral("showHomeDate"), false}};
         for (auto it = expected.cbegin(); it != expected.cend(); ++it) {
             QCOMPARE(m_harness.config()->value(it.key()).toBool(), it.value());
         }
-        eval(QStringLiteral("launcherData.config.showTopBarPower = true"));
+        eval(QStringLiteral("launcherData.config.showTopBarPower = false"));
         QFile file(m_harness.path(QStringLiteral("config/kontrolpanelrc")));
         QVERIFY(file.open(QIODevice::ReadOnly));
-        QVERIFY(file.readAll().contains("showTopBarPower=true"));
+        QVERIFY(file.readAll().contains("showTopBarPower=false"));
     }
 
     void everyPairFollowsItsTwoSettings_data()
@@ -189,11 +190,11 @@ private Q_SLOTS:
         QCOMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("system"));
     }
 
-    void theSettingsButtonOpensSettings()
+    void theSettingsButtonOpensSystemSettings()
     {
         QVERIFY(m_harness.openHost(false, {{QStringLiteral("showTopBarSettings"), true}}));
         eval(QStringLiteral("settingsButton.clicked()"));
-        QCOMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("settings"));
+        QVERIFY(m_harness.commands().contains(QStringLiteral("systemsettings")));
     }
 
     void theAppPortalKeepsItsCompactTopBar()
