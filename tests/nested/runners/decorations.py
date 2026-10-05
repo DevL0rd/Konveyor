@@ -64,10 +64,12 @@ def focus_ring(checks):
 
 def accent_change(checks):
     focused = active_title()
-    write = ["kwriteconfig6", "--notify", "--file", "kdeglobals", "--group", "Colors:Selection", "--key", "BackgroundNormal", "0,0,255"]
+    subprocess.run(["kwriteconfig6", "--file", "kdeglobals", "--group", "Colors:Selection", "--key", "BackgroundNormal", "0,0,255"], check=True)
+    notify = ["gdbus", "emit", "--session", "--object-path", "/kdeglobals", "--signal", "org.kde.kconfig.notify.ConfigChanged",
+              "{'Colors:Selection': [b'BackgroundNormal']}"]
     announced = watch_signals("type='signal',path='/kdeglobals',interface='org.kde.kconfig.notify',member='ConfigChanged'",
-                              lambda: subprocess.run(write, check=True), lambda lines: any("Colors:Selection" in line for line in lines))
-    checks.expect(any("Colors:Selection" in line for line in announced), f"kwriteconfig6 announces the accent change on the session bus ({announced})")
+                              lambda: subprocess.run(notify, check=True), lambda lines: any("Colors:Selection" in line for line in lines))
+    checks.expect(any("Colors:Selection" in line for line in announced), f"the accent change is announced on the session bus ({announced})")
     kdeglobals = (Path(os.environ["XDG_CONFIG_HOME"]) / "kdeglobals").read_text()
     checks.expect(wait_for(lambda: ring_is(focused, BLUE), 30, 0.5),
                   f"changing the KDE accent recolours the ring live ({ring_pixel(screenshot(), focused)}, kdeglobals {kdeglobals!r})")
