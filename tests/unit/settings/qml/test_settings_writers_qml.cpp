@@ -30,6 +30,7 @@ private Q_SLOTS:
     void writesEveryLayoutKey_data();
     void writesEveryLayoutKey();
     void sameShapeBlocksKeepComments();
+    void otherShapeBlocksKeepTheCommentsOfKeptKeys();
     void paintAlphaIsEightBit_data();
     void paintAlphaIsEightBit();
 
@@ -252,6 +253,25 @@ void TestSettingsWritersQml::sameShapeBlocksKeepComments()
         QStringLiteral(
             "layout {\n    focus-ring {\n        // mine\n        on\n        width 6 // thin\n        active-color \"focus\"\n    }\n"
             "    struts { left 5; right 2; top 3; bottom 4; }\n}\n"));
+}
+
+void TestSettingsWritersQml::otherShapeBlocksKeepTheCommentsOfKeptKeys()
+{
+    Session session
+        = open(QStringLiteral("layout {\n    tab-indicator {\n        // tabs\n        on\n        urgent-color \"#ff0000\" // red\n"
+                              "        width 6 // wide\n    }\n}\n"));
+    const QVariantMap tab {{QStringLiteral("enabled"), true}, {QStringLiteral("hide-when-single-tab"), true},
+        {QStringLiteral("place-within-column"), false}, {QStringLiteral("position"), QStringLiteral("top")}, {QStringLiteral("width"), 4},
+        {QStringLiteral("gap"), 5}, {QStringLiteral("length"), 0.5}, {QStringLiteral("gaps-between-tabs"), 2},
+        {QStringLiteral("corner-radius"), 3}, {QStringLiteral("active"), paint(QStringLiteral("hover"))}};
+    QVERIFY(script(session.host.get(), QStringLiteral("LayoutKeys"), QStringLiteral("write"),
+        {Store, QStringLiteral("layout"), QStringLiteral("tab-indicator"), tab})
+            .toBool());
+    QCOMPARE(saved(session.store),
+        QStringLiteral("layout {\n    tab-indicator {\n        // tabs\n        on\n        hide-when-single-tab true\n        "
+                       "place-within-column false\n"
+                       "        position \"top\"\n        width 4 // wide\n        gap 5\n        length total-proportion=0.5\n"
+                       "        gaps-between-tabs 2\n        corner-radius 3\n        active-color \"hover\"\n    }\n}\n"));
 }
 
 void TestSettingsWritersQml::paintAlphaIsEightBit_data()

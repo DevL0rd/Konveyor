@@ -4,6 +4,8 @@
 #include "document/nodecodec.h"
 #include "kdl/characters.h"
 
+#include <algorithm>
+
 namespace Konveyor::Settings
 {
 
@@ -69,7 +71,9 @@ EditResult ConfigDocument::setNode(const QString &path, const QVariantMap &node)
     }
     const Kdl::Span &span = located->node->span;
     const QVariantMap ordered = withPropertyOrder(node, *located->node);
-    if (span.childrenOpen >= 0 && sameChildNames(located->node->children, ordered)) {
+    const bool hadChildren = !located->node->children.isEmpty();
+    const bool wantsChildren = !ordered.value(QStringLiteral("children")).toList().isEmpty();
+    if (span.childrenOpen >= 0 && ordered.contains(QStringLiteral("children")) && hadChildren == wantsChildren) {
         return updateInPlace(located->path, ordered);
     }
     std::u32string text = m_text;
@@ -83,31 +87,36 @@ EditResult ConfigDocument::setNode(const QString &path, const QVariantMap &node)
     return commit(std::move(text), path);
 }
 
-bool ConfigDocument::sameChildNames(const QList<Kdl::Node> &children, const QVariantMap &node)
-{
-    if (!node.contains(QStringLiteral("children"))) {
-        return false;
-    }
-    const QVariantList wanted = node.value(QStringLiteral("children")).toList();
-    return std::ranges::equal(children, wanted,
-        [](const Kdl::Node &child, const QVariant &next) { return child.name == next.toMap().value(QStringLiteral("name")).toString(); });
-}
-
 EditResult ConfigDocument::updateInPlace(const NodePath &path, const QVariantMap &node)
 {
     const std::u32string originalText = m_text;
     const Kdl::Document originalDocument = m_document;
-    const Kdl::Span &span = findNode(m_document, path)->span;
+    const Kdl::Node *existing = findNode(m_document, path);
+    QHash<QString, qsizetype> existingCounts;
+    for (const Kdl::Node &child : existing->children) {
+        ++existingCounts[child.name];
+    }
+    const Kdl::Span &span = existing->span;
     std::u32string text = m_text;
     replace(text, span.start, span.childrenOpen, writeNodeHead(node) + QLatin1Char(' '));
     EditResult result = commit(std::move(text), formatPath(path));
     QHash<QString, qsizetype> seen;
+    QStringList names;
     for (const QVariant &child : node.value(QStringLiteral("children")).toList()) {
         const QVariantMap childNode = child.toMap();
         const QString name = childNode.value(QStringLiteral("name")).toString();
+        names.append(name);
         if (result) {
             result = setNode(formatPath(path + NodePath {PathSegment {name, seen[name]++}}), childNode);
         }
+    }
+    for (auto count = existingCounts.constBegin(); result && count != existingCounts.constEnd(); ++count) {
+        for (qsizetype index = count.value() - 1; result && index >= seen.value(count.key()); --index) {
+            result = remove(formatPath(path + NodePath {PathSegment {count.key(), index}}));
+        }
+    }
+    if (result) {
+        result = orderChildren(path, names);
     }
     if (!result) {
         m_text = originalText;
@@ -115,6 +124,36 @@ EditResult ConfigDocument::updateInPlace(const NodePath &path, const QVariantMap
         return result;
     }
     return formatPath(path);
+}
+
+EditResult ConfigDocument::orderChildren(const NodePath &path, const QStringList &names)
+{
+    const QList<Kdl::Node> &children = findNode(m_document, path)->children;
+    QHash<QString, QList<qsizetype>> byName;
+    for (qsizetype index = 0; index < children.size(); ++index) {
+        byName[children.at(index).name].append(index);
+    }
+    QHash<QString, qsizetype> taken;
+    QList<qsizetype> order;
+    for (const QString &name : names) {
+        order.append(byName.value(name).at(taken[name]++));
+    }
+    if (std::ranges::is_sorted(order)) {
+        return formatPath(path);
+    }
+    QList<std::pair<qsizetype, qsizetype>> owned;
+    QStringList texts;
+    for (const Kdl::Node &child : children) {
+        owned.append(ownedRange(child.span));
+    }
+    for (const qsizetype index : std::as_const(order)) {
+        texts.append(slice(owned.at(index).first, owned.at(index).second));
+    }
+    std::u32string text = m_text;
+    for (qsizetype slot = owned.size() - 1; slot >= 0; --slot) {
+        replace(text, owned.at(slot).first, owned.at(slot).second, texts.at(slot));
+    }
+    return commit(std::move(text), formatPath(path));
 }
 
 EditResult ConfigDocument::remove(const QString &path)

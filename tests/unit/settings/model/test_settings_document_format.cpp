@@ -130,9 +130,9 @@ void TestSettingsDocumentFormat::sameShapeBlockKeepsComments()
         QStringLiteral("ring \"b\" {\n    inner {\n        x 2 // keep\n    }\n}\n"));
     const QVariantMap reordered
         = block(QStringLiteral("w"), {leaf(QStringLiteral("fixed"), {9}), leaf(QStringLiteral("proportion"), {0.5})});
-    QCOMPARE(edited(QStringLiteral("w {\n    // gone\n    proportion 0.5\n    fixed 9\n}\n"),
+    QCOMPARE(edited(QStringLiteral("w {\n    // half\n    proportion 0.5\n    fixed 9 // px\n}\n"),
                  [&](ConfigDocument &d) { return d.setNode(QStringLiteral("w"), reordered); }),
-        QStringLiteral("w {\n    fixed 9\n    proportion 0.5\n}\n"));
+        QStringLiteral("w {\n    fixed 9 // px\n    // half\n    proportion 0.5\n}\n"));
 }
 
 void TestSettingsDocumentFormat::sameShapeFailureRollsBack()
