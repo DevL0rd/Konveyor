@@ -49,6 +49,7 @@ private Q_SLOTS:
     void reloadsWhenABrokenIncludeIsFixed_data();
     void followsASymlinkedConfigAcrossReplacements();
     void reloadsWhenABrokenIncludeIsFixed();
+    void keepsFollowingAConfigLoadedFromAnotherPath();
 
 private:
     QString filePath(const QString &name) const;
@@ -149,6 +150,23 @@ void TestConfigManager::followsASymlinkedConfigAcrossReplacements()
     QTRY_COMPARE(manager.config().layout.gaps, 3.0);
     QVERIFY(writeInPlace(target, gapsConfig(4)));
     QTRY_COMPARE(manager.config().layout.gaps, 4.0);
+}
+
+void TestConfigManager::keepsFollowingAConfigLoadedFromAnotherPath()
+{
+    ConfigManager manager;
+    manager.start();
+    const QString other = filePath(QStringLiteral("other.kdl"));
+    QVERIFY(writeInPlace(other, gapsConfig(5)));
+    QCOMPARE(manager.load(other), QString());
+    QCOMPARE(manager.config().layout.gaps, 5.0);
+    QList<double> applied;
+    connect(&manager, &ConfigManager::configChanged, this,
+        [&applied](const Konveyor::Config::Config &config) { applied.append(config.layout.gaps); });
+    QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), gapsConfig(7)));
+    QVERIFY(writeInPlace(other, gapsConfig(6)));
+    QTRY_COMPARE(manager.config().layout.gaps, 6.0);
+    QVERIFY2(!applied.contains(7.0), "an edit of the main config switched back to it");
 }
 
 QTEST_GUILESS_MAIN(TestConfigManager)
