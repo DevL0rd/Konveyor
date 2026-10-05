@@ -160,6 +160,10 @@ void TestConfigRanges::rejectsOutsideBoundaries_data()
         const QString message = betweenMessage(range);
         QTest::newRow(qPrintable(rowName(range, "below"))) << withValue(range, belowLow(range)) << message;
         QTest::newRow(qPrintable(rowName(range, "above"))) << withValue(range, QString::number(range.high + 1)) << message;
+        if (range.low >= 0) {
+            QTest::newRow(qPrintable(rowName(range, "negative")))
+                << withValue(range, range.kind == Kind::Integer ? QStringLiteral("-1") : QStringLiteral("-0.5")) << message;
+        }
         if (range.kind != Kind::Integer) {
             QTest::newRow(qPrintable(rowName(range, "fraction above")))
                 << withValue(range, QString::number(static_cast<double>(range.high) + 0.5, 'f', 1)) << message;
