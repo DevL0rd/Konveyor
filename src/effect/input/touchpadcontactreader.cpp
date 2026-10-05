@@ -2,6 +2,7 @@
 
 #include <core/inputdevice.h>
 #include <input.h>
+#include <wayland_server.h>
 
 #include <QFileInfo>
 #include <QSocketNotifier>
@@ -71,7 +72,9 @@ void TouchpadContactReader::add(KWin::InputDevice *device)
     }
     auto source = std::make_shared<Source>();
     source->fd = fd;
-    source->decoder = std::make_unique<TouchpadContactDecoder>(m_handlers, m_nextBase, QPointF(resolutionX, resolutionY));
+    source->handlers
+        = gatedTouchpadContacts(m_handlers, [device] { return device->isEnabled() && !KWin::waylandServer()->isScreenLocked(); });
+    source->decoder = std::make_unique<TouchpadContactDecoder>(source->handlers, m_nextBase, QPointF(resolutionX, resolutionY));
     m_nextBase += SlotsPerSource;
     source->notifier = std::make_unique<QSocketNotifier>(fd, QSocketNotifier::Read);
     connect(source->notifier.get(), &QSocketNotifier::activated, this, [raw = source.get()] { read(*raw); });

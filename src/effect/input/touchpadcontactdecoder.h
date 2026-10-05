@@ -19,6 +19,8 @@ struct TouchpadContactHandlers
     std::function<void()> reset;
 };
 
+TouchpadContactHandlers gatedTouchpadContacts(const TouchpadContactHandlers &handlers, std::function<bool()> accepting);
+
 class TouchpadContactDecoder
 {
 public:

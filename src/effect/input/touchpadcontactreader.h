@@ -27,6 +27,7 @@ private:
     struct Source
     {
         int fd = -1;
+        TouchpadContactHandlers handlers;
         std::unique_ptr<TouchpadContactDecoder> decoder;
         std::unique_ptr<QSocketNotifier> notifier;
     };

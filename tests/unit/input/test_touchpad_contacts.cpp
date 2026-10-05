@@ -108,6 +108,42 @@ private Q_SLOTS:
         feed(decoder, {event(EV_ABS, ABS_MT_TRACKING_ID, 2), event(EV_ABS, ABS_MT_POSITION_X, 6), report(90)});
         QCOMPARE(m_events, (QStringList {QStringLiteral("down 0 2,0 @70"), QStringLiteral("reset"), QStringLiteral("down 0 6,0 @90")}));
     }
+
+    void dropsTapsAndClicksWhileBlocked()
+    {
+        const TouchpadContactHandlers gated = Konveyor::gatedTouchpadContacts(m_handlers, [] { return false; });
+        gated.down(0, QPointF(1.0, 1.0), 10);
+        gated.down(1, QPointF(2.0, 1.0), 10);
+        gated.down(2, QPointF(3.0, 1.0), 10);
+        gated.up(0, 20);
+        gated.up(1, 20);
+        gated.up(2, 20);
+        gated.press();
+        QCOMPARE(m_events, QStringList {QStringLiteral("reset")});
+    }
+
+    void blockingMidTouchCancelsIt()
+    {
+        bool accepting = true;
+        const TouchpadContactHandlers gated = Konveyor::gatedTouchpadContacts(m_handlers, [&accepting] { return accepting; });
+        gated.down(0, QPointF(1.0, 1.0), 10);
+        accepting = false;
+        gated.motion(0, QPointF(2.0, 1.0));
+        gated.up(0, 20);
+        QCOMPARE(m_events, (QStringList {QStringLiteral("down 0 1,1 @10"), QStringLiteral("reset")}));
+    }
+
+    void aTouchThatStartedWhileBlockedStaysDroppedAfterwards()
+    {
+        bool accepting = false;
+        const TouchpadContactHandlers gated = Konveyor::gatedTouchpadContacts(m_handlers, [&accepting] { return accepting; });
+        gated.down(0, QPointF(1.0, 1.0), 10);
+        accepting = true;
+        gated.motion(0, QPointF(2.0, 1.0));
+        gated.up(0, 20);
+        gated.down(1, QPointF(3.0, 1.0), 30);
+        QCOMPARE(m_events, (QStringList {QStringLiteral("reset"), QStringLiteral("down 1 3,1 @30")}));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestTouchpadContacts)

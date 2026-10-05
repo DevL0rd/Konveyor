@@ -1,7 +1,10 @@
 #include "input/touchpadcontactdecoder.h"
 
+#include <QSet>
+
 #include <linux/input.h>
 
+#include <memory>
 #include <utility>
 
 namespace Konveyor
@@ -13,6 +16,59 @@ namespace
 constexpr qint64 MicrosecondsPerMillisecond = 1000;
 constexpr qint64 MillisecondsPerSecond = 1000;
 
+struct Gate
+{
+    TouchpadContactHandlers handlers;
+    std::function<bool()> accepting;
+    QSet<qint32> live;
+    bool blocked = false;
+
+    bool admit()
+    {
+        if (accepting()) {
+            blocked = false;
+            return true;
+        }
+        live.clear();
+        if (!std::exchange(blocked, true)) {
+            handlers.reset();
+        }
+        return false;
+    }
+};
+
+}
+
+TouchpadContactHandlers gatedTouchpadContacts(const TouchpadContactHandlers &handlers, std::function<bool()> accepting)
+{
+    auto gate = std::make_shared<Gate>(Gate {handlers, std::move(accepting), {}, false});
+    return {
+        [gate](qint32 slot, const QPointF &position, qint64 timestampMs) {
+            if (gate->admit()) {
+                gate->live.insert(slot);
+                gate->handlers.down(slot, position, timestampMs);
+            }
+        },
+        [gate](qint32 slot, const QPointF &position) {
+            if (gate->admit() && gate->live.contains(slot)) {
+                gate->handlers.motion(slot, position);
+            }
+        },
+        [gate](qint32 slot, qint64 timestampMs) {
+            if (gate->admit() && gate->live.remove(slot)) {
+                gate->handlers.up(slot, timestampMs);
+            }
+        },
+        [gate] {
+            if (gate->admit()) {
+                gate->handlers.press();
+            }
+        },
+        [gate] {
+            gate->live.clear();
+            gate->handlers.reset();
+        },
+    };
 }
 
 TouchpadContactDecoder::TouchpadContactDecoder(const TouchpadContactHandlers &handlers, qint32 base, QPointF resolution)
