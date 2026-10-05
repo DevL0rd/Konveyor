@@ -187,11 +187,16 @@ inline void runControl(const SettingsHome &home)
     QCOMPARE(store->property("configError").toString(), QString());
     const QVariantMap node = call<QVariantMap>(store, "node", path);
     const QVariant wanted = parsedJson(expected);
+    const QString topName = path.section(QLatin1Char('/'), 0, 0).section(QLatin1Char('#'), 0, 0);
+    const QByteArray state = path.toUtf8() + "\nstore revision " + QByteArray::number(store->property("revision").toInt()) + "\nstore "
+        + topName.toUtf8() + " nodes: " + jsonText(call<QVariantList>(store, "children", QString(), topName)) + "\nconfig on disk:\n"
+        + SettingsHome::read(home.configPath()).toUtf8();
     if (wanted.isNull()) {
-        QCOMPARE(jsonText(node), QByteArray("[{}]"));
+        QVERIFY2(jsonText(node) == QByteArray("[{}]"), state.constData());
     } else {
-        QVERIFY2(!node.isEmpty(), qPrintable(path));
-        QCOMPARE(jsonText(expectedPart(node, wanted.toMap())), jsonText(wanted));
+        QVERIFY2(!node.isEmpty(), state.constData());
+        QVERIFY2(jsonText(expectedPart(node, wanted.toMap())) == jsonText(wanted),
+            (jsonText(expectedPart(node, wanted.toMap())) + "\n!= " + jsonText(wanted) + "\n" + state).constData());
     }
     QCOMPARE(log.take(), QStringList {});
 }
