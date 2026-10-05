@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
     QObject::connect(&config, &QQmlPropertyMap::valueChanged, &config, [&config] { config.writeConfig(); });
 
     QQmlApplicationEngine engine;
+    engine.setProperty("_kirigamiTheme", QStringLiteral("KirigamiPlasmaStyle"));
     engine.rootContext()->setContextObject(new KLocalizedQmlContext(&engine));
     engine.setInitialProperties(
         {{QStringLiteral("service"), QVariant::fromValue(&service)}, {QStringLiteral("config"), QVariant::fromValue(&config)}});

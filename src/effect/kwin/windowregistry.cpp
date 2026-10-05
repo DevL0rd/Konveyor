@@ -200,7 +200,7 @@ void WindowRegistry::remove(KWin::Window *window)
 
 void WindowRegistry::connectObserved(KWin::Window *window)
 {
-    const auto refreshWindow = [this, window]() { refresh(window); };
+    const auto refreshWindow = [this, window] { refresh(window); };
     connect(window, &KWin::Window::minimizedChanged, this, refreshWindow);
     connect(window, &KWin::Window::activitiesChanged, this, refreshWindow);
     connect(window, &KWin::Window::captionChanged, this, refreshWindow);
@@ -210,14 +210,14 @@ void WindowRegistry::connectObserved(KWin::Window *window)
 
 void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
 {
-    const auto emitProperties = [this, id]() { Q_EMIT propertiesChanged(id); };
+    const auto emitProperties = [this, id] { Q_EMIT propertiesChanged(id); };
     connect(window, &KWin::Window::captionChanged, this, emitProperties);
     connect(window, &KWin::Window::desktopFileNameChanged, this, emitProperties);
     connect(window, &KWin::Window::windowClassChanged, this, emitProperties);
     connect(window, &KWin::Window::transientChanged, this, emitProperties);
     connect(window, &KWin::Window::desktopsChanged, this, emitProperties);
     connect(window, &KWin::Window::demandsAttentionChanged, this,
-        [this, window, id]() { Q_EMIT urgencyChanged(id, window->isDemandingAttention()); });
+        [this, window, id] { Q_EMIT urgencyChanged(id, window->isDemandingAttention()); });
     const auto announcedFullscreen = std::make_shared<bool>(window->isFullScreen());
     const auto announceFullscreen = [this, window, id, announcedFullscreen](bool fullscreen) {
         if (std::exchange(*announcedFullscreen, fullscreen) != fullscreen) {
@@ -226,14 +226,14 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
             Q_EMIT fullscreenRequested(id, fullscreen);
         }
     };
-    connect(window, &KWin::Window::fullScreenChanged, this, [window, announceFullscreen]() { announceFullscreen(window->isFullScreen()); });
-    connect(window, &KWin::Window::maximizedChanged, this, [this, window, id]() {
+    connect(window, &KWin::Window::fullScreenChanged, this, [window, announceFullscreen] { announceFullscreen(window->isFullScreen()); });
+    connect(window, &KWin::Window::maximizedChanged, this, [this, window, id] {
         qCInfo(lcKonveyor) << "konveyor:" << appIdOf(window) << "maximize changed, requested full =" << isMaximizeRequested(window);
         Q_EMIT maximizeRequested(id, isMaximizeRequested(window));
     });
-    connect(window, &KWin::Window::borderRadiusChanged, this, [this, id]() { Q_EMIT appearanceChanged(id); });
-    connect(window, &KWin::Window::opacityChanged, this, [this, id]() { Q_EMIT appearanceChanged(id); });
-    connect(window, &KWin::Window::frameGeometryChanged, this, [this, window, id, announceFullscreen]() {
+    connect(window, &KWin::Window::borderRadiusChanged, this, [this, id] { Q_EMIT appearanceChanged(id); });
+    connect(window, &KWin::Window::opacityChanged, this, [this, id] { Q_EMIT appearanceChanged(id); });
+    connect(window, &KWin::Window::frameGeometryChanged, this, [this, window, id, announceFullscreen] {
         announceFullscreen(window->isRequestedFullScreen());
         Q_EMIT sizeCommitted(id, window->frameGeometry().size());
     });
@@ -243,13 +243,13 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
 void WindowRegistry::connectInteractiveSignals(KWin::Window *window, Layout::WindowId id)
 {
     const auto isMove = std::make_shared<bool>(false);
-    connect(window, &KWin::Window::interactiveMoveResizeStarted, this, [this, window, id, isMove]() {
+    connect(window, &KWin::Window::interactiveMoveResizeStarted, this, [this, window, id, isMove] {
         *isMove = window->isInteractiveMove();
         qCInfo(lcKonveyor) << "konveyor: interactive" << (*isMove ? "move" : "resize") << "started on" << appIdOf(window);
         Q_EMIT interactiveStarted(id, *isMove);
     });
-    connect(window, &KWin::Window::interactiveMoveResizeStepped, this, [this, id, isMove]() { Q_EMIT interactiveStepped(id, *isMove); });
-    connect(window, &KWin::Window::interactiveMoveResizeFinished, this, [this, window, id, isMove]() {
+    connect(window, &KWin::Window::interactiveMoveResizeStepped, this, [this, id, isMove] { Q_EMIT interactiveStepped(id, *isMove); });
+    connect(window, &KWin::Window::interactiveMoveResizeFinished, this, [this, window, id, isMove] {
         qCInfo(lcKonveyor) << "konveyor: interactive" << (*isMove ? "move" : "resize") << "finished on" << appIdOf(window)
                            << window->frameGeometry();
         Q_EMIT interactiveFinished(id, *isMove);

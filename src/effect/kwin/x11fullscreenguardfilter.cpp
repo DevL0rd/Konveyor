@@ -42,7 +42,7 @@ X11FullscreenGuardFilter::~X11FullscreenGuardFilter()
 
 bool X11FullscreenGuardFilter::event(xcb_generic_event_t *genericEvent)
 {
-    const uint8_t eventType = genericEvent->response_type & ~0x80;
+    const uint8_t eventType = genericEvent->response_type & ~0x80U;
     switch (eventType) {
     case XCB_DESTROY_NOTIFY:
         handleDestroy(*reinterpret_cast<xcb_destroy_notify_event_t *>(genericEvent));
@@ -255,11 +255,11 @@ void X11FullscreenGuardFilter::restoreFocusHints(xcb_window_t window)
     }
     auto *hints = static_cast<uint32_t *>(xcb_get_property_value(reply));
     bool changed = false;
-    if ((hints[0] & 1) && hints[1] == 0) {
+    if ((hints[0] & 1U) && hints[1] == 0) {
         hints[1] = 1;
         changed = true;
     }
-    if ((hints[0] & 2) && hints[2] == XCB_ICCCM_WM_STATE_ICONIC) {
+    if ((hints[0] & 2U) && hints[2] == XCB_ICCCM_WM_STATE_ICONIC) {
         hints[2] = XCB_ICCCM_WM_STATE_NORMAL;
         changed = true;
     }
