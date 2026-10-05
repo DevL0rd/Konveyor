@@ -290,7 +290,7 @@ install_plasmoids() {
         case "$(basename "$plasmoid")" in
         org.devl0rd.portal)
             stage_lib "$plasmoid" "$root/portals/shared/lib"
-            rm -rf "$plasmoid/contents/ui/pages" "$plasmoid/contents/ui/shortcuts" "$plasmoid/contents/ui/settings"
+            rm -rf "$plasmoid/contents/ui/pages" "$plasmoid/contents/ui/search" "$plasmoid/contents/ui/shortcuts" "$plasmoid/contents/ui/settings"
             cp -r "$root/portals/shared/launcher/." "$plasmoid/contents/ui/"
             ;;
         org.devl0rd.portal.launcher)
