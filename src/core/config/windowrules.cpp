@@ -46,6 +46,7 @@ Match decodeMatch(const Kdl::Node &node)
     table.insert(QStringLiteral("app-id"), [&match](const Kdl::Value &value) { match.appId = compileRegex(value); });
     table.insert(QStringLiteral("title"), [&match](const Kdl::Value &value) { match.title = compileRegex(value); });
     table.insert(QStringLiteral("monitor-profile"), [&match](const Kdl::Value &value) { match.monitorProfile = compileRegex(value); });
+    table.insert(QStringLiteral("output"), [&match](const Kdl::Value &value) { match.output = compileRegex(value); });
     addMatchBooleans(table, match);
     decodeProperties(node, table);
     return match;
@@ -110,7 +111,16 @@ void addOpenHandlers(NodeTable &table, WindowRule &rule)
     boolOf(QStringLiteral("force-resizable"), rule.forceResizable);
     boolOf(QStringLiteral("open-focused"), rule.openFocused);
     textOf(QStringLiteral("open-on-output"), rule.openOnOutput);
-    textOf(QStringLiteral("open-on-workspace"), rule.openOnWorkspace);
+    table.insert(QStringLiteral("open-on-workspace"), [&rule](const Kdl::Node &node) {
+        if (node.arguments.size() == 1 && node.arguments.first().isInteger()) {
+            rule.openOnWorkspaceIndex = static_cast<int>(integerArgument(node, Range {1, 999}));
+        } else {
+            rule.openOnWorkspace = stringArgument(node);
+        }
+    });
+    table.insert(QStringLiteral("open-at-column"),
+        [&rule](const Kdl::Node &node) { rule.openAtColumn = static_cast<int>(integerArgument(node, Range {1, 999})); });
+    boolOf(QStringLiteral("open-on-all-workspaces"), rule.openOnAllWorkspaces);
     table.insert(QStringLiteral("default-column-width"),
         [&rule](const Kdl::Node &node) { rule.defaultColumnWidth = decodeDefaultPresetSize(node); });
     table.insert(QStringLiteral("default-window-height"),

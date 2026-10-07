@@ -259,6 +259,14 @@ void KonveyorEffect::adoptOntoKdeDesktop(Layout::WindowId id, KWin::Window *wind
         {QStringLiteral("move-window-to-workspace"), {QString::number(desktop)}, {{QStringLiteral("focus"), QStringLiteral("false")}}}, id);
 }
 
+void KonveyorEffect::showOnAllDesktopsByRule(Layout::WindowId id, KWin::Window *window)
+{
+    const std::optional<Layout::WindowState> state = readEngine().windowState(id);
+    if (state && state->wantsAllDesktops && !window->isOnAllDesktops()) {
+        window->setOnAllDesktops(true);
+    }
+}
+
 void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
 {
     const auto restore = d->hiddenPlacements.constFind(window);
@@ -272,6 +280,9 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
         changeEngine().addWindow(id, d->windows.propertiesOf(window), outputNameOf(window), Layout::ActivationPolicy::Smart, placement);
         if (!placement && d->windows.isAdopting()) {
             adoptOntoKdeDesktop(id, window);
+        }
+        if (!placement) {
+            showOnAllDesktopsByRule(id, window);
         }
     }
     connect(window, &KWin::Window::frameGeometryChanged, this, [this, id] {

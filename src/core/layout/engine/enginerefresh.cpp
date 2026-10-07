@@ -96,7 +96,7 @@ bool Engine::Private::resolveWorkspaceRules(Workspace &workspace, std::vector<Wi
             continue;
         }
         const MatchContext context {window.properties().appId, window.properties().title, profile, window.isActivated(), window.isFocused(),
-            window.isActiveInColumn(), window.isFloating(), window.isUrgent()};
+            window.isActiveInColumn(), window.isFloating(), window.isUrgent(), workspace.area().outputName};
         if (window.setRules(resolveWindowRules(config.windowRules, context, atStartup()))) {
             changed.push_back(window.id());
         }

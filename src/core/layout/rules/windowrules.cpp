@@ -47,7 +47,12 @@ void applyOpenRules(EffectiveWindowRules &resolved, const Config::WindowRule &ru
     assignIfSet(resolved.defaultColumnDisplay, rule.defaultColumnDisplay);
     assignIfSet(resolved.defaultFloatingPosition, rule.defaultFloatingPosition);
     assignIfSet(resolved.openOnOutput, rule.openOnOutput);
-    assignIfSet(resolved.openOnWorkspace, rule.openOnWorkspace);
+    if (rule.openOnWorkspace || rule.openOnWorkspaceIndex) {
+        resolved.openOnWorkspace = rule.openOnWorkspace;
+        resolved.openOnWorkspaceIndex = rule.openOnWorkspaceIndex;
+    }
+    assignIfSet(resolved.openAtColumn, rule.openAtColumn);
+    assignIfSet(resolved.openOnAllWorkspaces, rule.openOnAllWorkspaces);
     assignIfSet(resolved.openMaximized, rule.openMaximized);
     assignIfSet(resolved.openMaximizedToEdges, rule.openMaximizedToEdges);
     assignIfSet(resolved.openFullscreen, rule.openFullscreen);
@@ -118,8 +123,8 @@ bool matchApplies(const Config::Match &match, const MatchContext &context, bool 
     return flagMatches(match.atStartup, atStartup) && flagMatches(match.isFocused, context.isFocused)
         && flagMatches(match.isUrgent, context.isUrgent) && flagMatches(match.isActive, context.isActive)
         && regexMatches(match.appId, context.appId) && regexMatches(match.title, context.title)
-        && regexMatches(match.monitorProfile, context.monitorProfile) && flagMatches(match.isActiveInColumn, context.isActiveInColumn)
-        && flagMatches(match.isFloating, context.isFloating);
+        && regexMatches(match.monitorProfile, context.monitorProfile) && regexMatches(match.output, context.output)
+        && flagMatches(match.isActiveInColumn, context.isActiveInColumn) && flagMatches(match.isFloating, context.isFloating);
 }
 
 bool ruleApplies(const Config::WindowRule &rule, const MatchContext &context, bool atStartup)

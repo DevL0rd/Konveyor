@@ -129,6 +129,7 @@ struct WindowState
     bool isFocused = false;
     bool isUrgent = false;
     bool onAllDesktops = false;
+    bool wantsAllDesktops = false;
     WindowMode sizingMode = WindowMode::Normal;
     WindowMode requestedSizingMode = WindowMode::Normal;
     bool isWindowedFullscreen = false;

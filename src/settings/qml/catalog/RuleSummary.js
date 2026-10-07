@@ -73,6 +73,9 @@ function describeMatch(match, nameFor) {
     if (match.props["monitor-profile"] !== undefined) {
         parts.push("on " + describeText("profile", match.props["monitor-profile"]));
     }
+    if (match.props.output !== undefined) {
+        parts.push("on " + describeText("monitor", match.props.output));
+    }
     for (const key in stateWords) {
         if (match.props[key] !== undefined) {
             parts.push(stateWords[key][match.props[key] ? 0 : 1]);
@@ -136,8 +139,13 @@ function effects(rule) {
     list.push(...boolEffect(rule, "open-focused", "takes focus when it opens", "opens without focus"));
     const workspace = firstArg(child(rule, "open-on-workspace"));
     if (workspace !== undefined) {
-        list.push("opens on workspace “" + workspace + "”");
+        list.push(typeof workspace === "number" ? "opens on workspace " + workspace : "opens on workspace “" + workspace + "”");
     }
+    const column = firstArg(child(rule, "open-at-column"));
+    if (column !== undefined) {
+        list.push("opens as column " + column);
+    }
+    list.push(...boolEffect(rule, "open-on-all-workspaces", "shows on all workspaces", "stays on its workspace"));
     const output = firstArg(child(rule, "open-on-output"));
     if (output !== undefined) {
         list.push("opens on " + output);

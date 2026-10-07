@@ -33,6 +33,8 @@ private Q_SLOTS:
     void matchProperties();
     void matchKeepsOrder();
     void monitorProfileMatch();
+    void outputMatch();
+    void placementNodes();
     void floatingAnchors_data();
     void floatingAnchors();
     void floatingPositionRejects_data();
@@ -130,6 +132,29 @@ void TestConfigRuleNodes::monitorProfileMatch()
     QVERIFY(ruleOf(QStringLiteral("exclude monitor-profile=\"portrait\"")).excludes.first().monitorProfile.has_value());
     verifyFailure(inRule(QStringLiteral("match monitor-profile=»\"(\"")), QStringLiteral("invalid regex: missing closing parenthesis"));
     verifyFailure(inRule(QStringLiteral("match monitor-profile=»true")), QStringLiteral("expected a string"));
+}
+
+void TestConfigRuleNodes::outputMatch()
+{
+    const WindowRule rule = ruleOf(QStringLiteral("match app-id=\"^kitty$\" output=\"^DP-1$\""));
+    QVERIFY(rule.matches.first().output->match(QStringLiteral("DP-1")).hasMatch());
+    QVERIFY(!rule.matches.first().output->match(QStringLiteral("DP-12")).hasMatch());
+    QVERIFY(ruleOf(QStringLiteral("exclude output=\"HDMI\"")).excludes.first().output.has_value());
+    verifyFailure(inRule(QStringLiteral("match output=»2")), QStringLiteral("expected a string"));
+}
+
+void TestConfigRuleNodes::placementNodes()
+{
+    const WindowRule placed = ruleOf(QStringLiteral("open-on-workspace 2; open-at-column 3; open-on-all-workspaces true"));
+    QCOMPARE(placed.openOnWorkspaceIndex, std::optional(2));
+    QCOMPARE(placed.openOnWorkspace, std::nullopt);
+    QCOMPARE(placed.openAtColumn, std::optional(3));
+    QCOMPARE(placed.openOnAllWorkspaces, std::optional(true));
+    QCOMPARE(ruleOf(QStringLiteral("open-on-workspace \"2\"")).openOnWorkspace, std::optional(QStringLiteral("2")));
+    QCOMPARE(ruleOf(QStringLiteral("open-on-workspace \"2\"")).openOnWorkspaceIndex, std::nullopt);
+    verifyFailure(inRule(QStringLiteral("open-at-column »0")), QStringLiteral("value must be between 1 and 999"));
+    verifyFailure(inRule(QStringLiteral("open-on-workspace »0")), QStringLiteral("value must be between 1 and 999"));
+    verifyFailure(inRule(QStringLiteral("open-on-all-workspaces »\"yes\"")), QStringLiteral("expected a boolean"));
 }
 
 void TestConfigRuleNodes::floatingAnchors_data()

@@ -70,18 +70,19 @@ ColumnLayout {
 
     SettingRow {
         label: "Workspace"
-        description: section.workspaceNames.length ? "Open on a named workspace" : "Name a workspace on the Workspaces page to pick it here"
+        description: "Open on a named workspace, or on a workspace by its number on the monitor it opens on"
         iconName: "virtual-desktops"
 
         QQC2.ComboBox {
             readonly property var current: section.argOf("open-on-workspace")
+            readonly property var numbers: Array.from({ length: Math.max(9, typeof current === "number" ? current : 0) }, (_, index) => index + 1)
             readonly property var options: [{ value: "", label: "Default" }]
                 .concat(section.workspaceNames.map(name => ({ value: name, label: name })))
-                .concat(current !== undefined && !section.workspaceNames.includes(current) ? [{ value: current, label: current + " (not defined)" }] : [])
+                .concat(numbers.map(number => ({ value: number, label: "Workspace " + number })))
+                .concat(typeof current === "string" && !section.workspaceNames.includes(current) ? [{ value: current, label: current + " (not defined)" }] : [])
             model: options
             textRole: "label"
             valueRole: "value"
-            enabled: options.length > 1
             currentIndex: current === undefined ? 0 : Math.max(0, options.findIndex(entry => entry.value === current))
             onActivated: currentValue === "" ? SettingsStore.remove(section.rulePath + "/open-on-workspace") : SettingsStore.setValue(section.rulePath + "/open-on-workspace", [currentValue])
         }
@@ -98,6 +99,22 @@ ColumnLayout {
             value: section.argOf("open-on-output") || ""
             onPicked: name => name.length ? SettingsStore.setValue(section.rulePath + "/open-on-output", [name]) : SettingsStore.remove(section.rulePath + "/open-on-output")
         }
+    }
+
+    RuleTriStateRow {
+        path: section.rulePath + "/open-on-all-workspaces"
+        label: "Show on all workspaces"
+        description: "Follow you to every workspace on its monitor"
+        iconName: "window-pin"
+    }
+
+    StackLimitRow {
+        path: section.rulePath + "/open-at-column"
+        maximum: 999
+        fallback: 1
+        label: "Open as column"
+        description: "Open as this column of its workspace, counting from the left"
+        iconName: "view-split-left-right"
     }
 
     RuleSizeRow {

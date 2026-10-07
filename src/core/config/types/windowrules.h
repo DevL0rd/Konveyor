@@ -16,6 +16,7 @@ struct Match
     std::optional<QRegularExpression> appId;
     std::optional<QRegularExpression> title;
     std::optional<QRegularExpression> monitorProfile;
+    std::optional<QRegularExpression> output;
     std::optional<bool> isActive;
     std::optional<bool> isFocused;
     std::optional<bool> isActiveInColumn;
@@ -63,6 +64,9 @@ struct WindowRule
     std::optional<std::optional<PresetSize>> defaultWindowHeight;
     std::optional<QString> openOnOutput;
     std::optional<QString> openOnWorkspace;
+    std::optional<int> openOnWorkspaceIndex;
+    std::optional<int> openAtColumn;
+    std::optional<bool> openOnAllWorkspaces;
     std::optional<bool> openMaximized;
     std::optional<bool> openMaximizedToEdges;
     std::optional<bool> openFullscreen;

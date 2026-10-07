@@ -19,6 +19,9 @@ struct EffectiveWindowRules
     std::optional<Config::FloatingPosition> defaultFloatingPosition;
     std::optional<QString> openOnOutput;
     std::optional<QString> openOnWorkspace;
+    std::optional<int> openOnWorkspaceIndex;
+    std::optional<int> openAtColumn;
+    std::optional<bool> openOnAllWorkspaces;
     std::optional<bool> openMaximized;
     std::optional<bool> openMaximizedToEdges;
     std::optional<bool> openFullscreen;
@@ -56,6 +59,7 @@ struct MatchContext
     bool isActiveInColumn = true;
     bool isFloating = false;
     bool isUrgent = false;
+    QString output;
 };
 
 bool matchApplies(const Config::Match &match, const MatchContext &context, bool atStartup);

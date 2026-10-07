@@ -33,9 +33,9 @@ Activation activationFor(const std::optional<bool> &openFocused, ActivationPolic
     return Activation::Smart;
 }
 
-MatchContext contextFor(const WindowProperties &properties, bool isFloating, const QString &monitorProfile = {})
+MatchContext contextFor(const WindowProperties &properties, bool isFloating, const QString &monitorProfile = {}, const QString &output = {})
 {
-    return {properties.appId, properties.title, monitorProfile, false, false, true, isFloating, properties.isUrgent};
+    return {properties.appId, properties.title, monitorProfile, false, false, true, isFloating, properties.isUrgent, output};
 }
 
 }
@@ -78,6 +78,9 @@ Workspace *Engine::Private::workspaceForNewWindow(NewWindowPlan &plan)
     if (plan.rules.openOnWorkspace) {
         workspaceIndex = monitor.workspaceNamed(*plan.rules.openOnWorkspace).value_or(workspaceIndex);
         plan.workspace = monitor.workspaces()[workspaceIndex].id();
+    } else if (plan.rules.openOnWorkspaceIndex) {
+        workspaceIndex = std::min(static_cast<std::size_t>(*plan.rules.openOnWorkspaceIndex - 1), monitor.workspaces().size() - 1);
+        plan.workspace = monitor.workspaces()[workspaceIndex].id();
     }
     return &monitor.workspaces()[workspaceIndex];
 }
@@ -105,8 +108,9 @@ NewWindowPlan Engine::Private::planNewWindow(
     }
     plan.monitorIndex = monitorIndex.value_or(activeMonitorIndex);
     if (plan.monitorIndex < monitors.size()) {
-        const QString profile = monitorProfileName(config, monitors[plan.monitorIndex].area());
-        plan.rules = resolveWindowRules(config.windowRules, contextFor(properties, plan.isFloating, profile), atStartup());
+        const OutputArea &area = monitors[plan.monitorIndex].area();
+        plan.rules = resolveWindowRules(
+            config.windowRules, contextFor(properties, plan.isFloating, monitorProfileName(config, area), area.outputName), atStartup());
     }
 
     plan.wantsFullscreen = wantsExpanded(properties.wantsFullscreen, plan.rules.openFullscreen);
@@ -219,7 +223,12 @@ void Engine::Private::placeNewWindow(
     }
     const ColumnWidth width = workspace->tiledWidthFor(tile.window(), plan.width);
     MonitorAddRequest request = makeAddRequest(plan, width);
-    if ((restore && placeRestored(tile, plan, *restore, request)) || (!restore && placeInAppGroup(tile, plan, *workspace, request))) {
+    if (!restore && plan.rules.openAtColumn && !plan.isFloating && !plan.parent) {
+        const std::size_t columns = workspace->scrolling().columns().size();
+        request.target
+            = MonitorAddTarget::onWorkspace(workspace->id(), std::min(static_cast<std::size_t>(*plan.rules.openAtColumn - 1), columns));
+    } else if ((restore && placeRestored(tile, plan, *restore, request))
+        || (!restore && placeInAppGroup(tile, plan, *workspace, request))) {
         finishPlacement(id, plan);
         return;
     }

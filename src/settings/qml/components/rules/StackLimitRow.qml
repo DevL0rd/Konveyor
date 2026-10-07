@@ -8,6 +8,8 @@ SettingRow {
     id: row
 
     property string path
+    property int maximum: 64
+    property int fallback: 3
     readonly property var node: SettingsStore.revision >= 0 ? SettingsStore.node(path) : ({})
     readonly property bool custom: node.args !== undefined && node.args.length > 0
 
@@ -25,9 +27,9 @@ SettingRow {
             id: spin
             visible: row.custom
             from: 1
-            to: 64
+            to: row.maximum
             editable: true
-            value: row.custom ? row.node.args[0] : 3
+            value: row.custom ? row.node.args[0] : row.fallback
             onValueModified: SettingsStore.setValue(row.path, [value])
         }
     }

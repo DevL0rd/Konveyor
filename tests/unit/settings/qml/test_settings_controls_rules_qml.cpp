@@ -50,6 +50,14 @@ void TestSettingsControlsRulesQml::controls_data()
     addControl("workspace default",
         rule("Workspace", "currentIndex=0;activated", "[0]", "window-rule/open-on-workspace", "null",
             "window-rule {\n    open-on-workspace \"mail\"\n}\nworkspace \"mail\"\n"));
+    addControl(
+        "workspace number", rule("Workspace", "currentIndex=3;activated", "[0]", "window-rule/open-on-workspace", R"({"args":[2]})"));
+    addControl("all workspaces",
+        rule("Show on all workspaces", "chosen", R"(["yes"])", "window-rule/open-on-all-workspaces", R"({"args":[true]})"));
+    addControl("open as column", rule("Open as column", "chosen", R"(["custom"])", "window-rule/open-at-column", R"({"args":[1]})"));
+    addControl("open as later column",
+        rule("Open as column", "increase;valueModified", "[]", "window-rule/open-at-column", R"({"args":[3]})",
+            "window-rule {\n    open-at-column 2\n}\n"));
     addControl("monitor", rule("Monitor", "picked", R"(["DP-1"])", "window-rule/open-on-output", R"({"args":["DP-1"]})"));
     addControl("any monitor",
         rule("Monitor", "picked", R"([""])", "window-rule/open-on-output", "null", "window-rule {\n    open-on-output \"DP-1\"\n}\n"));
@@ -125,6 +133,11 @@ void TestSettingsControlsRulesQml::controls_data()
     addControl("profile",
         rule("Monitor profile", "currentIndex=1;activated", "[0]", "window-rule/match",
             R"({"props":{"app-id":"^a$","monitor-profile":"^wide$"}})"));
+    addControl(
+        "on monitor", rule("On monitor", "picked", R"(["DP-1"])", "window-rule/match", R"({"props":{"app-id":"^a$","output":"^DP-1$"}})"));
+    addControl("on any monitor",
+        rule("On monitor", "picked", R"([""])", "window-rule/match", R"({"props":{"app-id":"^a$"}})",
+            "window-rule {\n    match app-id=\"^a$\" output=\"^DP-1$\"\n}\n"));
     addControl("floating state",
         rule("Window state", "chosen@3", R"(["yes"])", "window-rule/match", R"({"props":{"app-id":"^a$","is-floating":true}})"));
     addControl("is-focused state",

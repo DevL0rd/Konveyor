@@ -146,6 +146,20 @@ ColumnLayout {
     }
 
     SettingRow {
+        label: "On monitor"
+        description: "Only while the window is on this monitor"
+        iconName: "monitor"
+
+        OutputPicker {
+            readonly property var parsed: editor.props.output === undefined ? null : Kdl.parseTextMatch(editor.props.output)
+            allowNone: true
+            noneLabel: "Any monitor"
+            value: parsed && parsed.mode === "is" ? parsed.text : ""
+            onPicked: name => editor.write({ output: name.length ? Kdl.textMatch("is", name) : null })
+        }
+    }
+
+    SettingRow {
         label: "Window state"
         description: "Conditions on state are checked again whenever the window changes"
         iconName: "view-filter"

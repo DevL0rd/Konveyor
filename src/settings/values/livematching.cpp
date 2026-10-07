@@ -10,18 +10,22 @@ namespace Konveyor::Settings
 namespace
 {
 
-QString profileForWorkspace(
-    const Config::Config &config, const QVariant &workspaceId, const QVariantList &workspaces, const QVariantList &outputs)
+QString outputOfWorkspaceId(const QVariant &workspaceId, const QVariantList &workspaces)
 {
     for (const QVariant &workspace : workspaces) {
         const QVariantMap entry = workspace.toMap();
-        if (entry.value(QStringLiteral("id")) != workspaceId) {
-            continue;
+        if (entry.value(QStringLiteral("id")) == workspaceId) {
+            return entry.value(QStringLiteral("output")).toString();
         }
-        for (const QVariant &output : outputs) {
-            if (output.toMap().value(QStringLiteral("name")) == entry.value(QStringLiteral("output"))) {
-                return profileNameFor(config, output.toMap());
-            }
+    }
+    return QString();
+}
+
+QString profileForOutput(const Config::Config &config, const QString &name, const QVariantList &outputs)
+{
+    for (const QVariant &output : outputs) {
+        if (!name.isEmpty() && output.toMap().value(QStringLiteral("name")) == name) {
+            return profileNameFor(config, output.toMap());
         }
     }
     return QString();
@@ -108,7 +112,8 @@ QVariantList windowsMatchingRule(const Config::Config &config, const Config::Win
         context.isActive = context.isFocused;
         context.isFloating = entry.value(QStringLiteral("is_floating")).toBool();
         context.isUrgent = entry.value(QStringLiteral("is_urgent")).toBool();
-        context.monitorProfile = profileForWorkspace(config, entry.value(QStringLiteral("workspace_id")), workspaces, outputs);
+        context.output = outputOfWorkspaceId(entry.value(QStringLiteral("workspace_id")), workspaces);
+        context.monitorProfile = profileForOutput(config, context.output, outputs);
         if (Layout::ruleApplies(rule, context, false)) {
             matching.append(entry);
         }
