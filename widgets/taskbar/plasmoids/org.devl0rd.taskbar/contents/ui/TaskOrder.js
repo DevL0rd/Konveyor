@@ -152,8 +152,8 @@ function pinPlacement(appKeys, newIndex, pins) {
     return target < 0 || target === newIndex ? 0 : target + 1
 }
 
-function shortKey(key) {
-    return key.replace(/^Super\+/, "")
+function shortKey(key, held) {
+    return held.reduce((rest, modifier) => rest.replace(new RegExp("(^|\\+)" + modifier + "\\+"), "$1"), key)
 }
 
 function shortcutLabels(binds) {
@@ -163,9 +163,10 @@ function shortcutLabels(binds) {
         const number = Number((action.arguments || [])[0])
         if (!Number.isInteger(number) || number < 1)
             continue
-        const table = action.name === "focus-workspace" ? labels.workspaces : action.name === "focus-column" ? labels.columns : null
+        const workspace = action.name === "focus-workspace"
+        const table = workspace ? labels.workspaces : action.name === "focus-column" ? labels.columns : null
         if (table && !table[number])
-            table[number] = shortKey(bind.key)
+            table[number] = shortKey(bind.key, workspace ? ["Super"] : ["Super", "Alt"])
     }
     return labels
 }

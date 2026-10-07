@@ -187,16 +187,19 @@ def layout_changes(checks):
     checks.equal(active_title(), before[1], "moving another window's column leaves focus alone")
 
 
-def super_held(checks):
+def modifiers_held(checks):
     values = []
+    expected = [("true", "false"), ("true", "true"), ("true", "false"), ("false", "false")]
 
     def done(lines):
-        values[:] = [line.split()[-1] for line in lines if line.startswith("boolean")]
-        return values[-2:] == ["true", "false"]
+        flags = [line.split()[-1] for line in lines if line.startswith("boolean")]
+        values[:] = list(zip(flags[0::2], flags[1::2]))
+        return values[-4:] == expected
 
-    watch_signals("type='signal',interface='org.kde.Konveyor',member='SuperHeldChanged'", lambda: keys((125, 1), (125, 0)), done)
-    checks.equal(values, ["true", "false"], "SuperHeldChanged fires when Meta is pressed and released")
-    checks.equal(konveyor("SuperHeld"), "false", "SuperHeld after the release")
+    watch_signals("type='signal',interface='org.kde.Konveyor',member='ModifiersHeldChanged'",
+                  lambda: keys((125, 1), (56, 1), (56, 0), (125, 0)), done)
+    checks.equal(values[-4:], expected, "ModifiersHeldChanged reports Meta, then Meta+Alt, then their release")
+    checks.equal(json.loads(konveyor("ModifiersHeld")), {"super": False, "alt": False}, "ModifiersHeld after the release")
 
 
 def answers():
@@ -214,7 +217,7 @@ def versioned_reinstall(checks):
 
 
 def main():
-    Checks().run(version, queries, focused_window, actions, layout_changes, load_config_file, reload_invalid, multitouch, super_held,
+    Checks().run(version, queries, focused_window, actions, layout_changes, load_config_file, reload_invalid, multitouch, modifiers_held,
                  versioned_reinstall)
 
 

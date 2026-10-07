@@ -154,9 +154,7 @@ bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
 
 bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
 {
-    if (event->key == Qt::Key_Meta || event->key == Qt::Key_Super_L || event->key == Qt::Key_Super_R) {
-        m_handlers.superHeld(event->state != KWin::KeyboardKeyState::Released);
-    }
+    trackModifiers(event);
     if (event->state == KWin::KeyboardKeyState::Released) {
         return m_swallowedKeys.remove(event->nativeScanCode);
     }
@@ -168,6 +166,24 @@ bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
         m_handlers.escapePressed();
     }
     return false;
+}
+
+void InputFilter::trackModifiers(const KWin::KeyboardKeyEvent *event)
+{
+    const bool pressed = event->state != KWin::KeyboardKeyState::Released;
+    bool super = m_superHeld;
+    bool alt = m_altHeld;
+    if (event->key == Qt::Key_Meta || event->key == Qt::Key_Super_L || event->key == Qt::Key_Super_R) {
+        super = pressed;
+    } else if (event->key == Qt::Key_Alt) {
+        alt = pressed;
+    }
+    if (super == m_superHeld && alt == m_altHeld) {
+        return;
+    }
+    m_superHeld = super;
+    m_altHeld = alt;
+    m_handlers.modifiersHeld(super, alt);
 }
 
 bool InputFilter::triggersBind(const KWin::KeyboardKeyEvent *event)

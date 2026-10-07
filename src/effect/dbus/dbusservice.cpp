@@ -135,18 +135,19 @@ void DBusService::setMultiTouchActive(bool active)
     Q_EMIT MultiTouchChanged(active);
 }
 
-bool DBusService::SuperHeld() const
+QString DBusService::ModifiersHeld() const
 {
-    return m_superHeld;
+    return compact(QJsonDocument(QJsonObject {{QStringLiteral("super"), m_superHeld}, {QStringLiteral("alt"), m_altHeld}}));
 }
 
-void DBusService::setSuperHeld(bool held)
+void DBusService::setModifiersHeld(bool super, bool alt)
 {
-    if (held == m_superHeld) {
+    if (super == m_superHeld && alt == m_altHeld) {
         return;
     }
-    m_superHeld = held;
-    Q_EMIT SuperHeldChanged(held);
+    m_superHeld = super;
+    m_altHeld = alt;
+    Q_EMIT ModifiersHeldChanged(super, alt);
 }
 
 void DBusService::announceLayoutChange()

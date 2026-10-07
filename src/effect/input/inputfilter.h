@@ -22,7 +22,7 @@ struct InputHandlers
     std::function<bool(quint32, Config::BindModifiers, bool)> keyPositionBind;
     std::function<void()> escapePressed;
     std::function<bool()> toggleDragFloating;
-    std::function<void(bool)> superHeld;
+    std::function<void(bool, bool)> modifiersHeld;
 };
 
 class InputFilter : public KWin::InputEventFilter
@@ -37,10 +37,13 @@ public:
 
 private:
     bool triggersBind(const KWin::KeyboardKeyEvent *event);
+    void trackModifiers(const KWin::KeyboardKeyEvent *event);
 
     InputHandlers m_handlers;
     QSet<quint32> m_swallowedKeys;
     QSet<Qt::MouseButton> m_swallowedButtons;
+    bool m_superHeld = false;
+    bool m_altHeld = false;
 };
 
 class AxisFilter : public KWin::InputEventFilter

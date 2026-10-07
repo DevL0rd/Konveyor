@@ -47,9 +47,9 @@ void KonveyorEffect::installInputFilter()
         },
         [this] { markMoveCancelled(); },
         [this] { return toggleDragFloating(); },
-        [this](bool held) {
+        [this](bool super, bool alt) {
             if (d->dbus) {
-                d->dbus->setSuperHeld(held);
+                d->dbus->setModifiersHeld(super, alt);
             }
         },
     });

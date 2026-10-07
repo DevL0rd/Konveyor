@@ -8,7 +8,7 @@ An icons-only task manager for KDE Plasma 6 panels, built for Konveyor. Its icon
 - **Pinned apps** — pins keep their spot when nothing is open. When a pinned app opens, its column is placed by the pin order, so pins A, B and C give columns A, B and C whichever one you start first.
 - **Workspaces in the same widget** — a slim strip shows the workspaces of the panel's screen with a dot for each column, the focused column stretched and the current workspace in your accent colour. Named workspaces show their name. Click one to switch, or scroll over the strip to step through them.
 - **Grouping like Konveyor** — by default an app's neighbouring columns share one icon when Konveyor's `group-app-windows` is `beside` or `stack`, and stacked or tabbed windows in one column always do. You can always group or never group instead.
-- **Shortcut numbers** — hold <kbd>Meta</kbd> and the workspaces show the keys that switch to them (<kbd>Meta</kbd>+<kbd>1</kbd>…<kbd>9</kbd> by default). Icons show a number when you bind `focus-column` to a key.
+- **Shortcut numbers** — hold <kbd>Meta</kbd> and the workspaces show the keys that switch to them (<kbd>Meta</kbd>+<kbd>1</kbd>…<kbd>9</kbd> by default). Hold <kbd>Meta</kbd>+<kbd>Alt</kbd> and the icons show the keys bound to `focus-column` instead.
 - **Clicks** — click an icon to focus its window and scroll to its column, click the focused one to minimize it, middle-click to close it and right-click for its windows, a new window, pinning and closing. A group cycles through its windows.
 - **State at a glance** — a dot for each window, an accent bar under the focused app, hollow dots for minimized windows and a pulse when an app wants attention. Minimized windows keep the place their column had.
 
@@ -21,7 +21,7 @@ The widget lists windows with Plasma's task manager model and asks Konveyor over
 - `Workspaces` lists each workspace's columns in order with their window ids, and its `group-app-windows` mode.
 - `Windows` gives each window's KWin uuid, which matches the task manager's window ids.
 - `LayoutChanged` fires whenever the columns, workspaces or focus change, so the widget never polls.
-- `SuperHeld` and `SuperHeldChanged` tell it when <kbd>Meta</kbd> is held.
+- `ModifiersHeld` and `ModifiersHeldChanged` tell it when <kbd>Meta</kbd>, and <kbd>Meta</kbd>+<kbd>Alt</kbd>, are held.
 - Dragging an icon calls the `move-column-to-index` action with the window's id, which moves that column without taking focus.
 
 Without Konveyor the widget behaves like a plain icon task manager for the current desktop and screen.

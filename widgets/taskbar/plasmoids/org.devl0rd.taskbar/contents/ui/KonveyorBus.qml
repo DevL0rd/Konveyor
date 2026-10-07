@@ -10,6 +10,7 @@ Item {
     property var outputs: []
     property var binds: []
     property bool superHeld: false
+    property bool altHeld: false
 
     signal layoutRefreshed()
 
@@ -53,8 +54,16 @@ Item {
     function refreshAll() {
         query("Outputs", value => bus.outputs = value || [])
         query("Binds", value => bus.binds = value || [])
-        DBus.SessionBus.asyncCall(message("SuperHeld"), reply => bus.superHeld = String(unwrap(reply)) === "true", () => bus.superHeld = false)
+        query("ModifiersHeld", value => bus.holdModifiers(!!value && value.super === true, !!value && value.alt === true))
         refreshLayout()
+    }
+
+    function holdModifiers(superDown, altDown) {
+        const pressed = superDown && !superHeld
+        superHeld = superDown
+        altHeld = altDown
+        if (pressed)
+            query("Binds", value => bus.binds = value || [])
     }
 
     function perform(name, args, id) {
@@ -104,10 +113,8 @@ Item {
             settle.restart()
         }
 
-        function dbusSuperHeldChanged(held) {
-            bus.superHeld = String(bus.unwrap(held)) === "true"
-            if (bus.superHeld)
-                bus.query("Binds", value => bus.binds = value || [])
+        function dbusModifiersHeldChanged(superDown, altDown) {
+            bus.holdModifiers(String(bus.unwrap(superDown)) === "true", String(bus.unwrap(altDown)) === "true")
         }
     }
 }

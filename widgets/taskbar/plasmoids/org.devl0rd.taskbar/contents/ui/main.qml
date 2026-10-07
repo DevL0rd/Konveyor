@@ -11,7 +11,8 @@ PlasmoidItem {
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || vertical
     readonly property real thickness: inPanel ? (vertical ? width : height) : Kirigami.Units.iconSizes.large + Kirigami.Units.largeSpacing
     readonly property bool showWorkspaces: Plasmoid.configuration.showWorkspaces && taskbar.bus.available && taskbar.workspaces.length > 0
-    property bool badgesShown: false
+    property string badges: ""
+    readonly property string heldBadges: !Plasmoid.configuration.showShortcutBadges || !taskbar.bus.superHeld ? "" : taskbar.bus.altHeld ? "columns" : "workspaces"
 
     preferredRepresentation: fullRepresentation
     Plasmoid.constraintHints: Plasmoid.CanFillArea
@@ -29,18 +30,15 @@ PlasmoidItem {
     Timer {
         id: badgeDelay
         interval: 250
-        onTriggered: root.badgesShown = true
+        onTriggered: root.badges = root.heldBadges
     }
 
-    Connections {
-        target: taskbar.bus
-        function onSuperHeldChanged() {
-            if (taskbar.bus.superHeld && Plasmoid.configuration.showShortcutBadges) {
-                badgeDelay.restart()
-            } else {
-                badgeDelay.stop()
-                root.badgesShown = false
-            }
+    onHeldBadgesChanged: {
+        if (heldBadges && !badges) {
+            badgeDelay.restart()
+        } else {
+            badgeDelay.stop()
+            badges = heldBadges
         }
     }
 
@@ -72,7 +70,7 @@ PlasmoidItem {
             size: root.thickness
             vertical: root.vertical
             badges: taskbar.labels.workspaces
-            showBadges: root.badgesShown
+            showBadges: root.badges === "workspaces"
             Layout.alignment: Qt.AlignCenter
             onPicked: workspace => taskbar.switchTo(workspace)
             onStepped: step => taskbar.step(step)
@@ -94,7 +92,7 @@ PlasmoidItem {
             vertical: root.vertical
             edge: Plasmoid.location
             columnBadges: taskbar.labels.columns
-            showBadges: root.badgesShown
+            showBadges: root.badges === "columns"
             Layout.fillWidth: !root.vertical
             Layout.fillHeight: root.vertical
             Layout.preferredWidth: root.vertical ? root.thickness : contentWidth

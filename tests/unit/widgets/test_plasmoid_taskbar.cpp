@@ -165,10 +165,13 @@ private Q_SLOTS:
         };
         const QJsonValue labels = call("shortcutLabels",
             {QJsonValue(QJsonArray {bind("Super+1", "focus-workspace", {QStringLiteral("1")}),
-                bind("Super+Ctrl+2", "focus-column", {QStringLiteral("2")}), bind("Super+W", "focus-workspace", {QStringLiteral("web")}),
+                bind("Super+Ctrl+2", "focus-column", {QStringLiteral("2")}), bind("Super+Alt+3", "focus-column", {QStringLiteral("3")}),
+                bind("Alt+Super+4", "focus-column", {QStringLiteral("4")}), bind("Super+W", "focus-workspace", {QStringLiteral("web")}),
                 bind("Super+F1", "focus-workspace", {QStringLiteral("1")}), bind("Super+K", "show-hotkey-overlay", {})})});
         QCOMPARE(labels[QStringLiteral("workspaces")], (QJsonObject {{QStringLiteral("1"), QStringLiteral("1")}}));
-        QCOMPARE(labels[QStringLiteral("columns")], (QJsonObject {{QStringLiteral("2"), QStringLiteral("Ctrl+2")}}));
+        QCOMPARE(labels[QStringLiteral("columns")],
+            (QJsonObject {{QStringLiteral("2"), QStringLiteral("Ctrl+2")}, {QStringLiteral("3"), QStringLiteral("3")},
+                {QStringLiteral("4"), QStringLiteral("4")}}));
     }
 
     void thePanelScreenPicksItsOutput()
