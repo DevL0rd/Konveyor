@@ -6,6 +6,8 @@ add_library(konveyor_settings_model STATIC
     document/configdocument.cpp
     document/configdocument.h
     document/configdocumenttext.cpp
+    document/configmigration.cpp
+    document/configmigration.h
     document/nodecodec.cpp
     document/nodecodec.h
     document/nodepath.cpp

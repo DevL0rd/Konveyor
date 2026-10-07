@@ -306,6 +306,15 @@ binds {
     Mod+Ctrl+7 { move-column-to-workspace 7; }
     Mod+Ctrl+8 { move-column-to-workspace 8; }
     Mod+Ctrl+9 { move-column-to-workspace 9; }
+    Super+Alt+1 { focus-column 1; }
+    Super+Alt+2 { focus-column 2; }
+    Super+Alt+3 { focus-column 3; }
+    Super+Alt+4 { focus-column 4; }
+    Super+Alt+5 { focus-column 5; }
+    Super+Alt+6 { focus-column 6; }
+    Super+Alt+7 { focus-column 7; }
+    Super+Alt+8 { focus-column 8; }
+    Super+Alt+9 { focus-column 9; }
 
     Mod+BracketLeft  { consume-or-expel-window-left; }
     Mod+BracketRight { consume-or-expel-window-right; }

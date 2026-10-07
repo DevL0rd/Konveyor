@@ -7,6 +7,7 @@
 #include <QTimer>
 
 #include <expected>
+#include <functional>
 
 namespace Konveyor
 {
@@ -22,6 +23,7 @@ public:
     QString load(const QString &path = QString());
     const Config::Config &config() const;
     std::expected<void, QString> setForceResizable(const QString &appId, bool enabled);
+    std::expected<void, QString> rewrite(const std::function<std::expected<QString, QString>(const QString &)> &edit);
 
 Q_SIGNALS:
     void configChanged(const Config::Config &config);
@@ -29,6 +31,7 @@ Q_SIGNALS:
 
 private:
     void ensureConfigFileExists() const;
+    void migrate();
     void watch(const QStringList &files);
     void notifyFailure(const QString &message) const;
     void notifyWarnings(const QStringList &warnings) const;

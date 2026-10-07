@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QSaveFile>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -38,7 +39,18 @@ class TestConfigManager : public QObject
     Q_OBJECT
 
 public:
-    static void initMain() { qputenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/konveyor-test-bus"); }
+    static void initMain()
+    {
+        qputenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/konveyor-test-bus");
+        isolate(QDir::temp().filePath(QStringLiteral("konveyor-config-manager-unset")));
+    }
+
+    static void isolate(const QString &root)
+    {
+        qputenv("XDG_STATE_HOME", QDir(root).filePath(QStringLiteral("state")).toUtf8());
+        qputenv("XDG_DATA_HOME", QDir(root).filePath(QStringLiteral("data")).toUtf8());
+        qputenv("XDG_DATA_DIRS", QDir(root).filePath(QStringLiteral("system")).toUtf8());
+    }
 
 private Q_SLOTS:
     void init();
@@ -50,6 +62,8 @@ private Q_SLOTS:
     void followsASymlinkedConfigAcrossReplacements();
     void reloadsWhenABrokenIncludeIsFixed();
     void keepsFollowingAConfigLoadedFromAnotherPath();
+    void addsNewDefaultBindsOnce();
+    void waitsForDefaultsThatShipTheBinds();
 
 private:
     QString filePath(const QString &name) const;
@@ -66,6 +80,9 @@ void TestConfigManager::init()
 {
     m_dir = std::make_unique<QTemporaryDir>();
     QVERIFY(m_dir->isValid());
+    isolate(m_dir->path());
+    QVERIFY(QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation).startsWith(m_dir->path()));
+    QVERIFY(QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("konveyor/default-config.kdl")).isEmpty());
     qputenv("KONVEYOR_CONFIG", filePath(QStringLiteral("config.kdl")).toUtf8());
     QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), gapsConfig(1)));
 }
@@ -167,6 +184,41 @@ void TestConfigManager::keepsFollowingAConfigLoadedFromAnotherPath()
     QVERIFY(writeInPlace(other, gapsConfig(6)));
     QTRY_COMPARE(manager.config().layout.gaps, 6.0);
     QVERIFY2(!applied.contains(7.0), "an edit of the main config switched back to it");
+}
+
+void TestConfigManager::addsNewDefaultBindsOnce()
+{
+    QVERIFY(QDir().mkpath(filePath(QStringLiteral("data/konveyor"))));
+    QVERIFY(QFile::copy(
+        QStringLiteral(KONVEYOR_SOURCE_DIR "/data/default-config.kdl"), filePath(QStringLiteral("data/konveyor/default-config.kdl"))));
+    const QString mine = QStringLiteral("binds {\n    Super+Alt+3 { spawn \"mine\"; }\n}\n");
+    QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), mine));
+    {
+        ConfigManager manager;
+        manager.start();
+        QCOMPARE(manager.config().binds.size(), 9);
+    }
+    QFile migrated(filePath(QStringLiteral("config.kdl")));
+    QVERIFY(migrated.open(QIODevice::ReadOnly));
+    const QString text = QString::fromUtf8(migrated.readAll());
+    QVERIFY(text.startsWith(QStringLiteral("binds {\n    Super+Alt+3 { spawn \"mine\"; }\n    Super+Alt+1 { focus-column 1; }\n")));
+    QVERIFY(!text.contains(QStringLiteral("focus-column 3")));
+    QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), mine));
+    ConfigManager again;
+    again.start();
+    QCOMPARE(again.config().binds.size(), 1);
+}
+
+void TestConfigManager::waitsForDefaultsThatShipTheBinds()
+{
+    QVERIFY(QDir().mkpath(filePath(QStringLiteral("data/konveyor"))));
+    QVERIFY(writeInPlace(
+        filePath(QStringLiteral("data/konveyor/default-config.kdl")), QStringLiteral("binds {\n    Mod+T { spawn \"kitty\"; }\n}\n")));
+    QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), QStringLiteral("binds {\n    Mod+T { spawn \"kitty\"; }\n}\n")));
+    ConfigManager manager;
+    manager.start();
+    QCOMPARE(manager.config().binds.size(), 1);
+    QVERIFY(!QFile::exists(filePath(QStringLiteral("state/konveyor/config-migrations"))));
 }
 
 QTEST_GUILESS_MAIN(TestConfigManager)

@@ -3,6 +3,7 @@
 #include "config/forceresizable.h"
 #include "config/loader.h"
 #include "config/log.h"
+#include "document/configmigration.h"
 #include "plugin/notifications.h"
 
 #include <QDir>
@@ -26,6 +27,11 @@ constexpr QLatin1StringView forceResizableFileName("force-resizable.kdl");
 QString bundledDefaultConfig()
 {
     return QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("konveyor/default-config.kdl"));
+}
+
+QString migrationsPath()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + QStringLiteral("/konveyor/config-migrations");
 }
 
 std::expected<QString, QString> readText(const QString &path, bool allowMissing)
@@ -77,6 +83,7 @@ void ConfigManager::start()
 {
     m_path = Config::configPath();
     ensureConfigFileExists();
+    migrate();
     load();
 }
 
@@ -144,6 +151,53 @@ std::expected<void, QString> ConfigManager::setForceResizable(const QString &app
         return std::unexpected(error);
     }
     return {};
+}
+
+std::expected<void, QString> ConfigManager::rewrite(const std::function<std::expected<QString, QString>(const QString &)> &edit)
+{
+    const auto text = readText(m_path, false);
+    if (!text) {
+        return std::unexpected(text.error());
+    }
+    const auto edited = edit(*text);
+    if (!edited) {
+        return std::unexpected(edited.error());
+    }
+    if (*edited == *text) {
+        return {};
+    }
+    return writeTexts({{m_path, *edited}});
+}
+
+void ConfigManager::migrate()
+{
+    const auto applied = readText(migrationsPath(), true);
+    const auto defaults = readText(bundledDefaultConfig(), false);
+    if (!applied || !defaults) {
+        return;
+    }
+    QStringList done = applied->split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const Settings::ConfigMigration &migration : Settings::configMigrations()) {
+        if (done.contains(migration.id)) {
+            continue;
+        }
+        if (!Settings::shipsAnyBind(*defaults, migration.defaultBinds)) {
+            qCInfo(lcKonveyor).noquote() << "konveyor: config migration" << migration.id << "waits for default binds that ship it";
+            continue;
+        }
+        const auto migrated
+            = rewrite([&](const QString &text) { return Settings::addDefaultBinds(text, m_path, *defaults, migration.defaultBinds); });
+        if (!migrated) {
+            qCInfo(lcKonveyor).noquote() << "konveyor: config migration" << migration.id << "skipped:" << migrated.error();
+            return;
+        }
+        qCInfo(lcKonveyor).noquote() << "konveyor: config migration" << migration.id << "applied to" << m_path;
+        done.append(migration.id);
+        if (const auto written = writeTexts({{migrationsPath(), done.join(QLatin1Char('\n')) + QLatin1Char('\n')}}); !written) {
+            qCInfo(lcKonveyor).noquote() << "konveyor:" << written.error();
+            return;
+        }
+    }
 }
 
 void ConfigManager::ensureConfigFileExists() const

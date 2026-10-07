@@ -21,6 +21,7 @@ target_link_options(konveyor_effect PRIVATE LINKER:--no-undefined)
 
 target_link_libraries(konveyor_effect PRIVATE
     konveyor_core
+    konveyor_settings_model
     konveyor_shortcuts
     KWin::kwin
     KDecoration3::KDecoration
