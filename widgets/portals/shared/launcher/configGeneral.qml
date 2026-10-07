@@ -13,7 +13,7 @@ Kirigami.FormLayout {
     property alias cfg_cardWidth: widthBox.value
     property alias cfg_cardHeight: heightBox.value
     property alias cfg_dimStrength: dimSlider.value
-    property alias cfg_backdropCoversPanels: backdropCoversPanels.checked
+    property alias cfg_useTaskbarWhileOpen: useTaskbarWhileOpen.checked
     property string cfg_backdropAnimation
     property string cfg_defaultPage
     property alias cfg_tileSize: tileSize.value
@@ -210,9 +210,9 @@ Kirigami.FormLayout {
         QQC2.Label { text: Math.round(dimSlider.value * 100) + "%" }
     }
     QQC2.CheckBox {
-        id: backdropCoversPanels
+        id: useTaskbarWhileOpen
         visible: !form.portal
-        text: i18n("Dim the taskbar and other panels too")
+        text: i18n("Use taskbar while Kontrol Panel is open")
     }
     QQC2.ComboBox {
         id: backdropAnimation

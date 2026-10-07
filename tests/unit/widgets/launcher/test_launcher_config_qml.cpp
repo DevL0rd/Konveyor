@@ -11,7 +11,7 @@ namespace
 
 const QStringList portalOnly {
     QStringLiteral("icon"), QStringLiteral("popupWidth"), QStringLiteral("popupHeight"), QStringLiteral("showFriendsBadge")};
-const QStringList kontrolPanelOnly {QStringLiteral("backdropCoversPanels"), QStringLiteral("backdropAnimation")};
+const QStringList kontrolPanelOnly {QStringLiteral("useTaskbarWhileOpen"), QStringLiteral("backdropAnimation")};
 
 QStringList schemaKeys(const char *schema)
 {
@@ -142,13 +142,13 @@ private Q_SLOTS:
 
     void backdropControlsWriteTheirSettings()
     {
-        QObject *root = general({{QStringLiteral("portal"), false}, {QStringLiteral("cfg_backdropCoversPanels"), false},
+        QObject *root = general({{QStringLiteral("portal"), false}, {QStringLiteral("cfg_useTaskbarWhileOpen"), true},
             {QStringLiteral("cfg_backdropAnimation"), QStringLiteral("fade")}});
         QVERIFY(root);
-        QVERIFY(form(QStringLiteral("backdropCoversPanels.visible && backdropAnimation.visible")).toBool());
+        QVERIFY(form(QStringLiteral("useTaskbarWhileOpen.visible && backdropAnimation.visible")).toBool());
         QCOMPARE(form(QStringLiteral("backdropAnimation.currentValue")).toString(), QStringLiteral("fade"));
-        form(QStringLiteral("backdropCoversPanels.toggle()"));
-        QCOMPARE(root->property("cfg_backdropCoversPanels").toBool(), true);
+        form(QStringLiteral("useTaskbarWhileOpen.toggle()"));
+        QCOMPARE(root->property("cfg_useTaskbarWhileOpen").toBool(), false);
         form(QStringLiteral("backdropAnimation.currentIndex = 0"));
         form(QStringLiteral("backdropAnimation.activated(0)"));
         QCOMPARE(root->property("cfg_backdropAnimation").toString(), QStringLiteral("scale"));
@@ -158,7 +158,7 @@ private Q_SLOTS:
     {
         QObject *root = general({{QStringLiteral("portal"), true}});
         QVERIFY(root);
-        QVERIFY(!form(QStringLiteral("backdropCoversPanels.visible || backdropAnimation.visible")).toBool());
+        QVERIFY(!form(QStringLiteral("useTaskbarWhileOpen.visible || backdropAnimation.visible")).toBool());
     }
 
     void buttonCheckboxesWriteTheirSettings_data()

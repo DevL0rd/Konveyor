@@ -97,7 +97,7 @@ def by_default_the_backdrop_scales_in_below_the_taskbar(checks):
 
 
 def the_backdrop_can_cover_the_taskbar(checks):
-    early, settled, order, _, kind = open_panel(checks, {"backdropCoversPanels": "true"})
+    early, settled, order, _, kind = open_panel(checks, {"useTaskbarWhileOpen": "false"})
     checks.equal(kind, "normal", "covering the taskbar keeps the scale animation")
     checks.expect(close(early.getpixel(CORNER), GREEN), f"the backdrop still scales in {early.getpixel(CORNER)}")
     checks.expect(close(settled.getpixel(TASKBAR), DIMMED_WHITE), f"the backdrop dims the taskbar {settled.getpixel(TASKBAR)}")

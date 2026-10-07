@@ -31,10 +31,10 @@ bool isKontrolPanelCard(KWin::Window *window)
     return isKontrolPanel(window, KWin::OverlayLayer);
 }
 
-bool backdropCoversPanels()
+bool taskbarUsableWhileOpen()
 {
     const KConfig config(QStringLiteral("konveyor/kontrolpanelrc"), KConfig::SimpleConfig);
-    return config.group(QStringLiteral("General")).readEntry("backdropCoversPanels", false);
+    return config.group(QStringLiteral("General")).readEntry("useTaskbarWhileOpen", true);
 }
 
 }
@@ -51,7 +51,7 @@ void KontrolPanelStacking::start()
 
 void KontrolPanelStacking::onWindowAdded(KWin::Window *window)
 {
-    if (isKontrolPanelBackdrop(window) && !backdropCoversPanels()) {
+    if (isKontrolPanelBackdrop(window) && taskbarUsableWhileOpen()) {
         qCInfo(lcKonveyor) << "konveyor: lowering the Kontrol Panel backdrop below panels";
         KWin::workspace()->lowerWindow(window);
     }
