@@ -85,11 +85,20 @@ Config::BindTrigger scrollTriggerOf(const KWin::PointerAxisEvent *event)
 InputFilter::InputFilter(InputHandlers handlers)
     : KWin::InputEventFilter(KWin::InputFilterOrder::GlobalShortcut)
     , m_handlers(std::move(handlers))
+    , m_modifiers([this](bool super, bool alt) { m_handlers.modifiersHeld(super, alt); })
 {
     KWin::input()->installInputEventFilter(this);
+    m_lockWatch = QObject::connect(KWin::waylandServer(), &KWin::WaylandServer::lockStateChanged, [this] {
+        if (KWin::waylandServer()->isScreenLocked()) {
+            m_modifiers.clear();
+        }
+    });
 }
 
-InputFilter::~InputFilter() = default;
+InputFilter::~InputFilter()
+{
+    QObject::disconnect(m_lockWatch);
+}
 
 DragMotionFilter::DragMotionFilter(std::function<void(const QPointF &, qint64)> moved)
     : KWin::InputEventFilter(KWin::InputFilterOrder::DragAndDrop)
@@ -125,6 +134,7 @@ bool AxisFilter::pointerAxis(KWin::PointerAxisEvent *event)
 
 bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
 {
+    m_modifiers.sync(event->modifiers);
     const std::optional<Config::MouseButton> button = buttonOf(event->button);
     const bool pressed = event->state == KWin::PointerButtonState::Pressed;
     if (!pressed) {
@@ -148,13 +158,14 @@ bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
 
 bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
 {
+    m_modifiers.sync(event->modifiers);
     m_handlers.pointerMoved(event->position, event->timestamp.count() / 1000);
     return false;
 }
 
 bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
 {
-    trackModifiers(event);
+    m_modifiers.key(event->key, event->state != KWin::KeyboardKeyState::Released, event->modifiers);
     if (event->state == KWin::KeyboardKeyState::Released) {
         return m_swallowedKeys.remove(event->nativeScanCode);
     }
@@ -166,24 +177,6 @@ bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
         m_handlers.escapePressed();
     }
     return false;
-}
-
-void InputFilter::trackModifiers(const KWin::KeyboardKeyEvent *event)
-{
-    const bool pressed = event->state != KWin::KeyboardKeyState::Released;
-    bool super = m_superHeld;
-    bool alt = m_altHeld;
-    if (event->key == Qt::Key_Meta || event->key == Qt::Key_Super_L || event->key == Qt::Key_Super_R) {
-        super = pressed;
-    } else if (event->key == Qt::Key_Alt) {
-        alt = pressed;
-    }
-    if (super == m_superHeld && alt == m_altHeld) {
-        return;
-    }
-    m_superHeld = super;
-    m_altHeld = alt;
-    m_handlers.modifiersHeld(super, alt);
 }
 
 bool InputFilter::triggersBind(const KWin::KeyboardKeyEvent *event)

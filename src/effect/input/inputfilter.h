@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/types.h"
+#include "input/heldmodifiers.h"
 
 #include <input.h>
 
@@ -37,13 +38,12 @@ public:
 
 private:
     bool triggersBind(const KWin::KeyboardKeyEvent *event);
-    void trackModifiers(const KWin::KeyboardKeyEvent *event);
 
     InputHandlers m_handlers;
     QSet<quint32> m_swallowedKeys;
     QSet<Qt::MouseButton> m_swallowedButtons;
-    bool m_superHeld = false;
-    bool m_altHeld = false;
+    HeldModifiers m_modifiers;
+    QMetaObject::Connection m_lockWatch;
 };
 
 class AxisFilter : public KWin::InputEventFilter

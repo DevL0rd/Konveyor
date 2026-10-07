@@ -247,6 +247,13 @@ target_compile_options(test_touchpad_contacts PRIVATE -Wall -Wextra -Werror)
 add_test(NAME test_touchpad_contacts COMMAND test_touchpad_contacts)
 set_tests_properties(test_touchpad_contacts PROPERTIES LABELS "unit;input")
 
+add_executable(test_held_modifiers unit/input/test_held_modifiers.cpp ${PROJECT_SOURCE_DIR}/src/effect/input/heldmodifiers.cpp)
+target_include_directories(test_held_modifiers PRIVATE ${PROJECT_SOURCE_DIR}/src/effect)
+target_link_libraries(test_held_modifiers PRIVATE Qt6::Core Qt6::Test)
+target_compile_options(test_held_modifiers PRIVATE -Wall -Wextra -Werror)
+add_test(NAME test_held_modifiers COMMAND test_held_modifiers)
+set_tests_properties(test_held_modifiers PROPERTIES LABELS "unit;input")
+
 find_package(KF6 REQUIRED COMPONENTS Notifications)
 add_executable(test_config_manager unit/plugin/test_config_manager.cpp ${PROJECT_SOURCE_DIR}/src/effect/plugin/configmanager.cpp
     ${PROJECT_SOURCE_DIR}/src/effect/plugin/notifications.cpp)
