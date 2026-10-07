@@ -8,7 +8,8 @@ RowLayout {
     id: editor
 
     property var radii: [0, 0, 0, 0]
-    property bool linked: radii.every(r => r === radii[0])
+    property bool separate: false
+    readonly property bool linked: !separate && radii.every(r => r === radii[0])
     signal edited(var radii)
 
     function setCorner(index, value) {
@@ -115,6 +116,7 @@ RowLayout {
             icon.name: checked ? "link" : "remove-link"
             text: checked ? "Same for every corner" : "Each corner separately"
             onToggled: {
+                editor.separate = !checked;
                 if (checked) {
                     editor.edited([editor.radii[0], editor.radii[0], editor.radii[0], editor.radii[0]]);
                 }

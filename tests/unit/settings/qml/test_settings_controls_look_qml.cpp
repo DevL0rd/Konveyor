@@ -83,6 +83,10 @@ void TestSettingsControlsLookQml::controls_data()
     addControl("uneven corners",
         {"LookPage", "Corner roundness for every window", "edited", "[[1,2.4,3,4]]", "window-rule/geometry-corner-radius",
             R"({"args":[1,2,3,4]})"});
+    addControl("one corner",
+        {"LookPage", "Corner roundness for every window | Corner roundness for every window",
+            "toggle@Same for every corner;toggled | value=7@1;valueModified", "[] | []", "window-rule/geometry-corner-radius",
+            R"({"args":[12,7,12,12]})"});
     addControl("first corner rule",
         {"LookPage", "Corner roundness for every window", "edited", "[[8,8,8,8]]", "window-rule#1/geometry-corner-radius",
             R"({"args":[8]})", "window-rule { match app-id=\"a\"; }\n"});
