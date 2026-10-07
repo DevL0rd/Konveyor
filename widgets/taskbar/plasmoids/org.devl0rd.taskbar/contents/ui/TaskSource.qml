@@ -48,6 +48,18 @@ QtObject {
     function newInstance(window) {
         tasksModel.requestNewInstance(modelIndex(window.index))
     }
+    function toggleMaximized(window) {
+        tasksModel.requestToggleMaximized(modelIndex(window.index))
+    }
+    function toggleKeepAbove(window) {
+        tasksModel.requestToggleKeepAbove(modelIndex(window.index))
+    }
+    function toggleKeepBelow(window) {
+        tasksModel.requestToggleKeepBelow(modelIndex(window.index))
+    }
+    function toggleShaded(window) {
+        tasksModel.requestToggleShaded(modelIndex(window.index))
+    }
     function toggleAllDesktops(window) {
         tasksModel.requestVirtualDesktops(modelIndex(window.index), window.onAllDesktops ? [desktops.currentDesktop] : [])
     }
@@ -102,6 +114,11 @@ QtObject {
                 minimized: !!model.IsMinimized,
                 onCurrentDesktop: !!model.IsOnAllVirtualDesktops || (model.VirtualDesktops || []).indexOf(source.desktops.currentDesktop) >= 0,
                 onAllDesktops: !!model.IsOnAllVirtualDesktops,
+                maximized: !!model.IsMaximized,
+                keepAbove: !!model.IsKeepAbove,
+                keepBelow: !!model.IsKeepBelow,
+                shaded: !!model.IsShaded,
+                pid: model.AppPid ? Number(model.AppPid) : 0,
                 attention: !!model.IsDemandingAttention,
                 lastActivated: model.LastActivated ? Number(model.LastActivated) : 0
             })

@@ -22,7 +22,7 @@ PlasmaExtras.Menu {
     function fill(target, entries) {
         for (const each of entries) {
             const item = itemComponent.createObject(target, {
-                text: each.text || "",
+                text: each.hint ? (each.text || "") + "\t" + each.hint : each.text || "",
                 icon: each.checkable ? "" : each.icon || "",
                 checkable: !!each.checkable,
                 checked: !!each.checked,

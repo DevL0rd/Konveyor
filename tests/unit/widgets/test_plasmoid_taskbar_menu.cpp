@@ -112,8 +112,8 @@ private Q_SLOTS:
             {QStringLiteral("kind"), QStringLiteral("pin")}, {QStringLiteral("pinned"), true}, {QStringLiteral("windows"), QJsonArray()}};
         const QJsonArray menu = entries(context({{QStringLiteral("entry"), pin}, {QStringLiteral("window"), QJsonValue()}}));
         QCOMPARE(menu.size(), 2);
-        QCOMPARE(menu[0][QStringLiteral("action")][QStringLiteral("task")].toString(), QStringLiteral("newInstance"));
-        QCOMPARE(menu[1][QStringLiteral("text")].toString(), QStringLiteral("Unpin from Taskbar"));
+        QCOMPARE(menu[0][QStringLiteral("text")].toString(), QStringLiteral("Unpin from Taskbar"));
+        QCOMPARE(menu[1][QStringLiteral("action")][QStringLiteral("task")].toString(), QStringLiteral("newInstance"));
     }
 
     void layoutActionsTargetTheWindow()
@@ -189,6 +189,59 @@ private Q_SLOTS:
         QVERIFY(!find(menu, QStringLiteral("Close All")).isEmpty());
         QCOMPARE(find(menu, QStringLiteral("To the Right of This One"))[QStringLiteral("action")][QStringLiteral("task")].toString(),
             QStringLiteral("openRight"));
+    }
+
+    void layoutActionsShowTheirBinds()
+    {
+        const auto bind = [](const char *key, const char *name, const QJsonArray &arguments = {}) {
+            return QJsonObject {{QStringLiteral("key"), QLatin1String(key)},
+                {QStringLiteral("action"),
+                    QJsonObject {{QStringLiteral("name"), QLatin1String(name)}, {QStringLiteral("arguments"), arguments}}}};
+        };
+        const QJsonArray binds {bind("Super+F", "maximize-column"), bind("Super+Ctrl+Left", "move-column-left"),
+            bind("Super+Equal", "set-column-width", {QStringLiteral("+10%")}),
+            bind("Super+Minus", "set-column-width", {QStringLiteral("-10%")}), bind("Super+Q", "close-window"),
+            bind("Super+BracketLeft", "consume-or-expel-window-left")};
+        const QJsonArray menu = entries(context({{QStringLiteral("binds"), binds}}));
+        QCOMPARE(find(menu, QStringLiteral("Full Width"))[QStringLiteral("hint")].toString(), QStringLiteral("Meta+F"));
+        QCOMPARE(find(menu, QStringLiteral("Move Left"))[QStringLiteral("hint")].toString(), QStringLiteral("Meta+Ctrl+Left"));
+        QCOMPARE(find(menu, QStringLiteral("Wider"))[QStringLiteral("hint")].toString(), QStringLiteral("Meta+="));
+        QCOMPARE(find(menu, QStringLiteral("Narrower"))[QStringLiteral("hint")].toString(), QStringLiteral("Meta+-"));
+        QCOMPARE(find(menu, QStringLiteral("Join the Column on the Left"))[QStringLiteral("hint")].toString(), QStringLiteral("Meta+["));
+        QCOMPARE(find(menu, QStringLiteral("Close"))[QStringLiteral("hint")].toString(), QStringLiteral("Meta+Q"));
+        QCOMPARE(find(menu, QStringLiteral("Maximize"))[QStringLiteral("hint")].toString(), QString());
+        const QJsonArray rebound = entries(context({{QStringLiteral("binds"), QJsonArray {bind("Alt+Ctrl+M", "maximize-column")}}}));
+        QCOMPARE(find(rebound, QStringLiteral("Full Width"))[QStringLiteral("hint")].toString(), QStringLiteral("Alt+Ctrl+M"));
+        QCOMPARE(find(rebound, QStringLiteral("Move Left"))[QStringLiteral("hint")].toString(), QString());
+    }
+
+    void appActionsComeFirst()
+    {
+        const auto item = [](const char *text, const char *id, const char *argument) {
+            return QJsonObject {{QStringLiteral("text"), QLatin1String(text)}, {QStringLiteral("icon"), QStringLiteral("firefox")},
+                {QStringLiteral("actionId"), QLatin1String(id)}, {QStringLiteral("actionArgument"), QLatin1String(argument)}};
+        };
+        const QJsonArray actions {item("New Private Window", "_kicker_jumpListAction", "private"),
+            item("notes.txt", "_kicker_recentDocument", "file:///notes.txt"),
+            item("Forget Recent Files", "_kicker_forgetRecentDocuments", ""), item("Edit Application…", "editApplication", "")};
+        const QJsonObject player {{QStringLiteral("playing"), true}, {QStringLiteral("canControl"), true},
+            {QStringLiteral("canGoNext"), true}, {QStringLiteral("canGoPrevious"), false},
+            {QStringLiteral("track"), QStringLiteral("Song")}};
+        const QJsonArray menu = entries(context({{QStringLiteral("appActions"), actions}, {QStringLiteral("player"), player}}));
+        QCOMPARE(menu[0][QStringLiteral("text")].toString(), QStringLiteral("New Private Window"));
+        QCOMPARE(menu[0][QStringLiteral("action")][QStringLiteral("appAction")][QStringLiteral("actionArgument")].toString(),
+            QStringLiteral("private"));
+        QCOMPARE(menu[1][QStringLiteral("text")].toString(), QStringLiteral("Recent Files"));
+        QCOMPARE(menu[1][QStringLiteral("children")].toArray().size(), 3);
+        QVERIFY(find(menu, QStringLiteral("Edit Application…")).isEmpty());
+        QCOMPARE(menu[2][QStringLiteral("text")].toString(), QStringLiteral("Song"));
+        QCOMPARE(
+            find(menu, QStringLiteral("Pause"))[QStringLiteral("action")][QStringLiteral("media")].toString(), QStringLiteral("PlayPause"));
+        QCOMPARE(find(menu, QStringLiteral("Previous Track"))[QStringLiteral("enabled")].toBool(), false);
+        QCOMPARE(menu[6][QStringLiteral("separator")].toBool(), true);
+        QCOMPARE(find(menu, QStringLiteral("Keep Above Others"))[QStringLiteral("action")][QStringLiteral("task")].toString(),
+            QStringLiteral("toggleKeepAbove"));
+        QCOMPARE(menu.last()[QStringLiteral("text")].toString(), QStringLiteral("Close"));
     }
 
     void withoutKonveyorTheMenuStaysPlain()

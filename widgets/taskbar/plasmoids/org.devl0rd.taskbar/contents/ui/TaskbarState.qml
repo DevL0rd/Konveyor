@@ -16,6 +16,7 @@ Item {
 
     readonly property alias bus: konveyor
     readonly property alias source: tasks
+    readonly property alias appActions: actions
     readonly property string output: TaskOrder.outputAt(konveyor.outputs, screenGeometry)
     readonly property var workspaces: konveyor.workspaces.filter(workspace => workspace.output === output).sort((a, b) => a.idx - b.idx)
     readonly property var activeWorkspace: workspaces.find(workspace => workspace.is_active) || null
@@ -235,12 +236,19 @@ Item {
             output: home ? home.output : "",
             panelOutput: output,
             rules: rules,
+            binds: konveyor.binds,
+            appActions: appActions.appActions,
+            player: appActions.playerState(),
             appName: window ? (window.appName || window.title) : ""
         }
     }
 
     function run(action, entry, window) {
-        if (action.konveyor) {
+        if (action.appAction) {
+            appActions.trigger(action.appAction)
+        } else if (action.media) {
+            appActions.media(action.media)
+        } else if (action.konveyor) {
             konveyor.perform(action.konveyor, action.args, window.konveyorId, action.konveyor.indexOf("move-window-to-") === 0 ? false : undefined)
         } else if (action.rule) {
             konveyor.setAppRule(window.konveyorId, action.rule, action.enabled)
@@ -266,6 +274,14 @@ Item {
             return togglePin(entry)
         case "allDesktops":
             return tasks.toggleAllDesktops(window)
+        case "toggleMaximized":
+            return tasks.toggleMaximized(window)
+        case "toggleKeepAbove":
+            return tasks.toggleKeepAbove(window)
+        case "toggleKeepBelow":
+            return tasks.toggleKeepBelow(window)
+        case "toggleShaded":
+            return tasks.toggleShaded(window)
         case "toggleMinimized":
             return tasks.toggleMinimized(window)
         case "closeAll":
@@ -324,6 +340,10 @@ Item {
         filterLikePlasma: !konveyor.available
         onlyThisScreen: state.onlyThisScreen
         onChanged: state.rebuild()
+    }
+
+    AppActions {
+        id: actions
     }
 
     P5Support.DataSource {

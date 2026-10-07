@@ -100,14 +100,17 @@ function konveyorEntries(context, i18n) {
     return list
 }
 
-function windowEntries(context, i18n) {
+function moreEntries(context, i18n) {
     const window = context.window
-    const list = [
-        act(window.onAllDesktops ? i18n("Only on This Workspace") : i18n("On All Workspaces"), "window-pin", task("allDesktops"),
-            { checkable: true, checked: window.onAllDesktops }),
-        act(window.minimized ? i18n("Restore") : i18n("Minimize"), "window-minimize", task("toggleMinimized"))
-    ]
-    return list
+    const toggle = (text, icon, name, checked) => act(text, icon, task(name), { checkable: true, checked: checked })
+    return [{ text: i18n("More"), icon: "view-more-symbolic", children: [
+        act(window.minimized ? i18n("Restore") : i18n("Minimize"), "window-minimize", task("toggleMinimized")),
+        toggle(i18n("Maximize"), "window-maximize", "toggleMaximized", !!window.maximized),
+        toggle(i18n("Keep Above Others"), "window-keep-above", "toggleKeepAbove", !!window.keepAbove),
+        toggle(i18n("Keep Below Others"), "window-keep-below", "toggleKeepBelow", !!window.keepBelow),
+        toggle(i18n("Shade"), "window-shade", "toggleShaded", !!window.shaded),
+        toggle(i18n("On All Workspaces"), "window-pin", "allDesktops", !!window.onAllDesktops)
+    ] }]
 }
 
 function newWindowEntries(context, i18n) {
@@ -120,24 +123,66 @@ function newWindowEntries(context, i18n) {
     ] }]
 }
 
-function entries(context, i18n) {
+function appEntries(context, i18n) {
     const list = []
+    const items = context.appActions || []
+    for (const item of items.filter(each => each.actionId === "_kicker_jumpListAction"))
+        list.push(act(item.text, item.icon, { appAction: item }))
+    const recent = items.filter(each => each.actionId === "_kicker_recentDocument")
+    if (recent.length > 0) {
+        const forget = items.filter(each => each.actionId === "_kicker_forgetRecentDocuments")
+        list.push({ text: i18n("Recent Files"), icon: "document-open-recent", children: recent.map(each => act(each.text, each.icon, { appAction: each }))
+            .concat(forget.length ? [separator()].concat(forget.map(each => act(each.text, each.icon || "edit-clear-history", { appAction: each }))) : []) })
+    }
+    const player = context.player
+    if (player && player.canControl) {
+        list.push(section(player.track || i18n("Media")))
+        list.push(act(player.playing ? i18n("Pause") : i18n("Play"), player.playing ? "media-playback-pause" : "media-playback-start", { media: "PlayPause" }))
+        list.push(act(i18n("Previous Track"), "media-skip-backward", { media: "Previous" }, { enabled: !!player.canGoPrevious }))
+        list.push(act(i18n("Next Track"), "media-skip-forward", { media: "Next" }, { enabled: !!player.canGoNext }))
+    }
+    return list.length > 0 ? list.concat([separator()]) : list
+}
+
+function keyLabel(key) {
+    const names = { super: "Meta", mod: "Meta", win: "Meta", bracketleft: "[", bracketright: "]", comma: ",", period: ".", minus: "-", equal: "=",
+        page_up: "PgUp", page_down: "PgDn", return: "Enter", space: "Space", escape: "Esc", slash: "/" }
+    return String(key).split(/\+(?!$)/).map(part => names[part.toLowerCase()] || part).join("+")
+}
+
+function hintFor(binds, name, args) {
+    const wanted = (args || []).map(String).join("\n")
+    const bind = (binds || []).find(each => each.action && each.action.name === name && (each.action.arguments || []).map(String).join("\n") === wanted)
+    return bind ? keyLabel(bind.key) : ""
+}
+
+function withHints(list, binds) {
+    return list.map(entry => {
+        const named = entry.action && (entry.action.konveyor || entry.action.bind)
+        const hinted = named ? Object.assign({}, entry, { hint: hintFor(binds, named, entry.action.args) }) : Object.assign({}, entry)
+        if (entry.children)
+            hinted.children = withHints(entry.children, binds)
+        return hinted
+    })
+}
+
+function entries(context, i18n) {
+    const list = appEntries(context, i18n)
     if (context.entry.windows.length > 1) {
         for (const window of context.entry.windows)
             list.push(act(window.title, window.icon, { task: "activate", window: window }, { checkable: true, checked: window.active }))
         list.push(separator())
     }
-    list.push(...newWindowEntries(context, i18n))
+    if (context.window && context.konveyor)
+        list.push(...konveyorEntries(context, i18n), separator())
     list.push(act(context.entry.pinned ? i18n("Unpin from Taskbar") : i18n("Pin to Taskbar"), context.entry.pinned ? "window-unpin" : "window-pin",
         task("togglePin")))
+    list.push(...newWindowEntries(context, i18n))
     if (!context.window)
-        return list
-    if (context.konveyor)
-        list.push(...konveyorEntries(context, i18n))
-    list.push(separator())
-    list.push(...windowEntries(context, i18n))
+        return withHints(list, context.binds)
+    list.push(...moreEntries(context, i18n), separator())
     if (context.entry.windows.length > 1 && context.entry.kind === "group")
         list.push(act(i18n("Close All"), "window-close", task("closeAll")))
-    list.push(act(i18n("Close"), "window-close", task("close")))
-    return list
+    list.push(act(i18n("Close"), "window-close", { task: "close", bind: "close-window" }))
+    return withHints(list, context.binds)
 }
