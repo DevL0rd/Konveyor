@@ -110,7 +110,7 @@ void PlasmoidHarness::prepareEnvironment()
             qmldir.write("module " + module.toUtf8() + "\n");
         }
     }
-    qputenv("QML_IMPORT_PATH", doubles.toUtf8());
+    qputenv("QML_IMPORT_PATH", QString(doubles + QStringLiteral(":" KONVEYOR_SOURCE_DIR "/tests/unit/widgets/launcher/doubles")).toUtf8());
     qputenv("XDG_CONFIG_DIRS", QString(root + QStringLiteral("/etc")).toUtf8());
     qputenv("QML_XHR_ALLOW_FILE_READ", "1");
     qputenv("TZ", "UTC");

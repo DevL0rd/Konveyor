@@ -1,11 +1,10 @@
+#include "scriptprobe.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QQmlComponent>
-#include <QQmlEngine>
-#include <QTest>
 
-#include <memory>
+#include <QJsonValue>
+#include <QTest>
 
 namespace
 {
@@ -34,6 +33,12 @@ QJsonObject row(const char *uuid, const char *app)
     return {{QStringLiteral("uuid"), QLatin1String(uuid)}, {QStringLiteral("appKey"), QLatin1String(app)}};
 }
 
+QJsonObject workspace(int id, const QJsonArray &columns, bool focused, const QJsonArray &displays = {})
+{
+    return {{QStringLiteral("id"), id}, {QStringLiteral("columns"), columns}, {QStringLiteral("focused"), focused},
+        {QStringLiteral("displays"), displays}};
+}
+
 QJsonArray keysOf(const QJsonArray &items)
 {
     QJsonArray keys;
@@ -49,8 +54,7 @@ class TestPlasmoidTaskbar : public QObject
 {
     Q_OBJECT
 
-    std::unique_ptr<QQmlEngine> m_engine;
-    std::unique_ptr<QObject> m_probe;
+    ScriptProbe m_probe;
 
     QJsonValue call(const char *name, const QJsonArray &arguments)
     {
@@ -61,29 +65,35 @@ class TestPlasmoidTaskbar : public QObject
         return QJsonDocument::fromJson(QByteArray("[") + result.toString().toUtf8() + QByteArray("]")).array().at(0);
     }
 
-    QJsonArray build(const QJsonArray &columns, const QJsonArray &rows, const QJsonArray &pins, bool merge, const QJsonObject &parked = {})
+    QJsonArray buildOn(
+        const QJsonArray &workspaces, const QJsonArray &rows, const QJsonArray &pins, bool merge, const QJsonObject &parked = {})
     {
         QJsonObject windows;
-        for (const QJsonValue &column : columns) {
-            for (const QJsonValue &id : column.toArray()) {
-                windows[QString::number(id.toInt())] = QJsonObject {{QStringLiteral("uuid"), QStringLiteral("u%1").arg(id.toInt())}};
+        for (const QJsonValue &workspace : workspaces) {
+            for (const QJsonValue &column : workspace[QStringLiteral("columns")].toArray()) {
+                for (const QJsonValue &id : column.toArray()) {
+                    windows[QString::number(id.toInt())] = QJsonObject {{QStringLiteral("uuid"), QStringLiteral("u%1").arg(id.toInt())}};
+                }
             }
         }
         return call("buildItems",
-            {QJsonObject {{QStringLiteral("columns"), columns}, {QStringLiteral("windowsById"), windows}, {QStringLiteral("rows"), rows},
-                {QStringLiteral("pins"), pins}, {QStringLiteral("launchers"), QJsonObject()}, {QStringLiteral("merge"), merge},
-                {QStringLiteral("parkedAfter"), parked}}})
+            {QJsonObject {{QStringLiteral("workspaces"), workspaces}, {QStringLiteral("windowsById"), windows},
+                {QStringLiteral("rows"), rows}, {QStringLiteral("pins"), pins}, {QStringLiteral("launchers"), QJsonObject()},
+                {QStringLiteral("merge"), merge}, {QStringLiteral("parkedAfter"), parked}}})
             .toArray();
+    }
+
+    QJsonArray build(const QJsonArray &columns, const QJsonArray &rows, const QJsonArray &pins, bool merge, const QJsonObject &parked = {},
+        const QJsonArray &displays = {})
+    {
+        return buildOn({workspace(1, columns, true, displays)}, rows, pins, merge, parked);
     }
 
 private Q_SLOTS:
     void initTestCase()
     {
-        m_engine = std::make_unique<QQmlEngine>();
-        QQmlComponent component(m_engine.get());
-        component.setData(probe, QUrl(QStringLiteral("file:///probe.qml")));
-        m_probe.reset(component.create());
-        QVERIFY2(m_probe, qPrintable(component.errorString()));
+        const QString error = m_probe.load(probe);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
     }
 
     void itemsFollowTheColumnOrder()
@@ -93,7 +103,10 @@ private Q_SLOTS:
         QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c4"), QStringLiteral("c2"), QStringLiteral("c1"), QStringLiteral("wu9")}));
         QCOMPARE(items[1][QStringLiteral("windows")].toArray().size(), 2);
         QCOMPARE(items[1][QStringLiteral("windows")][1][QStringLiteral("konveyorId")].toInt(), 3);
-        QCOMPARE(items[2][QStringLiteral("columns")], (QJsonArray {QJsonObject {{QStringLiteral("index"), 3}, {QStringLiteral("id"), 1}}}));
+        QCOMPARE(items[2][QStringLiteral("columns")],
+            (QJsonArray {QJsonObject {{QStringLiteral("index"), 3}, {QStringLiteral("id"), 1}, {QStringLiteral("focused"), true}}}));
+        QCOMPARE(items[1][QStringLiteral("kind")].toString(), QStringLiteral("column"));
+        QCOMPARE(items[3][QStringLiteral("kind")].toString(), QStringLiteral("window"));
         QCOMPARE(items[3][QStringLiteral("columns")], QJsonArray());
     }
 
@@ -104,6 +117,106 @@ private Q_SLOTS:
         QCOMPARE(keysOf(build(columns, rows, {}, true)), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c3"), QStringLiteral("c4")}));
         QCOMPARE(build(columns, rows, {}, true)[0][QStringLiteral("columns")].toArray().size(), 2);
         QCOMPARE(keysOf(build(columns, rows, {}, false)).size(), 4);
+    }
+
+    void sharedColumnsKeepEveryWindow()
+    {
+        const QJsonArray rows {row("u1", "a"), row("u2", "a"), row("u3", "a")};
+        const QJsonArray items = build({QJsonArray {1, 2}, QJsonArray {3}}, rows, {}, true);
+        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c3")}));
+        QCOMPARE(items[0][QStringLiteral("kind")].toString(), QStringLiteral("column"));
+        QCOMPARE(items[0][QStringLiteral("windows")].toArray().size(), 2);
+        QCOMPARE(items[0][QStringLiteral("windows")][1][QStringLiteral("uuid")].toString(), QStringLiteral("u2"));
+        QCOMPARE(items[1][QStringLiteral("windows")].toArray().size(), 1);
+    }
+
+    void tabbedColumnsAreMarked()
+    {
+        const QJsonArray items = build({QJsonArray {1, 2}, QJsonArray {3}}, {row("u1", "a"), row("u2", "b"), row("u3", "c")}, {}, false, {},
+            {QStringLiteral("tabbed"), QStringLiteral("normal")});
+        QCOMPARE(items[0][QStringLiteral("tabbed")].toBool(), true);
+        QCOMPARE(items[1][QStringLiteral("tabbed")].toBool(), false);
+    }
+
+    void appGroupsOnlyJoinSingleWindowColumns()
+    {
+        const QJsonArray rows {row("u1", "a"), row("u2", "a"), row("u3", "a"), row("u4", "a"), row("u5", "a")};
+        const QJsonArray items = build({QJsonArray {1}, QJsonArray {2}, QJsonArray {3, 4}, QJsonArray {5}}, rows, {}, true);
+        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c3"), QStringLiteral("c5")}));
+        QCOMPARE(items[0][QStringLiteral("kind")].toString(), QStringLiteral("group"));
+        QCOMPARE(items[0][QStringLiteral("columns")].toArray().size(), 2);
+        QCOMPARE(items[1][QStringLiteral("kind")].toString(), QStringLiteral("column"));
+        QCOMPARE(items[2][QStringLiteral("kind")].toString(), QStringLiteral("column"));
+        QCOMPARE(call("columnIds", {QJsonValue(items)}), (QJsonArray {1, 2, 3, 5}));
+    }
+
+    void badgesOnlyNameColumnsOfTheFocusedWorkspace()
+    {
+        const QJsonArray items
+            = buildOn({workspace(1, {QJsonArray {1}, QJsonArray {2}}, false), workspace(2, {QJsonValue(QJsonArray {3})}, true)},
+                {row("u1", "a"), row("u2", "b"), row("u3", "c")}, {}, false);
+        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c2"), QStringLiteral("c3")}));
+        const QJsonObject labels {{QStringLiteral("1"), QStringLiteral("1")}, {QStringLiteral("2"), QStringLiteral("2")}};
+        QCOMPARE(call("columnBadge", {items[0], labels}).toString(), QString());
+        QCOMPARE(call("columnBadge", {items[2], labels}).toString(), QStringLiteral("1"));
+    }
+
+    void clicksPickTheRightWindow()
+    {
+        const auto window = [](const char *uuid, bool active, int last) {
+            return QJsonObject {{QStringLiteral("uuid"), QLatin1String(uuid)}, {QStringLiteral("active"), active},
+                {QStringLiteral("lastActivated"), last}, {QStringLiteral("appKey"), QStringLiteral("a")}};
+        };
+        const QJsonObject idle = window("1", false, 5);
+        const QJsonObject recent = window("2", false, 9);
+        const QJsonObject focused = window("3", true, 1);
+        const auto result = [this](const QJsonArray &windows, const QJsonValue &clicked, int mode) {
+            const QJsonValue value = call("clickResult", {windows, clicked, mode});
+            return value[QStringLiteral("action")].toString() + QLatin1Char(':')
+                + value[QStringLiteral("window")][QStringLiteral("uuid")].toString();
+        };
+        QCOMPARE(result({}, QJsonValue(), 0), QStringLiteral("launch:"));
+        QCOMPARE(result({idle, focused}, idle, 0), QStringLiteral("activate:1"));
+        QCOMPARE(result({focused}, focused, 0), QStringLiteral("minimize:3"));
+        QCOMPARE(result({focused}, focused, 1), QStringLiteral("none:"));
+        QCOMPARE(result({focused}, focused, 2), QStringLiteral("cycle:3"));
+        QCOMPARE(result({idle, recent}, QJsonValue(), 0), QStringLiteral("activate:2"));
+        QCOMPARE(result({idle, focused, recent}, QJsonValue(), 0), QStringLiteral("activate:2"));
+        QCOMPARE(result({idle, focused}, QJsonValue(), 1), QStringLiteral("none:"));
+        const QJsonObject other
+            = QJsonObject {{QStringLiteral("uuid"), QStringLiteral("4")}, {QStringLiteral("appKey"), QStringLiteral("b")}};
+        QCOMPARE(call("nextOfApp", {QJsonArray {idle, other, focused}, focused})[QStringLiteral("uuid")].toString(), QStringLiteral("1"));
+        QVERIFY(call("nextOfApp", {QJsonArray {other, focused}, focused}).isNull());
+        QCOMPARE(call("steppedWindow", {QJsonArray {idle, focused, other}, 1})[QStringLiteral("uuid")].toString(), QStringLiteral("4"));
+        QCOMPARE(call("steppedWindow", {QJsonArray {idle, focused, other}, -1})[QStringLiteral("uuid")].toString(), QStringLiteral("1"));
+        QCOMPARE(call("steppedWindow", {QJsonArray {focused, other}, 1})[QStringLiteral("uuid")].toString(), QStringLiteral("4"));
+        QCOMPARE(call("steppedWindow", {QJsonArray {other, focused}, 1})[QStringLiteral("uuid")].toString(), QStringLiteral("4"));
+        QVERIFY(call("steppedWindow", {QJsonArray(), 1}).isNull());
+    }
+
+    void emptyWorkspacesCanBeHidden()
+    {
+        const QJsonArray workspaces {QJsonObject {{QStringLiteral("idx"), 1}, {QStringLiteral("columns"), QJsonArray {QJsonArray {1}}}},
+            QJsonObject {{QStringLiteral("idx"), 2}, {QStringLiteral("columns"), QJsonArray()}, {QStringLiteral("is_active"), true}},
+            QJsonObject {{QStringLiteral("idx"), 3}, {QStringLiteral("columns"), QJsonArray()}}};
+        QCOMPARE(call("shownWorkspaces", {workspaces, true}).toArray().size(), 3);
+        const QJsonArray shown = call("shownWorkspaces", {workspaces, false}).toArray();
+        QCOMPARE(shown.size(), 2);
+        QCOMPARE(shown[1][QStringLiteral("idx")].toInt(), 2);
+    }
+
+    void pinsAreNormalised()
+    {
+        QCOMPARE(call("pinUrl", {QStringLiteral(" org.kde.dolphin ")}).toString(), QStringLiteral("applications:org.kde.dolphin.desktop"));
+        QCOMPARE(call("pinUrl", {QStringLiteral("firefox.desktop")}).toString(), QStringLiteral("applications:firefox.desktop"));
+        QCOMPARE(call("pinUrl", {QStringLiteral("file:///opt/x.desktop")}).toString(), QStringLiteral("file:///opt/x.desktop"));
+        QCOMPARE(call("pinUrl", {QStringLiteral("  ")}).toString(), QString());
+        QCOMPARE(call("pinLabel", {QStringLiteral("applications:org.kde.dolphin.desktop")}).toString(), QStringLiteral("org.kde.dolphin"));
+        QCOMPARE(call("pinLabel", {QStringLiteral("file:///opt/x.desktop")}).toString(), QStringLiteral("x"));
+        const QJsonArray pins {QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c")};
+        QCOMPARE(call("movedPin", {pins, 0, 1}), (QJsonArray {QStringLiteral("b"), QStringLiteral("a"), QStringLiteral("c")}));
+        QCOMPARE(call("movedPin", {pins, 2, -1}), (QJsonArray {QStringLiteral("a"), QStringLiteral("c"), QStringLiteral("b")}));
+        QCOMPARE(call("movedPin", {pins, 0, -1}), pins);
     }
 
     void minimizedWindowsKeepTheirSlot()

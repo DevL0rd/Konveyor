@@ -7,6 +7,7 @@ QtObject {
     property var pins: []
     property rect screenGeometry
     property bool filterLikePlasma: false
+    property bool onlyThisScreen: true
     property var windows: []
     property var launchers: ({})
 
@@ -47,6 +48,9 @@ QtObject {
     function newInstance(window) {
         tasksModel.requestNewInstance(modelIndex(window.index))
     }
+    function toggleAllDesktops(window) {
+        tasksModel.requestVirtualDesktops(modelIndex(window.index), window.onAllDesktops ? [desktops.currentDesktop] : [])
+    }
     function launch(url) {
         const launcher = launchers[url]
         if (!launcher)
@@ -71,7 +75,7 @@ QtObject {
         virtualDesktop: source.desktops.currentDesktop
         activity: source.activities.currentActivity
         filterByActivity: true
-        filterByScreen: source.filterLikePlasma
+        filterByScreen: source.filterLikePlasma && source.onlyThisScreen
         filterByVirtualDesktop: source.filterLikePlasma
         filterNotMinimized: false
     }
@@ -97,6 +101,7 @@ QtObject {
                 active: !!model.IsActive,
                 minimized: !!model.IsMinimized,
                 onCurrentDesktop: !!model.IsOnAllVirtualDesktops || (model.VirtualDesktops || []).indexOf(source.desktops.currentDesktop) >= 0,
+                onAllDesktops: !!model.IsOnAllVirtualDesktops,
                 attention: !!model.IsDemandingAttention,
                 lastActivated: model.LastActivated ? Number(model.LastActivated) : 0
             })

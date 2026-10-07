@@ -6,34 +6,49 @@ import org.kde.plasma.plasmoid
 PlasmaExtras.Menu {
     id: menu
 
-    property var entries: []
+    property var created: []
+    property var entry: null
+    property var window: null
 
-    signal windowPicked(var window)
-    signal newInstance(var item)
-    signal pinToggled(var item)
-    signal closeAll(var item)
+    signal actionTriggered(var action, var entry, var window)
 
-    function show(item, button) {
-        for (const entry of entries)
-            entry.destroy()
+    function clear() {
+        for (const object of created)
+            object.destroy()
+        created = []
         clearMenuItems()
-        const created = []
-        const add = (properties, handler) => {
-            const entry = entryComponent.createObject(menu, properties)
-            entry.clicked.connect(handler)
-            addMenuItem(entry)
-            created.push(entry)
+    }
+
+    function fill(target, entries) {
+        for (const each of entries) {
+            const item = itemComponent.createObject(target, {
+                text: each.text || "",
+                icon: each.checkable ? "" : each.icon || "",
+                checkable: !!each.checkable,
+                checked: !!each.checked,
+                separator: !!each.separator,
+                section: !!each.section,
+                enabled: each.enabled !== false
+            })
+            created.push(item)
+            if (each.children) {
+                const submenu = submenuComponent.createObject(menu)
+                created.push(submenu)
+                submenu.visualParent = item.action
+                fill(submenu, each.children)
+            } else if (each.action) {
+                const action = each.action
+                item.clicked.connect(() => menu.actionTriggered(action, menu.entry, menu.window))
+            }
+            target.addMenuItem(item)
         }
-        for (const window of item.windows)
-            add({ text: window.title, icon: window.icon, checkable: true, checked: window.active }, () => menu.windowPicked(window))
-        if (item.windows.length > 0)
-            add({ separator: true }, () => {})
-        add({ text: i18n("Open New Window"), icon: "window-new" }, () => menu.newInstance(item))
-        add({ text: item.pinned ? i18n("Unpin from Taskbar") : i18n("Pin to Taskbar"), icon: item.pinned ? "window-unpin" : "window-pin" },
-            () => menu.pinToggled(item))
-        if (item.windows.length > 0)
-            add({ text: item.windows.length > 1 ? i18n("Close All") : i18n("Close"), icon: "window-close" }, () => menu.closeAll(item))
-        entries = created
+    }
+
+    function show(entries, entry, window, button) {
+        clear()
+        menu.entry = entry
+        menu.window = window
+        fill(menu, entries)
         visualParent = button
         openRelative()
     }
@@ -51,7 +66,11 @@ PlasmaExtras.Menu {
         }
     }
 
-    property Component entryComponent: Component {
+    property Component itemComponent: Component {
         PlasmaExtras.MenuItem {}
+    }
+
+    property Component submenuComponent: Component {
+        PlasmaExtras.Menu {}
     }
 }

@@ -78,3 +78,14 @@ private:
     std::unique_ptr<QObject> m_root;
     QList<QObject *> m_shown;
 };
+
+inline QVariantMap configPageProperties(PlasmoidHarness &harness, const QString &title)
+{
+    QVariantMap properties {{QStringLiteral("title"), title}};
+    const QStringList keys = harness.plasmoid()->configuration()->keys();
+    for (const QString &key : keys) {
+        properties.insert(QStringLiteral("cfg_") + key, harness.config(key));
+        properties.insert(QStringLiteral("cfg_") + key + QStringLiteral("Default"), harness.config(key));
+    }
+    return properties;
+}

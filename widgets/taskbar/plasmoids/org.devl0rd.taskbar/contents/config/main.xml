@@ -6,9 +6,29 @@
     <kcfgfile name=""/>
     <group name="General">
         <entry name="launchers" type="StringList"><default></default></entry>
-        <entry name="groupMode" type="Int"><default>0</default></entry>
-        <entry name="showWorkspaces" type="Bool"><default>true</default></entry>
         <entry name="placePinnedLaunches" type="Bool"><default>true</default></entry>
+        <entry name="autoIconSize" type="Bool"><default>true</default></entry>
+        <entry name="iconSize" type="Int"><default>32</default></entry>
+        <entry name="iconSpacing" type="Int"><default>2</default></entry>
+        <entry name="buttonPadding" type="Int"><default>3</default></entry>
+        <entry name="highlightStyle" type="Int"><default>0</default></entry>
+        <entry name="indicatorStyle" type="Int"><default>0</default></entry>
+        <entry name="indicatorEdge" type="Int"><default>0</default></entry>
+        <entry name="showSeparator" type="Bool"><default>true</default></entry>
+        <entry name="animations" type="Bool"><default>true</default></entry>
+        <entry name="attentionPulse" type="Bool"><default>true</default></entry>
+        <entry name="groupMode" type="Int"><default>0</default></entry>
+        <entry name="activeClick" type="Int"><default>0</default></entry>
+        <entry name="middleClick" type="Int"><default>0</default></entry>
+        <entry name="wheelCyclesTasks" type="Bool"><default>false</default></entry>
+        <entry name="showTooltips" type="Bool"><default>true</default></entry>
+        <entry name="onlyThisScreen" type="Bool"><default>true</default></entry>
+        <entry name="showFloating" type="Bool"><default>true</default></entry>
         <entry name="showShortcutBadges" type="Bool"><default>true</default></entry>
+        <entry name="showWorkspaces" type="Bool"><default>true</default></entry>
+        <entry name="workspacesAfterTasks" type="Bool"><default>false</default></entry>
+        <entry name="pillContent" type="Int"><default>0</default></entry>
+        <entry name="showEmptyWorkspaces" type="Bool"><default>true</default></entry>
+        <entry name="wheelSwitchesWorkspaces" type="Bool"><default>true</default></entry>
     </group>
 </kcfg>

@@ -6,6 +6,7 @@ Rectangle {
 
     property string label
     property bool shown: false
+    property bool animate: true
 
     readonly property int size: Math.round(Kirigami.Units.gridUnit * 0.9)
 
@@ -21,10 +22,10 @@ Rectangle {
     z: 10
 
     Behavior on opacity {
-        NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: badge.animate ? Kirigami.Units.shortDuration : 0; easing.type: Easing.OutCubic }
     }
     Behavior on scale {
-        NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutBack }
+        NumberAnimation { duration: badge.animate ? Kirigami.Units.longDuration : 0; easing.type: Easing.OutBack }
     }
 
     Text {

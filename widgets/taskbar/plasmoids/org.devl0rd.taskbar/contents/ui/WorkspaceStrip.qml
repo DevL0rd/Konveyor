@@ -10,6 +10,9 @@ Item {
     property bool vertical: false
     property var badges: ({})
     property bool showBadges: false
+    property int contentMode: 0
+    property bool animate: true
+    property bool wheelSwitches: true
 
     signal picked(var workspace)
     signal stepped(int step)
@@ -49,7 +52,7 @@ Item {
         verticalItemAlignment: Grid.AlignVCenter
 
         move: Transition {
-            NumberAnimation { properties: "x,y"; duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+            NumberAnimation { properties: "x,y"; duration: strip.animate ? Kirigami.Units.longDuration : 0; easing.type: Easing.OutCubic }
         }
 
         Repeater {
@@ -62,12 +65,15 @@ Item {
                 vertical: strip.vertical
                 badge: strip.badges[workspace.idx] || ""
                 showBadge: strip.showBadges
+                contentMode: strip.contentMode
+                animate: strip.animate
                 onPicked: strip.picked(workspace)
             }
         }
     }
 
     WheelHandler {
+        enabled: strip.wheelSwitches
         property real pending: 0
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: event => {

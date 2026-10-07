@@ -1,103 +1,166 @@
 .pragma library
 
-function columnItems(columns, windowsById, rowsByUuid) {
-    const items = []
-    columns.forEach((ids, position) => {
-        const windows = []
-        for (const id of ids) {
-            const window = windowsById[id]
-            const row = window ? rowsByUuid[window.uuid] : undefined
-            if (row)
-                windows.push(Object.assign({ konveyorId: id }, row))
-        }
-        if (windows.length > 0)
-            items.push({ key: "c" + ids[0], appKey: windows[0].appKey, columns: [{ index: position + 1, id: ids[0] }], windows: windows })
-    })
-    return items
+function windowRows(ids, windowsById, rowsByUuid) {
+    const rows = []
+    for (const id of ids) {
+        const window = windowsById[id]
+        const row = window ? rowsByUuid[window.uuid] : undefined
+        if (row)
+            rows.push(Object.assign({ konveyorId: id }, row))
+    }
+    return rows
 }
 
-function withParked(items, rows, placed, parkedAfter) {
-    const result = items.slice()
+function columnEntries(workspace, windowsById, rowsByUuid) {
+    const entries = []
+    workspace.columns.forEach((ids, position) => {
+        const windows = windowRows(ids, windowsById, rowsByUuid)
+        if (windows.length === 0)
+            return
+        entries.push({
+            key: "c" + ids[0],
+            kind: "column",
+            appKey: windows[0].appKey,
+            workspace: workspace.id,
+            tabbed: (workspace.displays || [])[position] === "tabbed",
+            columns: [{ index: position + 1, id: ids[0], focused: !!workspace.focused }],
+            windows: windows
+        })
+    })
+    return entries
+}
+
+function looseEntry(row, workspace) {
+    return { key: "w" + row.uuid, kind: "window", appKey: row.appKey, workspace: workspace, tabbed: false, columns: [], windows: [row] }
+}
+
+function withParked(entries, rows, placed, parkedAfter, workspace) {
+    const result = entries.slice()
     const loose = []
     for (const row of rows) {
         if (placed[row.uuid])
             continue
-        const item = { key: "w" + row.uuid, appKey: row.appKey, columns: [], windows: [row] }
+        const entry = looseEntry(row, workspace)
         if (!(row.uuid in parkedAfter)) {
-            loose.push(item)
+            loose.push(entry)
             continue
         }
         const after = parkedAfter[row.uuid]
         const anchor = after === null ? -1 : result.findIndex(each => each.windows.some(window => window.konveyorId === after))
-        result.splice(after !== null && anchor < 0 ? result.length : anchor + 1, 0, item)
+        result.splice(after !== null && anchor < 0 ? result.length : anchor + 1, 0, entry)
     }
     return result.concat(loose)
 }
 
-function mergeAdjacent(items) {
+function mergeable(first, second) {
+    return !!first && first.appKey && first.appKey === second.appKey && first.workspace === second.workspace
+        && (first.kind === "group" || first.windows.length === 1) && second.windows.length === 1
+        && (first.columns.length > 0) === (second.columns.length > 0)
+}
+
+function mergeAdjacent(entries) {
     const merged = []
-    for (const item of items) {
+    for (const entry of entries) {
         const last = merged[merged.length - 1]
-        if (last && last.appKey && last.appKey === item.appKey && (last.columns.length > 0) === (item.columns.length > 0)) {
-            last.columns = last.columns.concat(item.columns)
-            last.windows = last.windows.concat(item.windows)
+        if (mergeable(last, entry)) {
+            last.kind = "group"
+            last.columns = last.columns.concat(entry.columns)
+            last.windows = last.windows.concat(entry.windows)
         } else {
-            merged.push(Object.assign({}, item))
+            merged.push(Object.assign({}, entry))
         }
     }
     return merged
 }
 
-function insertIdlePins(items, pins, launchers) {
+function insertIdlePins(entries, pins, launchers) {
     const running = {}
-    for (const item of items)
-        running[item.appKey] = true
+    for (const entry of entries)
+        for (const window of entry.windows)
+            running[window.appKey] = true
     const inserted = {}
-    const result = items.slice()
+    const result = entries.slice()
     pins.forEach((pin, index) => {
         if (running[pin])
             return
         let anchor = ""
-        for (let before = index - 1; before >= 0; --before) {
-            if (running[pins[before]]) {
-                anchor = pins[before]
-                break
-            }
-        }
+        for (let before = index - 1; before >= 0 && !anchor; --before)
+            anchor = running[pins[before]] ? pins[before] : ""
         const count = inserted[anchor] || 0
         let at = count
         if (anchor) {
             let last = -1
-            result.forEach((item, position) => {
-                if (item.appKey === anchor)
+            result.forEach((entry, position) => {
+                if (entry.windows.some(window => window.appKey === anchor))
                     last = position
             })
             at = last + 1 + count
         }
         inserted[anchor] = count + 1
-        result.splice(at, 0, { key: "p" + pin, appKey: pin, columns: [], windows: [], launcher: launchers[pin] || { url: pin } })
+        result.splice(at, 0, { key: "p" + pin, kind: "pin", appKey: pin, workspace: -1, tabbed: false, columns: [], windows: [], pinned: true,
+            launcher: launchers[pin] || { url: pin } })
     })
     return result
 }
 
 function buildItems(state) {
-    const rowsByUuid = {}
-    for (const row of state.rows)
-        rowsByUuid[row.uuid] = row
-    const items = columnItems(state.columns, state.windowsById, rowsByUuid)
+    const rowsByUuid = keyed(state.rows, row => row.uuid)
+    let entries = []
+    for (const workspace of state.workspaces || [])
+        entries = entries.concat(columnEntries(workspace, state.windowsById, rowsByUuid))
     const placed = {}
-    for (const item of items)
-        for (const window of item.windows)
+    for (const entry of entries)
+        for (const window of entry.windows)
             placed[window.uuid] = true
-    let all = withParked(items, state.rows, placed, state.parkedAfter || {})
+    const home = state.workspaces && state.workspaces.length > 0 ? state.workspaces[0].id : -1
+    entries = withParked(entries, state.rows, placed, state.parkedAfter || {}, home)
     if (state.merge)
-        all = mergeAdjacent(all)
-    const pinned = {}
-    for (const pin of state.pins)
-        pinned[pin] = true
-    for (const item of all)
-        item.pinned = !!pinned[item.appKey]
-    return insertIdlePins(all, state.pins, state.launchers)
+        entries = mergeAdjacent(entries)
+    const pinned = keyed(state.pins, pin => pin)
+    for (const entry of entries)
+        entry.pinned = pinned[entry.appKey] !== undefined
+    return insertIdlePins(entries, state.pins, state.launchers)
+}
+
+function columnBadge(entry, labels) {
+    for (const column of (entry ? entry.columns : []))
+        if (column.focused && labels[column.index])
+            return labels[column.index]
+    return ""
+}
+
+function mostRecent(windows) {
+    return windows.reduce((best, window) => window.lastActivated > best.lastActivated ? window : best, windows[0])
+}
+
+function clickResult(windows, clicked, mode) {
+    if (windows.length === 0)
+        return { action: "launch" }
+    if (clicked && !clicked.active)
+        return { action: "activate", window: clicked }
+    const active = clicked || windows.find(window => window.active)
+    if (!active)
+        return { action: "activate", window: mostRecent(windows) }
+    if (mode === 1)
+        return { action: "none" }
+    if (clicked || windows.length === 1)
+        return mode === 0 ? { action: "minimize", window: active } : { action: "cycle", window: active }
+    return { action: "activate", window: windows[(windows.indexOf(active) + 1) % windows.length] }
+}
+
+function nextOfApp(windows, window) {
+    const same = windows.filter(each => each.appKey === window.appKey)
+    const at = same.findIndex(each => each.uuid === window.uuid)
+    return same.length > 1 && at >= 0 ? same[(at + 1) % same.length] : null
+}
+
+function steppedWindow(windows, step) {
+    if (windows.length === 0)
+        return null
+    const active = windows.findIndex(window => window.active)
+    if (active < 0)
+        return windows[step > 0 ? 0 : windows.length - 1]
+    return windows[(active + step + windows.length) % windows.length]
 }
 
 function planMoves(current, desired) {
@@ -114,26 +177,26 @@ function planMoves(current, desired) {
     return moves
 }
 
-function columnIds(items) {
+function columnIds(entries) {
     const ids = []
-    for (const item of items)
-        for (const column of item.columns)
+    for (const entry of entries)
+        for (const column of entry.columns)
             ids.push(column.id)
     return ids
 }
 
-function reorder(items, from, to) {
-    const moved = items.slice()
-    const item = moved.splice(from, 1)[0]
-    moved.splice(to, 0, item)
+function reorder(entries, from, to) {
+    const moved = entries.slice()
+    const entry = moved.splice(from, 1)[0]
+    moved.splice(to, 0, entry)
     return moved
 }
 
-function pinOrder(items, pins) {
+function pinOrder(entries, pins) {
     const order = []
-    for (const item of items)
-        if (pins.indexOf(item.appKey) >= 0 && order.indexOf(item.appKey) < 0)
-            order.push(item.appKey)
+    for (const entry of entries)
+        if (pins.indexOf(entry.appKey) >= 0 && order.indexOf(entry.appKey) < 0)
+            order.push(entry.appKey)
     return order
 }
 
@@ -185,6 +248,30 @@ function steppedWorkspace(workspaces, step) {
     const active = workspaces.findIndex(workspace => workspace.is_active)
     const next = Math.max(0, Math.min(workspaces.length - 1, active + step))
     return active < 0 || next === active ? null : workspaces[next]
+}
+
+function shownWorkspaces(workspaces, showEmpty) {
+    return workspaces.filter(workspace => showEmpty || workspace.is_active || (workspace.columns || []).length > 0)
+}
+
+function pinUrl(text) {
+    const id = String(text || "").trim()
+    if (!id)
+        return ""
+    if (/^[a-z]+:/.test(id))
+        return id
+    return "applications:" + (id.endsWith(".desktop") ? id : id + ".desktop")
+}
+
+function pinLabel(url) {
+    return String(url).replace(/^applications:/, "").replace(/\.desktop$/, "").replace(/^file:\/\/.*\//, "")
+}
+
+function movedPin(pins, index, delta) {
+    const target = index + delta
+    if (index < 0 || target < 0 || target >= pins.length)
+        return pins.slice()
+    return reorder(pins, index, target)
 }
 
 function syncKeys(model, keys) {

@@ -25,8 +25,8 @@ Item {
         return value
     }
 
-    function query(member, apply) {
-        DBus.SessionBus.asyncCall(message(member), reply => {
+    function query(member, apply, args) {
+        DBus.SessionBus.asyncCall(message(member, args), reply => {
             try {
                 apply(JSON.parse(String(unwrap(reply))))
             } catch (error) {
@@ -66,10 +66,12 @@ Item {
             query("Binds", value => bus.binds = value || [])
     }
 
-    function perform(name, args, id) {
+    function perform(name, args, id, focus) {
         const action = { name: name, arguments: (args || []).map(String), properties: {} }
         if (id !== undefined)
             action.id = id
+        if (focus === false)
+            action.properties.focus = "false"
         DBus.SessionBus.asyncCall(message("Action", [JSON.stringify(action)]))
     }
 
@@ -82,6 +84,14 @@ Item {
         if (!focused)
             perform("focus-monitor", [output])
         perform("focus-workspace", [workspace.idx])
+    }
+
+    function appRules(id, done) {
+        query("AppRules", done, [JSON.stringify({ id: id })])
+    }
+
+    function setAppRule(id, option, enabled) {
+        DBus.SessionBus.asyncCall(message("SetAppRule", [JSON.stringify({ id: id, option: option, enabled: enabled })]))
     }
 
     onAvailableChanged: if (available) refreshAll()

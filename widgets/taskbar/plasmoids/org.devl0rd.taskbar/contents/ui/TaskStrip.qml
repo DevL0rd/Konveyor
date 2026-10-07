@@ -1,42 +1,35 @@
 import QtQuick
-import org.kde.kirigami as Kirigami
-import org.kde.plasma.core as PlasmaCore
 import "TaskOrder.js" as TaskOrder
 
 ListView {
     id: strip
 
+    required property TaskLook look
     property var items: []
-    property real size: 32
-    property bool vertical: false
-    property int edge: PlasmaCore.Types.BottomEdge
     property var columnBadges: ({})
     property bool showBadges: false
+    property bool wheelCycles: false
     property var itemsByKey: ({})
     property string dragKey
     property int dragFrom: -1
     property int dropIndex: -1
     property real dragOffset: 0
+    property real dragLength: 0
     property bool settling: false
     property bool holding: false
 
-    signal itemActivated(var item, Item button)
-    signal itemClosed(var item)
-    signal menuRequested(var item, Item button)
+    signal itemActivated(var entry, var window, Item button)
+    signal itemMiddleClicked(var entry, var window)
+    signal menuRequested(var entry, var window, Item button)
+    signal windowPicked(var window)
+    signal stepped(int step)
     signal reordered(var keys, string movedKey)
-
-    function badgeFor(item) {
-        for (const column of (item ? item.columns : []))
-            if (columnBadges[column.index])
-                return columnBadges[column.index]
-        return ""
-    }
 
     function sync() {
         if (dragKey || holding)
             return
-        itemsByKey = TaskOrder.keyed(items, item => item.key)
-        TaskOrder.syncKeys(keys, items.map(item => item.key))
+        itemsByKey = TaskOrder.keyed(items, entry => entry.key)
+        TaskOrder.syncKeys(keys, items.map(entry => entry.key))
     }
 
     function release() {
@@ -44,23 +37,39 @@ ListView {
         sync()
     }
 
+    function startOf(index) {
+        const item = itemAtIndex(index)
+        return item ? (look.vertical ? item.y : item.x) : 0
+    }
+
+    function extentOf(index) {
+        const item = itemAtIndex(index)
+        return item ? (look.vertical ? item.height : item.width) : 0
+    }
+
     function dragTo(index, key, position, grab) {
-        const along = vertical ? position.y + contentY : position.x + contentX
+        const along = look.vertical ? position.y + contentY : position.x + contentX
         if (!dragKey) {
             dragFrom = index
             dragKey = key
+            dragLength = extentOf(index) + spacing
         }
-        dragOffset = along - (vertical ? grab.y : grab.x) - index * size
-        dropIndex = Math.max(0, Math.min(keys.count - 1, Math.floor(along / size)))
+        dragOffset = along - (look.vertical ? grab.y : grab.x) - startOf(dragFrom)
+        const center = startOf(dragFrom) + dragOffset + extentOf(dragFrom) / 2
+        let target = 0
+        for (let i = 0; i < keys.count; ++i)
+            if (i !== dragFrom && startOf(i) + extentOf(i) / 2 < center)
+                ++target
+        dropIndex = target
     }
 
     function shiftOf(index) {
         if (!dragKey || index === dragFrom)
             return 0
         if (dragFrom < dropIndex && index > dragFrom && index <= dropIndex)
-            return -size
+            return -dragLength
         if (dragFrom > dropIndex && index >= dropIndex && index < dragFrom)
-            return size
+            return dragLength
         return 0
     }
 
@@ -80,16 +89,17 @@ ListView {
 
     onItemsChanged: sync()
 
-    orientation: vertical ? ListView.Vertical : ListView.Horizontal
-    interactive: !dragKey && (vertical ? contentHeight > height : contentWidth > width)
+    orientation: look.vertical ? ListView.Vertical : ListView.Horizontal
+    interactive: !dragKey && (look.vertical ? contentHeight > height : contentWidth > width)
     currentIndex: -1
     highlightFollowsCurrentItem: false
     keyNavigationEnabled: false
     boundsBehavior: Flickable.StopAtBounds
     clip: true
-    spacing: 0
-    implicitWidth: vertical ? size : contentWidth
-    implicitHeight: vertical ? contentHeight : size
+    spacing: look.spacing
+    cacheBuffer: 10000
+    implicitWidth: look.vertical ? look.thickness : contentWidth
+    implicitHeight: look.vertical ? contentHeight : look.thickness
 
     Timer {
         id: settled
@@ -97,47 +107,60 @@ ListView {
         onTriggered: strip.settling = false
     }
 
+    WheelHandler {
+        enabled: strip.wheelCycles
+        property real pending: 0
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            pending += event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
+            if (Math.abs(pending) >= 120) {
+                strip.stepped(pending > 0 ? -1 : 1)
+                pending = 0
+            }
+        }
+    }
+
     model: ListModel {
         id: keys
     }
 
-    delegate: TaskButton {
-        id: delegateButton
+    delegate: TaskEntry {
+        id: entryDelegate
         required property int index
         required property string key
+        look: strip.look
         shift: dragging ? strip.dragOffset : strip.shiftOf(index)
         animateShift: !dragging && !strip.settling
-        item: strip.itemsByKey[key] || null
-        size: strip.size
-        vertical: strip.vertical
-        edge: strip.edge
+        entry: strip.itemsByKey[key] || null
         dragSpace: strip
         dragging: strip.dragKey === key
-        badge: strip.badgeFor(item)
+        badge: TaskOrder.columnBadge(entry, strip.columnBadges)
         showBadge: strip.showBadges
-        z: dragging ? 5 : 0
-        onActivated: strip.itemActivated(item, delegateButton)
-        onCloseRequested: strip.itemClosed(item)
-        onMenuRequested: strip.menuRequested(item, delegateButton)
+        onActivated: (window, button) => strip.itemActivated(entry, window, button)
+        onMiddleClicked: window => strip.itemMiddleClicked(entry, window)
+        onMenuRequested: (window, button) => strip.menuRequested(entry, window, button)
+        onPicked: window => strip.windowPicked(window)
         onDragMoved: (position, grab) => strip.dragTo(index, key, position, grab)
         onDragFinished: strip.finishDrag()
     }
 
     add: Transition {
-        NumberAnimation { property: "scale"; from: 0.4; to: 1; duration: Kirigami.Units.longDuration; easing.type: Easing.OutBack }
-        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Kirigami.Units.longDuration }
+        enabled: strip.look.animate
+        NumberAnimation { property: "scale"; from: 0.4; to: 1; duration: strip.look.longDuration; easing.type: Easing.OutBack }
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: strip.look.longDuration }
     }
     remove: Transition {
-        NumberAnimation { property: "scale"; to: 0.4; duration: Kirigami.Units.shortDuration }
-        NumberAnimation { property: "opacity"; to: 0; duration: Kirigami.Units.shortDuration }
+        enabled: strip.look.animate
+        NumberAnimation { property: "scale"; to: 0.4; duration: strip.look.shortDuration }
+        NumberAnimation { property: "opacity"; to: 0; duration: strip.look.shortDuration }
     }
     move: Transition {
-        enabled: !strip.settling
-        NumberAnimation { properties: "x,y"; duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+        enabled: !strip.settling && strip.look.animate
+        NumberAnimation { properties: "x,y"; duration: strip.look.longDuration; easing.type: Easing.OutCubic }
     }
     displaced: Transition {
-        enabled: !strip.settling
-        NumberAnimation { properties: "x,y"; duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { properties: "scale,opacity"; to: 1; duration: Kirigami.Units.shortDuration }
+        enabled: !strip.settling && strip.look.animate
+        NumberAnimation { properties: "x,y"; duration: strip.look.longDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { properties: "scale,opacity"; to: 1; duration: strip.look.shortDuration }
     }
 }

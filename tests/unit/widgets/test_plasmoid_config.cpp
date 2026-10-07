@@ -35,6 +35,7 @@ void plasmoidRows()
         "router-monitor/plasmoids/org.devl0rd.routermon.panel", "org.devl0rd.routermon.dns", {QStringLiteral("router-monitor/shared/lib")});
     QTest::newRow("system log") << spec(
         "system-log/plasmoids/org.devl0rd.logmon.journal", "org.devl0rd.logmon.journal", {QStringLiteral("system-log/shared/lib")});
+    QTest::newRow("taskbar") << spec("taskbar/plasmoids/org.devl0rd.taskbar", "org.devl0rd.taskbar");
 }
 
 void pageRows()
@@ -51,17 +52,9 @@ void pageRows()
     QTest::newRow("friends") << page("portals/plasmoids/org.devl0rd.portal.friends", "org.devl0rd.portal.friends");
     QTest::newRow("kontrol panel button") << page(
         "portals/plasmoids/org.devl0rd.portal.launcher", "org.devl0rd.portal.launcher", {}, "configButton.qml");
-}
-
-QVariantMap pageProperties(PlasmoidHarness &harness)
-{
-    QVariantMap properties {{QStringLiteral("title"), QStringLiteral("General")}};
-    const QStringList keys = harness.plasmoid()->configuration()->keys();
-    for (const QString &key : keys) {
-        properties.insert(QStringLiteral("cfg_") + key, harness.config(key));
-        properties.insert(QStringLiteral("cfg_") + key + QStringLiteral("Default"), harness.config(key));
+    for (const char *file : {"configAppearance.qml", "configBehavior.qml", "configWorkspaces.qml", "configPins.qml"}) {
+        QTest::newRow(file) << page("taskbar/plasmoids/org.devl0rd.taskbar", "org.devl0rd.taskbar", {}, file);
     }
-    return properties;
 }
 
 QStringList pageSettings(QObject *page)
@@ -102,7 +95,7 @@ QStringList usedSettings(const QString &directory)
 QObject *openPage(PlasmoidHarness &harness, const QString &file = QStringLiteral("configGeneral.qml"))
 {
     harness.setUp(Form::Planar);
-    return harness.create(QStringLiteral("contents/ui/") + file, pageProperties(harness));
+    return harness.create(QStringLiteral("contents/ui/") + file, configPageProperties(harness, QStringLiteral("General")));
 }
 
 bool finished(QObject *page, const QString &result, bool error)

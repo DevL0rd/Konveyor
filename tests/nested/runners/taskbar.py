@@ -9,8 +9,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from checks import Checks
-from fakepointer import Held, click
-from kwinsession import active_title, column_titles, konveyor, konveyor_action, wait_for, window_minimized
+from fakepointer import Held, click, keys
+from checks import config_path
+from kwinsession import (activate, active_title, column_titles, konveyor, konveyor_action, konveyor_windows, run_script, wait_for,
+                         window_minimized)
 from screenshot import capture_workspace
 from widgets_load import install, load_errors, plasma
 
@@ -73,6 +75,35 @@ def ids():
     return {window["title"]: window["id"] for window in json.loads(konveyor("Windows"))}
 
 
+def columns():
+    titles = {window["id"]: window["title"] for window in konveyor_windows()}
+    workspace = next(workspace for workspace in json.loads(konveyor("Workspaces")) if workspace["is_focused"])
+    return [[titles[id] for id in column] for column in workspace["columns"]]
+
+
+def act_on(title, name, *arguments):
+    return konveyor("Action", json.dumps({"name": name, "arguments": list(arguments), "properties": {}, "id": ids()[title]}))
+
+
+def widths():
+    return {window["title"]: round(window["layout"]["tile_size"][0]) for window in konveyor_windows()}
+
+
+def strong_blue(pixel):
+    return pixel[2] > 180 and pixel[0] < 120 and 130 < pixel[1] < 210
+
+
+def badge_pixels(icons, pill):
+    hits = panel_pixels(strong_blue)
+    near_icons = sum(1 for x, y in hits if icons[0][0] - 20 <= x <= icons[-1][0] + 24 and y < icons[0][1] - 8)
+    near_pills = sum(1 for x, y in hits if pill[0] - 8 <= x <= pill[1] + 24 and y < pill[2] - 13)
+    return near_icons, near_pills
+
+
+def popups():
+    return run_script('for (const w of workspace.windowList()) { if (!w.deleted && w.popupWindow) print("MARK|" + w.caption); }')
+
+
 def panel_loads(checks):
     install(checks)
     checks.expect(wait_for(lambda: plasma("print(desktops().length);") not in ("", "0"), 180, 1), "plasmashell is up with a desktop")
@@ -85,6 +116,7 @@ def panel_loads(checks):
 def icons_follow_columns(checks):
     icons = three_icons()
     order = column_titles()
+    activate(order[2])
     for index, (x, y) in enumerate(icons):
         click(x, y)
         checks.expect(wait_for(lambda: active_title() == order[index], 10), f"icon {index + 1} activates column {index + 1} ({order[index]})")
@@ -154,6 +186,66 @@ def workspace_pills_switch(checks):
     checks.expect(wait_for(three_icons, 10), "and the icons come back")
 
 
+def shared_column(checks):
+    order = column_titles()
+    checks.equal(act_on(order[1], "consume-or-expel-window-left"), "", "the second window joins the first column")
+    checks.expect(wait_for(lambda: columns() == [[order[0], order[1]], [order[2]]], 10), f"two windows share a column ({columns()})")
+    checks.expect(wait_for(three_icons, 10), f"each window of the shared column keeps its own icon ({icon_centers()})")
+    activate(order[2])
+    time.sleep(1)
+    for index, title in enumerate(order):
+        x, y = three_icons()[index]
+        click(x, y)
+        checks.expect(wait_for(lambda: active_title() == title, 10), f"icon {index + 1} focuses {title} ({active_title()})")
+    checks.equal(act_on(order[1], "consume-or-expel-window-right"), "", "the window moves back out to its own column")
+    checks.expect(wait_for(lambda: len(columns()) == 3, 10), f"three columns again ({columns()})")
+    checks.expect(wait_for(three_icons, 10), "and three icons")
+
+
+def shortcut_badges(checks):
+    time.sleep(1)
+    icons, pill = three_icons(), current_pill()
+    before = badge_pixels(icons, pill)
+    with Held() as pointer:
+        pointer.send((125, 1))
+        time.sleep(1)
+        meta = badge_pixels(icons, pill)
+        pointer.send((56, 1))
+        time.sleep(1)
+        both = badge_pixels(icons, pill)
+        pointer.send((56, 0), (125, 0))
+    checks.expect(meta[1] > before[1] + 20 and meta[0] <= before[0] + 5, f"Meta shows the workspace numbers only ({before} -> {meta})")
+    checks.expect(both[0] > before[0] + 20 and both[1] <= before[1] + 5, f"Meta+Alt shows the app numbers instead ({before} -> {both})")
+    checks.expect(wait_for(lambda: badge_pixels(icons, pill)[0] <= before[0] + 5, 5), "the numbers go away when the keys are released")
+
+
+def menu_actions(checks):
+    order = column_titles()
+    x, y = three_icons()[0]
+    before = len(popups())
+    with Held() as pointer:
+        pointer.send(f"move:{x}:{y}")
+        time.sleep(0.3)
+        pointer.send("button:273:1", "button:273:0")
+    checks.expect(wait_for(lambda: len(popups()) > before, 10), "right-clicking an icon opens its menu")
+    keys((1, 1), (1, 0))
+    checks.expect(wait_for(lambda: len(popups()) == before, 10), "Escape closes it")
+    width = widths()[order[0]]
+    checks.equal(act_on(order[0], "set-column-width", "+10%"), "", "Wider, as the menu sends it")
+    checks.expect(wait_for(lambda: widths()[order[0]] > width, 10), f"the column gets wider ({width} -> {widths()[order[0]]})")
+    checks.equal(act_on(order[2], "consume-or-expel-window-left"), "", "Join the Column on the Left, as the menu sends it")
+    checks.expect(wait_for(lambda: columns() == [[order[0]], [order[1], order[2]]], 10), f"the window joins the column ({columns()})")
+    rule = {"id": ids()[order[0]], "option": "float", "enabled": True}
+    floating = config_path().read_text().count("open-floating true")
+    checks.equal(konveyor("SetAppRule", json.dumps(rule)), "", "Always Float, as the menu sends it")
+    checks.equal(config_path().read_text().count("open-floating true"), floating + 1, "the rule is written to config.kdl")
+    checks.equal(json.loads(konveyor("AppRules", json.dumps({"id": rule["id"]})))["rules"]["float"], True, "and read back for the menu")
+    checks.equal(konveyor("SetAppRule", json.dumps({**rule, "enabled": False})), "", "unchecking removes the rule")
+    checks.equal(config_path().read_text().count("open-floating true"), floating, "the rule is gone from config.kdl")
+    act_on(order[2], "consume-or-expel-window-right")
+    checks.expect(wait_for(lambda: len(columns()) == 3, 10), f"three columns again ({columns()})")
+
+
 def middle_click_closes(checks):
     order = column_titles()
     x, y = three_icons()[1]
@@ -168,7 +260,8 @@ def middle_click_closes(checks):
 
 def main():
     Checks().run(panel_loads, icons_follow_columns, konveyor_moves_reorder_icons, dragging_icons_moves_columns,
-                 clicking_the_active_icon_minimizes, workspaces_switch, workspace_pills_switch, middle_click_closes)
+                 clicking_the_active_icon_minimizes, workspaces_switch, workspace_pills_switch, shared_column, shortcut_badges, menu_actions,
+                 middle_click_closes)
 
 
 if __name__ == "__main__":

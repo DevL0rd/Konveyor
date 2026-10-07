@@ -11,11 +11,17 @@ PlasmaCore.ToolTipArea {
     property bool vertical: false
     property string badge
     property bool showBadge: false
+    property int contentMode: 0
+    property bool animate: true
 
     readonly property var columns: workspace.columns || []
     readonly property bool current: !!workspace.is_active
     readonly property bool urgent: !!workspace.is_urgent
     readonly property string name: workspace.name || ""
+    readonly property bool dots: contentMode === 0
+    readonly property string label: contentMode === 0 ? name : contentMode === 1 && name ? name : String(workspace.idx || "")
+    readonly property int shortDuration: animate ? Kirigami.Units.shortDuration : 0
+    readonly property int longDuration: animate ? Kirigami.Units.longDuration : 0
     readonly property int maxDots: 5
     readonly property int dot: Math.max(4, Math.round(size * 0.14))
     readonly property real thickness: Math.round(size * 0.52)
@@ -31,10 +37,10 @@ PlasmaCore.ToolTipArea {
     location: Plasmoid.location
 
     Behavior on implicitWidth {
-        NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: pill.longDuration; easing.type: Easing.OutCubic }
     }
     Behavior on implicitHeight {
-        NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: pill.longDuration; easing.type: Easing.OutCubic }
     }
 
     Rectangle {
@@ -44,10 +50,10 @@ PlasmaCore.ToolTipArea {
         opacity: pill.current ? 1 : area.containsMouse ? 0.16 : 0
 
         Behavior on opacity {
-            NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: pill.shortDuration; easing.type: Easing.OutCubic }
         }
         Behavior on color {
-            ColorAnimation { duration: Kirigami.Units.longDuration }
+            ColorAnimation { duration: pill.longDuration }
         }
     }
 
@@ -70,8 +76,8 @@ PlasmaCore.ToolTipArea {
         verticalItemAlignment: Grid.AlignVCenter
 
         Text {
-            visible: pill.name.length > 0 && !pill.vertical
-            text: pill.name
+            visible: pill.label.length > 0 && (!pill.vertical || pill.label.length <= 2)
+            text: pill.label
             color: pill.ink
             font.pixelSize: Math.round(pill.thickness * 0.5)
             font.weight: pill.current ? Font.DemiBold : Font.Normal
@@ -80,7 +86,7 @@ PlasmaCore.ToolTipArea {
         }
 
         Rectangle {
-            visible: pill.columns.length === 0
+            visible: pill.dots && pill.columns.length === 0
             width: pill.dot
             height: pill.dot
             radius: pill.dot / 2
@@ -91,7 +97,7 @@ PlasmaCore.ToolTipArea {
         }
 
         Repeater {
-            model: Math.min(pill.columns.length, pill.maxDots)
+            model: pill.dots ? Math.min(pill.columns.length, pill.maxDots) : 0
 
             Rectangle {
                 required property int index
@@ -105,16 +111,16 @@ PlasmaCore.ToolTipArea {
                 opacity: focused ? 1 : pill.current ? 0.75 : 0.5
 
                 Behavior on width {
-                    NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: pill.longDuration; easing.type: Easing.OutCubic }
                 }
                 Behavior on height {
-                    NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: pill.longDuration; easing.type: Easing.OutCubic }
                 }
             }
         }
 
         Text {
-            visible: pill.columns.length > pill.maxDots
+            visible: pill.dots && pill.columns.length > pill.maxDots
             text: "+" + (pill.columns.length - pill.maxDots)
             color: pill.ink
             font.pixelSize: Math.round(pill.thickness * 0.42)
@@ -124,6 +130,7 @@ PlasmaCore.ToolTipArea {
     ShortcutBadge {
         label: pill.badge
         shown: pill.showBadge
+        animate: pill.animate
         anchors.horizontalCenter: parent.right
         anchors.verticalCenter: parent.top
     }
