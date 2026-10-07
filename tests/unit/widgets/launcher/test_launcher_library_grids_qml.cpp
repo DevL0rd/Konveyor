@@ -171,8 +171,8 @@ private Q_SLOTS:
     void homeLibraryCardsFollowPlayAndFriends()
     {
         QVERIFY(openLibrary(false));
-        const QString friendsPlaying = QStringLiteral("launcher.currentView().sections[3]");
-        const QString playing = QStringLiteral("launcher.currentView().sections[4]");
+        const QString friendsPlaying = QStringLiteral("launcher.currentView().sections[4]");
+        const QString playing = QStringLiteral("launcher.currentView().sections[3]");
         const QString name = QStringLiteral("modelData.name");
         EXPECT_TILES(friendsPlaying, name, {QStringLiteral("Portal 2"), QStringLiteral("Minecraft")});
         EXPECT_TILES(playing, name, {QStringLiteral("Portal 2"), QStringLiteral("Half-Life")});

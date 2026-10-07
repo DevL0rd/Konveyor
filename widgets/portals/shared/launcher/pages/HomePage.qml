@@ -9,7 +9,7 @@ import ".."
 PopScroll {
     id: page
 
-    readonly property var sections: [pinned, folderGrid, recentApps, friendsPlaying, playing, recentFiles]
+    readonly property var sections: [pinned, folderGrid, recentApps, playing, friendsPlaying, recentFiles]
     readonly property int tileSize: launcherData.config.tileSize
     readonly property string greeting: {
         launcher.shown
@@ -209,26 +209,6 @@ PopScroll {
     }
 
     SectionHeader {
-        visible: friendsPlaying.visible
-        title: i18n("Friends playing now")
-        trailing: i18np("%1 friend in game", "%1 friends in game", launcherData.friendsInGame)
-        actionText: i18n("All friends")
-        onActionClicked: launcher.goToPage("friends")
-    }
-    TileGrid {
-        id: friendsPlaying
-        visible: launcherData.config.showFriends && launcherData.playingNow.length > 0
-        Layout.fillWidth: true
-        Layout.preferredHeight: implicitHeight
-        cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
-        cellHeight: Math.round(cellWidth * 0.4667)
-        limit: columns
-        entries: launcherData.playingNow
-        keyOf: entry => entry.key
-        delegate: PlayingNowCard {}
-    }
-
-    SectionHeader {
         visible: playing.visible
         title: i18n("Continue playing")
         actionText: i18n("All games")
@@ -247,6 +227,26 @@ PopScroll {
         entries: launcherData.recentGames
         keyOf: game => game.id
         delegate: GameTile {}
+    }
+
+    SectionHeader {
+        visible: friendsPlaying.visible
+        title: i18n("Friends playing now")
+        trailing: i18np("%1 friend in game", "%1 friends in game", launcherData.friendsInGame)
+        actionText: i18n("All friends")
+        onActionClicked: launcher.goToPage("friends")
+    }
+    TileGrid {
+        id: friendsPlaying
+        visible: launcherData.config.showFriends && launcherData.playingNow.length > 0
+        Layout.fillWidth: true
+        Layout.preferredHeight: implicitHeight
+        cellWidth: Math.floor(width / Math.max(1, Math.floor(width / (Kirigami.Units.gridUnit * 15))))
+        cellHeight: Math.round(cellWidth * 0.4667)
+        limit: columns
+        entries: launcherData.playingNow
+        keyOf: entry => entry.key
+        delegate: PlayingNowCard {}
     }
 
     SectionHeader {
