@@ -170,6 +170,7 @@ struct WorkspaceState
     bool isUrgent = false;
     std::optional<WindowId> activeWindow;
     QList<QList<WindowId>> columns;
+    QList<Config::ColumnDisplay> columnDisplays;
     Config::GroupAppWindows groupAppWindows = Config::GroupAppWindows::Beside;
     bool operator==(const WorkspaceState &) const = default;
 };

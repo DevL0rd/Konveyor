@@ -165,9 +165,12 @@ private Q_SLOTS:
     {
         Layout::WorkspaceState state;
         state.columns = {{4}, {7, 2}};
+        state.columnDisplays = {Config::ColumnDisplay::Normal, Config::ColumnDisplay::Tabbed};
         state.groupAppWindows = Config::GroupAppWindows::Stack;
         const QJsonObject json = Ipc::workspaceToJson(state);
         QCOMPARE(json.value(QStringLiteral("columns")).toArray(), (QJsonArray {QJsonArray {4}, QJsonArray {7, 2}}));
+        QCOMPARE(
+            json.value(QStringLiteral("column_displays")).toArray(), (QJsonArray {QStringLiteral("normal"), QStringLiteral("tabbed")}));
         QCOMPARE(json.value(QStringLiteral("group_app_windows")).toString(), QStringLiteral("stack"));
     }
 };

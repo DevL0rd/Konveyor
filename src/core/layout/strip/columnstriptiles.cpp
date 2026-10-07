@@ -219,21 +219,24 @@ void ColumnStrip::swapWindowInDirection(ScrollDirection direction)
     swapTiles(source, target);
 }
 
-void ColumnStrip::toggleColumnTabbedDisplay()
+void ColumnStrip::toggleColumnTabbedDisplay(std::optional<WindowId> window)
 {
-    if (m_columns.empty()) {
+    if (m_columns.empty() || (window && !locate(*window))) {
         return;
     }
-    const bool tabbed = m_columns[m_activeColumnIndex].isTabbed();
-    setColumnDisplay(tabbed ? Config::ColumnDisplay::Normal : Config::ColumnDisplay::Tabbed);
+    const bool tabbed = m_columns[targetLocation(window).column].isTabbed();
+    setColumnDisplay(tabbed ? Config::ColumnDisplay::Normal : Config::ColumnDisplay::Tabbed, window);
 }
 
-void ColumnStrip::setColumnDisplay(Config::ColumnDisplay display)
+void ColumnStrip::setColumnDisplay(Config::ColumnDisplay display, std::optional<WindowId> window)
 {
-    if (m_columns.empty() || m_columns[m_activeColumnIndex].displayStyle == display) {
+    if (m_columns.empty() || (window && !locate(*window))) {
         return;
     }
-    Column &column = m_columns[m_activeColumnIndex];
+    Column &column = m_columns[targetLocation(window).column];
+    if (column.displayStyle == display) {
+        return;
+    }
     cancelResizeForColumn(column);
     column.setColumnDisplay(display);
     column.layoutTiles(true);

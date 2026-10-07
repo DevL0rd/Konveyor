@@ -144,8 +144,9 @@ public:
     void consumeIntoColumn();
     void expelFromColumn();
     void swapWindowInDirection(ScrollDirection direction);
-    void toggleColumnTabbedDisplay();
-    void setColumnDisplay(Config::ColumnDisplay display);
+    void toggleColumnTabbedDisplay(std::optional<WindowId> window);
+    void setColumnDisplay(Config::ColumnDisplay display, std::optional<WindowId> window);
+    std::optional<std::size_t> tiledColumnIndex(WindowId window) const;
     void centerColumn();
     void centerWindow(std::optional<WindowId> window);
     void centerVisibleColumns();

@@ -9,15 +9,6 @@ namespace Konveyor::Layout
 namespace
 {
 
-std::optional<std::size_t> tiledColumnOf(const Workspace &workspace, WindowId id)
-{
-    const Column *column = workspace.isFloating(id) ? nullptr : workspace.scrolling().columnFor(id);
-    if (!column) {
-        return std::nullopt;
-    }
-    return static_cast<std::size_t>(column - workspace.scrolling().columns().data());
-}
-
 std::vector<WindowId> windowsOnAllDesktopsAway(Monitor &monitor)
 {
     std::vector<WindowId> found;
@@ -43,7 +34,7 @@ void Engine::Private::followWindowsOnAllDesktops()
         const std::vector<WindowId> away = windowsOnAllDesktopsAway(monitor);
         for (const WindowId id : away) {
             Workspace *workspace = workspaceOf(id);
-            const std::optional<std::size_t> column = tiledColumnOf(*workspace, id);
+            const std::optional<std::size_t> column = workspace->tiledColumnIndex(id);
             DetachedTile removed = workspace->removeTile(id);
             Workspace &active = monitor.activeWorkspace();
             MonitorAddRequest request;

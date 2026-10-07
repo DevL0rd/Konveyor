@@ -300,7 +300,7 @@ void focusMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &)
 
 void moveWindowToMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &action)
 {
-    d.moveWindowToMonitor(actionWindowId(action, d.focused), idx, true, std::nullopt);
+    d.moveWindowToMonitor(actionWindowId(action, d.focused), idx, actionFlag(action, QStringLiteral("focus"), true), std::nullopt);
 }
 
 void moveColumnToMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &)

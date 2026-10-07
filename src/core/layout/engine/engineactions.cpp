@@ -232,19 +232,49 @@ void registerFocusActions(ActionTable &table)
 namespace
 {
 
+using ColumnTarget = std::size_t (*)(std::size_t from, std::size_t count);
+
+void addColumnMoveAction(ActionTable &table, const char *name, void (*fn)(Workspace &), ColumnTarget to)
+{
+    addEngineAction(table, name, [fn, to](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
+        const std::optional<WindowId> window = actionWindowId(action, std::nullopt);
+        Workspace *workspace = d.workspaceForTarget(window);
+        if (!workspace) {
+            return ActionResult();
+        }
+        if (!window) {
+            fn(*workspace);
+            return ActionResult();
+        }
+        if (const auto from = workspace->tiledColumnIndex(*window)) {
+            const std::size_t count = workspace->scrolling().columns().size();
+            workspace->moveColumnToIndex(to(*from, count) + 1, window);
+        }
+        return ActionResult();
+    });
+}
+
 void registerSimpleMoveActions(ActionTable &table)
 {
-    addWorkspaceAction(table, "move-column-left", +[](Workspace &ws) { ws.moveLeft(); });
-    addWorkspaceAction(table, "move-column-right", +[](Workspace &ws) { ws.moveRight(); });
-    addWorkspaceAction(table, "move-column-to-first", +[](Workspace &ws) { ws.moveColumnToFirst(); });
-    addWorkspaceAction(table, "move-column-to-last", +[](Workspace &ws) { ws.moveColumnToLast(); });
+    addColumnMoveAction(
+        table, "move-column-left", +[](Workspace &ws) { ws.moveLeft(); },
+        +[](std::size_t from, std::size_t) { return from > 0 ? from - 1 : 0; });
+    addColumnMoveAction(
+        table, "move-column-right", +[](Workspace &ws) { ws.moveRight(); }, +[](std::size_t from, std::size_t) { return from + 1; });
+    addColumnMoveAction(
+        table, "move-column-to-first", +[](Workspace &ws) { ws.moveColumnToFirst(); },
+        +[](std::size_t, std::size_t) -> std::size_t { return 0; });
+    addColumnMoveAction(
+        table, "move-column-to-last", +[](Workspace &ws) { ws.moveColumnToLast(); },
+        +[](std::size_t, std::size_t count) { return count - 1; });
     addWorkspaceAction(table, "move-window-down", +[](Workspace &ws) { ws.moveDown(); });
     addWorkspaceAction(table, "move-window-up", +[](Workspace &ws) { ws.moveUp(); });
     addWorkspaceAction(table, "consume-window-into-column", +[](Workspace &ws) { ws.consumeIntoColumn(); });
     addWorkspaceAction(table, "expel-window-from-column", +[](Workspace &ws) { ws.expelFromColumn(); });
     addWorkspaceAction(table, "swap-window-left", +[](Workspace &ws) { ws.swapWindowInDirection(ScrollDirection::Left); });
     addWorkspaceAction(table, "swap-window-right", +[](Workspace &ws) { ws.swapWindowInDirection(ScrollDirection::Right); });
-    addWorkspaceAction(table, "toggle-column-tabbed-display", +[](Workspace &ws) { ws.toggleColumnTabbedDisplay(); });
+    addTargetAction(
+        table, "toggle-column-tabbed-display", +[](Workspace &ws, std::optional<WindowId> id) { ws.toggleColumnTabbedDisplay(id); });
     addWorkspaceAction(table, "center-column", +[](Workspace &ws) { ws.centerColumn(); });
     addWorkspaceAction(table, "center-visible-columns", +[](Workspace &ws) { ws.centerVisibleColumns(); });
     addTargetAction(table, "center-window", +[](Workspace &ws, std::optional<WindowId> id) { ws.centerWindow(id); });
@@ -284,13 +314,14 @@ void registerMoveActions(ActionTable &table)
         }
         return ActionResult();
     });
-    addEngineAction(table, "set-column-display", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
+    addEngineAction(table, "set-column-display", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId> target) {
         const auto display = parseColumnDisplay(actionArgument(action, 0));
         if (!display) {
             return actionError(display.error());
         }
-        if (Workspace *workspace = d.activeWorkspace()) {
-            workspace->setColumnDisplay(*display);
+        const std::optional<WindowId> window = actionWindowId(action, target);
+        if (Workspace *workspace = d.workspaceForTarget(window)) {
+            workspace->setColumnDisplay(*display, window);
         }
         return ActionResult();
     });

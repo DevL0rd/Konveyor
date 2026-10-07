@@ -93,6 +93,11 @@ QJsonObject workspaceToJson(const Layout::WorkspaceState &state)
         columns.append(ids);
     }
     object[QStringLiteral("columns")] = columns;
+    QJsonArray displays;
+    for (const Config::ColumnDisplay display : state.columnDisplays) {
+        displays.append(display == Config::ColumnDisplay::Tabbed ? QStringLiteral("tabbed") : QStringLiteral("normal"));
+    }
+    object[QStringLiteral("column_displays")] = displays;
     static const QStringList groupModes {QStringLiteral("off"), QStringLiteral("beside"), QStringLiteral("stack")};
     object[QStringLiteral("group_app_windows")] = groupModes.at(static_cast<qsizetype>(state.groupAppWindows));
     return object;

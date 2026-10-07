@@ -324,6 +324,7 @@ QList<WorkspaceState> Engine::workspaceStates() const
             for (const Column &column : workspace.scrolling().columns()) {
                 QList<WindowId> &ids = state.columns.emplaceBack();
                 std::ranges::transform(column.tiles, std::back_inserter(ids), &Tile::id);
+                state.columnDisplays.append(column.displayStyle);
             }
             state.groupAppWindows = workspace.options()->layout.groupAppWindows;
             states.append(state);
