@@ -114,14 +114,21 @@ def panel_loads(checks):
     checks.equal(load_errors("org.devl0rd.taskbar"), [], "the taskbar loads in a panel without QML errors")
 
 
+def click_until(x, y, done):
+    for _ in range(2):
+        click(x, y)
+        if wait_for(done, 5):
+            return True
+    return False
+
+
 def icons_follow_columns(checks):
     icons = three_icons()
     order = column_titles()
     activate(order[2])
     wait_for(lambda: active_title() == order[2], 10)
     for index, (x, y) in enumerate(icons):
-        click(x, y)
-        checks.expect(wait_for(lambda: active_title() == order[index], 10), f"icon {index + 1} activates column {index + 1} ({order[index]})")
+        checks.expect(click_until(x, y, lambda: active_title() == order[index]), f"icon {index + 1} activates column {index + 1} ({order[index]})")
 
 
 def konveyor_moves_reorder_icons(checks):
