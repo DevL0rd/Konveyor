@@ -9,7 +9,13 @@ Item {
     property int pid: 0
 
     readonly property string desktopId: appKey.replace(/^applications:/, "")
-    readonly property var appActions: entries.count > 0 && entries.objectAt(0) ? entries.objectAt(0).actions : []
+    property var appActions: []
+
+    onDesktopIdChanged: {
+        appActions = []
+        favorites.favorites = []
+        favorites.favorites = desktopId ? [desktopId] : []
+    }
 
     function findPlayer() {
         const name = desktopId.replace(/\.desktop$/, "")
@@ -39,7 +45,6 @@ Item {
 
     Kicker.SimpleFavoritesModel {
         id: favorites
-        favorites: actions.desktopId ? [actions.desktopId] : []
     }
 
     Instantiator {
@@ -47,7 +52,9 @@ Item {
         model: favorites
         delegate: QtObject {
             required property var model
-            readonly property var actions: model.actionList || []
+            readonly property var list: model.actionList || []
+            onListChanged: actions.appActions = list
+            Component.onCompleted: actions.appActions = list
         }
     }
 
