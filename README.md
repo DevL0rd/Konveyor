@@ -221,7 +221,7 @@ The swipes, pinch and taps work on touchpads and touchscreens alike. Pick other 
 
 ## 🧩 Konveyor widgets
 
-Konveyor comes with a set of Plasma widgets built to match: a full-screen launcher, system and process monitors, a router dashboard, a live system log and your Steam friends. Each one sits in your panel as a small, steady button and opens into a searchable dashboard. They also work as desktop widgets.
+Konveyor comes with a set of Plasma widgets built to match: a full-screen launcher, a taskbar that follows your columns, system and process monitors, a router dashboard, a live system log and your Steam friends. Each one sits in your panel as a small, steady button and opens into a searchable dashboard. They also work as desktop widgets.
 
 <p align="center"><img alt="The Kontrol Panel opening, searching, browsing games, shortcuts and settings" src="docs/media/widgets/launcher.gif" width="92%"></p>
 
@@ -282,6 +282,14 @@ Press <kbd>Meta</kbd> and the desktop dims behind the Kontrol Panel, one place f
     <td>Pin to Home</td>
   </tr>
 </table>
+
+### 🧭 Konveyor Taskbar
+
+Your columns, in your panel. The taskbar lists the columns of the workspace you're on in the same order, so dragging an icon moves its column and moving a column moves its icon. Pinned apps keep their spot and open in pin order. A slim strip next to them shows the workspaces of that screen with a dot for each column; click one to switch or scroll over it. Hold <kbd>Meta</kbd> to see the keys that switch workspaces.
+
+<p align="center"><img alt="Konveyor Taskbar with the workspace strip, a group, pinned apps and the focused app" src="docs/media/widgets/taskbar.png" width="70%"></p>
+
+The installer puts it right after the Kontrol Panel button and takes Plasma's task manager off that panel, keeping its pinned apps.
 
 ### 📊 System Monitor and Process Monitor
 

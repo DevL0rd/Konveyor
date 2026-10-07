@@ -303,6 +303,7 @@ install_plasmoids() {
         install_plasmoid "$plasmoid"
     done
     install_plasmoid "$root/screen-rotate/plasmoid"
+    install_plasmoid "$root/taskbar/plasmoids/org.devl0rd.taskbar"
 }
 
 install_games_shortcut() {

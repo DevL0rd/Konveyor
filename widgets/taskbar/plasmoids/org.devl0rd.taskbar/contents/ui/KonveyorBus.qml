@@ -1,0 +1,113 @@
+import QtQuick
+import org.kde.plasma.workspace.dbus as DBus
+
+Item {
+    id: bus
+
+    readonly property bool available: watcher.registered
+    property var workspaces: []
+    property var windows: []
+    property var outputs: []
+    property var binds: []
+    property bool superHeld: false
+
+    signal layoutRefreshed()
+
+    function message(member, args) {
+        return { service: "org.kde.Konveyor", path: "/Konveyor", iface: "org.kde.Konveyor", member: member, arguments: args || [] }
+    }
+
+    function unwrap(reply) {
+        let value = reply && reply.value !== undefined ? reply.value : reply
+        while (value !== null && typeof value === "object" && value.value !== undefined)
+            value = value.value
+        return value
+    }
+
+    function query(member, apply) {
+        DBus.SessionBus.asyncCall(message(member), reply => {
+            try {
+                apply(JSON.parse(String(unwrap(reply))))
+            } catch (error) {
+                apply(null)
+            }
+        }, () => apply(null))
+    }
+
+    function refreshLayout() {
+        let pending = 2
+        const settled = () => {
+            if (--pending === 0)
+                bus.layoutRefreshed()
+        }
+        query("Workspaces", value => {
+            bus.workspaces = value || []
+            settled()
+        })
+        query("Windows", value => {
+            bus.windows = value || []
+            settled()
+        })
+    }
+
+    function refreshAll() {
+        query("Outputs", value => bus.outputs = value || [])
+        query("Binds", value => bus.binds = value || [])
+        DBus.SessionBus.asyncCall(message("SuperHeld"), reply => bus.superHeld = String(unwrap(reply)) === "true", () => bus.superHeld = false)
+        refreshLayout()
+    }
+
+    function perform(name, args, id) {
+        const action = { name: name, arguments: (args || []).map(String), properties: {} }
+        if (id !== undefined)
+            action.id = id
+        DBus.SessionBus.asyncCall(message("Action", [JSON.stringify(action)]))
+    }
+
+    function moveColumn(id, index) {
+        perform("move-column-to-index", [index], id)
+    }
+
+    function focusWorkspace(output, workspace) {
+        const focused = workspaces.some(each => each.output === output && each.is_focused)
+        if (!focused)
+            perform("focus-monitor", [output])
+        perform("focus-workspace", [workspace.idx])
+    }
+
+    onAvailableChanged: if (available) refreshAll()
+    Component.onCompleted: if (available) refreshAll()
+
+    Timer {
+        id: settle
+        interval: 40
+        onTriggered: {
+            bus.query("Outputs", value => bus.outputs = value || [])
+            bus.refreshLayout()
+        }
+    }
+
+    DBus.DBusServiceWatcher {
+        id: watcher
+        busType: DBus.BusType.Session
+        watchedService: "org.kde.Konveyor"
+    }
+
+    DBus.SignalWatcher {
+        enabled: bus.available
+        busType: DBus.BusType.Session
+        service: "org.kde.Konveyor"
+        path: "/Konveyor"
+        iface: "org.kde.Konveyor"
+
+        function dbusLayoutChanged() {
+            settle.restart()
+        }
+
+        function dbusSuperHeldChanged(held) {
+            bus.superHeld = String(bus.unwrap(held)) === "true"
+            if (bus.superHeld)
+                bus.query("Binds", value => bus.binds = value || [])
+        }
+    }
+}

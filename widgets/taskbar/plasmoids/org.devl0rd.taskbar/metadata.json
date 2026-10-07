@@ -1,0 +1,17 @@
+{
+    "KPlugin": {
+        "Id": "org.devl0rd.taskbar",
+        "Name": "Konveyor Taskbar",
+        "Description": "Icons-only task manager whose order follows your Konveyor columns, with a compact workspace switcher",
+        "Icon": "preferences-system-windows-effect",
+        "Authors": [
+            { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
+        ],
+        "Category": "Windows and Tasks",
+        "License": "MIT",
+        "Version": "1.0.0",
+        "Website": "https://github.com/DevL0rd/Konveyor"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

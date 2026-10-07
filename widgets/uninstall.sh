@@ -24,7 +24,7 @@ PLASMOIDS=(
     org.devl0rd.routermon.clients org.devl0rd.routermon.speedtest org.devl0rd.routermon.panel org.devl0rd.routermon.overlay
     org.devl0rd.logmon.journal
     org.devl0rd.portal org.devl0rd.portal.friends org.devl0rd.portal.launcher
-    dev.devl0rd.screenrotate
+    dev.devl0rd.screenrotate org.devl0rd.taskbar
 )
 COMMANDS=(sysmon-collect procmon-collect routermon-collect routermon-ctl routermon-config routermon-speedtest logmon-collect
     portal-games portal-packages portal-launcher portal-friends monitor-overlay linux-plasma-screen-rotate)
