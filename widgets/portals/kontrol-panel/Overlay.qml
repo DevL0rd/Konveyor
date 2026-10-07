@@ -30,7 +30,7 @@ Item {
         flags: Qt.FramelessWindowHint
         title: i18n("Kontrol Panel backdrop")
 
-        LayerShell.Window.scope: "konveyor-kontrol-panel-backdrop"
+        LayerShell.Window.scope: root.config.backdropAnimation === "fade" ? "utility" : "konveyor-kontrol-panel-backdrop"
         LayerShell.Window.layer: LayerShell.Window.LayerTop
         LayerShell.Window.anchors: LayerShell.Window.AnchorTop | LayerShell.Window.AnchorBottom | LayerShell.Window.AnchorLeft | LayerShell.Window.AnchorRight
         LayerShell.Window.exclusionZone: -1

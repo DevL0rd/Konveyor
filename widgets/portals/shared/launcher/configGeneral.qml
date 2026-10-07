@@ -13,6 +13,8 @@ Kirigami.FormLayout {
     property alias cfg_cardWidth: widthBox.value
     property alias cfg_cardHeight: heightBox.value
     property alias cfg_dimStrength: dimSlider.value
+    property alias cfg_backdropCoversPanels: backdropCoversPanels.checked
+    property string cfg_backdropAnimation
     property string cfg_defaultPage
     property alias cfg_tileSize: tileSize.value
     property alias cfg_showRecentApps: showRecentApps.checked
@@ -206,6 +208,24 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: i18n("Dim the desktop:")
         QQC2.Slider { id: dimSlider; from: 0; to: 0.9; stepSize: 0.05 }
         QQC2.Label { text: Math.round(dimSlider.value * 100) + "%" }
+    }
+    QQC2.CheckBox {
+        id: backdropCoversPanels
+        visible: !form.portal
+        text: i18n("Dim the taskbar and other panels too")
+    }
+    QQC2.ComboBox {
+        id: backdropAnimation
+        visible: !form.portal
+        Kirigami.FormData.label: i18n("Dimming appears with:")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: i18n("Scale and fade"), value: "scale" },
+            { text: i18n("Fade only"), value: "fade" }
+        ]
+        Component.onCompleted: currentIndex = Math.max(0, indexOfValue(form.cfg_backdropAnimation))
+        onActivated: form.cfg_backdropAnimation = currentValue
     }
     QQC2.SpinBox {
         id: tileSize

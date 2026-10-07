@@ -11,6 +11,7 @@ namespace
 
 const QStringList portalOnly {
     QStringLiteral("icon"), QStringLiteral("popupWidth"), QStringLiteral("popupHeight"), QStringLiteral("showFriendsBadge")};
+const QStringList kontrolPanelOnly {QStringLiteral("backdropCoversPanels"), QStringLiteral("backdropAnimation")};
 
 QStringList schemaKeys(const char *schema)
 {
@@ -78,7 +79,7 @@ private Q_SLOTS:
         const QStringList portal = schemaKeys("widgets/portals/plasmoids/org.devl0rd.portal/contents/config/main.xml");
         const QStringList kontrolPanel = schemaKeys("widgets/portals/kontrol-panel/config/main.xml");
         for (const QString &name : properties) {
-            QVERIFY2(portal.contains(name), qPrintable(name));
+            QVERIFY2(portal.contains(name) != kontrolPanelOnly.contains(name), qPrintable(name));
             QVERIFY2(kontrolPanel.contains(name) != portalOnly.contains(name), qPrintable(name));
         }
     }
@@ -127,9 +128,9 @@ private Q_SLOTS:
         QVERIFY(root);
         const QString combos = items(QStringLiteral("c.valueRole === 'value'"));
         QCOMPARE(form(combos + QStringLiteral(".map(c => c.currentValue)")).toStringList(),
-            QStringList({QStringLiteral("games"), QStringLiteral("recent"), QStringLiteral("list")}));
-        form(combos + QStringLiteral("[0].currentIndex = 4"));
-        form(combos + QStringLiteral("[0].activated(4)"));
+            QStringList({QStringLiteral("scale"), QStringLiteral("games"), QStringLiteral("recent"), QStringLiteral("list")}));
+        form(combos + QStringLiteral("[1].currentIndex = 4"));
+        form(combos + QStringLiteral("[1].activated(4)"));
         QCOMPARE(root->property("cfg_defaultPage").toString(), QStringLiteral("friends"));
         form(QStringLiteral("showGames.toggle()"));
         QCOMPARE(root->property("cfg_showGames").toBool(), false);
@@ -137,6 +138,27 @@ private Q_SLOTS:
         QCOMPARE(root->property("cfg_cardWidth").toInt(), 160);
         form(QStringLiteral("dimSlider.value = 0.3"));
         QCOMPARE(root->property("cfg_dimStrength").toDouble(), 0.3);
+    }
+
+    void backdropControlsWriteTheirSettings()
+    {
+        QObject *root = general({{QStringLiteral("portal"), false}, {QStringLiteral("cfg_backdropCoversPanels"), false},
+            {QStringLiteral("cfg_backdropAnimation"), QStringLiteral("fade")}});
+        QVERIFY(root);
+        QVERIFY(form(QStringLiteral("backdropCoversPanels.visible && backdropAnimation.visible")).toBool());
+        QCOMPARE(form(QStringLiteral("backdropAnimation.currentValue")).toString(), QStringLiteral("fade"));
+        form(QStringLiteral("backdropCoversPanels.toggle()"));
+        QCOMPARE(root->property("cfg_backdropCoversPanels").toBool(), true);
+        form(QStringLiteral("backdropAnimation.currentIndex = 0"));
+        form(QStringLiteral("backdropAnimation.activated(0)"));
+        QCOMPARE(root->property("cfg_backdropAnimation").toString(), QStringLiteral("scale"));
+    }
+
+    void theAppPortalHasNoBackdrop()
+    {
+        QObject *root = general({{QStringLiteral("portal"), true}});
+        QVERIFY(root);
+        QVERIFY(!form(QStringLiteral("backdropCoversPanels.visible || backdropAnimation.visible")).toBool());
     }
 
     void buttonCheckboxesWriteTheirSettings_data()

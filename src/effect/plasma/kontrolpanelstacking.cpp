@@ -2,6 +2,9 @@
 
 #include "config/log.h"
 
+#include <KConfig>
+#include <KConfigGroup>
+
 #include <window.h>
 #include <workspace.h>
 
@@ -28,6 +31,12 @@ bool isKontrolPanelCard(KWin::Window *window)
     return isKontrolPanel(window, KWin::OverlayLayer);
 }
 
+bool backdropCoversPanels()
+{
+    const KConfig config(QStringLiteral("konveyor/kontrolpanelrc"), KConfig::SimpleConfig);
+    return config.group(QStringLiteral("General")).readEntry("backdropCoversPanels", false);
+}
+
 }
 
 KontrolPanelStacking::KontrolPanelStacking(QObject *parent)
@@ -42,7 +51,7 @@ void KontrolPanelStacking::start()
 
 void KontrolPanelStacking::onWindowAdded(KWin::Window *window)
 {
-    if (isKontrolPanelBackdrop(window)) {
+    if (isKontrolPanelBackdrop(window) && !backdropCoversPanels()) {
         qCInfo(lcKonveyor) << "konveyor: lowering the Kontrol Panel backdrop below panels";
         KWin::workspace()->lowerWindow(window);
     }
