@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
+<defs>
+<linearGradient id="bgl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7f5ff"/><stop offset="1" stop-color="#e6e0fb"/></linearGradient>
+<linearGradient id="scriml" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f7f5ff" stop-opacity="1"/><stop offset="0.38" stop-color="#f7f5ff" stop-opacity="0.9"/><stop offset="0.52" stop-color="#f7f5ff" stop-opacity="0"/></linearGradient>
+<linearGradient id="fadel" x1="0" y1="0" x2="1" y2="0"><stop offset="0.96" stop-color="#f7f5ff" stop-opacity="0"/><stop offset="1" stop-color="#f7f5ff" stop-opacity="0.85"/></linearGradient>
+<linearGradient id="herol" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7967d8"/><stop offset="1" stop-color="#139a8c"/></linearGradient>
+<linearGradient id="titlel" gradientUnits="userSpaceOnUse" x1="64" y1="0" x2="600" y2="0"><stop offset="0" stop-color="#6d5bd0"/><stop offset="1" stop-color="#139a8c"/></linearGradient>
+<clipPath id="clipl"><rect width="1280" height="400" rx="24"/></clipPath>
+<style>
+.title{font:800 74px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif;letter-spacing:-2px}
+.sub{font:500 26px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.pill{font:600 17px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.chip{font:600 16px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.tag{font:700 10px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif;letter-spacing:1px}
+.name{font:700 13px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.body{font:500 13px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.head{font:700 14px 'Inter','Segoe UI','Noto Sans',Helvetica,Arial,sans-serif}
+.ask{animation:ask 10s infinite}
+.typing{animation:typing 10s infinite}
+.reply{animation:reply 10s infinite}
+.dot{animation:bounce 1s infinite}
+.d2{animation-delay:.15s}.d3{animation-delay:.3s}
+.inbound{animation:inbound 10s infinite}
+.outbound{animation:outbound 10s infinite}
+.hub{animation:hub 10s infinite;transform-box:fill-box;transform-origin:center}
+.flow{animation:flow 1.2s linear infinite}
+.live{animation:live 2s ease-in-out infinite}
+@keyframes ask{0%,4%{opacity:0;transform:translateY(8px)}9%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+@keyframes typing{0%,30%{opacity:0}33%,46%{opacity:1}49%,100%{opacity:0}}
+@keyframes reply{0%,48%{opacity:0;transform:translateY(8px)}53%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes inbound{0%,10%{opacity:0;transform:translate(0,0)}11%{opacity:1;transform:translate(0,0)}19%{opacity:1;transform:translate(70px,0)}27%{opacity:1;transform:translate(144px,-88px)}29%,100%{opacity:0;transform:translate(144px,-88px)}}
+@keyframes outbound{0%,34%{opacity:0;transform:translate(144px,-88px)}35%{opacity:1;transform:translate(144px,-88px)}42%{opacity:1;transform:translate(70px,0)}48%{opacity:1;transform:translate(0,0)}50%,100%{opacity:0;transform:translate(0,0)}}
+@keyframes hub{0%,17%,24%,38%,45%,100%{transform:scale(1)}20%,41%{transform:scale(1.12)}}
+@keyframes flow{to{stroke-dashoffset:-24}}
+@keyframes live{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.ask,.reply{opacity:1}.typing,.inbound,.outbound{opacity:0}}
+</style>
+</defs>
+<g clip-path="url(#clipl)">
+<rect width="1280" height="400" fill="url(#bgl)"/>
+<g transform="translate(636,62)">
+<rect width="306" height="276" rx="14" fill="#ffffff" stroke="#d8d1f4"/>
+<path d="M0 14a14 14 0 0 1 14-14h278a14 14 0 0 1 14 14v26H0z" fill="#f1eefc"/>
+<text x="18" y="26" class="head" fill="#3c4266"># general</text>
+<circle cx="282" cy="20" r="4" fill="#139a8c" class="live"/>
+<g class="ask"><circle cx="30" cy="72" r="14" fill="#5865f2"/><text x="52" y="68" class="name" fill="#1b1f3b">Alex</text>
+<rect x="51" y="76" width="104" height="18" rx="5" fill="#7967d8" opacity="0.2"/><text x="54" y="89" class="body" fill="#7967d8">@Discordinator</text><text x="160" y="89" class="body" fill="#3c4266">what did we ship</text>
+<text x="52" y="107" class="body" fill="#3c4266">today? Keep it short.</text></g>
+<g class="typing"><circle cx="30" cy="150" r="14" fill="url(#herol)"/><circle cx="56" cy="152" r="3.5" fill="#6a7096" class="dot"/><circle cx="68" cy="152" r="3.5" fill="#6a7096" class="dot d2"/><circle cx="80" cy="152" r="3.5" fill="#6a7096" class="dot d3"/></g>
+<g class="reply"><circle cx="30" cy="150" r="14" fill="url(#herol)"/><text x="52" y="146" class="name" fill="#1b1f3b">Discordinator</text><rect x="152" y="135" width="30" height="14" rx="3" fill="#7967d8"/><text x="167" y="146" text-anchor="middle" class="tag" fill="#f7f5ff">BOT</text>
+<rect x="52" y="156" width="3" height="58" rx="1.5" fill="url(#herol)"/>
+<text x="64" y="171" class="body" fill="#3c4266">3 pull requests merged, the</text><text x="64" y="189" class="body" fill="#3c4266">deploy went out at 4 pm, and</text><text x="64" y="207" class="body" fill="#3c4266">2 questions are waiting for you.</text>
+<rect x="52" y="226" width="54" height="22" rx="11" fill="#139a8c" opacity="0.16"/><text x="79" y="241" text-anchor="middle" class="body" fill="#139a8c">✓ done</text></g>
+</g>
+<path d="M942 200 H974" stroke="#cfc8ef" stroke-width="2"/>
+<path d="M1046 200 C1062 200 1062 112 1084 112" fill="none" stroke="#7967d8" stroke-width="2" class="flow" stroke-dasharray="5 7"/><g transform="translate(1084,92)"><rect width="150" height="40" rx="12" fill="#ffffff" stroke="url(#herol)" stroke-width="2.5"/><circle cx="20" cy="20" r="5" fill="#139a8c" class="live"/><text x="34" y="25" class="chip" fill="#2b3157">Claude</text><text x="140" y="25" text-anchor="end" class="tag" fill="#139a8c">REPLIES</text></g><path d="M1046 200 C1062 200 1062 168 1084 168" fill="none" stroke="#cfc8ef" stroke-width="1.5" /><g transform="translate(1084,148)"><rect width="150" height="40" rx="12" fill="#ffffff" stroke="#cfc8ef" stroke-width="1.5"/><circle cx="20" cy="20" r="5" fill="#6a7096" /><text x="34" y="25" class="chip" fill="#2b3157">Codex</text></g><path d="M1046 200 C1062 200 1062 224 1084 224" fill="none" stroke="#cfc8ef" stroke-width="1.5" /><g transform="translate(1084,204)"><rect width="150" height="40" rx="12" fill="#ffffff" stroke="#cfc8ef" stroke-width="1.5"/><circle cx="20" cy="20" r="5" fill="#6a7096" /><text x="34" y="25" class="chip" fill="#2b3157">ChatGPT</text></g><path d="M1046 200 C1062 200 1062 280 1084 280" fill="none" stroke="#cfc8ef" stroke-width="1.5" /><g transform="translate(1084,260)"><rect width="150" height="40" rx="12" fill="#ffffff" stroke="#cfc8ef" stroke-width="1.5"/><circle cx="20" cy="20" r="5" fill="#6a7096" /><text x="34" y="25" class="chip" fill="#2b3157">MCP apps</text></g>
+<g class="hub"><rect x="976" y="168" width="70" height="64" rx="18" fill="url(#herol)"/><text x="1011" y="210" text-anchor="middle" style="font:800 30px 'Noto Sans',sans-serif" fill="#f7f5ff">◆</text></g>
+<circle cx="944" cy="200" r="5" fill="#7967d8" class="inbound"/>
+<circle cx="944" cy="200" r="5" fill="#139a8c" class="outbound"/>
+<rect width="1280" height="400" fill="url(#scriml)"/>
+<rect width="1280" height="400" fill="url(#fadel)"/>
+<text x="62" y="182" class="title" fill="url(#titlel)">Discordinator</text>
+<text x="66" y="226" class="sub" fill="#4d5580">Discord, answered by your AI</text>
+<g transform="translate(66,262)"><rect x="0" width="150" height="36" rx="18" fill="#7967d8" opacity="0.16"/><text x="75.0" y="24" text-anchor="middle" class="pill" fill="#5b49c4">Claude &amp; Codex</text><rect x="162" width="104" height="36" rx="18" fill="#7967d8" opacity="0.16"/><text x="214.0" y="24" text-anchor="middle" class="pill" fill="#5b49c4">ChatGPT</text><rect x="278" width="134" height="36" rx="18" fill="#7967d8" opacity="0.16"/><text x="345.0" y="24" text-anchor="middle" class="pill" fill="#5b49c4">Any MCP app</text></g>
+</g>
+</svg>

@@ -544,6 +544,18 @@ Other Plasma projects made to sit on the same desktop. Click a banner to open it
   <a href="https://github.com/DevL0rd/Syncthing-Monitor"><b>Syncthing Monitor</b></a> · Your sync, at a glance.
 </p>
 
+<p align="center">
+  <a href="https://github.com/DevL0rd/Discordinator">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/media/more/discordinator-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/media/more/discordinator-light.svg">
+      <img alt="Discordinator — Discord, answered by your AI" src="docs/media/more/discordinator-dark.svg" width="600">
+    </picture>
+  </a>
+  <br>
+  <a href="https://github.com/DevL0rd/Discordinator"><b>Discordinator</b></a> · Discord, answered by your AI.
+</p>
+
 ---
 
 <p align="center">
