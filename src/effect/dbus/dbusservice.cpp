@@ -134,4 +134,24 @@ void DBusService::setMultiTouchActive(bool active)
     m_multiTouchActive = active;
     Q_EMIT MultiTouchChanged(active);
 }
+
+bool DBusService::SuperHeld() const
+{
+    return m_superHeld;
+}
+
+void DBusService::setSuperHeld(bool held)
+{
+    if (held == m_superHeld) {
+        return;
+    }
+    m_superHeld = held;
+    Q_EMIT SuperHeldChanged(held);
+}
+
+void DBusService::announceLayoutChange()
+{
+    Q_EMIT LayoutChanged();
+}
+
 }

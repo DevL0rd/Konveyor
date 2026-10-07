@@ -120,6 +120,12 @@ def reload_konveyor(titles):
     return loaded and wait_for(lambda: set(titles) <= managed_now(), 60)
 
 
+def column_titles():
+    titles = {window["id"]: window["title"] for window in konveyor_windows()}
+    workspace = next(workspace for workspace in json.loads(konveyor("Workspaces")) if workspace["is_focused"])
+    return [titles[column[0]] for column in workspace["columns"]]
+
+
 def konveyor_action(name, *arguments):
     return konveyor("Action", json.dumps({"name": name, "arguments": list(arguments), "properties": {}}))
 

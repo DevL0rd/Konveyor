@@ -67,8 +67,10 @@ private Q_SLOTS:
         state.columnIndex = 1;
         state.tileIndex = 0;
         state.targetFrame = QRectF(10, 20, 300, 400);
-        const QJsonObject json = Ipc::windowToJson({3, QStringLiteral("Title"), QStringLiteral("app"), 1234}, state);
+        const QJsonObject json
+            = Ipc::windowToJson({3, QStringLiteral("Title"), QStringLiteral("app"), 1234, QStringLiteral("{0f}")}, state);
         QCOMPARE(json.value(QStringLiteral("app_id")).toString(), QStringLiteral("app"));
+        QCOMPARE(json.value(QStringLiteral("uuid")).toString(), QStringLiteral("{0f}"));
         QCOMPARE(json.value(QStringLiteral("workspace_id")).toInteger(), 9);
         QCOMPARE(json.value(QStringLiteral("is_focused")).toBool(), true);
         const QJsonObject layout = json.value(QStringLiteral("layout")).toObject();
@@ -155,6 +157,18 @@ private Q_SLOTS:
         QVERIFY(json.value(QStringLiteral("name")).isNull());
         QCOMPARE(json.value(QStringLiteral("idx")).toInt(), 2);
         QVERIFY(json.value(QStringLiteral("active_window_id")).isNull());
+        QCOMPARE(json.value(QStringLiteral("columns")).toArray(), QJsonArray());
+        QCOMPARE(json.value(QStringLiteral("group_app_windows")).toString(), QStringLiteral("beside"));
+    }
+
+    void workspaceJsonListsColumnsInOrder()
+    {
+        Layout::WorkspaceState state;
+        state.columns = {{4}, {7, 2}};
+        state.groupAppWindows = Config::GroupAppWindows::Stack;
+        const QJsonObject json = Ipc::workspaceToJson(state);
+        QCOMPARE(json.value(QStringLiteral("columns")).toArray(), (QJsonArray {QJsonArray {4}, QJsonArray {7, 2}}));
+        QCOMPARE(json.value(QStringLiteral("group_app_windows")).toString(), QStringLiteral("stack"));
     }
 };
 

@@ -92,7 +92,7 @@ public:
     void focusUpOrRight();
     void focusTop();
     void focusBottom();
-    void moveColumnToIndex(std::size_t index);
+    void moveColumnToIndex(std::size_t index, std::optional<WindowId> window);
     bool moveLeft();
     bool moveRight();
     void placeColumnWithinPins(std::size_t from);
@@ -193,6 +193,7 @@ private:
     void selectColumnWith(std::size_t idx, const Config::AnimationParams &config);
     void animateColumnsAfter(std::size_t idx, double offset, const Config::AnimationParams &config, bool inclusiveBefore);
     void moveColumnTo(std::size_t requestedIndex);
+    void moveInactiveColumn(std::size_t from, std::size_t requestedIndex);
     void cancelResizeForColumn(Column &column);
     void consumeOrExpelWindow(std::optional<WindowId> window, ScrollDirection direction);
     void consumeLeftIntoAdjacent(Location source, QPointF prevOff, bool sourceWasActive);

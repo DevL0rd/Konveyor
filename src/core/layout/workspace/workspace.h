@@ -136,7 +136,7 @@ public:
     bool moveRight();
     void moveColumnToFirst();
     void moveColumnToLast();
-    void moveColumnToIndex(std::size_t index);
+    void moveColumnToIndex(std::size_t index, std::optional<WindowId> window);
     bool moveDown();
     bool moveUp();
     void consumeOrExpelWindowLeft(std::optional<WindowId> window);

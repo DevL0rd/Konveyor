@@ -154,6 +154,9 @@ bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
 
 bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
 {
+    if (event->key == Qt::Key_Meta || event->key == Qt::Key_Super_L || event->key == Qt::Key_Super_R) {
+        m_handlers.superHeld(event->state != KWin::KeyboardKeyState::Released);
+    }
     if (event->state == KWin::KeyboardKeyState::Released) {
         return m_swallowedKeys.remove(event->nativeScanCode);
     }

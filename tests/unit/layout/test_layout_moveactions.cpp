@@ -75,6 +75,41 @@ private Q_SLOTS:
         COMPARE_FOCUS(fixture, ids[0]);
     }
 
+    void moveColumnToIndexWithAnIdMovesThatColumnAndKeepsFocusAndView()
+    {
+        Fixture fixture;
+        const WindowIds ids = columnsOf(fixture, 4);
+        fixture.perform(QStringLiteral("focus-column"), {QStringLiteral("2")});
+        const QRectF focusedFrame = fixture.engine().windowState(ids[1])->targetFrame;
+        const auto moveTo = [&fixture](Layout::WindowId id, const QString &index) {
+            return fixture.perform(QStringLiteral("move-column-to-index"), {index}, {{QStringLiteral("id"), QString::number(id)}}).ok;
+        };
+        QVERIFY(moveTo(ids[0], QStringLiteral("4")));
+        QCOMPARE(columns(fixture), (Columns {{ids[1]}, {ids[2]}, {ids[3]}, {ids[0]}}));
+        COMPARE_FOCUS(fixture, ids[1]);
+        QCOMPARE(fixture.engine().windowState(ids[1])->targetFrame, focusedFrame);
+        QVERIFY(moveTo(ids[3], QStringLiteral("1")));
+        QCOMPARE(columns(fixture), (Columns {{ids[3]}, {ids[1]}, {ids[2]}, {ids[0]}}));
+        COMPARE_FOCUS(fixture, ids[1]);
+        QVERIFY(moveTo(ids[2], QStringLiteral("3")));
+        QCOMPARE(columns(fixture), (Columns {{ids[3]}, {ids[1]}, {ids[2]}, {ids[0]}}));
+        QVERIFY(moveTo(ids[1], QStringLiteral("4")));
+        QCOMPARE(columns(fixture), (Columns {{ids[3]}, {ids[2]}, {ids[0]}, {ids[1]}}));
+        COMPARE_FOCUS(fixture, ids[1]);
+        QVERIFY(moveTo(999, QStringLiteral("1")));
+        QCOMPARE(columns(fixture), (Columns {{ids[3]}, {ids[2]}, {ids[0]}, {ids[1]}}));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void workspaceStatesListTheColumnsInOrder()
+    {
+        ColumnAndStack f;
+        const Layout::WorkspaceState state = workspacesOn(f.fixture, QStringLiteral("DP-1")).first();
+        QCOMPARE(state.columns, (QList<QList<Layout::WindowId>> {{f.single}, f.stack}));
+        QCOMPARE(state.groupAppWindows, Config::GroupAppWindows::Beside);
+        QVERIFY(workspacesOn(f.fixture, QStringLiteral("DP-1")).last().columns.isEmpty());
+    }
+
     void columnMovesOnASingleColumnChangeNothing()
     {
         Fixture fixture;

@@ -18,6 +18,7 @@ struct WindowIdentity
     QString title;
     QString appId;
     qint64 pid = 0;
+    QString uuid;
 };
 
 struct ActionRequest

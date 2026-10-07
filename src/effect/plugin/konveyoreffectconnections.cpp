@@ -47,11 +47,21 @@ void KonveyorEffect::installInputFilter()
         },
         [this] { markMoveCancelled(); },
         [this] { return toggleDragFloating(); },
+        [this](bool held) {
+            if (d->dbus) {
+                d->dbus->setSuperHeld(held);
+            }
+        },
     });
     d->axisInput = std::make_unique<AxisFilter>(pointerBind);
     d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {
         changeEngine().dataDragEdgeScroll(outputNameAt(position), position, timestampMs);
     });
+    installGestureFilters();
+}
+
+void KonveyorEffect::installGestureFilters()
+{
     d->gestureInput = std::make_unique<GestureFilter>(GestureHandlers {
         [this](int fingers) { return routeGesture(d->gestures.touchpadSwipeBegin(fingers, outputNameAt(KWin::effects->cursorPos()))); },
         [this](const QPointF &delta, qint64 timestamp) { return routeGesture(d->gestures.touchpadSwipeUpdate(delta, timestamp)); },

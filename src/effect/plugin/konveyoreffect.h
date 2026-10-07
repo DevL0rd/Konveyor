@@ -48,6 +48,7 @@ public:
 
 private:
     void installInputFilter();
+    void installGestureFilters();
     void startDBusService();
     void connectRegistries();
     void connectWindowLifecycle();

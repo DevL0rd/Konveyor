@@ -125,6 +125,7 @@ struct KonveyorEffect::Private
     std::unique_ptr<GestureFilter> gestureInput;
     std::unique_ptr<TouchpadContactReader> touchpadContacts;
     std::unique_ptr<DBusService> dbus;
+    QList<Layout::WorkspaceState> announcedWorkspaces;
     QTimer flushTimer;
     QTimer animationTimer;
     QTimer memorySaveTimer;

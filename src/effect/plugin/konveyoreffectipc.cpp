@@ -23,6 +23,11 @@ bool isAtNativeWidthEdge(const Layout::WindowState &state, bool forwards)
     return forwards ? *state.widthPresetIndex == predecessor : *state.widthPresetIndex == successor;
 }
 
+Ipc::WindowIdentity identityOf(Layout::WindowId id, KWin::Window *window)
+{
+    return {id, window->caption(), window->resourceClass(), window->pid(), window->internalId().toString()};
+}
+
 void notifyForceResizable(KWin::Window *window, const QString &appId, bool enabled)
 {
     auto *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout);
@@ -64,7 +69,7 @@ QJsonDocument KonveyorEffect::windowsJson() const
     const QList<Layout::WindowState> states = readEngine().windowStates();
     for (const Layout::WindowState &state : states) {
         if (KWin::Window *window = d->windows.windowOf(state.id)) {
-            array.append(Ipc::windowToJson({state.id, window->caption(), window->resourceClass(), window->pid()}, state));
+            array.append(Ipc::windowToJson(identityOf(state.id, window), state));
         }
     }
     return QJsonDocument(array);
@@ -98,7 +103,7 @@ QJsonDocument KonveyorEffect::focusedWindowJson() const
     if (!window || !state) {
         return QJsonDocument();
     }
-    return QJsonDocument(Ipc::windowToJson({*id, window->caption(), window->resourceClass(), window->pid()}, *state));
+    return QJsonDocument(Ipc::windowToJson(identityOf(*id, window), *state));
 }
 
 QJsonDocument KonveyorEffect::focusedOutputJson() const

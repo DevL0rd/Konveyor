@@ -212,9 +212,14 @@ void KonveyorEffect::scheduleFlush()
 void KonveyorEffect::flush()
 {
     const QList<Layout::WindowState> states = readEngine().windowStates();
+    const QList<Layout::WorkspaceState> workspaces = readEngine().workspaceStates();
     endMoveIntoFullscreen(states);
     updateHomeOutputs(states);
-    d->desktops.apply(readEngine().workspaceStates(), states);
+    d->desktops.apply(workspaces, states);
+    if (workspaces != d->announcedWorkspaces && d->dbus) {
+        d->announcedWorkspaces = workspaces;
+        d->dbus->announceLayoutChange();
+    }
     d->fullscreenGuard.update(states);
     d->applier.apply(states);
     acknowledgeSettledModeChanges(states);

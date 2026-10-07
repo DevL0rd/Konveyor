@@ -22,6 +22,7 @@ struct InputHandlers
     std::function<bool(quint32, Config::BindModifiers, bool)> keyPositionBind;
     std::function<void()> escapePressed;
     std::function<bool()> toggleDragFloating;
+    std::function<void(bool)> superHeld;
 };
 
 class InputFilter : public KWin::InputEventFilter

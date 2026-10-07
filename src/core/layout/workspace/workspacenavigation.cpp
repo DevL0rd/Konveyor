@@ -180,10 +180,10 @@ void Workspace::moveColumnToLast()
     }
 }
 
-void Workspace::moveColumnToIndex(std::size_t index)
+void Workspace::moveColumnToIndex(std::size_t index, std::optional<WindowId> window)
 {
-    if (!isFloatingFocused()) {
-        m_strip.moveColumnToIndex(index);
+    if (!targetIsFloating(window)) {
+        m_strip.moveColumnToIndex(index, window);
     }
 }
 

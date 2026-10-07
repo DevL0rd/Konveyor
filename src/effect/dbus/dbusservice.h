@@ -51,17 +51,23 @@ public Q_SLOTS:
     Q_SCRIPTABLE QString LastBind() const;
     Q_SCRIPTABLE QString Gestures() const;
     Q_SCRIPTABLE bool MultiTouchActive() const;
+    Q_SCRIPTABLE bool SuperHeld() const;
 
     void setMultiTouchActive(bool active);
+    void setSuperHeld(bool held);
+    void announceLayoutChange();
 
 Q_SIGNALS:
     Q_SCRIPTABLE void MultiTouchChanged(bool active);
+    Q_SCRIPTABLE void LayoutChanged();
+    Q_SCRIPTABLE void SuperHeldChanged(bool held);
 
 private:
     static QString compact(const QJsonDocument &document);
     bool tryRegister();
 
     bool m_multiTouchActive = false;
+    bool m_superHeld = false;
 
     DBusHandlers m_handlers;
     bool m_registered = false;

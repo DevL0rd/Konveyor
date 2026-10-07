@@ -273,13 +273,14 @@ ActionResult moveColumnOrMonitor(Engine::Private &d, const QString &direction)
 void registerMoveActions(ActionTable &table)
 {
     registerSimpleMoveActions(table);
-    addEngineAction(table, "move-column-to-index", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
+    addEngineAction(table, "move-column-to-index", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId> target) {
         const auto index = parseIndex(actionArgument(action, 0));
         if (!index) {
             return actionError(index.error());
         }
-        if (Workspace *workspace = d.activeWorkspace()) {
-            workspace->moveColumnToIndex(static_cast<std::size_t>(*index));
+        const std::optional<WindowId> window = actionWindowId(action, target);
+        if (Workspace *workspace = d.workspaceForTarget(window)) {
+            workspace->moveColumnToIndex(static_cast<std::size_t>(*index), window);
         }
         return ActionResult();
     });

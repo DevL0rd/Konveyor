@@ -3,6 +3,7 @@
 #include "layout/common/geometry.h"
 
 #include <algorithm>
+#include <iterator>
 #include <utility>
 
 namespace Konveyor::Layout
@@ -320,6 +321,11 @@ QList<WorkspaceState> Engine::workspaceStates() const
             state.isFocused = state.isActive && monitorIndex == d->activeMonitorIndex;
             state.isUrgent = workspace.isUrgent();
             state.activeWindow = workspace.activeWindow();
+            for (const Column &column : workspace.scrolling().columns()) {
+                QList<WindowId> &ids = state.columns.emplaceBack();
+                std::ranges::transform(column.tiles, std::back_inserter(ids), &Tile::id);
+            }
+            state.groupAppWindows = workspace.options()->layout.groupAppWindows;
             states.append(state);
         }
     }

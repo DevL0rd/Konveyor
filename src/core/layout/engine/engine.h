@@ -169,6 +169,8 @@ struct WorkspaceState
     bool isFocused = false;
     bool isUrgent = false;
     std::optional<WindowId> activeWindow;
+    QList<QList<WindowId>> columns;
+    Config::GroupAppWindows groupAppWindows = Config::GroupAppWindows::Beside;
     bool operator==(const WorkspaceState &) const = default;
 };
 

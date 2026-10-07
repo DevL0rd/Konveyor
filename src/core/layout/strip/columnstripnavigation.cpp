@@ -172,11 +172,44 @@ void ColumnStrip::centerVisibleColumns()
     scrollToColumn(std::nullopt, m_activeColumnIndex, std::nullopt);
 }
 
-void ColumnStrip::moveColumnToIndex(std::size_t index)
+void ColumnStrip::moveColumnToIndex(std::size_t index, std::optional<WindowId> window)
 {
-    if (!m_columns.empty()) {
-        moveColumnTo(std::min(index > 0 ? index - 1 : 0, m_columns.size() - 1));
+    if (m_columns.empty()) {
+        return;
     }
+    const std::size_t requested = std::min(index > 0 ? index - 1 : 0, m_columns.size() - 1);
+    const std::optional<Location> location = window ? locate(*window) : std::nullopt;
+    if (!window || (location && location->column == m_activeColumnIndex)) {
+        moveColumnTo(requested);
+    } else if (location) {
+        moveInactiveColumn(location->column, requested);
+    }
+}
+
+void ColumnStrip::moveInactiveColumn(std::size_t from, std::size_t requestedIndex)
+{
+    const std::size_t to = allowedColumnIndex(m_columns[from].pinnedPosition(), requestedIndex, from);
+    if (from == to) {
+        return;
+    }
+    std::vector<double> before = columnOffsets();
+    const double activeX = before[m_activeColumnIndex];
+    const auto first = static_cast<std::ptrdiff_t>(std::min(from, to));
+    const auto last = static_cast<std::ptrdiff_t>(std::max(from, to)) + 1;
+    const std::ptrdiff_t middle = from < to ? first + 1 : last - 1;
+    std::rotate(m_columns.begin() + first, m_columns.begin() + middle, m_columns.begin() + last);
+    std::rotate(before.begin() + first, before.begin() + middle, before.begin() + last);
+    if (from < to && m_activeColumnIndex > from && m_activeColumnIndex <= to) {
+        --m_activeColumnIndex;
+    } else if (to < from && m_activeColumnIndex >= to && m_activeColumnIndex < from) {
+        ++m_activeColumnIndex;
+    }
+    cancelResizeForColumn(m_columns[to]);
+    const std::vector<double> after = columnOffsets();
+    for (auto i = static_cast<std::size_t>(first); i < static_cast<std::size_t>(last); ++i) {
+        m_columns[i].slideXFrom(before[i] - after[i]);
+    }
+    m_scroll.offset(activeX - after[m_activeColumnIndex]);
 }
 
 void ColumnStrip::cancelResizeForColumn(Column &column)

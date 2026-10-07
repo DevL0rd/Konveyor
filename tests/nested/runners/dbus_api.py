@@ -9,8 +9,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, cli, config_path, default_config, notifications
-from fakepointer import touch
-from kwinsession import activate, active_title, for_window, konveyor, konveyor_action, qdbus, run_script, wait_for, watch_signals
+from fakepointer import keys, touch
+from kwinsession import activate, active_title, column_titles, for_window, konveyor, konveyor_action, qdbus, run_script, wait_for, watch_signals
 from nested import REPO
 
 ROOT = Path(os.environ["KONVEYOR_TEST_ROOT"])
@@ -170,6 +170,35 @@ def multitouch(checks):
     checks.equal(konveyor("MultiTouchActive"), "false", "MultiTouchActive after the touch")
 
 
+def layout_changes(checks):
+    windows = {window["title"]: window for window in json.loads(konveyor("Windows"))}
+    uuid = run_script(for_window("A", 'print("MARK|" + w.internalId);'))[0]
+    checks.equal(windows["A"]["uuid"], uuid, "Windows carries the KWin uuid that Plasma's task manager uses")
+    workspace = next(workspace for workspace in json.loads(konveyor("Workspaces")) if workspace["is_focused"])
+    checks.equal(workspace["group_app_windows"], "beside", "Workspaces reports the group-app-windows mode")
+    before = column_titles()
+    checks.equal(sorted(before), ["A", "B", "C"], f"Workspaces lists one column per window ({workspace})")
+    activate(before[1])
+    move = json.dumps({"name": "move-column-to-index", "arguments": ["3"], "properties": {}, "id": windows[before[0]]["id"]})
+    lines = watch_signals("type='signal',interface='org.kde.Konveyor',member='LayoutChanged'", lambda: konveyor("Action", move),
+                          lambda seen: any("member=LayoutChanged" in line for line in seen))
+    checks.expect(any("member=LayoutChanged" in line for line in lines), "LayoutChanged fires when a column moves")
+    checks.equal(column_titles(), [before[1], before[2], before[0]], "move-column-to-index with an id moves that window's column")
+    checks.equal(active_title(), before[1], "moving another window's column leaves focus alone")
+
+
+def super_held(checks):
+    values = []
+
+    def done(lines):
+        values[:] = [line.split()[-1] for line in lines if line.startswith("boolean")]
+        return values[-2:] == ["true", "false"]
+
+    watch_signals("type='signal',interface='org.kde.Konveyor',member='SuperHeldChanged'", lambda: keys((125, 1), (125, 0)), done)
+    checks.equal(values, ["true", "false"], "SuperHeldChanged fires when Meta is pressed and released")
+    checks.equal(konveyor("SuperHeld"), "false", "SuperHeld after the release")
+
+
 def answers():
     return subprocess.run(["qdbus6", "org.kde.Konveyor", "/Konveyor", "org.kde.Konveyor.Version"], capture_output=True).returncode == 0
 
@@ -185,7 +214,8 @@ def versioned_reinstall(checks):
 
 
 def main():
-    Checks().run(version, queries, focused_window, actions, load_config_file, reload_invalid, multitouch, versioned_reinstall)
+    Checks().run(version, queries, focused_window, actions, layout_changes, load_config_file, reload_invalid, multitouch, super_held,
+                 versioned_reinstall)
 
 
 if __name__ == "__main__":
