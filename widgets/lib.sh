@@ -11,6 +11,7 @@ LEGACY_NAMES=(linux-system-monitor linux-process-mon linux-router-monitor linux-
 LEGACY_SERVICES=(linux-system-monitor.service linux-process-mon.service linux-router-monitor.service linux-log-monitor.service portal-friends.service)
 GAMES_DESKTOP_ID="org.devl0rd.portal.launcher.games.desktop"
 LAUNCHER_SET_UP="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/launcher-set-up"
+TASKBAR_SET_UP="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/taskbar-set-up"
 KONTROL_PANEL_DIR="$WIDGETS_DIR/portals/kontrol-panel"
 KONTROL_PANEL_UNIT="konveyor-kontrol-panel.service"
 KONTROL_PANEL_BUS="org.devl0rd.KontrolPanel"
@@ -359,6 +360,11 @@ take_over_launcher_and_restart() {
         touch "$LAUNCHER_SET_UP"
         kwriteconfig6 --file "$KONTROL_PANEL_CONFIG" --group General --key openPageOnStart shortcuts
         systemctl --user restart "$KONTROL_PANEL_UNIT"
+    fi
+    if [[ ! -e $TASKBAR_SET_UP ]]; then
+        python3 "$WIDGETS_DIR/service/panel-taskbar" install "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
+        mkdir -p "$(dirname "$TASKBAR_SET_UP")"
+        touch "$TASKBAR_SET_UP"
     fi
     trap - EXIT
     start_plasma

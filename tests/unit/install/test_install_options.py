@@ -49,6 +49,17 @@ class TestInstallOptions(HarnessTest):
         result = self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))
         self.assertNotIn("Removing the Konveyor widgets", result.stdout)
 
+    def test_no_widgets_gives_the_task_manager_back(self):
+        applets = self.harness.home / ".config" / "plasma-org.kde.plasma.desktop-appletsrc"
+        self.harness.write(applets, "[Containments][1]\nplugin=org.kde.panel\n\n[Containments][1][Applets][2]\nplugin=org.kde.plasma.kickoff\n\n"
+                                    "[Containments][1][Applets][3]\nplugin=org.kde.plasma.taskmanager\n\n[Containments][1][Applets][4]\n"
+                                    "plugin=org.kde.plasma.systemtray\n\n[Containments][1][General]\nAppletOrder=2;3;4\n")
+        self.assertSucceeded(self.harness.install("--skip-deps"))
+        self.assertIn("plugin=org.devl0rd.taskbar", applets.read_text())
+        self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))
+        self.assertIn("[Containments][1][Applets][3]\nplugin=org.kde.plasma.taskmanager\n", applets.read_text())
+        self.assertFalse((self.harness.home / STATE / "taskbar-set-up").exists())
+
     def test_a_refused_effect_asks_for_a_new_login(self):
         self.harness.set_stub_state("kwin", {"running": True, "loaded": [], "refuse": ["konveyor_effect_1700000000"]})
         result = self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))

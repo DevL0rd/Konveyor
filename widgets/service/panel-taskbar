@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+
+from appletsrc import (ADDED, APPLET, MARK, drop_from_order, is_inside, next_applet_id, panel_applets, panel_ids, read_groups, reorder,
+                       set_value, value, write_groups)
+
+TASKBAR = "org.devl0rd.taskbar"
+LAUNCHER = "org.devl0rd.portal.launcher"
+TASK_MANAGERS = ("org.kde.plasma.icontasks", "org.kde.plasma.taskmanager")
+PINS = "launchers"
+
+
+def panel_of(header):
+    return APPLET.match(header).group(1)
+
+
+def chosen_panel(groups, applets):
+    for plugins in ((LAUNCHER,), TASK_MANAGERS):
+        found = [panel_of(header) for _, header, lines in applets if value(lines, "plugin") in plugins]
+        if found:
+            return found[0]
+    return min(panel_ids(groups), key=int)
+
+
+def pins_of(groups, headers):
+    settings = {header: lines for header, lines in groups if header}
+    pins = []
+    for header in headers:
+        for pin in (value(settings.get(header + "[Configuration][General]", []), PINS) or "").split(","):
+            if pin and pin not in pins:
+                pins.append(pin)
+    return pins
+
+
+def after_launcher(groups, panel, applet):
+    launchers = {APPLET.match(header).group(2) for _, header, lines in panel_applets(groups)
+                 if panel_of(header) == panel and value(lines, "plugin") == LAUNCHER}
+
+    def change(order):
+        order = [i for i in order if i != applet]
+        at = next((index + 1 for index, i in enumerate(order) if i in launchers), 0)
+        return order[:at] + [applet] + order[at:]
+
+    return reorder(groups, panel, change)
+
+
+def install(groups):
+    applets = list(panel_applets(groups))
+    if any(value(lines, "plugin") == TASKBAR for _, _, lines in applets):
+        return groups, False
+    panel = chosen_panel(groups, applets)
+    managers = [header for _, header, lines in applets if panel_of(header) == panel and value(lines, "plugin") in TASK_MANAGERS]
+    pins = pins_of(groups, managers)
+    kept = managers[0] if managers else f"[Containments][{panel}][Applets][{next_applet_id(groups)}]"
+    removed = managers[1:]
+    settings = kept + "[Configuration][General]"
+    result = []
+    for header, lines in groups:
+        if header == kept:
+            lines = set_value(set_value(lines, "plugin", TASKBAR), MARK, value(lines, "plugin"))
+        elif header == settings and value(lines, PINS) != (",".join(pins) or None):
+            lines = set_value(lines, PINS, ",".join(pins) or None)
+        elif header in removed or is_inside(header, removed):
+            continue
+        result.append((header, lines))
+    if not managers:
+        result.append((kept, ["immutability=1", f"plugin={TASKBAR}", f"{ADDED}=true", ""]))
+    if pins and not any(header == settings for header, _ in result):
+        result.append((settings, [f"{PINS}=" + ",".join(pins), ""]))
+    return after_launcher(drop_from_order(result, removed), panel, APPLET.match(kept).group(2)), True
+
+
+def uninstall(groups):
+    changed = False
+    removed = []
+    result = []
+    for header, lines in groups:
+        taskbar = APPLET.match(header or "") and value(lines, "plugin") == TASKBAR
+        if taskbar and value(lines, MARK):
+            lines = set_value(set_value(lines, "plugin", value(lines, MARK)), MARK, None)
+            changed = True
+        elif taskbar and value(lines, ADDED):
+            removed.append(header)
+            changed = True
+            continue
+        elif is_inside(header, removed):
+            continue
+        result.append((header, lines))
+    return drop_from_order(result, removed), changed
+
+
+def main():
+    arguments = sys.argv[1:]
+    if arguments[:1] not in (["install"], ["uninstall"]) or len(arguments) != 2:
+        sys.stderr.write("usage: panel-taskbar install|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n")
+        return 2
+    path = arguments[1]
+    try:
+        groups = read_groups(path)
+    except FileNotFoundError:
+        return 0
+    if arguments[0] == "install" and not panel_ids(groups):
+        sys.stderr.write("panel-taskbar: no Plasma panel was found\n")
+        return 1
+    groups, changed = (install if arguments[0] == "install" else uninstall)(groups)
+    if changed:
+        write_groups(path, groups)
+        print("Konveyor Taskbar set up next to the Kontrol Panel" if arguments[0] == "install" else "Restored Plasma's task manager")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

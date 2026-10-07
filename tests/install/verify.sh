@@ -20,6 +20,7 @@ holds_launcher_keys() {
 if [[ ${1:-} == uninstalled ]]; then
     check "Meta and Alt+F1 are back on Plasma's application launcher" "holds_launcher_keys plasmashell 'activate application launcher'"
     check "the Kontrol Panel no longer holds Meta and Alt+F1" "! holds_launcher_keys konveyor-kontrol-panel toggle"
+    check "the Konveyor Taskbar left the panel" "! grep -q plugin=org.devl0rd.taskbar ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
     exit "$failed"
 fi
 
@@ -37,6 +38,7 @@ for collector in Linux-System-Monitor Linux-Process-Mon Linux-Log-Monitor; do
 done
 check "the Kontrol Panel replaced the app menu" "grep -q plugin=org.devl0rd.portal.launcher ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
 check "the Kontrol Panel service runs" "systemctl --user is-active konveyor-kontrol-panel.service"
+check "the Konveyor Taskbar replaced Plasma's task manager" "grep -q plugin=org.devl0rd.taskbar ~/.config/plasma-org.kde.plasma.desktop-appletsrc && ! grep -qE 'plugin=org.kde.plasma.(icontasks|taskmanager)$' ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
 check "the Kontrol Panel answers on the session bus" "busctl --user call org.devl0rd.KontrolPanel /KontrolPanel org.devl0rd.KontrolPanel IsOpen"
 check "the Kontrol Panel opened on Shortcuts" "test -f ~/.config/konveyor/kontrolpanelrc && ! grep -q openPageOnStart=shortcuts ~/.config/konveyor/kontrolpanelrc"
 check "Meta and Alt+F1 open the Kontrol Panel" "holds_launcher_keys konveyor-kontrol-panel toggle"

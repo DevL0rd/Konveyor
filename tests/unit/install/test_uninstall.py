@@ -21,13 +21,19 @@ plugin=org.kde.plasma.kickoff
 [Containments][1][Applets][3]
 plugin=org.kde.plasma.systemtray
 
+[Containments][1][Applets][4]
+plugin=org.kde.plasma.icontasks
+
+[Containments][1][Applets][4][Configuration][General]
+launchers=applications:org.kde.dolphin.desktop
+
 [Containments][1][Applets][3][General]
 extraItems=org.kde.plasma.clipboard
 hiddenItems=org.kde.plasma.clipboard
 knownItems=org.kde.plasma.clipboard
 
 [Containments][1][General]
-AppletOrder=2;3
+AppletOrder=2;4;3
 
 [Containments][5]
 plugin=org.kde.desktopcontainment
@@ -73,6 +79,17 @@ class TestUninstall(HarnessTest):
         self.assertSucceeded(self.harness.install("--skip-deps"))
         self.assertSucceeded(self.harness.uninstall())
         self.assertEqual(changes(before, self.home_snapshot()), {})
+
+    def test_install_puts_the_taskbar_after_the_kontrol_panel_with_the_old_pins(self):
+        self.assertSucceeded(self.harness.install("--skip-deps"))
+        config = self.harness.config("plasma-org.kde.plasma.desktop-appletsrc")
+        self.assertEqual(config[("Containments", "1", "Applets", "4")]["plugin"], "org.devl0rd.taskbar")
+        self.assertEqual(config[("Containments", "1", "Applets", "4", "Configuration", "General")]["launchers"], "applications:org.kde.dolphin.desktop")
+        self.assertEqual(config[("Containments", "1", "General")]["AppletOrder"], "2;4;3")
+        self.assertTrue((self.harness.home / ".local" / "state" / "konveyor" / "taskbar-set-up").exists())
+        self.assertSucceeded(self.harness.uninstall())
+        config = self.harness.config("plasma-org.kde.plasma.desktop-appletsrc")
+        self.assertEqual(config[("Containments", "1", "Applets", "4")]["plugin"], "org.kde.plasma.icontasks")
 
     def test_uninstall_removes_every_file_in_the_manifest(self):
         manifest = (self.harness.prefix / "share" / "konveyor" / "install_manifest.txt").read_text().split("\n")
