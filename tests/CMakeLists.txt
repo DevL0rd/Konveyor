@@ -257,6 +257,16 @@ target_compile_options(test_config_manager PRIVATE -Wall -Wextra -Werror)
 add_test(NAME test_config_manager COMMAND test_config_manager)
 set_tests_properties(test_config_manager PROPERTIES LABELS "unit;plugin" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
 
+find_package(KF6 REQUIRED COMPONENTS Config)
+add_executable(test_taskbar_settings unit/settings/test_taskbar_settings.cpp ${PROJECT_SOURCE_DIR}/src/settings/store/taskbarsettings.cpp)
+qt_add_resources(test_taskbar_settings taskbar_schema PREFIX /konveyor BASE ${PROJECT_SOURCE_DIR}/src/settings/store
+    FILES ${PROJECT_SOURCE_DIR}/src/settings/store/taskbar.kcfg)
+target_include_directories(test_taskbar_settings PRIVATE ${PROJECT_SOURCE_DIR}/src/settings)
+target_link_libraries(test_taskbar_settings PRIVATE KF6::ConfigGui KF6::ConfigQml Qt6::Qml Qt6::Test)
+target_compile_options(test_taskbar_settings PRIVATE -Wall -Wextra -Werror)
+add_test(NAME test_taskbar_settings COMMAND test_taskbar_settings)
+set_tests_properties(test_taskbar_settings PROPERTIES LABELS "unit;settings" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
 find_package(KF6 REQUIRED COMPONENTS KCMUtils)
 add_executable(test_kcm_plugin unit/kcm/test_kcm_plugin.cpp)
 target_link_libraries(test_kcm_plugin PRIVATE KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Qml Qt6::Quick Qt6::Test)

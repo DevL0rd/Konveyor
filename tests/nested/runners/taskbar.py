@@ -21,10 +21,9 @@ PANEL = """
 var panel = new Panel("org.kde.panel");
 panel.location = "bottom";
 panel.height = 48;
-var taskbar = panel.addWidget("org.devl0rd.taskbar");
-taskbar.currentConfigGroup = ["General"];
-taskbar.writeConfig("groupMode", 2);
+panel.addWidget("org.devl0rd.taskbar");
 """
+TASKBARRC = Path(os.environ["XDG_CONFIG_HOME"]) / "konveyor" / "taskbarrc"
 
 
 def panel_pixels(matches):
@@ -107,6 +106,8 @@ def popups():
 def panel_loads(checks):
     install(checks)
     checks.expect(wait_for(lambda: plasma("print(desktops().length);") not in ("", "0"), 180, 1), "plasmashell is up with a desktop")
+    TASKBARRC.parent.mkdir(parents=True, exist_ok=True)
+    TASKBARRC.write_text("[General]\ngroupMode=2\n")
     plasma(PANEL)
     checks.expect(wait_for(three_icons, 60, 1), f"the taskbar shows one icon per column ({icon_centers()})")
     checks.expect(wait_for(lambda: three_icons() == three_icons(), 20, 0.5), "the panel settles")
@@ -117,6 +118,7 @@ def icons_follow_columns(checks):
     icons = three_icons()
     order = column_titles()
     activate(order[2])
+    wait_for(lambda: active_title() == order[2], 10)
     for index, (x, y) in enumerate(icons):
         click(x, y)
         checks.expect(wait_for(lambda: active_title() == order[index], 10), f"icon {index + 1} activates column {index + 1} ({order[index]})")
@@ -192,6 +194,7 @@ def shared_column(checks):
     checks.expect(wait_for(lambda: columns() == [[order[0], order[1]], [order[2]]], 10), f"two windows share a column ({columns()})")
     checks.expect(wait_for(three_icons, 10), f"each window of the shared column keeps its own icon ({icon_centers()})")
     activate(order[2])
+    wait_for(lambda: active_title() == order[2], 10)
     time.sleep(1)
     for index, title in enumerate(order):
         x, y = three_icons()[index]
@@ -223,11 +226,15 @@ def menu_actions(checks):
     order = column_titles()
     x, y = three_icons()[0]
     before = len(popups())
-    with Held() as pointer:
-        pointer.send(f"move:{x}:{y}")
-        time.sleep(0.3)
-        pointer.send("button:273:1", "button:273:0")
-    checks.expect(wait_for(lambda: len(popups()) > before, 10), "right-clicking an icon opens its menu")
+
+    def right_click():
+        with Held() as pointer:
+            pointer.send(f"move:{x}:{y}")
+            time.sleep(0.3)
+            pointer.send("button:273:1", "button:273:0")
+        return wait_for(lambda: len(popups()) > before, 5)
+
+    checks.expect(right_click() or right_click(), "right-clicking an icon opens its menu")
     keys((1, 1), (1, 0))
     checks.expect(wait_for(lambda: len(popups()) == before, 10), "Escape closes it")
     width = widths()[order[0]]
@@ -246,6 +253,13 @@ def menu_actions(checks):
     checks.expect(wait_for(lambda: len(columns()) == 3, 10), f"three columns again ({columns()})")
 
 
+def settings_reach_the_widget(checks):
+    TASKBARRC.write_text("[General]\ngroupMode=2\nshowApps=false\n")
+    checks.expect(wait_for(lambda: icon_centers() == [], 10), "turning Show apps off in taskbarrc hides the icons")
+    TASKBARRC.write_text("[General]\ngroupMode=2\n")
+    checks.expect(wait_for(three_icons, 10), "and turning it back on shows them again")
+
+
 def middle_click_closes(checks):
     order = column_titles()
     x, y = three_icons()[1]
@@ -261,7 +275,7 @@ def middle_click_closes(checks):
 def main():
     Checks().run(panel_loads, icons_follow_columns, konveyor_moves_reorder_icons, dragging_icons_moves_columns,
                  clicking_the_active_icon_minimizes, workspaces_switch, workspace_pills_switch, shared_column, shortcut_badges, menu_actions,
-                 middle_click_closes)
+                 settings_reach_the_widget, middle_click_closes)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 
@@ -11,6 +12,8 @@ TASKBAR = "org.devl0rd.taskbar"
 LAUNCHER = "org.devl0rd.portal.launcher"
 TASK_MANAGERS = ("org.kde.plasma.icontasks", "org.kde.plasma.taskmanager")
 PINS = "launchers"
+SETTINGS = "[Configuration][General]"
+USAGE = "usage: panel-taskbar install <appletsrc> | uninstall <appletsrc> [<taskbarrc>] | settings <appletsrc> <taskbarrc>\n"
 
 
 def panel_of(header):
@@ -73,14 +76,16 @@ def install(groups):
     return after_launcher(drop_from_order(result, removed), panel, APPLET.match(kept).group(2)), True
 
 
-def uninstall(groups):
+def uninstall(groups, pins=None):
     changed = False
     removed = []
+    restored = []
     result = []
     for header, lines in groups:
         taskbar = APPLET.match(header or "") and value(lines, "plugin") == TASKBAR
         if taskbar and value(lines, MARK):
             lines = set_value(set_value(lines, "plugin", value(lines, MARK)), MARK, None)
+            restored.append(header)
             changed = True
         elif taskbar and value(lines, ADDED):
             removed.append(header)
@@ -89,26 +94,87 @@ def uninstall(groups):
         elif is_inside(header, removed):
             continue
         result.append((header, lines))
+    if pins:
+        result = with_pins(result, restored, pins)
     return drop_from_order(result, removed), changed
+
+
+def with_pins(groups, applets, pins):
+    wanted = {applet + SETTINGS for applet in applets}
+    result = [(header, set_value(lines, PINS, pins) if header in wanted and value(lines, PINS) is None else lines) for header, lines in groups]
+    present = {header for header, _ in result}
+    return result + [(header, [f"{PINS}={pins}", ""]) for header in sorted(wanted - present)]
+
+
+def settings(groups, stored):
+    taskbars = {header for _, header, lines in panel_applets(groups) if value(lines, "plugin") == TASKBAR}
+    moved = {}
+    result = []
+    for header, lines in groups:
+        if header and header[:-len(SETTINGS)] in taskbars and header.endswith(SETTINGS):
+            for line in lines:
+                key, sep, entry = line.partition("=")
+                if sep and key not in moved:
+                    moved[key] = entry
+            continue
+        result.append((header, lines))
+    if not moved:
+        return groups, stored, False
+    general = next((lines for header, lines in stored if header == "[General]"), None)
+    if general is None:
+        general = [""]
+        stored = stored + [("[General]", general)]
+    merged = general
+    for key, entry in moved.items():
+        if value(merged, key) is None:
+            merged = set_value(merged, key, entry)
+    stored = [(header, merged if header == "[General]" else lines) for header, lines in stored]
+    return result, stored, True
+
+
+def read_or_empty(path):
+    try:
+        return read_groups(path)
+    except FileNotFoundError:
+        return [(None, [])]
+
+
+def move_settings(path, target):
+    groups, stored, changed = settings(read_groups(path), read_or_empty(target))
+    if changed:
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
+        write_groups(target, stored)
+        write_groups(path, groups)
+        print("Konveyor Taskbar settings moved to Konveyor Settings")
+    return 0
 
 
 def main():
     arguments = sys.argv[1:]
-    if arguments[:1] not in (["install"], ["uninstall"]) or len(arguments) != 2:
-        sys.stderr.write("usage: panel-taskbar install|uninstall <plasma-org.kde.plasma.desktop-appletsrc>\n")
+    command = arguments[:1]
+    allowed = {"install": (2,), "uninstall": (2, 3), "settings": (3,)}
+    if not command or command[0] not in allowed or len(arguments) not in allowed[command[0]]:
+        sys.stderr.write(USAGE)
         return 2
     path = arguments[1]
     try:
         groups = read_groups(path)
     except FileNotFoundError:
         return 0
-    if arguments[0] == "install" and not panel_ids(groups):
+    if command[0] == "settings":
+        return move_settings(path, arguments[2])
+    if command[0] == "install" and not panel_ids(groups):
         sys.stderr.write("panel-taskbar: no Plasma panel was found\n")
         return 1
-    groups, changed = (install if arguments[0] == "install" else uninstall)(groups)
+    if command[0] == "install":
+        groups, changed = install(groups)
+    else:
+        stored = read_or_empty(arguments[2]) if len(arguments) == 3 else [(None, [])]
+        general = next((lines for header, lines in stored if header == "[General]"), [])
+        groups, changed = uninstall(groups, value(general, PINS))
     if changed:
         write_groups(path, groups)
-        print("Konveyor Taskbar set up next to the Kontrol Panel" if arguments[0] == "install" else "Restored Plasma's task manager")
+        print("Konveyor Taskbar set up next to the Kontrol Panel" if command[0] == "install" else "Restored Plasma's task manager")
     return 0
 
 

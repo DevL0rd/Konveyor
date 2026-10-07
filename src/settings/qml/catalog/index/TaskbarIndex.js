@@ -1,0 +1,30 @@
+.pragma library
+
+const entries = [
+    { page: "taskbar", section: "What it shows", label: "Show apps", keywords: "taskbar icons windows tasks hide" },
+    { page: "taskbar", section: "What it shows", label: "Show workspaces", keywords: "taskbar pills workspace switcher strip hide" },
+    { page: "taskbar", section: "Icons", label: "Icon size", keywords: "taskbar icon size big small panel thickness" },
+    { page: "taskbar", section: "Icons", label: "Fixed icon size", keywords: "taskbar icon size pixels" },
+    { page: "taskbar", section: "Icons", label: "Space between icons", keywords: "taskbar spacing gap compact" },
+    { page: "taskbar", section: "Icons", label: "Padding around each icon", keywords: "taskbar padding margin compact" },
+    { page: "taskbar", section: "Focus and indicators", label: "Focused app", keywords: "taskbar highlight active filled outline" },
+    { page: "taskbar", section: "Focus and indicators", label: "Window indicators", keywords: "taskbar dots bar running" },
+    { page: "taskbar", section: "Focus and indicators", label: "Indicator position", keywords: "taskbar dots edge top bottom" },
+    { page: "taskbar", section: "Focus and indicators", label: "Pulse apps that want attention", keywords: "taskbar urgent attention blink" },
+    { page: "taskbar", section: "Focus and indicators", label: "Animations", keywords: "taskbar animation bounce slide" },
+    { page: "taskbar", section: "Workspaces", label: "Position", keywords: "taskbar workspaces before after strip" },
+    { page: "taskbar", section: "Workspaces", label: "Each workspace shows", keywords: "taskbar pill dots names numbers" },
+    { page: "taskbar", section: "Workspaces", label: "Line between the workspaces and the apps", keywords: "taskbar separator" },
+    { page: "taskbar", section: "Workspaces", label: "Show empty workspaces", keywords: "taskbar empty workspace" },
+    { page: "taskbar", section: "Workspaces", label: "Scroll over the workspaces to switch", keywords: "taskbar wheel scroll workspace" },
+    { page: "taskbar", section: "Windows", label: "Group an app's windows", keywords: "taskbar group merge capsule column" },
+    { page: "taskbar", section: "Windows", label: "Only windows on this screen", keywords: "taskbar monitor screen all" },
+    { page: "taskbar", section: "Windows", label: "Show floating windows", keywords: "taskbar floating" },
+    { page: "taskbar", section: "Windows", label: "Tooltips", keywords: "taskbar tooltip hover title" },
+    { page: "taskbar", section: "Clicks and keys", label: "Clicking the focused app", keywords: "taskbar click minimize cycle" },
+    { page: "taskbar", section: "Clicks and keys", label: "Middle-click", keywords: "taskbar middle click close new window" },
+    { page: "taskbar", section: "Clicks and keys", label: "Scroll over the apps to switch between them", keywords: "taskbar wheel scroll cycle" },
+    { page: "taskbar", section: "Clicks and keys", label: "Shortcut numbers", keywords: "taskbar badges meta alt numbers keys" },
+    { page: "taskbar", section: "Pinned apps", label: "Open pinned apps in pin order", keywords: "taskbar pins launchers order" },
+    { page: "taskbar", section: "Pinned apps", label: "Pins", keywords: "taskbar pin launcher favourite add remove reorder" }
+];

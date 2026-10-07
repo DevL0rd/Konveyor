@@ -3,7 +3,7 @@
         "Id": "org.devl0rd.taskbar",
         "Name": "Konveyor Taskbar",
         "Description": "Icons-only task manager whose order follows your Konveyor columns, with a compact workspace switcher",
-        "Icon": "preferences-system-windows-effect",
+        "Icon": "org.kde.plasma.icontasks",
         "Authors": [
             { "Name": "DevL0rd", "Email": "dmhzmxn@gmail.com" }
         ],

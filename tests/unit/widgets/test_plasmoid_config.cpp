@@ -35,7 +35,6 @@ void plasmoidRows()
         "router-monitor/plasmoids/org.devl0rd.routermon.panel", "org.devl0rd.routermon.dns", {QStringLiteral("router-monitor/shared/lib")});
     QTest::newRow("system log") << spec(
         "system-log/plasmoids/org.devl0rd.logmon.journal", "org.devl0rd.logmon.journal", {QStringLiteral("system-log/shared/lib")});
-    QTest::newRow("taskbar") << spec("taskbar/plasmoids/org.devl0rd.taskbar", "org.devl0rd.taskbar");
 }
 
 void pageRows()
@@ -52,9 +51,7 @@ void pageRows()
     QTest::newRow("friends") << page("portals/plasmoids/org.devl0rd.portal.friends", "org.devl0rd.portal.friends");
     QTest::newRow("kontrol panel button") << page(
         "portals/plasmoids/org.devl0rd.portal.launcher", "org.devl0rd.portal.launcher", {}, "configButton.qml");
-    for (const char *file : {"configAppearance.qml", "configBehavior.qml", "configWorkspaces.qml", "configPins.qml"}) {
-        QTest::newRow(file) << page("taskbar/plasmoids/org.devl0rd.taskbar", "org.devl0rd.taskbar", {}, file);
-    }
+    QTest::newRow("taskbar") << page("taskbar/plasmoids/org.devl0rd.taskbar", "org.devl0rd.taskbar");
 }
 
 QStringList pageSettings(QObject *page)
@@ -150,6 +147,16 @@ private Q_SLOTS:
         for (const QString &setting : used) {
             QVERIFY2(keys.contains(setting), qPrintable(setting + QStringLiteral(" is not in main.xml")));
         }
+    }
+
+    void taskbarPageOpensKonveyorSettings()
+    {
+        PlasmoidHarness harness(spec("taskbar/plasmoids/org.devl0rd.taskbar", "org.devl0rd.taskbar"));
+        QObject *page = openPage(harness);
+        QVERIFY2(page, qPrintable(harness.error));
+        harness.eval(QStringLiteral("open.clicked()"), page);
+        QVERIFY(harness.command(QStringLiteral("kcmshell6")).startsWith(QStringLiteral("kcmshell6 kcm_konveyor --args taskbar # ")));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
     void routerPageLoadsTheConnection()

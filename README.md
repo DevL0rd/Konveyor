@@ -285,7 +285,7 @@ Press <kbd>Meta</kbd> and the desktop dims behind the Kontrol Panel, one place f
 
 ### 🧭 Konveyor Taskbar
 
-Your columns, in your panel. The taskbar lists the columns of the workspace you're on in the same order, so dragging an icon moves its column and moving a column moves its icon. Pinned apps keep their spot and open in pin order. A slim strip next to them shows the workspaces of that screen with a dot for each column; click one to switch or scroll over it. Hold <kbd>Meta</kbd> to see the keys that switch workspaces, or <kbd>Meta</kbd> + <kbd>Alt</kbd> to see the keys that jump to each app.
+Your columns, in your panel. The taskbar lists the columns of the workspace you're on in the same order, so dragging an icon moves its column and moving a column moves its icon. Pinned apps keep their spot and open in pin order. A slim strip next to them shows the workspaces of that screen with a dot for each column; click one to switch or scroll over it. Hold <kbd>Meta</kbd> to see the keys that switch workspaces, or <kbd>Meta</kbd> + <kbd>Alt</kbd> to see the keys that jump to each app. Its look and behaviour are on the **Taskbar** page of Konveyor's settings.
 
 <p align="center"><img alt="Konveyor Taskbar with the workspace strip, a group, pinned apps and the focused app" src="docs/media/widgets/taskbar.png" width="70%"></p>
 

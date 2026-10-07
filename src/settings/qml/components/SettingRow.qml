@@ -14,11 +14,16 @@ FormCard.AbstractFormDelegate {
     property var resetPaths: []
     default property alias control: controlSlot.data
     property bool wideControl: false
-    readonly property bool modified: SettingsStore.revision >= 0 && resetPaths.some(path => !SettingsStore.isDefault(path))
+    property var taskbarKeys: []
+    readonly property bool modified: (SettingsStore.revision >= 0 && resetPaths.some(path => !SettingsStore.isDefault(path)))
+        || taskbarKeys.some(key => TaskbarSettings.values[key] !== undefined && !TaskbarSettings.isDefault(key))
 
     function reset() {
         for (const path of resetPaths) {
             SettingsStore.resetToDefault(path);
+        }
+        for (const key of taskbarKeys) {
+            TaskbarSettings.reset(key);
         }
     }
 

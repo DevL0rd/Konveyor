@@ -56,6 +56,19 @@ def build_dir():
     return Path(os.environ.get("KONVEYOR_BUILD_DIR", REPO / "build"))
 
 
+def link_konveyor_imports(imports):
+    konveyor = Path(imports) / "org" / "kde" / "konveyor"
+    konveyor.mkdir(parents=True, exist_ok=True)
+    (konveyor / "settings").symlink_to(build_dir() / "bin" / "org" / "kde" / "konveyor" / "settings")
+    (konveyor / "components").symlink_to(REPO / "src" / "components")
+    return imports
+
+
+def run_in_plasmashell(runner, **options):
+    with tempfile.TemporaryDirectory(prefix="konveyor-imports-") as imports:
+        return run_runner(runner, setup=f'export QML_IMPORT_PATH="{link_konveyor_imports(imports)}"\n' + PLASMASHELL, **options)
+
+
 class NestedSession:
     def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1,
                  input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=(), permission_checks=False, lockscreen=False):

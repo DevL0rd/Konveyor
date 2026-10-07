@@ -8,9 +8,9 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import PLASMASHELL, run_runner
+    from nested import run_in_plasmashell
 
-    return run_runner(HERE / "runners" / "widgets_load.py", timeout=420, clients=(), setup=PLASMASHELL)
+    return run_in_plasmashell(HERE / "runners" / "widgets_load.py", timeout=420, clients=())
 
 
 if __name__ == "__main__":

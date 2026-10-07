@@ -84,12 +84,14 @@ class TestUninstall(HarnessTest):
         self.assertSucceeded(self.harness.install("--skip-deps"))
         config = self.harness.config("plasma-org.kde.plasma.desktop-appletsrc")
         self.assertEqual(config[("Containments", "1", "Applets", "4")]["plugin"], "org.devl0rd.taskbar")
-        self.assertEqual(config[("Containments", "1", "Applets", "4", "Configuration", "General")]["launchers"], "applications:org.kde.dolphin.desktop")
+        self.assertNotIn(("Containments", "1", "Applets", "4", "Configuration", "General"), config)
+        self.assertEqual(self.harness.config("konveyor/taskbarrc")[("General",)]["launchers"], "applications:org.kde.dolphin.desktop")
         self.assertEqual(config[("Containments", "1", "General")]["AppletOrder"], "2;4;3")
         self.assertTrue((self.harness.home / ".local" / "state" / "konveyor" / "taskbar-set-up").exists())
         self.assertSucceeded(self.harness.uninstall())
         config = self.harness.config("plasma-org.kde.plasma.desktop-appletsrc")
         self.assertEqual(config[("Containments", "1", "Applets", "4")]["plugin"], "org.kde.plasma.icontasks")
+        self.assertEqual(config[("Containments", "1", "Applets", "4", "Configuration", "General")]["launchers"], "applications:org.kde.dolphin.desktop")
 
     def test_uninstall_removes_every_file_in_the_manifest(self):
         manifest = (self.harness.prefix / "share" / "konveyor" / "install_manifest.txt").read_text().split("\n")

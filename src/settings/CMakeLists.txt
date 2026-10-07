@@ -1,4 +1,4 @@
-find_package(KF6 REQUIRED COMPONENTS CoreAddons Service)
+find_package(KF6 REQUIRED COMPONENTS CoreAddons Service Config)
 find_package(Qt6 REQUIRED COMPONENTS Quick GuiPrivate DBus)
 include(ECMQmlModule)
 
@@ -39,11 +39,15 @@ target_sources(konveyor_settings PRIVATE
     store/settingsnavigation.h
     store/settingsstore.cpp
     store/settingsstore.h
+    store/taskbarsettings.cpp
+    store/taskbarsettings.h
     system/keynames.cpp
     system/keynames.h
     system/livesession.cpp
     system/livesession.h
 )
+
+qt_add_resources(konveyor_settings taskbar_schema PREFIX /konveyor BASE store FILES store/taskbar.kcfg)
 
 ecm_target_qml_sources(konveyor_settings SOURCES qml/PageFactory.js)
 ecm_target_qml_sources(konveyor_settings PATH catalog SOURCES
@@ -64,6 +68,7 @@ ecm_target_qml_sources(konveyor_settings PATH catalog/index SOURCES
     qml/catalog/index/MouseIndex.js
     qml/catalog/index/TouchIndex.js
     qml/catalog/index/PlasmaIndex.js
+    qml/catalog/index/TaskbarIndex.js
     qml/catalog/index/RulesIndex.js
     qml/catalog/index/ShortcutsIndex.js
     qml/catalog/index/WorkspacesIndex.js
@@ -104,6 +109,9 @@ ecm_target_qml_sources(konveyor_settings PATH components SOURCES
     qml/components/StatusMessages.qml
     qml/components/StrutsEditor.qml
     qml/components/SwitchRow.qml
+    qml/components/TaskbarChoiceRow.qml
+    qml/components/TaskbarSliderRow.qml
+    qml/components/TaskbarSwitchRow.qml
     qml/components/TabPositionPicker.qml
     qml/components/TriggerEditor.qml
     qml/components/TriState.qml
@@ -145,6 +153,7 @@ ecm_target_qml_sources(konveyor_settings PATH pages SOURCES
     qml/pages/PlasmaPage.qml
     qml/pages/RuleEditorPage.qml
     qml/pages/RulesPage.qml
+    qml/pages/TaskbarPage.qml
     qml/pages/ShortcutsPage.qml
     qml/pages/TouchPage.qml
     qml/pages/WorkspacesPage.qml
@@ -169,6 +178,11 @@ ecm_target_qml_sources(konveyor_settings PATH previews SOURCES
     qml/previews/ProfileGlance.qml
     qml/previews/StripPreview.qml
     qml/previews/TabIndicatorPreview.qml
+    qml/previews/MiniBadge.qml
+    qml/previews/MiniPill.qml
+    qml/previews/MiniTask.qml
+    qml/previews/MiniTaskbar.qml
+    qml/previews/TaskbarPreview.qml
     qml/previews/TitlebarDragDemo.qml
     qml/previews/WarpDemo.qml
     qml/previews/WorkspaceStack.qml
@@ -186,6 +200,10 @@ ecm_target_qml_sources(konveyor_settings PATH sections SOURCES
     qml/sections/ScopedSwitch.qml
     qml/sections/SizesSection.qml
     qml/sections/TabIndicatorSection.qml
+    qml/sections/TaskbarLookSection.qml
+    qml/sections/TaskbarPinsSection.qml
+    qml/sections/TaskbarWindowsSection.qml
+    qml/sections/TaskbarWorkspacesSection.qml
     qml/sections/TouchDeviceSection.qml
     qml/sections/ValueSlider.qml
 )
@@ -197,6 +215,8 @@ target_link_libraries(konveyor_settings PRIVATE
     konveyor_settings_model
     konveyor_config
     konveyor_layout
+    KF6::ConfigGui
+    KF6::ConfigQml
     KF6::CoreAddons
     KF6::Service
     Qt6::Quick

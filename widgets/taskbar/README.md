@@ -10,7 +10,8 @@ An icons-only task manager for KDE Plasma 6 panels, built for Konveyor. Its icon
 - **Workspaces in the same widget** — a slim strip shows the workspaces of the panel's screen with a dot for each column, the focused column stretched and the current workspace in your accent colour. Named workspaces show their name. Click one to switch, or scroll over the strip to step through them.
 - **Grouping like Konveyor** — by default an app's neighbouring single-window columns share one icon when Konveyor's `group-app-windows` is `beside` or `stack`. Hover a group for a list of its windows and click one to go straight to it; clicking the group cycles through them. You can always group or never group instead. Shared columns are never grouped.
 - **Shortcut numbers** — hold <kbd>Meta</kbd> and the workspaces show the keys that switch to them (<kbd>Meta</kbd>+<kbd>1</kbd>…<kbd>9</kbd> by default). Hold <kbd>Meta</kbd>+<kbd>Alt</kbd> and the apps show the keys bound to `focus-column` instead (<kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>9</kbd> by default), one per column. The numbers come from your binds, so custom keys show too.
-- **Konveyor in the right-click menu** — widen, narrow, cycle the preset widths, go full width, maximize or center a column; move it left, right, to either end, to another workspace or monitor, or bring it to this screen; join the neighbouring column or move out to its own; show the column as tabs, float, go fullscreen or show on every workspace. All of them act on that icon's window without focusing it first.
+- **A full right-click menu** — the app's own actions come first, like Firefox's New Private Window, its recent files and play, pause and skip for media players, then the window list of a group or capsule, Konveyor's actions, pinning, new windows, a More menu with maximize, keep above or below and shade, and Close.
+- **Konveyor in the right-click menu** — widen, narrow, cycle the preset widths, go full width, maximize or center a column; move it left, right, to either end, to another workspace or monitor, or bring it to this screen; join the neighbouring column or move out to its own; show the column as tabs, float, go fullscreen or show on every workspace. All of them act on that icon's window without focusing it first, and each shows the shortcut you have bound to it.
 - **Remember for an app** — the same menu writes Konveyor window rules for the app: always open as this column, on this workspace, on this monitor, at this size on this monitor, floating, on every workspace, stacked with its other windows, or as a row in the current column. Each shows whether it is on, unchecking removes the rule, and **Edit Rules** opens it in Konveyor's settings. The rules go through Konveyor's config writer, so your comments and formatting in `config.kdl` stay, and Konveyor applies them right away.
 - **Open new windows where you want them** — next to the window you right-clicked, or as a row below it.
 - **State at a glance** — a dot or a bar for each window, an accent highlight on the focused app, hollow dots for minimized windows and a pulse when an app wants attention. Minimized windows keep the place their column had.
@@ -36,32 +37,35 @@ Without Konveyor the widget behaves like a plain icon task manager for the curre
 
 ## Settings
 
-| Page | Setting | Default |
+The settings live in Konveyor Settings, on the **Taskbar** page, with a live preview of each one. The widget's own **Configure…** opens that page. They are stored in `~/.config/konveyor/taskbarrc` and every taskbar picks up a change right away. Installing the widgets moves settings and pins from an older taskbar into that file.
+
+| Section | Setting | Default |
 |---|---|---|
-| Appearance | Icon size | Follows the panel thickness, or a fixed size |
+| What it shows | Show apps | On |
+| | Show workspaces | On; one of the two stays on |
+| Icons | Icon size | Follows the panel thickness, or a fixed size |
 | | Space between icons | 2 px |
 | | Padding around each icon | 3 px |
 | | Focused app | Filled, outline or no highlight |
 | | Window indicators | A dot for each window, a bar or none |
 | | Indicator position | Next to the screen edge or on the opposite side |
-| | Separator between the workspaces and the apps | On |
-| | Animations | On |
 | | Pulse on apps that want attention | On |
-| Behavior | Group windows | Like Konveyor's `group-app-windows`, always, or one icon per column |
-| | Clicking the focused app | Minimizes it, does nothing or switches to its next window |
-| | Middle-click | Closes the window, opens a new one or does nothing |
-| | Scroll over the apps to switch between them | Off |
+| | Animations | On |
+| Workspaces | Position | Before the apps, or after them |
+| | Each workspace shows | A dot for each column, its name or number, or its number |
+| | Line between the workspaces and the apps | On |
+| | Empty workspaces | Shown |
+| | Scroll over the workspaces to switch between them | On |
+| Windows | Group windows | Like Konveyor's `group-app-windows`, always, or one icon per column |
 | | Show windows from | This screen only, or every screen |
 | | Floating windows | Shown |
 | | Tooltips | On |
+| Clicks and keys | Clicking the focused app | Minimizes it, does nothing or switches to its next window |
+| | Middle-click | Closes the window, opens a new one or does nothing |
+| | Scroll over the apps to switch between them | Off |
 | | Shortcut numbers while Meta or Meta+Alt is held | On |
-| Workspaces | Show the workspaces of this screen | On |
-| | Position | Before the apps, or after them |
-| | Each workspace shows | A dot for each column, its name or number, or its number |
-| | Empty workspaces | Shown |
-| | Scroll over the workspaces to switch between them | On |
-| Pinned Apps | Open a pinned app's first window in pin order | On |
-| | The pins | Reorder, unpin, or add from an app search or by desktop file |
+| Pinned apps | Open a pinned app's first window in pin order | On |
+| | The pins | Reorder, unpin, or pick an app to add |
 
 ## License
 

@@ -366,6 +366,7 @@ take_over_launcher_and_restart() {
         mkdir -p "$(dirname "$TASKBAR_SET_UP")"
         touch "$TASKBAR_SET_UP"
     fi
+    python3 "$WIDGETS_DIR/service/panel-taskbar" settings "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc" "$CONFIG_HOME/konveyor/taskbarrc"
     trap - EXIT
     start_plasma
 }

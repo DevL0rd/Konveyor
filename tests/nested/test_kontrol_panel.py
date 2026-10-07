@@ -29,7 +29,7 @@ NoDisplay=true
 
 
 def stage(root):
-    from nested import REPO, build_dir
+    from nested import REPO, build_dir, link_konveyor_imports
 
     panel = root / "kontrol-panel"
     shutil.copytree(REPO / "widgets" / "portals" / "kontrol-panel", panel)
@@ -42,11 +42,7 @@ def stage(root):
     shutil.copy(REPO / "widgets" / "shared" / "MonitorOverlay.qml", lib)
     shutil.copytree(REPO / "widgets" / "portals" / "shared" / "lib", lib, dirs_exist_ok=True)
     shutil.copytree(HERE / "doubles", root / "imports")
-    konveyor = root / "imports" / "org" / "kde" / "konveyor"
-    konveyor.mkdir(parents=True)
-    (konveyor / "settings").symlink_to(build_dir() / "bin" / "org" / "kde" / "konveyor" / "settings")
-    (konveyor / "components").symlink_to(REPO / "src" / "components")
-    return panel, root / "imports", build_dir() / "bin" / "konveyor-kontrol-panel"
+    return panel, link_konveyor_imports(root / "imports"), build_dir() / "bin" / "konveyor-kontrol-panel"
 
 
 def main():

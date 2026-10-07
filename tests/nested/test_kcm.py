@@ -14,14 +14,10 @@ python3 {runner} > "$KONVEYOR_REPORT" 2>&1
 
 
 def main():
-    from nested import REPO, build_dir, run_script
+    from nested import link_konveyor_imports, run_script
 
     with tempfile.TemporaryDirectory(prefix="konveyor-kcm-imports-") as imports:
-        konveyor = Path(imports) / "org" / "kde" / "konveyor"
-        konveyor.mkdir(parents=True)
-        (konveyor / "settings").symlink_to(build_dir() / "bin" / "org" / "kde" / "konveyor" / "settings")
-        (konveyor / "components").symlink_to(REPO / "src" / "components")
-        return run_script(SCRIPT.format(imports=imports, runner=HERE / "runners" / "kcm.py"), timeout=540)
+        return run_script(SCRIPT.format(imports=link_konveyor_imports(imports), runner=HERE / "runners" / "kcm.py"), timeout=540)
 
 
 if __name__ == "__main__":

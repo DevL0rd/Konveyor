@@ -19,6 +19,8 @@ const pages = [
       description: "Profiles and per-monitor layout overrides" },
     { id: "workspaces", title: "Workspaces", icon: "virtual-desktops", file: "pages/WorkspacesPage.qml",
       description: "Named workspaces and switching behavior" },
+    { id: "taskbar", title: "Taskbar", icon: "org.kde.plasma.icontasks", file: "pages/TaskbarPage.qml",
+      description: "The Konveyor Taskbar's icons, workspaces, clicks and pins" },
     { id: "plasma", title: "Plasma Integration", icon: "plasma", file: "pages/PlasmaPage.qml",
       description: "Desktop widgets, panels, minimizing and notifications" },
     { id: "experiments", title: "Experiments", icon: "applications-science", file: "pages/ExperimentsPage.qml",

@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
+import org.kde.konveyor.settings
 import "MenuModel.js" as MenuModel
 import "TaskOrder.js" as TaskOrder
 
@@ -12,10 +13,11 @@ PlasmoidItem {
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || vertical
     readonly property real thickness: inPanel ? (vertical ? width : height) : Kirigami.Units.iconSizes.large + Kirigami.Units.largeSpacing
-    readonly property var shownWorkspaces: TaskOrder.shownWorkspaces(taskbar.workspaces, Plasmoid.configuration.showEmptyWorkspaces)
-    readonly property bool showWorkspaces: Plasmoid.configuration.showWorkspaces && taskbar.bus.available && shownWorkspaces.length > 0
-    readonly property bool showSeparator: showWorkspaces && Plasmoid.configuration.showSeparator
-    readonly property string heldBadges: !Plasmoid.configuration.showShortcutBadges || !taskbar.bus.superHeld ? "" : taskbar.bus.altHeld ? "columns" : "workspaces"
+    readonly property var shownWorkspaces: TaskOrder.shownWorkspaces(taskbar.workspaces, TaskbarSettings.values.showEmptyWorkspaces)
+    readonly property bool showWorkspaces: TaskbarSettings.values.showWorkspaces && taskbar.bus.available && shownWorkspaces.length > 0
+    readonly property bool showTasks: TaskbarSettings.values.showApps || !showWorkspaces
+    readonly property bool showSeparator: showWorkspaces && showTasks && TaskbarSettings.values.showSeparator
+    readonly property string heldBadges: !TaskbarSettings.values.showShortcutBadges || !taskbar.bus.superHeld ? "" : taskbar.bus.altHeld ? "columns" : "workspaces"
     property string badges: ""
 
     preferredRepresentation: fullRepresentation
@@ -27,29 +29,29 @@ PlasmoidItem {
         thickness: root.thickness
         vertical: root.vertical
         location: Plasmoid.location
-        autoIconSize: Plasmoid.configuration.autoIconSize
-        fixedIconSize: Plasmoid.configuration.iconSize
-        padding: Plasmoid.configuration.buttonPadding
-        spacing: Plasmoid.configuration.iconSpacing
-        highlightStyle: Plasmoid.configuration.highlightStyle
-        indicatorStyle: Plasmoid.configuration.indicatorStyle
-        indicatorOpposite: Plasmoid.configuration.indicatorEdge === 1
-        animate: Plasmoid.configuration.animations
-        pulse: Plasmoid.configuration.attentionPulse
-        tooltips: Plasmoid.configuration.showTooltips
+        autoIconSize: TaskbarSettings.values.autoIconSize
+        fixedIconSize: TaskbarSettings.values.iconSize
+        padding: TaskbarSettings.values.buttonPadding
+        spacing: TaskbarSettings.values.iconSpacing
+        highlightStyle: TaskbarSettings.values.highlightStyle
+        indicatorStyle: TaskbarSettings.values.indicatorStyle
+        indicatorOpposite: TaskbarSettings.values.indicatorEdge === 1
+        animate: TaskbarSettings.values.animations
+        pulse: TaskbarSettings.values.attentionPulse
+        tooltips: TaskbarSettings.values.showTooltips
     }
 
     TaskbarState {
         id: taskbar
-        pins: Plasmoid.configuration.launchers
+        pins: TaskbarSettings.values.launchers
         screenGeometry: Plasmoid.containment ? Plasmoid.containment.screenGeometry : Qt.rect(0, 0, 0, 0)
-        groupMode: Plasmoid.configuration.groupMode
-        placePinnedLaunches: Plasmoid.configuration.placePinnedLaunches
-        onlyThisScreen: Plasmoid.configuration.onlyThisScreen
-        showFloating: Plasmoid.configuration.showFloating
-        activeClick: Plasmoid.configuration.activeClick
-        middleClick: Plasmoid.configuration.middleClick
-        onPinsEdited: pins => Plasmoid.configuration.launchers = pins
+        groupMode: TaskbarSettings.values.groupMode
+        placePinnedLaunches: TaskbarSettings.values.placePinnedLaunches
+        onlyThisScreen: TaskbarSettings.values.onlyThisScreen
+        showFloating: TaskbarSettings.values.showFloating
+        activeClick: TaskbarSettings.values.activeClick
+        middleClick: TaskbarSettings.values.middleClick
+        onPinsEdited: pins => TaskbarSettings.values.launchers = pins
     }
 
     Timer {
@@ -69,6 +71,8 @@ PlasmoidItem {
 
     function openMenu(entry, window, button) {
         const target = taskbar.targetOf(entry, window)
+        taskbar.appActions.appKey = entry.appKey || ""
+        taskbar.appActions.pid = target ? target.pid || 0 : 0
         const tr = (text, ...args) => i18n(text, ...args)
         const show = rules => menu.show(MenuModel.entries(taskbar.menuContext(entry, target, rules), tr), entry, target, button)
         if (target && target.konveyorId !== undefined && taskbar.bus.available)
@@ -86,7 +90,8 @@ PlasmoidItem {
         id: layout
 
         readonly property real stripLength: root.showWorkspaces ? (root.vertical ? workspaces.implicitHeight : workspaces.implicitWidth) : 0
-        readonly property real fixedLength: stripLength + (root.showSeparator ? 1 + spacing * 2 : root.showWorkspaces ? spacing : 0)
+        readonly property real fixedLength: stripLength + (root.showSeparator ? 1 + spacing * 2 : root.showWorkspaces && root.showTasks ? spacing : 0)
+        readonly property real tasksMinimum: root.showTasks ? taskLook.button : 0
         readonly property real spacing: Kirigami.Units.smallSpacing
 
         flow: root.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
@@ -95,10 +100,10 @@ PlasmoidItem {
         columnSpacing: 0
         Layout.fillWidth: !root.vertical
         Layout.fillHeight: root.vertical
-        Layout.minimumWidth: root.vertical ? 0 : fixedLength + taskLook.button
-        Layout.minimumHeight: root.vertical ? fixedLength + taskLook.button : 0
-        Layout.preferredWidth: root.vertical ? root.thickness : fixedLength + tasks.contentWidth
-        Layout.preferredHeight: root.vertical ? fixedLength + tasks.contentHeight : root.thickness
+        Layout.minimumWidth: root.vertical ? 0 : fixedLength + tasksMinimum
+        Layout.minimumHeight: root.vertical ? fixedLength + tasksMinimum : 0
+        Layout.preferredWidth: root.vertical ? root.thickness : fixedLength + (root.showTasks ? tasks.contentWidth : 0)
+        Layout.preferredHeight: root.vertical ? fixedLength + (root.showTasks ? tasks.contentHeight : 0) : root.thickness
 
         WorkspaceStrip {
             id: workspaces
@@ -108,18 +113,18 @@ PlasmoidItem {
             vertical: root.vertical
             badges: taskbar.labels.workspaces
             showBadges: root.badges === "workspaces"
-            contentMode: Plasmoid.configuration.pillContent
+            contentMode: TaskbarSettings.values.pillContent
             animate: taskLook.animate
-            wheelSwitches: Plasmoid.configuration.wheelSwitchesWorkspaces
+            wheelSwitches: TaskbarSettings.values.wheelSwitchesWorkspaces
             Layout.alignment: Qt.AlignCenter
-            Layout.row: root.vertical ? (Plasmoid.configuration.workspacesAfterTasks ? 2 : 0) : 0
-            Layout.column: root.vertical ? 0 : (Plasmoid.configuration.workspacesAfterTasks ? 2 : 0)
+            Layout.row: root.vertical ? (TaskbarSettings.values.workspacesAfterTasks ? 2 : 0) : 0
+            Layout.column: root.vertical ? 0 : (TaskbarSettings.values.workspacesAfterTasks ? 2 : 0)
             onPicked: workspace => taskbar.switchTo(workspace)
             onStepped: step => taskbar.stepWorkspace(step)
         }
 
         Item {
-            visible: root.showWorkspaces
+            visible: root.showWorkspaces && root.showTasks
             Layout.preferredWidth: root.vertical ? root.thickness : (root.showSeparator ? 1 + layout.spacing * 2 : layout.spacing)
             Layout.preferredHeight: root.vertical ? (root.showSeparator ? 1 + layout.spacing * 2 : layout.spacing) : root.thickness
             Layout.row: root.vertical ? 1 : 0
@@ -137,13 +142,14 @@ PlasmoidItem {
 
         TaskStrip {
             id: tasks
+            visible: root.showTasks
             look: taskLook
             items: taskbar.items
             columnBadges: taskbar.labels.columns
             showBadges: root.badges === "columns"
-            wheelCycles: Plasmoid.configuration.wheelCyclesTasks
-            Layout.row: root.vertical ? (Plasmoid.configuration.workspacesAfterTasks ? 0 : 2) : 0
-            Layout.column: root.vertical ? 0 : (Plasmoid.configuration.workspacesAfterTasks ? 0 : 2)
+            wheelCycles: TaskbarSettings.values.wheelCyclesTasks
+            Layout.row: root.vertical ? (TaskbarSettings.values.workspacesAfterTasks ? 0 : 2) : 0
+            Layout.column: root.vertical ? 0 : (TaskbarSettings.values.workspacesAfterTasks ? 0 : 2)
             Layout.fillWidth: !root.vertical
             Layout.fillHeight: root.vertical
             Layout.preferredWidth: root.vertical ? root.thickness : contentWidth
