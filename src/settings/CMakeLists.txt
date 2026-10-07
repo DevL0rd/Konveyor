@@ -3,6 +3,8 @@ find_package(Qt6 REQUIRED COMPONENTS Quick GuiPrivate DBus)
 include(ECMQmlModule)
 
 add_library(konveyor_settings_model STATIC
+    document/apprules.cpp
+    document/apprules.h
     document/configdocument.cpp
     document/configdocument.h
     document/configdocumenttext.cpp

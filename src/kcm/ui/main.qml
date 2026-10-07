@@ -10,11 +10,20 @@ KCM.AbstractKCM {
     implicitHeight: Kirigami.Units.gridUnit * 36
     framedView: false
 
+    function openAppRule() {
+        const path = kcm.initialApp !== "" ? RuleSummary.appRule(SettingsStore.children("", "window-rule"), kcm.initialApp) : ""
+        if (path !== "")
+            SettingsNavigation.push("pages/RuleEditorPage.qml", { rulePath: path })
+    }
+
+    Component.onCompleted: Qt.callLater(openAppRule)
+
     Connections {
         target: kcm
         function onInitialPageChanged() {
             if (kcm.initialPage !== "")
                 view.pageId = kcm.initialPage
+            Qt.callLater(root.openAppRule)
         }
     }
     Shortcut {

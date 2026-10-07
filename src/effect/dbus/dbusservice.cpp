@@ -121,6 +121,16 @@ QString DBusService::Gestures() const
     return compact(m_handlers.gestures());
 }
 
+QString DBusService::AppRules(const QString &json) const
+{
+    return compact(m_handlers.appRules(json));
+}
+
+QString DBusService::SetAppRule(const QString &json)
+{
+    return m_handlers.setAppRule(json);
+}
+
 bool DBusService::MultiTouchActive() const
 {
     return m_multiTouchActive;

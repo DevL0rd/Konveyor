@@ -202,6 +202,28 @@ def modifiers_held(checks):
     checks.equal(json.loads(konveyor("ModifiersHeld")), {"super": False, "alt": False}, "ModifiersHeld after the release")
 
 
+def app_rule(window, option, enabled):
+    return konveyor("SetAppRule", json.dumps({"id": window["id"], "option": option, "enabled": enabled}))
+
+
+def app_rules(checks):
+    windows = {window["title"]: window for window in json.loads(konveyor("Windows"))}
+    window = windows["A"]
+    before = config_path().read_text()
+    rules = json.loads(konveyor("AppRules", json.dumps({"id": window["id"]})))
+    checks.equal((rules["app_id"], rules["rules"]["float"], rules["rules"]["column"]), (window["app_id"], False, None), "AppRules before any rule")
+    checks.equal(app_rule(window, "column", True), "", "SetAppRule remembers the column")
+    checks.equal(app_rule(window, "float", True), "", "SetAppRule makes the app float")
+    text = config_path().read_text()
+    checks.expect("open-floating true" in text and f"open-at-column {rules['column']}" in text, "the rule is written to config.kdl")
+    checks.equal(json.loads(konveyor("AppRules", json.dumps({"id": window["id"]})))["rules"]["float"], True, "AppRules reads the rule back")
+    checks.expect(app_rule(window, "sideways", True) != "", "SetAppRule refuses an unknown option")
+    checks.equal(app_rule(window, "float", False), "", "SetAppRule removes the float rule")
+    checks.equal(app_rule(window, "column", False), "", "SetAppRule removes the column rule")
+    checks.equal(config_path().read_text().rstrip(), before.rstrip(), "removing both rules leaves the rest of config.kdl as it was")
+    checks.expect(konveyor("AppRules", json.dumps({"id": 99999})) == "null", "AppRules of a window that does not exist")
+
+
 def answers():
     return subprocess.run(["qdbus6", "org.kde.Konveyor", "/Konveyor", "org.kde.Konveyor.Version"], capture_output=True).returncode == 0
 
@@ -217,7 +239,7 @@ def versioned_reinstall(checks):
 
 
 def main():
-    Checks().run(version, queries, focused_window, actions, layout_changes, load_config_file, reload_invalid, multitouch, modifiers_held,
+    Checks().run(version, queries, focused_window, actions, layout_changes, load_config_file, reload_invalid, multitouch, modifiers_held, app_rules,
                  versioned_reinstall)
 
 

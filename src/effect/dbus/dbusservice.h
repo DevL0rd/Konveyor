@@ -24,6 +24,8 @@ struct DBusHandlers
     std::function<bool()> overviewOpen;
     std::function<QJsonDocument()> lastBind;
     std::function<QJsonDocument()> gestures;
+    std::function<QJsonDocument(const QString &)> appRules;
+    std::function<QString(const QString &)> setAppRule;
 };
 
 class DBusService : public QObject
@@ -52,6 +54,8 @@ public Q_SLOTS:
     Q_SCRIPTABLE QString Gestures() const;
     Q_SCRIPTABLE bool MultiTouchActive() const;
     Q_SCRIPTABLE QString ModifiersHeld() const;
+    Q_SCRIPTABLE QString AppRules(const QString &json) const;
+    Q_SCRIPTABLE QString SetAppRule(const QString &json);
 
     void setMultiTouchActive(bool active);
     void setModifiersHeld(bool super, bool alt);

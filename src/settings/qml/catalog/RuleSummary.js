@@ -190,3 +190,14 @@ function summary(rule) {
 function appIds(rule) {
     return [].concat(...childrenNamed(rule, "match").map(appIdsOf));
 }
+
+function appRule(rules, appId) {
+    const pattern = Kdl.textMatch("is", appId);
+    const found = rules.filter(entry => {
+        const children = entry.node.children || [];
+        const matches = children.filter(node => node.name === "match");
+        return matches.length === 1 && !children.some(node => node.name === "exclude")
+            && Object.keys(matches[0].props).length === 1 && matches[0].props["app-id"] === pattern;
+    });
+    return found.length ? found[found.length - 1].path : "";
+}

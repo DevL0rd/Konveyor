@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/types.h"
+#include "document/apprules.h"
 #include "layout/engine/engine.h"
 
 #include <effect/effect.h>
@@ -63,6 +64,9 @@ private:
     QJsonDocument focusedOutputJson() const;
     QJsonDocument bindsJson() const;
     QJsonDocument lastBindJson() const;
+    std::optional<Settings::AppPlace> appPlace(Layout::WindowId id) const;
+    QJsonDocument appRulesJson(const QString &json) const;
+    QString setAppRuleJson(const QString &json);
     void applyHotCorners(const Config::Config &config);
     void handlePointerMotion(const QPointF &position, qint64 timestampMs);
     QPointF interactionPoint() const;

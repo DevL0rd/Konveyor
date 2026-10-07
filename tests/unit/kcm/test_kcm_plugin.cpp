@@ -122,6 +122,32 @@ private Q_SLOTS:
         QCOMPARE(view->property("pageId").toString(), QStringLiteral("look"));
     }
 
+    void opensTheRuleOfTheAppItIsGiven()
+    {
+        m_home.resetConfig(
+            QStringLiteral("window-rule {\n    match app-id=\"^b$\"\n}\nwindow-rule {\n    match app-id=r#\"^org\\.kde\\.dolphin$\"#\n"
+                           "    open-floating true\n}\n"));
+        QMetaObject::invokeMethod(SettingsHome::store(*m_engine), "load");
+        const auto module = load({QStringLiteral("rules"), QStringLiteral("org.kde.dolphin")});
+        QVERIFY(module);
+        QCOMPARE(module->property("initialApp").toString(), QStringLiteral("org.kde.dolphin"));
+        QObject *view = viewOf(*module);
+        QVERIFY2(view, qPrintable(module->errorString()));
+        QCOMPARE(view->property("pageId").toString(), QStringLiteral("rules"));
+        QObject *navigation
+            = m_engine->singletonInstance<QObject *>(QStringLiteral("org.kde.konveyor.settings"), QStringLiteral("SettingsNavigation"));
+        QTRY_COMPARE(navigation->property("depth").toInt(), 2);
+        QMetaObject::invokeMethod(navigation, "pop");
+        Q_EMIT module->activationRequested({QStringLiteral("rules"), QStringLiteral("unknown.app")});
+        QTest::qWait(50);
+        QCOMPARE(navigation->property("depth").toInt(), 1);
+        Q_EMIT module->activationRequested({QStringLiteral("rules"), QStringLiteral("org.kde.dolphin")});
+        QTRY_COMPARE(navigation->property("depth").toInt(), 2);
+        QMetaObject::invokeMethod(navigation, "pop");
+        m_home.resetConfig(std::nullopt);
+        QMetaObject::invokeMethod(SettingsHome::store(*m_engine), "load");
+    }
+
     void undoTakesBackTheLastChange()
     {
         m_home.resetConfig(QStringLiteral("layout {\n    gaps 16\n}\n"));

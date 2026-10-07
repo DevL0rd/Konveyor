@@ -166,7 +166,15 @@ std::expected<void, QString> ConfigManager::rewrite(const std::function<std::exp
     if (*edited == *text) {
         return {};
     }
+    if (const auto loaded = Config::loadString(*edited, m_path); !loaded) {
+        return std::unexpected(loaded.error().toString());
+    }
     return writeTexts({{m_path, *edited}});
+}
+
+std::expected<QString, QString> ConfigManager::text() const
+{
+    return readText(m_path, false);
 }
 
 void ConfigManager::migrate()
