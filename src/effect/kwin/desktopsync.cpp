@@ -8,6 +8,7 @@
 #include <window.h>
 #include <workspace.h>
 
+#include <QMap>
 #include <QScopedValueRollback>
 
 #include <algorithm>
@@ -40,6 +41,21 @@ int maxWorkspaceIndex(const QList<Layout::WorkspaceState> &workspaces)
         count = std::max(count, workspace.index);
     }
     return count;
+}
+
+QMap<int, QString> activeNames(const QList<Layout::WorkspaceState> &workspaces)
+{
+    QMap<int, QString> names;
+    for (const Layout::WorkspaceState &workspace : workspaces) {
+        if (!workspace.isActive) {
+            continue;
+        }
+        QString &name = names[workspace.index];
+        if (name.isEmpty() || (workspace.isFocused && !workspace.name.isEmpty())) {
+            name = workspace.name;
+        }
+    }
+    return names;
 }
 
 }
@@ -128,15 +144,16 @@ void DesktopSync::shrinkDesktops(int count)
 
 void DesktopSync::applyNames(const QList<Layout::WorkspaceState> &workspaces)
 {
-    for (const Layout::WorkspaceState &workspace : workspaces) {
-        KWin::VirtualDesktop *desktop = workspace.isActive ? desktopAt(workspace.index) : nullptr;
-        if (!desktop || (workspace.name.isEmpty() && !m_originalNames.contains(desktop->id()))) {
+    const QMap<int, QString> names = activeNames(workspaces);
+    for (auto it = names.cbegin(); it != names.cend(); ++it) {
+        KWin::VirtualDesktop *desktop = desktopAt(it.key());
+        if (!desktop || (it.value().isEmpty() && !m_originalNames.contains(desktop->id()))) {
             continue;
         }
         if (!m_originalNames.contains(desktop->id())) {
             m_originalNames.insert(desktop->id(), desktop->name());
         }
-        const QString name = workspace.name.isEmpty() ? m_originalNames.take(desktop->id()) : workspace.name;
+        const QString name = it.value().isEmpty() ? m_originalNames.take(desktop->id()) : it.value();
         if (desktop->name() != name) {
             desktop->setName(name);
         }

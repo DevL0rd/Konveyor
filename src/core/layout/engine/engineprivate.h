@@ -134,6 +134,7 @@ struct Engine::Private
     void updateFocus();
     bool resolveRules();
     bool resolveWorkspaceRules(Workspace &workspace, std::vector<WindowId> &changed);
+    std::size_t namedWorkspaceSlot(const std::vector<Workspace> &workspaces, const QString &name) const;
     void ensureNamedWorkspaces();
     void applyNamedWorkspaceLayouts();
     void applyNamedWorkspaceHomes(const QList<Config::NamedWorkspace> &previous);

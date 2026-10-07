@@ -166,6 +166,36 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void namedWorkspaceGivenAnOutputLaterJoinsTheNamedWorkspacesOfThatOutput_data()
+    {
+        namedWorkspacesFollowTheirOutputThroughUnplugAndReplug_data();
+    }
+
+    void namedWorkspaceGivenAnOutputLaterJoinsTheNamedWorkspacesOfThatOutput()
+    {
+        QFETCH(bool, emptyAbove);
+        Config::Config config = namedConfig(emptyAbove);
+        config.workspaces = {named(QStringLiteral("web"), Extra)};
+        Fixture fixture(config);
+        addOutputAt(fixture, Extra, ExtraGeometry);
+        addOn(fixture, Extra);
+        act(fixture, QStringLiteral("focus-workspace-down"));
+        addOn(fixture, Extra);
+        fixture.engine().focusOutput(Main);
+        Config::NamedWorkspace chat;
+        chat.name = QStringLiteral("chat");
+        config.workspaces.append(chat);
+        fixture.setConfig(config);
+        fixture.advance(1);
+        QCOMPARE(namesOn(fixture, Main), withEdges(emptyAbove, {QStringLiteral("chat")}));
+        QCOMPARE(namesOn(fixture, Extra), withEdges(emptyAbove, {QStringLiteral("web"), QString()}));
+        config.workspaces.last().openOnOutput = Extra;
+        fixture.setConfig(config);
+        fixture.advance(1);
+        QCOMPARE(namesOn(fixture, Extra), withEdges(emptyAbove, {QStringLiteral("web"), QStringLiteral("chat"), QString()}));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void togglingEmptyWorkspaceAboveFirstLiveAddsAndRemovesIt()
     {
         NamedOnTwoOutputs f(false);

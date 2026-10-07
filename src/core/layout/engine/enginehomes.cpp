@@ -49,7 +49,8 @@ void Engine::Private::moveHome(WorkspaceId id)
         const std::optional<std::size_t> home = homeMonitorOf(monitors[from].workspaces()[*idx]);
         if (home && *home != from) {
             Workspace moved = monitors[from].detachWorkspaceAt(*idx);
-            monitors[*home].insertWorkspace(std::move(moved), monitors[*home].workspaces().size(), false);
+            const std::size_t slot = namedWorkspaceSlot(monitors[*home].workspaces(), moved.name());
+            monitors[*home].insertWorkspace(std::move(moved), slot, false);
         }
         return;
     }
