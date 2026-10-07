@@ -268,6 +268,7 @@ void KonveyorEffect::onWindowAdded(Layout::WindowId id, KWin::Window *window)
         placeMonitorOverlays(id);
         placeMonitorPanels(id);
     });
+    connect(window, &KWin::Window::outputChanged, this, [this, id] { keepOnHomeOutput(id); });
     connect(window, &KWin::Window::fullScreenChanged, this, [this, id, window] {
         placeMonitorOverlays(id);
         if (d->monitorOverlays.contains(id)) {

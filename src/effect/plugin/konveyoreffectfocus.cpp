@@ -82,6 +82,18 @@ void KonveyorEffect::moveActiveOutputHome(Layout::WindowId id)
     }
 }
 
+void KonveyorEffect::keepOnHomeOutput(Layout::WindowId id)
+{
+    KWin::Window *window = d->windows.windowOf(id);
+    const auto home = d->homeOutputs.constFind(id);
+    if (!window || home == d->homeOutputs.constEnd() || window->isInteractiveMove() || window->isInteractiveResize()) {
+        return;
+    }
+    if (KWin::LogicalOutput *output = d->outputs.outputNamed(*home); output && window->output() != output) {
+        window->setOutput(output);
+    }
+}
+
 void KonveyorEffect::applyFocusRequest()
 {
     const std::optional<Layout::WindowId> id = std::exchange(d->focusRequest, std::nullopt);

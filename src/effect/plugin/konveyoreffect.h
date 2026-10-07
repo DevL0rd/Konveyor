@@ -78,6 +78,7 @@ private:
     void onActiveWindowChanged();
     void followActiveOutput(const QString &name);
     void moveActiveOutputHome(Layout::WindowId id);
+    void keepOnHomeOutput(Layout::WindowId id);
     void applyFocusRequest();
     void focusWindowUnderPointer(const QPointF &position);
     bool switchToTabUnderPointer(const QPointF &position);

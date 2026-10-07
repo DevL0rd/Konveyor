@@ -213,10 +213,10 @@ void KonveyorEffect::flush()
 {
     const QList<Layout::WindowState> states = readEngine().windowStates();
     endMoveIntoFullscreen(states);
+    updateHomeOutputs(states);
     d->desktops.apply(readEngine().workspaceStates(), states);
     d->fullscreenGuard.update(states);
     d->applier.apply(states);
-    updateHomeOutputs(states);
     acknowledgeSettledModeChanges(states);
     updateDecorations(states);
     updateDropHint(states);
@@ -249,6 +249,7 @@ void KonveyorEffect::updateHomeOutputs(const QList<Layout::WindowState> &states)
     d->homeOutputs.clear();
     for (const Layout::WindowState &state : states) {
         d->homeOutputs.insert(state.id, state.output);
+        keepOnHomeOutput(state.id);
     }
 }
 
