@@ -116,8 +116,8 @@ function moreEntries(context, i18n) {
 function newWindowEntries(context, i18n) {
     if (!context.window || !context.konveyor)
         return [act(i18n("Open New Window"), "window-new", task("newInstance"))]
-    return [{ text: i18n("Open New Window"), icon: "window-new", children: [
-        act(i18n("New Window"), "window-new", task("newInstance")),
+    return [{ text: i18n("New Window"), icon: "window-new", children: [
+        act(i18n("Where Konveyor Opens It"), "window-new", task("newInstance")),
         act(i18n("To the Right of This One"), "go-next", task("openRight")),
         act(i18n("As a Row Below This One"), "go-down", task("openBelow"))
     ] }]
