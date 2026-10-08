@@ -76,7 +76,7 @@ private Q_SLOTS:
         const QString shipped = QString::fromUtf8(file.readAll());
         for (const ConfigMigration &migration : configMigrations()) {
             const auto result = addDefaultBinds(shipped, fileName, shipped, migration.defaultBinds);
-            QVERIFY2(result, qPrintable(result.error()));
+            QVERIFY2(result, result ? "" : qPrintable(result.error()));
             QCOMPARE(*result, shipped);
             for (const QString &key : migration.defaultBinds) {
                 QVERIFY2(shipped.contains(QStringLiteral("    ") + key + QStringLiteral(" {")), qPrintable(key));
