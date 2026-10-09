@@ -39,14 +39,15 @@ Item {
     }
 
     function remember() {
+        const byId = TaskOrder.keyed(konveyor.windows, window => window.id)
         const next = {}
         for (const workspace of konveyor.workspaces) {
             workspace.columns.forEach((column, index) => {
+                const before = index > 0 ? byId[workspace.columns[index - 1][0]] : null
                 for (const id of column)
-                    next[id] = { workspace: workspace.id, after: index > 0 ? workspace.columns[index - 1][0] : null }
+                    next[id] = { workspace: workspace.id, after: index > 0 ? (before ? before.uuid : null) : null }
             })
         }
-        const byId = TaskOrder.keyed(konveyor.windows, window => window.id)
         const kept = {}
         const alive = TaskOrder.keyed(tasks.windows, row => row.uuid)
         for (const uuid in places)

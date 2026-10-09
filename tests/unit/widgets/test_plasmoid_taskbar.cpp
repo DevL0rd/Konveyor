@@ -100,7 +100,7 @@ private Q_SLOTS:
     {
         const QJsonArray items = build({QJsonArray {4}, QJsonArray {2, 3}, QJsonArray {1}},
             {row("u1", "a"), row("u2", "b"), row("u3", "b"), row("u4", "c"), row("u9", "d")}, {}, false);
-        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c4"), QStringLiteral("c2"), QStringLiteral("c1"), QStringLiteral("wu9")}));
+        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("wu4"), QStringLiteral("wu2"), QStringLiteral("wu1"), QStringLiteral("wu9")}));
         QCOMPARE(items[1][QStringLiteral("windows")].toArray().size(), 2);
         QCOMPARE(items[1][QStringLiteral("windows")][1][QStringLiteral("konveyorId")].toInt(), 3);
         QCOMPARE(items[2][QStringLiteral("columns")],
@@ -114,7 +114,7 @@ private Q_SLOTS:
     {
         const QJsonArray rows {row("u1", "a"), row("u2", "a"), row("u3", "b"), row("u4", "a")};
         const QJsonArray columns {QJsonArray {1}, QJsonArray {2}, QJsonArray {3}, QJsonArray {4}};
-        QCOMPARE(keysOf(build(columns, rows, {}, true)), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c3"), QStringLiteral("c4")}));
+        QCOMPARE(keysOf(build(columns, rows, {}, true)), (QJsonArray {QStringLiteral("wu1"), QStringLiteral("wu3"), QStringLiteral("wu4")}));
         QCOMPARE(build(columns, rows, {}, true)[0][QStringLiteral("columns")].toArray().size(), 2);
         QCOMPARE(keysOf(build(columns, rows, {}, false)).size(), 4);
     }
@@ -123,7 +123,7 @@ private Q_SLOTS:
     {
         const QJsonArray rows {row("u1", "a"), row("u2", "a"), row("u3", "a")};
         const QJsonArray items = build({QJsonArray {1, 2}, QJsonArray {3}}, rows, {}, true);
-        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c3")}));
+        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("wu1"), QStringLiteral("wu3")}));
         QCOMPARE(items[0][QStringLiteral("kind")].toString(), QStringLiteral("column"));
         QCOMPARE(items[0][QStringLiteral("windows")].toArray().size(), 2);
         QCOMPARE(items[0][QStringLiteral("windows")][1][QStringLiteral("uuid")].toString(), QStringLiteral("u2"));
@@ -142,7 +142,7 @@ private Q_SLOTS:
     {
         const QJsonArray rows {row("u1", "a"), row("u2", "a"), row("u3", "a"), row("u4", "a"), row("u5", "a")};
         const QJsonArray items = build({QJsonArray {1}, QJsonArray {2}, QJsonArray {3, 4}, QJsonArray {5}}, rows, {}, true);
-        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c3"), QStringLiteral("c5")}));
+        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("wu1"), QStringLiteral("wu3"), QStringLiteral("wu5")}));
         QCOMPARE(items[0][QStringLiteral("kind")].toString(), QStringLiteral("group"));
         QCOMPARE(items[0][QStringLiteral("columns")].toArray().size(), 2);
         QCOMPARE(items[1][QStringLiteral("kind")].toString(), QStringLiteral("column"));
@@ -155,7 +155,7 @@ private Q_SLOTS:
         const QJsonArray items
             = buildOn({workspace(1, {QJsonArray {1}, QJsonArray {2}}, false), workspace(2, {QJsonValue(QJsonArray {3})}, true)},
                 {row("u1", "a"), row("u2", "b"), row("u3", "c")}, {}, false);
-        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c2"), QStringLiteral("c3")}));
+        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("wu1"), QStringLiteral("wu2"), QStringLiteral("wu3")}));
         const QJsonObject labels {{QStringLiteral("1"), QStringLiteral("1")}, {QStringLiteral("2"), QStringLiteral("2")}};
         QCOMPARE(call("columnBadge", {items[0], labels}).toString(), QString());
         QCOMPARE(call("columnBadge", {items[2], labels}).toString(), QStringLiteral("1"));
@@ -222,9 +222,29 @@ private Q_SLOTS:
     void minimizedWindowsKeepTheirSlot()
     {
         const QJsonArray rows {row("u1", "a"), row("u2", "b"), row("m1", "c"), row("m2", "d"), row("m3", "e")};
-        const QJsonObject parked {{QStringLiteral("m1"), 1}, {QStringLiteral("m2"), QJsonValue()}, {QStringLiteral("m3"), 77}};
+        const QJsonObject parked {{QStringLiteral("m1"), QStringLiteral("u1")}, {QStringLiteral("m2"), QJsonValue()}, {QStringLiteral("m3"), QStringLiteral("gone")}};
         QCOMPARE(keysOf(build({QJsonArray {1}, QJsonArray {2}}, rows, {}, false, parked)),
-            (QJsonArray {QStringLiteral("wm2"), QStringLiteral("c1"), QStringLiteral("wm1"), QStringLiteral("c2"), QStringLiteral("wm3")}));
+            (QJsonArray {QStringLiteral("wm2"), QStringLiteral("wu1"), QStringLiteral("wm1"), QStringLiteral("wu2"), QStringLiteral("wm3")}));
+    }
+
+    void minimizingKeepsEveryItemInPlace()
+    {
+        const QJsonArray rows {row("u1", "a"), row("m1", "b"), row("u2", "d")};
+        const QJsonArray pins {QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c")};
+        const QJsonArray before = build({QJsonArray {1}, QJsonArray {2}}, {row("u1", "a"), row("u2", "d"), row("m1", "b")}, pins, false,
+            {{QStringLiteral("m1"), QStringLiteral("u1")}});
+        QCOMPARE(keysOf(before), (QJsonArray {QStringLiteral("wu1"), QStringLiteral("wm1"), QStringLiteral("pc"), QStringLiteral("wu2")}));
+        const QJsonArray minimized = build(QJsonArray {QJsonArray {1}}, rows, pins, false,
+            {{QStringLiteral("m1"), QStringLiteral("u1")}, {QStringLiteral("u2"), QStringLiteral("u1")}});
+        QCOMPARE(keysOf(minimized), keysOf(before));
+    }
+
+    void parkedWindowsFollowAParkedAnchor()
+    {
+        const QJsonArray rows {row("u1", "a"), row("m1", "b"), row("m2", "c"), row("u3", "d")};
+        const QJsonObject parked {{QStringLiteral("m2"), QStringLiteral("m1")}, {QStringLiteral("m1"), QStringLiteral("u1")}};
+        QCOMPARE(keysOf(build({QJsonArray {1}, QJsonArray {3}}, rows, {}, false, parked)),
+            (QJsonArray {QStringLiteral("wu1"), QStringLiteral("wm1"), QStringLiteral("wm2"), QStringLiteral("wu3")}));
     }
 
     void idlePinsSitAfterTheirPinnedNeighbour()
@@ -232,7 +252,7 @@ private Q_SLOTS:
         const QJsonArray items = build({QJsonArray {1}, QJsonArray {2}}, {row("u1", "x"), row("u2", "b")},
             {QStringLiteral("p1"), QStringLiteral("b"), QStringLiteral("p2"), QStringLiteral("p3")}, false);
         QCOMPARE(keysOf(items),
-            (QJsonArray {QStringLiteral("pp1"), QStringLiteral("c1"), QStringLiteral("c2"), QStringLiteral("pp2"), QStringLiteral("pp3")}));
+            (QJsonArray {QStringLiteral("pp1"), QStringLiteral("wu1"), QStringLiteral("wu2"), QStringLiteral("pp2"), QStringLiteral("pp3")}));
         QCOMPARE(items[2][QStringLiteral("pinned")].toBool(), true);
         QCOMPARE(items[1][QStringLiteral("pinned")].toBool(), false);
         QCOMPARE(items[3][QStringLiteral("launcher")][QStringLiteral("url")].toString(), QStringLiteral("p2"));

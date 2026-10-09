@@ -18,7 +18,7 @@ function columnEntries(workspace, windowsById, rowsByUuid) {
         if (windows.length === 0)
             return
         entries.push({
-            key: "c" + ids[0],
+            key: "w" + windows[0].uuid,
             kind: "column",
             appKey: windows[0].appKey,
             workspace: workspace.id,
@@ -37,18 +37,37 @@ function looseEntry(row, workspace) {
 function withParked(entries, rows, placed, parkedAfter, workspace) {
     const result = entries.slice()
     const loose = []
+    let waiting = []
     for (const row of rows) {
         if (placed[row.uuid])
             continue
         const entry = looseEntry(row, workspace)
-        if (!(row.uuid in parkedAfter)) {
+        if (row.uuid in parkedAfter)
+            waiting.push({ entry: entry, after: parkedAfter[row.uuid] })
+        else
             loose.push(entry)
-            continue
-        }
-        const after = parkedAfter[row.uuid]
-        const anchor = after === null ? -1 : result.findIndex(each => each.windows.some(window => window.konveyorId === after))
-        result.splice(after !== null && anchor < 0 ? result.length : anchor + 1, 0, entry)
     }
+    const last = {}
+    let progress = true
+    while (waiting.length > 0 && progress) {
+        progress = false
+        const rest = []
+        for (const item of waiting) {
+            const key = item.after === null ? "" : item.after
+            const anchor = item.after === null ? -1 : result.findIndex(each => each.windows.some(window => window.uuid === item.after))
+            if (item.after !== null && anchor < 0) {
+                rest.push(item)
+                continue
+            }
+            const sibling = last[key] ? result.indexOf(last[key]) : -1
+            result.splice(Math.max(anchor, sibling) + 1, 0, item.entry)
+            last[key] = item.entry
+            progress = true
+        }
+        waiting = rest
+    }
+    for (const item of waiting)
+        result.push(item.entry)
     return result.concat(loose)
 }
 
