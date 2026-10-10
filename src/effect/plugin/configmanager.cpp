@@ -193,8 +193,7 @@ void ConfigManager::migrate()
             qCInfo(lcKonveyor).noquote() << "konveyor: config migration" << migration.id << "waits for default binds that ship it";
             continue;
         }
-        const auto migrated
-            = rewrite([&](const QString &text) { return Settings::addDefaultBinds(text, m_path, *defaults, migration.defaultBinds); });
+        const auto migrated = rewrite([&](const QString &text) { return Settings::applyMigration(migration, text, m_path, *defaults); });
         if (!migrated) {
             qCInfo(lcKonveyor).noquote() << "konveyor: config migration" << migration.id << "skipped:" << migrated.error();
             return;

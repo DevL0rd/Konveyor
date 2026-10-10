@@ -6,7 +6,7 @@ ListView {
 
     required property TaskLook look
     property var items: []
-    property var columnBadges: ({})
+    property var itemBadges: ({})
     property bool showBadges: false
     property bool wheelCycles: false
     property var itemsByKey: ({})
@@ -134,7 +134,7 @@ ListView {
         entry: strip.itemsByKey[key] || null
         dragSpace: strip
         dragging: strip.dragKey === key
-        badge: TaskOrder.columnBadge(entry, strip.columnBadges)
+        badge: TaskOrder.itemBadge(index, strip.itemBadges)
         showBadge: strip.showBadges
         onActivated: (window, button) => strip.itemActivated(entry, window, button)
         onMiddleClicked: window => strip.itemMiddleClicked(entry, window)

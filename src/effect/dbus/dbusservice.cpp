@@ -165,4 +165,9 @@ void DBusService::announceLayoutChange()
     Q_EMIT LayoutChanged();
 }
 
+void DBusService::requestTaskbarItem(int number)
+{
+    Q_EMIT TaskbarItemRequested(number);
+}
+
 }

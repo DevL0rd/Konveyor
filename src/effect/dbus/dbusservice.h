@@ -60,10 +60,12 @@ public Q_SLOTS:
     void setMultiTouchActive(bool active);
     void setModifiersHeld(bool super, bool alt);
     void announceLayoutChange();
+    void requestTaskbarItem(int number);
 
 Q_SIGNALS:
     Q_SCRIPTABLE void MultiTouchChanged(bool active);
     Q_SCRIPTABLE void LayoutChanged();
+    Q_SCRIPTABLE void TaskbarItemRequested(int number);
     Q_SCRIPTABLE void ModifiersHeldChanged(bool super, bool alt);
 
 private:

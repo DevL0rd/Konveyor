@@ -141,6 +141,7 @@ void TestConfigStructure::actionArguments_data()
     QTest::newRow("workspace name") << QStringLiteral("move-column-to-workspace \"chat\" focus=false")
                                     << QStringList {QStringLiteral("chat")};
     QTest::newRow("column index") << QStringLiteral("focus-column 3") << QStringList {QStringLiteral("3")};
+    QTest::newRow("taskbar item") << QStringLiteral("focus-taskbar-item 10") << QStringList {QStringLiteral("10")};
     QTest::newRow("window index") << QStringLiteral("focus-window-in-column 1") << QStringList {QStringLiteral("1")};
     QTest::newRow("workspace to index") << QStringLiteral("move-workspace-to-index 2") << QStringList {QStringLiteral("2")};
     QTest::newRow("size percent") << QStringLiteral("set-column-width \"50%\"") << QStringList {QStringLiteral("50%")};

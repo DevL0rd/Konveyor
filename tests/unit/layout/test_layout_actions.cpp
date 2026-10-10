@@ -239,6 +239,20 @@ private Q_SLOTS:
         QCOMPARE(spawned, QStringList({QStringLiteral("alacritty -e"), QStringLiteral("echo hi")}));
     }
 
+    void focusTaskbarItemUsesHook()
+    {
+        Clock clock = Clock::frozenAt(Duration::zero());
+        QList<quint64> requested;
+        Layout::Hooks hooks;
+        hooks.focusTaskbarItem = [&requested](quint64 number) { requested.append(number); };
+        Layout::Engine engine(clock, hooks);
+        engine.setConfig(instantConfig());
+        engine.addOutput(makeOutput(QStringLiteral("DP-1"), QRectF(0, 0, 1920, 1080)));
+        QVERIFY(engine.perform(action(QStringLiteral("focus-taskbar-item"), {QStringLiteral("3")})).ok);
+        QVERIFY(engine.perform(action(QStringLiteral("focus-taskbar-item"), {QStringLiteral("10")})).ok);
+        QCOMPARE(requested, (QList<quint64> {3, 10}));
+    }
+
     void overviewHooksAreCalled()
     {
         Clock clock = Clock::frozenAt(Duration::zero());

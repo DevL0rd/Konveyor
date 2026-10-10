@@ -176,6 +176,17 @@ Item {
         return result.action
     }
 
+    function focusItem(number) {
+        const entry = items[number - 1]
+        if (!entry || !konveyor.ownsFocus(output))
+            return
+        const result = TaskOrder.itemShortcutResult(entry.windows)
+        if (result.action === "launch")
+            tasks.launch(entry.appKey)
+        else
+            tasks.activate(result.window)
+    }
+
     function activateIfAny(window) {
         if (window)
             tasks.activate(window)
@@ -331,6 +342,7 @@ Item {
             state.rebuild()
         }
         onAvailableChanged: state.rebuild()
+        onTaskbarItemRequested: number => state.focusItem(number)
     }
 
     TaskSource {

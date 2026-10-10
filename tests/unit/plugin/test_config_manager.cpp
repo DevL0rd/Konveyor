@@ -201,8 +201,8 @@ void TestConfigManager::addsNewDefaultBindsOnce()
     QFile migrated(filePath(QStringLiteral("config.kdl")));
     QVERIFY(migrated.open(QIODevice::ReadOnly));
     const QString text = QString::fromUtf8(migrated.readAll());
-    QVERIFY(text.startsWith(QStringLiteral("binds {\n    Super+Alt+3 { spawn \"mine\"; }\n    Super+Alt+1 { focus-column 1; }\n")));
-    QVERIFY(!text.contains(QStringLiteral("focus-column 3")));
+    QVERIFY(text.startsWith(QStringLiteral("binds {\n    Super+Alt+3 { spawn \"mine\"; }\n    Super+Alt+1 { focus-taskbar-item 1; }\n")));
+    QVERIFY(!text.contains(QStringLiteral("focus-taskbar-item 3")));
     QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), mine));
     ConfigManager again;
     again.start();

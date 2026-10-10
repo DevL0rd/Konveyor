@@ -200,6 +200,7 @@ struct Hooks
     std::function<void()> toggleOverview;
     std::function<void(bool)> setOverviewOpen;
     std::function<void(const QString &)> compositorAction;
+    std::function<void(quint64)> focusTaskbarItem;
     std::function<void(WindowId)> focusWindow;
     std::function<void()> windowMemoryChanged;
 };

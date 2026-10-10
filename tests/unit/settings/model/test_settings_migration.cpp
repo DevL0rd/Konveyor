@@ -55,6 +55,23 @@ private Q_SLOTS:
         QVERIFY(!shipsAnyBind(QString(), keys));
     }
 
+    void replacesOnlyTheOldColumnBindsWithTaskbarItemBinds()
+    {
+        const QString shipped
+            = QStringLiteral("binds {\n    Super+Alt+1 { focus-taskbar-item 1; }\n    Super+Alt+2 { focus-taskbar-item 2; }\n"
+                             "    Super+Alt+3 { focus-taskbar-item 3; }\n}\n");
+        const QString mine = QStringLiteral("binds {\n    Super+Alt+1 { focus-column 1; }\n    Super+Alt+2 { focus-column 5; }\n"
+                                            "    Super+Alt+3 { spawn \"mine\"; }\n}\n");
+        const auto result = replaceBindAction(mine, fileName, shipped, keys, QStringLiteral("focus-column"));
+        QVERIFY2(result, result ? "" : qPrintable(result.error()));
+        QCOMPARE(*result,
+            QStringLiteral("binds {\n    Super+Alt+1 { focus-taskbar-item 1; }\n    Super+Alt+2 { focus-column 5; }\n"
+                           "    Super+Alt+3 { spawn \"mine\"; }\n}\n"));
+        const auto again = replaceBindAction(*result, fileName, shipped, keys, QStringLiteral("focus-column"));
+        QVERIFY(again);
+        QCOMPARE(*again, *result);
+    }
+
     void isIdempotent()
     {
         const QString once = migrated(QStringLiteral("binds {\n}\n"));

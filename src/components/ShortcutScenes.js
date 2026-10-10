@@ -178,7 +178,7 @@ function monitors(id, back) {
 const table = [
     [/^focus-column-(left|right)$|^focus-column-(left|right)-or|^focus-column-or-monitor/, id => focusColumn(/left/.test(id), false)],
     [/^focus-column-(first|last)$/, id => focusColumn(/first/.test(id), true)],
-    [/^focus-column$/, () => focusColumn(false, true)],
+    [/^focus-column$|^focus-taskbar-item$/, () => focusColumn(false, true)],
     [/^move-column-(left|right)$|^move-column-(left|right)-or|^swap-window/, id => moveColumn(/left/.test(id), false)],
     [/^move-column-to-(first|last)$|^move-column-to-index/, id => moveColumn(/first/.test(id), true)],
     [/^consume|^expel/, id => consume(id, /left/.test(id))],

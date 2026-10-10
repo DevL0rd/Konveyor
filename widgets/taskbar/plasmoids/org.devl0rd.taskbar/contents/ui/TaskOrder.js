@@ -122,11 +122,15 @@ function buildItems(state) {
     return insertIdlePins(entries, state.pins, state.launchers)
 }
 
-function columnBadge(entry, labels) {
-    for (const column of (entry ? entry.columns : []))
-        if (column.focused && labels[column.index])
-            return labels[column.index]
-    return ""
+function itemBadge(position, labels) {
+    return labels[position + 1] || ""
+}
+
+function itemShortcutResult(windows) {
+    if (windows.length === 0)
+        return { action: "launch" }
+    const active = windows.findIndex(window => window.active)
+    return { action: "activate", window: active < 0 ? mostRecent(windows) : windows[(active + 1) % windows.length] }
 }
 
 function mostRecent(windows) {
@@ -220,14 +224,14 @@ function shortKey(key, held) {
 }
 
 function shortcutLabels(binds) {
-    const labels = { workspaces: {}, columns: {} }
+    const labels = { workspaces: {}, items: {} }
     for (const bind of binds) {
         const action = bind.action || {}
         const number = Number((action.arguments || [])[0])
         if (!Number.isInteger(number) || number < 1)
             continue
         const workspace = action.name === "focus-workspace"
-        const table = workspace ? labels.workspaces : action.name === "focus-column" ? labels.columns : null
+        const table = workspace ? labels.workspaces : action.name === "focus-taskbar-item" ? labels.items : null
         if (table && !table[number])
             table[number] = shortKey(bind.key, workspace ? ["Super"] : ["Super", "Alt"])
     }
