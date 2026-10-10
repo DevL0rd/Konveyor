@@ -17,7 +17,7 @@ PlasmoidItem {
     readonly property bool showWorkspaces: TaskbarSettings.values.showWorkspaces && taskbar.bus.available && shownWorkspaces.length > 0
     readonly property bool showTasks: TaskbarSettings.values.showApps || !showWorkspaces
     readonly property bool showSeparator: showWorkspaces && showTasks && TaskbarSettings.values.showSeparator
-    readonly property string heldBadges: !TaskbarSettings.values.showShortcutBadges || !taskbar.bus.superHeld ? "" : taskbar.bus.altHeld ? "columns" : "workspaces"
+    readonly property string heldBadges: !TaskbarSettings.values.showShortcutBadges || !taskbar.bus.superHeld ? "" : taskbar.bus.altHeld ? "items" : "workspaces"
     property string badges: ""
 
     preferredRepresentation: fullRepresentation
@@ -145,8 +145,8 @@ PlasmoidItem {
             visible: root.showTasks
             look: taskLook
             items: taskbar.items
-            columnBadges: taskbar.labels.columns
-            showBadges: root.badges === "columns"
+            itemBadges: taskbar.labels.items
+            showBadges: root.badges === "items"
             wheelCycles: TaskbarSettings.values.wheelCyclesTasks
             Layout.row: root.vertical ? (TaskbarSettings.values.workspacesAfterTasks ? 0 : 2) : 0
             Layout.column: root.vertical ? 0 : (TaskbarSettings.values.workspacesAfterTasks ? 0 : 2)

@@ -202,6 +202,13 @@ def modifiers_held(checks):
     checks.equal(json.loads(konveyor("ModifiersHeld")), {"super": False, "alt": False}, "ModifiersHeld after the release")
 
 
+def taskbar_item_requests(checks):
+    lines = watch_signals("type='signal',interface='org.kde.Konveyor',member='TaskbarItemRequested'",
+                          lambda: konveyor_action("focus-taskbar-item", "3"),
+                          lambda seen: any(line.startswith("int32 3") for line in seen))
+    checks.expect(any(line.startswith("int32 3") for line in lines), "TaskbarItemRequested carries the item number of focus-taskbar-item")
+
+
 def app_rule(window, option, enabled):
     return konveyor("SetAppRule", json.dumps({"id": window["id"], "option": option, "enabled": enabled}))
 
@@ -239,8 +246,8 @@ def versioned_reinstall(checks):
 
 
 def main():
-    Checks().run(version, queries, focused_window, actions, layout_changes, load_config_file, reload_invalid, multitouch, modifiers_held, app_rules,
-                 versioned_reinstall)
+    Checks().run(version, queries, focused_window, actions, layout_changes, load_config_file, reload_invalid, multitouch, modifiers_held,
+                 taskbar_item_requests, app_rules, versioned_reinstall)
 
 
 if __name__ == "__main__":

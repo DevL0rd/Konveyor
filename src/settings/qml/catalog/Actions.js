@@ -128,6 +128,7 @@ const actions = [
     a("close-overview", "overview", "Close the overview", "window-close"),
     a("show-hotkey-overlay", "overview", "Show the shortcut cheatsheet", "preferences-desktop-keyboard-shortcut"),
 
+    a("focus-taskbar-item", "apps", "Focus or launch a taskbar item by position", "go-jump", "index"),
     a("spawn", "apps", "Launch an app or command", "system-run", "command"),
     a("spawn-sh", "apps", "Run a shell command", "utilities-terminal", "shell")
 ].concat(monitorFamily("focus-monitor", "Focus"), monitorFamily("move-window-to-monitor", "Send the window to"),

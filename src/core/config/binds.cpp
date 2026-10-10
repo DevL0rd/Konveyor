@@ -58,6 +58,7 @@ constexpr ActionSpec kSpecialActions[] = {
     {"spawn-sh", 1, 1, ArgumentKind::Text, ""},
     {"focus-window-in-column", 1, 1, ArgumentKind::Index, ""},
     {"focus-column", 1, 1, ArgumentKind::Index, ""},
+    {"focus-taskbar-item", 1, 1, ArgumentKind::Index, ""},
     {"move-column-to-index", 1, 1, ArgumentKind::Index, ""},
     {"set-column-display", 1, 1, ArgumentKind::Display, ""},
     {"focus-workspace", 1, 1, ArgumentKind::Workspace, ""},

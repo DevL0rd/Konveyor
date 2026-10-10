@@ -196,6 +196,16 @@ void registerFocusActions(ActionTable &table)
     registerColumnFocusActions(table);
     addEngineAction(table, "focus-column",
         [](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) { return focusByIndex(d, action, false); });
+    addEngineAction(table, "focus-taskbar-item", [](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
+        const auto index = parseIndex(actionArgument(action, 0));
+        if (!index) {
+            return actionError(index.error());
+        }
+        if (d.hooks.focusTaskbarItem) {
+            d.hooks.focusTaskbarItem(*index);
+        }
+        return ActionResult();
+    });
     addEngineAction(table, "focus-window-in-column",
         [](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) { return focusByIndex(d, action, true); });
     addEngineAction(table, "focus-window-previous",

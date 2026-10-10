@@ -150,15 +150,30 @@ private Q_SLOTS:
         QCOMPARE(call("columnIds", {QJsonValue(items)}), (QJsonArray {1, 2, 3, 5}));
     }
 
-    void badgesOnlyNameColumnsOfTheFocusedWorkspace()
+    void badgesNumberEveryItemByPosition()
     {
-        const QJsonArray items
-            = buildOn({workspace(1, {QJsonArray {1}, QJsonArray {2}}, false), workspace(2, {QJsonValue(QJsonArray {3})}, true)},
-                {row("u1", "a"), row("u2", "b"), row("u3", "c")}, {}, false);
-        QCOMPARE(keysOf(items), (QJsonArray {QStringLiteral("c1"), QStringLiteral("c2"), QStringLiteral("c3")}));
         const QJsonObject labels {{QStringLiteral("1"), QStringLiteral("1")}, {QStringLiteral("2"), QStringLiteral("2")}};
-        QCOMPARE(call("columnBadge", {items[0], labels}).toString(), QString());
-        QCOMPARE(call("columnBadge", {items[2], labels}).toString(), QStringLiteral("1"));
+        QCOMPARE(call("itemBadge", {0, labels}).toString(), QStringLiteral("1"));
+        QCOMPARE(call("itemBadge", {1, labels}).toString(), QStringLiteral("2"));
+        QCOMPARE(call("itemBadge", {2, labels}).toString(), QString());
+    }
+
+    void shortcutsLaunchActivateAndCycleAnItem()
+    {
+        const auto window = [](const char *uuid, bool active, int last) {
+            return QJsonObject {{QStringLiteral("uuid"), QLatin1String(uuid)}, {QStringLiteral("active"), active},
+                {QStringLiteral("lastActivated"), last}, {QStringLiteral("appKey"), QStringLiteral("a")}};
+        };
+        const auto result = [this](const QJsonArray &windows) {
+            const QJsonValue value = call("itemShortcutResult", {QJsonValue(windows)});
+            return value[QStringLiteral("action")].toString() + QLatin1Char(':')
+                + value[QStringLiteral("window")][QStringLiteral("uuid")].toString();
+        };
+        QCOMPARE(result({}), QStringLiteral("launch:"));
+        QCOMPARE(result({window("1", false, 5), window("2", false, 9)}), QStringLiteral("activate:2"));
+        QCOMPARE(result({window("1", true, 5), window("2", false, 9), window("3", false, 1)}), QStringLiteral("activate:2"));
+        QCOMPARE(result({window("1", false, 5), window("2", false, 9), window("3", true, 1)}), QStringLiteral("activate:1"));
+        QCOMPARE(result({window("1", true, 5)}), QStringLiteral("activate:1"));
     }
 
     void clicksPickTheRightWindow()
@@ -278,11 +293,14 @@ private Q_SLOTS:
         };
         const QJsonValue labels = call("shortcutLabels",
             {QJsonValue(QJsonArray {bind("Super+1", "focus-workspace", {QStringLiteral("1")}),
-                bind("Super+Ctrl+2", "focus-column", {QStringLiteral("2")}), bind("Super+Alt+3", "focus-column", {QStringLiteral("3")}),
-                bind("Alt+Super+4", "focus-column", {QStringLiteral("4")}), bind("Super+W", "focus-workspace", {QStringLiteral("web")}),
-                bind("Super+F1", "focus-workspace", {QStringLiteral("1")}), bind("Super+K", "show-hotkey-overlay", {})})});
+                bind("Super+Ctrl+2", "focus-taskbar-item", {QStringLiteral("2")}),
+                bind("Super+Alt+3", "focus-taskbar-item", {QStringLiteral("3")}),
+                bind("Super+Alt+5", "focus-column", {QStringLiteral("5")}),
+                bind("Alt+Super+4", "focus-taskbar-item", {QStringLiteral("4")}),
+                bind("Super+W", "focus-workspace", {QStringLiteral("web")}), bind("Super+F1", "focus-workspace", {QStringLiteral("1")}),
+                bind("Super+K", "show-hotkey-overlay", {})})});
         QCOMPARE(labels[QStringLiteral("workspaces")], (QJsonObject {{QStringLiteral("1"), QStringLiteral("1")}}));
-        QCOMPARE(labels[QStringLiteral("columns")],
+        QCOMPARE(labels[QStringLiteral("items")],
             (QJsonObject {{QStringLiteral("2"), QStringLiteral("Ctrl+2")}, {QStringLiteral("3"), QStringLiteral("3")},
                 {QStringLiteral("4"), QStringLiteral("4")}}));
     }

@@ -379,6 +379,11 @@ Layout::Hooks KonveyorEffect::makeHooks()
         }
         qInfo() << "konveyor: action left to KDE:" << name;
     };
+    hooks.focusTaskbarItem = [this](quint64 number) {
+        if (d->dbus) {
+            d->dbus->requestTaskbarItem(static_cast<int>(number));
+        }
+    };
     hooks.toggleOverview = [this] { showKdeOverview(d->engine.isOverviewOpen()); };
     hooks.setOverviewOpen = [this](bool open) { showKdeOverview(open); };
     hooks.windowMemoryChanged = [this] { d->memorySaveTimer.start(); };

@@ -13,6 +13,7 @@ Item {
     property bool altHeld: false
 
     signal layoutRefreshed()
+    signal taskbarItemRequested(int number)
 
     function message(member, args) {
         return { service: "org.kde.Konveyor", path: "/Konveyor", iface: "org.kde.Konveyor", member: member, arguments: args || [] }
@@ -79,6 +80,10 @@ Item {
         perform("move-column-to-index", [index], id)
     }
 
+    function ownsFocus(output) {
+        return !workspaces.some(each => each.is_focused) || workspaces.some(each => each.output === output && each.is_focused)
+    }
+
     function focusWorkspace(output, workspace) {
         const focused = workspaces.some(each => each.output === output && each.is_focused)
         if (!focused)
@@ -121,6 +126,10 @@ Item {
 
         function dbusLayoutChanged() {
             settle.restart()
+        }
+
+        function dbusTaskbarItemRequested(number) {
+            bus.taskbarItemRequested(Number(bus.unwrap(number)))
         }
 
         function dbusModifiersHeldChanged(superDown, altDown) {

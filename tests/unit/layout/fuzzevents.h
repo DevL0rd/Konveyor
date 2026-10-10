@@ -85,7 +85,7 @@ inline QString pickOf(Dice &dice, const QStringList &values)
 inline QStringList actionArguments(Dice &dice, const QString &name)
 {
     static const QStringList indexed {QStringLiteral("focus-column"), QStringLiteral("focus-window-in-column"),
-        QStringLiteral("move-column-to-index"), QStringLiteral("move-workspace-to-index")};
+        QStringLiteral("move-column-to-index"), QStringLiteral("move-workspace-to-index"), QStringLiteral("focus-taskbar-item")};
     static const QStringList referenced {
         QStringLiteral("focus-workspace"), QStringLiteral("move-window-to-workspace"), QStringLiteral("move-column-to-workspace")};
     static const QStringList sized {
