@@ -67,6 +67,7 @@ KWin::XdgToplevelInterface *toplevelOf(KWin::Window *window)
 
 struct FullscreenGuard::Entry
 {
+    Layout::WindowId id;
     QPointer<KWin::Window> window;
     QPointer<KWin::XdgToplevelInterface> toplevel;
     QMetaObject::Connection unfullscreenConnection;
@@ -107,17 +108,14 @@ void FullscreenGuard::observe(Layout::WindowId id, KWin::Window *window)
         return;
     }
 
-    QObject::disconnect(toplevel, &KWin::XdgToplevelInterface::unfullscreenRequested, window, nullptr);
-    QObject::disconnect(toplevel, &KWin::XdgToplevelInterface::minimizeRequested, window, nullptr);
-
     auto entry = std::make_shared<Entry>();
+    entry->id = id;
     entry->window = window;
     entry->toplevel = toplevel;
     m_entries.insert(id, entry);
     entry->unfullscreenConnection = connect(
         toplevel, &KWin::XdgToplevelInterface::unfullscreenRequested, this, [this, id] { handleUnfullscreen(id); }, Qt::DirectConnection);
-    entry->minimizeConnection
-        = connect(toplevel, &KWin::XdgToplevelInterface::minimizeRequested, this, [this, id] { handleMinimize(id); }, Qt::DirectConnection);
+    setMinimizeGuard(entry, m_preventFullscreenMinimize);
     entry->capabilityConnection
         = connect(window, &KWin::Window::minimizeableChanged, this, [this, id] { advertiseMinimizeCapability(m_entries.value(id)); });
     advertiseMinimizeCapability(entry);
@@ -135,18 +133,12 @@ void FullscreenGuard::forget(Layout::WindowId id)
 void FullscreenGuard::restore(const std::shared_ptr<Entry> &entry)
 {
     QObject::disconnect(entry->unfullscreenConnection);
-    QObject::disconnect(entry->minimizeConnection);
     QObject::disconnect(entry->capabilityConnection);
+    setMinimizeGuard(entry, false);
     if (!entry->window || !entry->toplevel || entry->window->isDeleted()) {
         return;
     }
     KWin::Window *window = entry->window;
-    QObject::connect(
-        entry->toplevel, &KWin::XdgToplevelInterface::unfullscreenRequested, window, [window] { window->setFullScreen(false); },
-        Qt::DirectConnection);
-    QObject::connect(
-        entry->toplevel, &KWin::XdgToplevelInterface::minimizeRequested, window, [window] { window->setMinimized(true); },
-        Qt::DirectConnection);
     entry->toplevel->sendWmCapabilities(capabilitiesFor(window));
 }
 
@@ -191,8 +183,29 @@ void FullscreenGuard::setFullscreen(const std::shared_ptr<Entry> &entry, bool fu
 void FullscreenGuard::refreshCapabilities()
 {
     for (const std::shared_ptr<Entry> &entry : std::as_const(m_entries)) {
+        setMinimizeGuard(entry, m_preventFullscreenMinimize);
         advertiseMinimizeCapability(entry);
     }
+}
+
+void FullscreenGuard::setMinimizeGuard(const std::shared_ptr<Entry> &entry, bool enabled)
+{
+    if (!entry->window || !entry->toplevel || entry->window->isDeleted() || bool(entry->minimizeConnection) == enabled) {
+        return;
+    }
+    if (enabled) {
+        QObject::disconnect(entry->toplevel, &KWin::XdgToplevelInterface::minimizeRequested, entry->window, nullptr);
+        entry->minimizeConnection = connect(
+            entry->toplevel, &KWin::XdgToplevelInterface::minimizeRequested, this, [this, id = entry->id] { handleMinimize(id); },
+            Qt::DirectConnection);
+        return;
+    }
+    QObject::disconnect(entry->minimizeConnection);
+    entry->minimizeConnection = {};
+    KWin::Window *window = entry->window;
+    QObject::connect(
+        entry->toplevel, &KWin::XdgToplevelInterface::minimizeRequested, window, [window] { window->setMinimized(true); },
+        Qt::DirectConnection);
 }
 
 void FullscreenGuard::advertiseMinimizeCapability(const std::shared_ptr<Entry> &entry)
@@ -226,10 +239,12 @@ void FullscreenGuard::handleUnfullscreen(Layout::WindowId id)
     const bool suppressed = suppressFullscreenExit(entry);
     qCInfo(lcKonveyor) << "konveyor: Wayland" << entry->window->resourceClass()
                        << "asked to leave fullscreen, active =" << entry->window->isActive() << "suppressed =" << suppressed;
-    if (suppressed) {
-        return;
+    if (suppressed && entry->window->isFullScreen()) {
+        const auto restoreFrame = entry->window->fullscreenGeometryRestore();
+        entry->window->setMoveResizeOutput(entry->window->output());
+        entry->window->setFullScreen(true);
+        entry->window->setFullscreenGeometryRestore(restoreFrame);
     }
-    entry->window->setFullScreen(false);
 }
 
 void FullscreenGuard::handleMinimize(Layout::WindowId id)

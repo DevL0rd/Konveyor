@@ -22,6 +22,13 @@ void Engine::Private::refreshWorkspaces()
 void Engine::Private::refresh()
 {
     followWindowsOnAllDesktops();
+    for (Workspace *workspace : allWorkspaces()) {
+        for (const TileRef &ref : workspace->renderedTilesMut(false)) {
+            if (ref.tile->isWindowedFullscreenFallback && !isLockedToOutputSize(ref.tile->id())) {
+                workspace->setFullscreen(ref.tile->id(), false);
+            }
+        }
+    }
     refreshWorkspaces();
     updateFocus();
     if (resolveRules()) {

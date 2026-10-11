@@ -58,7 +58,8 @@ void FullscreenShade::update(const QList<Layout::WindowState> &states)
     QSet<Layout::WindowId> shaded;
     for (const Layout::WindowState &state : states) {
         KWin::Window *window = m_windows.windowOf(state.id);
-        if (!window || !window->isFullScreen() || window->isActive() || !state.onActiveWorkspace || !window->windowItem()) {
+        const bool fullscreen = window && (window->isFullScreen() || state.requestedSizingMode == Layout::WindowMode::Fullscreen);
+        if (!fullscreen || window->isActive() || !state.onActiveWorkspace || !window->windowItem()) {
             continue;
         }
         const QRectF output = window->frameGeometry();

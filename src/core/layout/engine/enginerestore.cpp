@@ -7,6 +7,23 @@
 namespace Konveyor::Layout
 {
 
+namespace
+{
+
+void restoreWindowPlan(NewWindowPlan &plan, const RestorePlacement &restore, const std::vector<Monitor> &monitors)
+{
+    plan.wantsMaximized |= restore.requestedSizingMode == WindowMode::Maximized;
+    plan.isFloating = restore.isFloating || (restore.returnsToFloating && !plan.wantsFullscreen && !plan.wantsMaximized);
+    plan.wantsFullscreen |= restore.isWindowedFullscreenFallback;
+    for (std::size_t idx = 0; idx < monitors.size(); ++idx) {
+        if (monitors[idx].indexOfWorkspace(restore.workspace)) {
+            plan.monitorIndex = idx;
+        }
+    }
+}
+
+}
+
 void Engine::addWindow(WindowId id, const WindowProperties &properties, const QString &preferredOutput, ActivationPolicy policy,
     const std::optional<RestorePlacement> &restore)
 {
@@ -19,12 +36,7 @@ void Engine::addWindow(WindowId id, const WindowProperties &properties, const QS
     NewWindowPlan plan = d->planNewWindow(properties, preferredOutput, policy);
     const bool restoring = restore && d->workspaceById(restore->workspace);
     if (restoring) {
-        plan.isFloating = restore->isFloating;
-        for (std::size_t idx = 0; idx < d->monitors.size(); ++idx) {
-            if (d->monitors[idx].indexOfWorkspace(restore->workspace)) {
-                plan.monitorIndex = idx;
-            }
-        }
+        restoreWindowPlan(plan, *restore, d->monitors);
     }
     qCInfo(lcKonveyor).nospace() << "konveyor: placing window " << id << " app=" << properties.appId << " title=" << properties.title
                                  << " output=" << preferredOutput << " policy=" << static_cast<int>(policy)
@@ -80,12 +92,17 @@ void Engine::removeWindow(WindowId id)
 
 std::optional<RestorePlacement> Engine::placementOf(WindowId id) const
 {
-    const Workspace *workspace = const_cast<Private &>(*d).workspaceOf(id);
+    Workspace *workspace = const_cast<Private &>(*d).workspaceOf(id);
     if (!workspace) {
         return std::nullopt;
     }
     RestorePlacement placement;
     placement.workspace = workspace->id();
+    const Tile *tile = workspace->tileFor(id);
+    placement.requestedSizingMode = tile->window().requestedMode();
+    placement.returnsToFloating = tile->returnsToFloating && placement.requestedSizingMode != WindowMode::Normal;
+    placement.savedFloatingSize = tile->savedFloatingSize;
+    placement.savedFloatingPosition = tile->savedFloatingPosition;
     if (workspace->isFloating(id)) {
         placement.isFloating = true;
         placement.floatingFrame = d->floatingFrameOf(*workspace, id);
@@ -98,8 +115,10 @@ std::optional<RestorePlacement> Engine::placementOf(WindowId id) const
             continue;
         }
         placement.columnIndex = c;
+        placement.isWindowedFullscreenFallback = columns[c].tiles[*position].isWindowedFullscreenFallback;
         placement.width = columns[c].widthSetting;
         placement.fillsWidth = columns[c].fillsWidth;
+        placement.columnDisplay = columns[c].displayStyle;
         if (columns[c].tiles.size() > 1) {
             placement.tileIndex = position;
         }
@@ -127,11 +146,25 @@ void Engine::Private::restoreFloatingFrame(WindowId id, const QRectF &frame)
     }
 }
 
+void Engine::Private::restorePresentation(Workspace &workspace, WindowId id, const RestorePlacement &restore)
+{
+    Tile *tile = workspace.tileFor(id);
+    tile->returnsToFloating = restore.returnsToFloating || restore.isFloating;
+    const Column *column = workspace.scrolling().columnFor(id);
+    if (restore.columnDisplay && column && column->tiles.size() == 1) {
+        workspace.setColumnDisplay(*restore.columnDisplay, id);
+    }
+    if (restore.isWindowedFullscreenFallback && tile->window().requestedMode() == WindowMode::Fullscreen) {
+        tile->isWindowedFullscreenFallback = true;
+        tile->window().requestWindowedFullscreen(true);
+    }
+}
+
 bool Engine::Private::placeRestored(Tile &tile, const NewWindowPlan &plan, const RestorePlacement &restore, MonitorAddRequest &request)
 {
     Workspace *workspace = workspaceById(restore.workspace);
     request.target = MonitorAddTarget::onWorkspace(restore.workspace);
-    if (!workspace || restore.isFloating) {
+    if (!workspace || plan.isFloating) {
         return false;
     }
     const std::size_t columnCount = workspace->scrolling().columns().size();

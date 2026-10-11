@@ -49,7 +49,8 @@ class TestPanelTaskbar(AppletsrcCase):
     def test_install_swaps_the_task_manager_and_keeps_its_pins(self):
         self.assertEqual(self.run_script("install").stdout, "Konveyor Taskbar set up next to the Kontrol Panel\n")
         text = self.path.read_text()
-        self.assertEqual(self.applet(text, 4), "immutability=1\nplugin=org.devl0rd.taskbar\nkonveyorReplaced=org.kde.plasma.icontasks\n")
+        self.assertEqual(self.applet(text, 4), "immutability=1\nplugin=org.devl0rd.taskbar\nkonveyorReplaced=org.kde.plasma.icontasks\n"
+                         "konveyorOriginalOrder=2;3;4;5\nkonveyorInstalledOrder=2;4;3;5\n")
         self.assertIn("launchers=applications:org.kde.dolphin.desktop,applications:firefox.desktop", text)
         self.assertIn("AppletOrder=2;4;3;5", text)
         self.assertNotIn("plugin=org.kde.plasma.icontasks", text)
@@ -102,6 +103,77 @@ class TestPanelTaskbar(AppletsrcCase):
         self.assertIn("[Containments][1][Applets][12]\nimmutability=1\nplugin=org.devl0rd.taskbar", text)
         self.assertIn("[Containments][10][Applets][11]\nplugin=org.kde.plasma.taskmanager", text)
 
+    def round_trip_with_launcher(self, before):
+        self.path.write_text(before)
+        launcher = [sys.executable, str(SERVICE / "panel-launcher")]
+        for command in ("install", "uninstall"):
+            subprocess.run([*launcher, command, str(self.path)], capture_output=True, text=True, check=True)
+            self.run_script(command)
+        self.assertEqual(self.path.read_text(), before)
+
+    def test_uninstall_restores_the_default_plasma_order_reported_by_ci(self):
+        plugins = {3: "org.kde.plasma.kickoff", 4: "org.kde.plasma.pager", 5: "org.kde.plasma.icontasks",
+                   6: "org.kde.plasma.systemtray", 7: "org.kde.plasma.digitalclock", 14: "org.kde.plasma.marginsseparator",
+                   15: "org.kde.plasma.showdesktop"}
+        before = "[Containments][1]\nplugin=org.kde.panel\n\n"
+        before += "".join(f"[Containments][1][Applets][{applet}]\nplugin={plugin}\n\n"
+                          for applet, plugin in plugins.items())
+        before += "[Containments][1][General]\nAppletOrder=3;4;5;6;7;14;15\n"
+        self.round_trip_with_launcher(before)
+
+    def test_uninstall_restores_the_original_panel_order(self):
+        self.run_script("install")
+        self.run_script("uninstall")
+        self.assertEqual(self.path.read_text(), FIXTURE)
+
+    def test_uninstall_restores_position_and_keeps_unrelated_panel_edits(self):
+        self.run_script("install")
+        self.path.write_text(self.path.read_text().replace("AppletOrder=2;4;3;5", "AppletOrder=2;4;8;5;3")
+                             + "\n[Containments][1][Applets][8]\nplugin=org.kde.plasma.digitalclock\n")
+        self.run_script("uninstall")
+        text = self.path.read_text()
+        self.assertIn("AppletOrder=2;8;5;3;4", text)
+        self.assertIn("[Containments][1][Applets][8]\nplugin=org.kde.plasma.digitalclock", text)
+        self.assertNotIn("konveyor", self.applet(text, 4))
+
+    def test_uninstall_keeps_a_taskbar_position_changed_by_the_user(self):
+        self.run_script("install")
+        self.path.write_text(self.path.read_text().replace("AppletOrder=2;4;3;5", "AppletOrder=2;3;5;4"))
+        self.run_script("uninstall")
+        self.assertIn("AppletOrder=2;3;5;4", self.path.read_text())
+
+    def test_uninstall_uses_a_surviving_original_neighbor(self):
+        self.run_script("install")
+        self.path.write_text(self.path.read_text().replace("AppletOrder=2;4;3;5", "AppletOrder=2;4;5")
+                             .replace("[Containments][1][Applets][3]\nplugin=org.kde.plasma.pager\n\n", ""))
+        self.run_script("uninstall")
+        self.assertIn("AppletOrder=2;4;5", self.path.read_text())
+
+    def test_uninstall_launcher_first_restores_the_complete_original_config(self):
+        for plugin in ("org.kde.plasma.kickoff", "org.kde.plasma.digitalclock"):
+            with self.subTest(plugin=plugin):
+                before = FIXTURE.replace("org.devl0rd.portal.launcher", plugin).replace("konveyorReplaced=org.kde.plasma.kickoff\n", "")
+                self.round_trip_with_launcher(before)
+
+    def test_uninstall_restores_a_task_manager_that_originally_came_first(self):
+        before = FIXTURE.replace("AppletOrder=2;3;4;5", "AppletOrder=4;2;3;5")
+        self.path.write_text(before)
+        self.run_script("install")
+        self.run_script("uninstall")
+        self.assertEqual(self.path.read_text(), before)
+
+    def test_uninstall_keeps_the_order_when_the_user_removed_the_taskbar_from_it(self):
+        self.run_script("install")
+        self.path.write_text(self.path.read_text().replace("AppletOrder=2;4;3;5", "AppletOrder=2;3;5"))
+        self.run_script("uninstall")
+        self.assertIn("AppletOrder=2;3;5", self.path.read_text())
+        self.assertNotIn("konveyor", self.applet(self.path.read_text(), 4))
+
+    def test_uninstall_keeps_a_legacy_taskbar_position_without_order_metadata(self):
+        self.path.write_text(FIXTURE.replace("plugin=org.kde.plasma.icontasks", "plugin=org.devl0rd.taskbar\nkonveyorReplaced=org.kde.plasma.icontasks"))
+        self.run_script("uninstall")
+        self.assertEqual(self.path.read_text(), FIXTURE)
+
     def test_uninstall_gives_the_task_manager_back_after_the_launcher(self):
         self.path.write_text(FIXTURE.replace("AppletOrder=2;3;4;5", "AppletOrder=2;4;3;5"))
         before = self.path.read_text()
@@ -116,7 +188,7 @@ class TestPanelTaskbar(AppletsrcCase):
         text = self.path.read_text()
         self.assertEqual(self.applet(text, 4), "immutability=1\nplugin=org.kde.plasma.icontasks\n")
         self.assertIn("launchers=applications:org.kde.dolphin.desktop,applications:org.kde.konsole.desktop", text)
-        self.assertIn("AppletOrder=2;4;3;5", text)
+        self.assertIn("AppletOrder=2;3;4;5", text)
 
     def test_uninstall_removes_an_added_taskbar(self):
         self.path.write_text(FIXTURE.replace("org.kde.plasma.icontasks", "org.kde.plasma.digitalclock"))

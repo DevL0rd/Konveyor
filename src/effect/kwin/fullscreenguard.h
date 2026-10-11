@@ -37,6 +37,7 @@ private:
     void restore(const std::shared_ptr<Entry> &entry);
     void setFullscreen(const std::shared_ptr<Entry> &entry, bool fullscreen);
     void refreshCapabilities();
+    void setMinimizeGuard(const std::shared_ptr<Entry> &entry, bool enabled);
     void advertiseMinimizeCapability(const std::shared_ptr<Entry> &entry);
     bool suppressFullscreenExit(const std::shared_ptr<Entry> &entry) const;
     bool suppressFullscreenExit(KWin::Window *window) const;

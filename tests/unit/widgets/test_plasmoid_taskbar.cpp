@@ -33,6 +33,12 @@ QJsonObject row(const char *uuid, const char *app)
     return {{QStringLiteral("uuid"), QLatin1String(uuid)}, {QStringLiteral("appKey"), QLatin1String(app)}};
 }
 
+QJsonObject window(const char *uuid, bool active, int last)
+{
+    return {{QStringLiteral("uuid"), QLatin1String(uuid)}, {QStringLiteral("active"), active}, {QStringLiteral("lastActivated"), last},
+        {QStringLiteral("appKey"), QStringLiteral("a")}};
+}
+
 QJsonObject workspace(int id, const QJsonArray &columns, bool focused, const QJsonArray &displays = {})
 {
     return {{QStringLiteral("id"), id}, {QStringLiteral("columns"), columns}, {QStringLiteral("focused"), focused},
@@ -160,10 +166,6 @@ private Q_SLOTS:
 
     void shortcutsLaunchActivateAndCycleAnItem()
     {
-        const auto window = [](const char *uuid, bool active, int last) {
-            return QJsonObject {{QStringLiteral("uuid"), QLatin1String(uuid)}, {QStringLiteral("active"), active},
-                {QStringLiteral("lastActivated"), last}, {QStringLiteral("appKey"), QStringLiteral("a")}};
-        };
         const auto result = [this](const QJsonArray &windows) {
             const QJsonValue value = call("itemShortcutResult", {QJsonValue(windows)});
             return value[QStringLiteral("action")].toString() + QLatin1Char(':')
@@ -178,10 +180,6 @@ private Q_SLOTS:
 
     void clicksPickTheRightWindow()
     {
-        const auto window = [](const char *uuid, bool active, int last) {
-            return QJsonObject {{QStringLiteral("uuid"), QLatin1String(uuid)}, {QStringLiteral("active"), active},
-                {QStringLiteral("lastActivated"), last}, {QStringLiteral("appKey"), QStringLiteral("a")}};
-        };
         const QJsonObject idle = window("1", false, 5);
         const QJsonObject recent = window("2", false, 9);
         const QJsonObject focused = window("3", true, 1);

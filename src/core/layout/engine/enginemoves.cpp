@@ -108,6 +108,9 @@ void Engine::Private::moveWindowToMonitor(
     if (!workspace) {
         return;
     }
+    if (workspace->tileFor(*id)->isWindowedFullscreenFallback) {
+        workspace->setFullscreen(*id, false);
+    }
     DetachedTile removed = workspace->removeTile(*id);
 
     MonitorAddRequest request;
@@ -135,6 +138,14 @@ void Engine::Private::moveColumnToMonitor(std::size_t monitorIndex, bool activat
     if (source.isFloatingFocused()) {
         moveWindowToMonitor(source.activeWindow(), monitorIndex, activate, workspaceIndex);
         return;
+    }
+    if (const Column *column = source.scrolling().activeColumn()) {
+        for (const Tile &tile : column->tiles) {
+            if (tile.isWindowedFullscreenFallback) {
+                source.setFullscreen(tile.id(), false);
+                break;
+            }
+        }
     }
     auto column = source.removeActiveColumn();
     if (!column) {

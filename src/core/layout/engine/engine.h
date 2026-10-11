@@ -153,10 +153,16 @@ struct RestorePlacement
 {
     WorkspaceId workspace = 0;
     bool isFloating = false;
+    bool isWindowedFullscreenFallback = false;
+    bool returnsToFloating = false;
+    WindowMode requestedSizingMode = WindowMode::Normal;
+    std::optional<QSize> savedFloatingSize;
+    std::optional<QPointF> savedFloatingPosition;
     std::size_t columnIndex = 0;
     std::optional<std::size_t> tileIndex;
     ColumnWidth width;
     bool fillsWidth = false;
+    std::optional<Config::ColumnDisplay> columnDisplay;
     QRectF floatingFrame;
 };
 

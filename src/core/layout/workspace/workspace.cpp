@@ -61,6 +61,9 @@ void Workspace::setOutput(const OutputArea &area)
     if (m_area == area) {
         return;
     }
+    if (m_area.outputName != area.outputName) {
+        clearWindowedFullscreenFallbacks();
+    }
     m_area = area;
     resolveHomeByConnector();
     if (homeAffinity(m_area) == 2) {
@@ -71,6 +74,7 @@ void Workspace::setOutput(const OutputArea &area)
 
 void Workspace::clearOutput()
 {
+    clearWindowedFullscreenFallbacks();
     m_area.outputName.clear();
     m_area.outputId.clear();
 }

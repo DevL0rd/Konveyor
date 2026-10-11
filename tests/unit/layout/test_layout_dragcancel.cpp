@@ -105,6 +105,32 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(row.fixture);
     }
 
+    void cancellingRestoresWindowedFullscreenPresentation()
+    {
+        Row row;
+        auto properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(1920, 1080));
+        properties.isResizable = false;
+        properties.minSize = properties.maxSize = properties.frameSize;
+        properties.wantsFullscreen = true;
+        const auto game = row.fixture.addWith(properties);
+        row.fixture.engine().setWindowFullscreen(game, false);
+        row.fixture.settle();
+        const auto before = row.fixture.engine().placementOf(game);
+        QVERIFY(before && before->isWindowedFullscreenFallback);
+        QVERIFY(row.fixture.state(game).isWindowedFullscreen);
+        QVERIFY(startMove(row.fixture, game, QPointF(2, 540)));
+        row.cancel();
+        const auto restored = row.fixture.engine().placementOf(game);
+        QVERIFY(restored && restored->isWindowedFullscreenFallback);
+        QVERIFY(row.fixture.state(game).isWindowedFullscreen);
+        QVERIFY(!row.fixture.state(game).isFloating);
+        QCOMPARE(row.fixture.state(game).requestedSizingMode, Layout::WindowMode::Fullscreen);
+        QCOMPARE(restored->workspace, before->workspace);
+        QCOMPARE(restored->columnIndex, before->columnIndex);
+        QCOMPARE(restored->width, before->width);
+        VERIFY_INVARIANTS(row.fixture);
+    }
+
     void cancellingBringsTheWindowBackToAWorkspaceItEmptied()
     {
         Row row;

@@ -422,8 +422,8 @@ Every Konveyor setting lives in the Kontrol Panel. Press <kbd>Meta</kbd> + <kbd>
 | <kbd>Meta</kbd> + <kbd>Ctrl</kbd> + <kbd>←</kbd> <kbd>→</kbd> | Carry the column left or right |
 | <kbd>Meta</kbd> + <kbd>Ctrl</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> | Carry the window up or down, into the next workspace |
 | <kbd>Meta</kbd> + <kbd>R</kbd> | Cycle the column width |
-| <kbd>Meta</kbd> + <kbd>F</kbd> | Cycle full width, fill the screen, back to normal |
-| <kbd>Meta</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> | Fullscreen |
+| <kbd>Meta</kbd> + <kbd>F</kbd> | Toggle fullscreen and windowed |
+| <kbd>Meta</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> | Toggle fullscreen and windowed |
 | <kbd>Meta</kbd> + <kbd>[</kbd> <kbd>]</kbd> | Stack into the neighbouring column, or pop back out |
 | <kbd>Meta</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd> | Show a column as tabs |
 | <kbd>Meta</kbd> + <kbd>Space</kbd> | Float or unfloat |

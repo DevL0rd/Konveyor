@@ -71,6 +71,7 @@ public:
     bool hasOutput() const { return !m_area.outputName.isEmpty(); }
     const OutputArea &area() const { return m_area; }
     void setOutput(const OutputArea &area);
+    void clearWindowedFullscreenFallbacks();
     void clearOutput();
 
     void updateConfig(OptionsPtr globalOptions);

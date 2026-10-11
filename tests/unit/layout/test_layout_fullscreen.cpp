@@ -244,7 +244,7 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void windowLockedToOutputSizeFloatsOverItWhenLeavingFullscreen()
+    void windowLockedToOutputSizeKeepsItsColumnWhenLeavingProtocolFullscreen()
     {
         Fixture fixture;
         fixture.add();
@@ -254,8 +254,9 @@ private Q_SLOTS:
         QCOMPARE(fixture.state(id).sizingMode, Layout::WindowMode::Fullscreen);
         fixture.engine().setWindowFullscreen(id, false);
         fixture.settle();
-        QVERIFY(fixture.state(id).isFloating);
-        QCOMPARE(fixture.state(id).requestedSizingMode, Layout::WindowMode::Normal);
+        QVERIFY(!fixture.state(id).isFloating);
+        QVERIFY(fixture.state(id).isWindowedFullscreen);
+        QCOMPARE(fixture.state(id).requestedSizingMode, Layout::WindowMode::Fullscreen);
         QCOMPARE(fixture.frame(id), QRectF(0, 0, 1920, 1080));
         VERIFY_INVARIANTS(fixture);
     }

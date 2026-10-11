@@ -24,11 +24,6 @@ std::optional<QString> actionProperty(const Config::Action &action, const QStrin
     return std::nullopt;
 }
 
-ActionResult actionError(const QString &message)
-{
-    return {false, message};
-}
-
 std::optional<WindowId> actionWindowId(const Config::Action &action, std::optional<WindowId> fallback)
 {
     auto text = actionProperty(action, QStringLiteral("id"));
@@ -397,13 +392,6 @@ ActionResult Engine::perform(const Config::Action &action, std::optional<WindowI
     }
     d->refresh();
     return result;
-}
-
-void Engine::runWidgetTool(const QString &name, const QStringList &arguments) const
-{
-    if (d->hooks.runWidgetTool) {
-        d->hooks.runWidgetTool(name, arguments);
-    }
 }
 
 }

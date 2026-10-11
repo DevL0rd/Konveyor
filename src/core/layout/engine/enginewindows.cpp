@@ -189,11 +189,14 @@ Workspace *Engine::Private::workspaceForPlacement(const NewWindowPlan &plan)
     return activeWorkspace();
 }
 
-void Engine::Private::finishPlacement(WindowId id, const NewWindowPlan &plan)
+void Engine::Private::finishPlacement(WindowId id, const NewWindowPlan &plan, const std::optional<RestorePlacement> &restore)
 {
     Workspace *placed = workspaceOf(id);
     if (!placed) {
         return;
+    }
+    if (restore) {
+        restorePresentation(*placed, id, *restore);
     }
     if (!plan.isFloating && plan.height) {
         placed->setWindowHeight(id, sizeChangeFromPreset(*plan.height));
@@ -216,8 +219,12 @@ void Engine::Private::placeNewWindow(
     }
 
     Tile tile = workspace->createTile(makeNewWindow(id, properties, plan, *workspace));
+    if (restore) {
+        tile.savedFloatingSize = restore->savedFloatingSize;
+        tile.savedFloatingPosition = restore->savedFloatingPosition;
+    }
     const auto remembered = windowMemory.constFind(properties.appId);
-    if (plan.isFloating && workspace->options()->layout.rememberWindowPositions && remembered != windowMemory.constEnd()
+    if (!restore && plan.isFloating && workspace->options()->layout.rememberWindowPositions && remembered != windowMemory.constEnd()
         && remembered->floatingPosition && !plan.rules.defaultFloatingPosition) {
         tile.savedFloatingPosition = remembered->floatingPosition;
     }
@@ -229,7 +236,7 @@ void Engine::Private::placeNewWindow(
             = MonitorAddTarget::onWorkspace(workspace->id(), std::min(static_cast<std::size_t>(*plan.rules.openAtColumn - 1), columns));
     } else if ((restore && placeRestored(tile, plan, *restore, request))
         || (!restore && placeInAppGroup(tile, plan, *workspace, request))) {
-        finishPlacement(id, plan);
+        finishPlacement(id, plan, restore);
         return;
     }
 
@@ -240,7 +247,7 @@ void Engine::Private::placeNewWindow(
             = request.target.kind == MonitorAddTarget::Kind::NextTo ? AddTarget::besideWindow(request.target.window) : AddTarget();
         workspace->addTile(std::move(tile), {target, request.activate, width, plan.fillsWidth, plan.isFloating, std::nullopt});
     }
-    finishPlacement(id, plan);
+    finishPlacement(id, plan, restore);
 }
 
 bool Engine::hasWindow(WindowId id) const
@@ -354,8 +361,14 @@ void Engine::setWindowFullscreen(WindowId id, bool fullscreen)
         d->dropDraggedWindow(id);
     }
     if (Workspace *workspace = d->workspaceOf(id)) {
-        workspace->setFullscreen(id, fullscreen);
-        if (!fullscreen && d->isLockedToOutputSize(id)) {
+        Tile *tile = workspace->tileFor(id);
+        const bool keepPresentation = !fullscreen && !workspace->isFloating(id) && !tile->returnsToFloating
+            && tile->window().requestedMode() == WindowMode::Fullscreen && d->isLockedToOutputSize(id);
+        workspace->setFullscreen(id, fullscreen || keepPresentation);
+        if (keepPresentation) {
+            tile->isWindowedFullscreenFallback = true;
+            tile->window().requestWindowedFullscreen(true);
+        } else if (!fullscreen && d->isLockedToOutputSize(id)) {
             d->floatOverOutput(id);
         }
         d->refresh();

@@ -326,7 +326,7 @@ binds {
     Mod+Shift+R { switch-preset-column-width-back; }
     Mod+Ctrl+Shift+R { switch-preset-window-height; }
     Mod+Ctrl+R { reset-window-height; }
-    Mod+F { cycle-window-expansion; }
+    Mod+F { fullscreen-window; }
     Mod+Shift+F { fullscreen-window; }
     Mod+Ctrl+F { expand-column-to-available-width; }
 

@@ -7,16 +7,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
-from kwinsession import konveyor_action, konveyor_windows, open_client, wait_for
+from kwinsession import client_app_id, konveyor_action, konveyor_windows, open_client, wait_for
 
 MODE = sys.argv[1]
 MEMORY = Path(os.environ["XDG_STATE_HOME"]) / "konveyor" / "window-memory.json"
-APP = "org.qt-project.qml"
 
 
 def remembered():
     try:
-        return json.loads(MEMORY.read_text()).get(APP, {}).get("column-width")
+        return json.loads(MEMORY.read_text()).get(client_app_id("A"), {}).get("column-width")
     except (OSError, ValueError):
         return None
 
@@ -39,6 +38,7 @@ def opens_at(checks, title, width):
 def corrupt(checks):
     checks.expect(log_mentions(f'could not read "{MEMORY}"'), "the unreadable window-memory.json is reported in the log")
     open_client("A")
+    Path(sys.argv[2]).write_text(client_app_id("A"))
     opens_at(checks, "A", "50%")
     checks.equal(konveyor_action("set-column-width", "75%"), "", "set-column-width 75%")
     checks.expect(wait_for(remembered), "the new width is saved over the unreadable file")

@@ -62,7 +62,8 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             m_appliedFrames.insert(state.id, frame);
         }
         applySizingMode(window, state);
-        applyGeometry(window, frame, requestedSize, !state.isFloating, state.isForceResizable || window->isResizable());
+        applyGeometry(window, frame, requestedSize, !state.isFloating, state.isForceResizable || window->isResizable(),
+            state.requestedSizingMode == Layout::WindowMode::Fullscreen);
         applyBorderRadius(window, state);
     }
     applyStacking(states);
@@ -141,13 +142,13 @@ QRectF WindowApplier::placedFrame(const Layout::WindowState &state)
     return Layout::parkedFrame(frame, homeRect, outputs);
 }
 
-void WindowApplier::applyGeometry(
-    KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled, bool allowResize) const
+void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled,
+    bool allowResize, bool fullscreenPresentation) const
 {
     if (frame.isEmpty()) {
         return;
     }
-    if (window->isFullScreen() || window->isRequestedFullScreen()) {
+    if (fullscreenPresentation || window->isFullScreen() || window->isRequestedFullScreen()) {
         if (!window->isActive()) {
             window->updateLayer();
         }

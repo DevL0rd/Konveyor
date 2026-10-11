@@ -12,7 +12,7 @@ import dbus
 from checks import Checks
 from fakepointer import binary, click, keys, move, tap
 from keycodes import KEY_CODES, MODIFIER_CODES
-from kwinsession import active_title, for_window, marked_lines, open_client, qdbus, run_script, wait_for, window_minimized
+from kwinsession import active_title, client_app_id, for_window, kwin_titles, marked_lines, open_client, qdbus, run_script, wait_for, window_minimized
 from nested import build_dir
 
 PROBE = "notes.txt"
@@ -156,6 +156,13 @@ def it_opens_on_the_output_under_the_pointer_and_fits_it(checks):
 def main():
     checks = Checks()
     checks.expect(allow_fake_input(), "KWin lets the test send input")
+    probe = open_client(PROBE)
+    desktop = Path(os.environ["XDG_DATA_HOME"]) / "applications" / f"{client_app_id(PROBE)}.desktop"
+    desktop.write_text("[Desktop Entry]\nType=Application\nName=Konveyor Probe Editor\nExec=true\nNoDisplay=true\n")
+    subprocess.run(["kbuildsycoca6"], capture_output=True, check=True)
+    probe.terminate()
+    probe.wait(timeout=30)
+    checks.expect(wait_for(lambda: PROBE not in kwin_titles(), 30), "the metadata probe closes before output checks")
     log = open(os.environ["KONVEYOR_KWIN_LOG"], "a")
     process = subprocess.Popen([str(build_dir() / "bin" / "konveyor-kontrol-panel"), os.environ["KONVEYOR_KONTROL_PANEL_DIR"]],
                                stdout=log, stderr=subprocess.STDOUT)

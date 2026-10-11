@@ -150,7 +150,8 @@ struct Engine::Private
         const NewWindowPlan &plan, const WindowProperties &properties, const QString &preferredOutput) const;
     Workspace *workspaceForNewWindow(NewWindowPlan &plan);
     Workspace *workspaceForPlacement(const NewWindowPlan &plan);
-    void finishPlacement(WindowId id, const NewWindowPlan &plan);
+    void restorePresentation(Workspace &workspace, WindowId id, const RestorePlacement &restore);
+    void finishPlacement(WindowId id, const NewWindowPlan &plan, const std::optional<RestorePlacement> &restore);
     void placeNewWindow(
         WindowId id, const WindowProperties &properties, const NewWindowPlan &plan, const std::optional<RestorePlacement> &restore);
     bool placeRestored(Tile &tile, const NewWindowPlan &plan, const RestorePlacement &restore, MonitorAddRequest &request);

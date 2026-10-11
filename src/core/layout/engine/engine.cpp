@@ -86,6 +86,13 @@ Anim::Duration Engine::timeUntilStartupEnds() const
     return Anim::saturatingSub(Anim::saturatingAdd(d->startupTime, Anim::Duration(StartupWindow)), d->clock.rawNow());
 }
 
+void Engine::runWidgetTool(const QString &name, const QStringList &arguments) const
+{
+    if (d->hooks.runWidgetTool) {
+        d->hooks.runWidgetTool(name, arguments);
+    }
+}
+
 void Engine::refreshRules()
 {
     d->refresh();
@@ -132,8 +139,13 @@ void Engine::updateOutput(const OutputInfo &output)
         addOutput(output);
         return;
     }
-    d->outputInfos.insert(output.name, output);
     Monitor *monitor = d->monitorByName(output.name);
+    if (d->outputInfos.value(output.name).geometry.topLeft() != output.geometry.topLeft()) {
+        for (Workspace &workspace : monitor->workspaces()) {
+            workspace.clearWindowedFullscreenFallbacks();
+        }
+    }
+    d->outputInfos.insert(output.name, output);
     monitor->setArea(d->areaFor(output));
     const Config::Layout previous = monitor->layoutOverride() ? *monitor->layoutOverride() : d->config.layout;
     monitor->setLayoutOverride(layoutForOutput(d->config, output.name, output.geometry.size()));

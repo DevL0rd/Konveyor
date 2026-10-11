@@ -353,6 +353,7 @@ void Engine::Private::returnDraggedTile(WindowDrag &move)
     tile.fadeOpacity(tile.alpha(), 1.0, options->animations.windowMovement);
     NewWindowPlan plan;
     plan.activate = Activation::Always;
+    plan.isFloating = origin.placement.isFloating;
     MonitorAddRequest request;
     request.activate = Activation::Always;
     request.width = move.width;
@@ -384,6 +385,9 @@ void Engine::cancelWindowDrag()
         workspace->setFullscreen(move.window, true);
     } else if (workspace && move.origin.mode == WindowMode::Maximized) {
         workspace->setMaximized(move.window, true);
+    }
+    if (workspace) {
+        d->restorePresentation(*workspace, move.window, move.origin.placement);
     }
     d->refresh();
 }

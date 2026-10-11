@@ -4,6 +4,7 @@
 
 #include <window.h>
 #include <workspace.h>
+#include <x11window.h>
 
 #include <algorithm>
 #include <memory>
@@ -31,7 +32,29 @@ bool isMaximizeRequested(KWin::Window *window)
 
 WindowRegistry::WindowRegistry(QObject *parent)
     : QObject(parent)
+    , KWin::X11EventFilter(QList<int> {XCB_PROPERTY_NOTIFY})
 { }
+
+bool WindowRegistry::event(xcb_generic_event_t *genericEvent)
+{
+    const auto *event = reinterpret_cast<xcb_property_notify_event_t *>(genericEvent);
+    if (event->atom != XCB_ATOM_WM_NORMAL_HINTS) {
+        return false;
+    }
+    const QPointer<KWin::Window> window = KWin::workspace()->findClient(event->window);
+    QMetaObject::invokeMethod(
+        this,
+        [this, window] {
+            if (!window) {
+                return;
+            }
+            if (const auto id = idOf(window)) {
+                Q_EMIT propertiesChanged(*id);
+            }
+        },
+        Qt::QueuedConnection);
+    return false;
+}
 
 void WindowRegistry::start(const std::function<bool(KWin::Window *, KWin::Window *)> &adoptionOrder)
 {
@@ -218,6 +241,16 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
     connect(window, &KWin::Window::desktopsChanged, this, emitProperties);
     connect(window, &KWin::Window::demandsAttentionChanged, this,
         [this, window, id] { Q_EMIT urgencyChanged(id, window->isDemandingAttention()); });
+    const auto announcedConstraints = std::make_shared<Layout::WindowProperties>(propertiesOf(window));
+    const auto announceConstraints = [this, window, id, announcedConstraints] {
+        const auto properties = propertiesOf(window);
+        const bool changed = properties.minSize != announcedConstraints->minSize || properties.maxSize != announcedConstraints->maxSize
+            || properties.isResizable != announcedConstraints->isResizable;
+        *announcedConstraints = properties;
+        if (changed) {
+            Q_EMIT propertiesChanged(id);
+        }
+    };
     const auto announcedFullscreen = std::make_shared<bool>(window->isFullScreen());
     const auto announceFullscreen = [this, window, id, announcedFullscreen](bool fullscreen) {
         if (std::exchange(*announcedFullscreen, fullscreen) != fullscreen) {
@@ -226,14 +259,18 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
             Q_EMIT fullscreenRequested(id, fullscreen);
         }
     };
-    connect(window, &KWin::Window::fullScreenChanged, this, [window, announceFullscreen] { announceFullscreen(window->isFullScreen()); });
+    connect(window, &KWin::Window::fullScreenChanged, this, [window, announceConstraints, announceFullscreen] {
+        announceConstraints();
+        announceFullscreen(window->isFullScreen());
+    });
     connect(window, &KWin::Window::maximizedChanged, this, [this, window, id] {
         qCInfo(lcKonveyor) << "konveyor:" << appIdOf(window) << "maximize changed, requested full =" << isMaximizeRequested(window);
         Q_EMIT maximizeRequested(id, isMaximizeRequested(window));
     });
     connect(window, &KWin::Window::borderRadiusChanged, this, [this, id] { Q_EMIT appearanceChanged(id); });
     connect(window, &KWin::Window::opacityChanged, this, [this, id] { Q_EMIT appearanceChanged(id); });
-    connect(window, &KWin::Window::frameGeometryChanged, this, [this, window, id, announceFullscreen] {
+    connect(window, &KWin::Window::frameGeometryChanged, this, [this, window, id, announceConstraints, announceFullscreen] {
+        announceConstraints();
         announceFullscreen(window->isRequestedFullScreen());
         Q_EMIT sizeCommitted(id, window->frameGeometry().size());
     });

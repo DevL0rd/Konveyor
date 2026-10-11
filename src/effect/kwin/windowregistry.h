@@ -2,6 +2,8 @@
 
 #include "layout/engine/engine.h"
 
+#include <x11eventfilter.h>
+
 #include <QHash>
 #include <QObject>
 #include <QPointer>
@@ -17,7 +19,7 @@ class Window;
 namespace Konveyor
 {
 
-class WindowRegistry : public QObject
+class WindowRegistry : public QObject, public KWin::X11EventFilter
 {
     Q_OBJECT
 
@@ -52,6 +54,8 @@ Q_SIGNALS:
     void interactiveFinished(Layout::WindowId id, bool isMove);
 
 private:
+    using QObject::event;
+    bool event(xcb_generic_event_t *event) override;
     void observe(KWin::Window *window);
     void forget(KWin::Window *window);
     void refresh(KWin::Window *window);

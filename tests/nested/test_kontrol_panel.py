@@ -20,14 +20,6 @@ NoDisplay=true
 X-KDE-Wayland-Interfaces=org_kde_plasma_window_management
 """
 
-PROBE_DESKTOP = """[Desktop Entry]
-Type=Application
-Name=Konveyor Probe Editor
-Exec=true
-NoDisplay=true
-"""
-
-
 def stage(root):
     from nested import REPO, build_dir, link_konveyor_imports
 
@@ -50,8 +42,7 @@ def main():
 
     with tempfile.TemporaryDirectory(prefix="konveyor-kontrol-panel-") as temporary:
         panel, imports, program = stage(Path(temporary))
-        files = {"data/applications/konveyor-kontrol-panel.desktop": PROGRAM_DESKTOP.format(program=program, panel=panel),
-                 "data/applications/org.qt-project.qml.desktop": PROBE_DESKTOP}
+        files = {"data/applications/konveyor-kontrol-panel.desktop": PROGRAM_DESKTOP.format(program=program, panel=panel)}
         return run_runner(HERE / "runners" / "kontrol_panel.py", clients=(), timeout=420, setup=SETUP.format(imports=imports, panel=panel),
                           files=files, permission_checks=True, global_shortcuts=True, output_count=2)
 

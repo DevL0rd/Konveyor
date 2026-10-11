@@ -37,11 +37,24 @@ QJsonObject entryToJson(const QUuid &window, const QString &output, int workspac
         {QStringLiteral("output"), output},
         {QStringLiteral("workspace"), workspaceIndex},
         {QStringLiteral("floating"), placement.isFloating},
+        {QStringLiteral("windowedFullscreenFallback"), placement.isWindowedFullscreenFallback},
+        {QStringLiteral("returnsToFloating"), placement.returnsToFloating},
+        {QStringLiteral("sizingMode"), static_cast<int>(placement.requestedSizingMode)},
+        {QStringLiteral("savedFloatingSize"),
+            placement.savedFloatingSize
+                ? QJsonValue(QJsonArray {placement.savedFloatingSize->width(), placement.savedFloatingSize->height()})
+                : QJsonValue()},
+        {QStringLiteral("savedFloatingPosition"),
+            placement.savedFloatingPosition
+                ? QJsonValue(QJsonArray {placement.savedFloatingPosition->x(), placement.savedFloatingPosition->y()})
+                : QJsonValue()},
         {QStringLiteral("frame"), rectToJson(placement.floatingFrame)},
         {QStringLiteral("column"), static_cast<qint64>(placement.columnIndex)},
         {QStringLiteral("tile"), placement.tileIndex ? QJsonValue(static_cast<qint64>(*placement.tileIndex)) : QJsonValue()},
         {QStringLiteral("proportion"), placement.width.isProportion},
         {QStringLiteral("width"), placement.width.value},
+        {QStringLiteral("fillsWidth"), placement.fillsWidth},
+        {QStringLiteral("columnDisplay"), placement.columnDisplay ? QJsonValue(static_cast<int>(*placement.columnDisplay)) : QJsonValue()},
     };
 }
 
@@ -81,12 +94,31 @@ LayoutHandoff LayoutHandoff::take()
         entry.output = object.value(QStringLiteral("output")).toString();
         entry.workspaceIndex = object.value(QStringLiteral("workspace")).toInt();
         entry.placement.isFloating = object.value(QStringLiteral("floating")).toBool();
+        entry.placement.isWindowedFullscreenFallback = object.value(QStringLiteral("windowedFullscreenFallback")).toBool();
+        entry.placement.returnsToFloating = object.value(QStringLiteral("returnsToFloating")).toBool();
+        const int mode = object.value(QStringLiteral("sizingMode")).toInt();
+        if (mode >= static_cast<int>(Layout::WindowMode::Normal) && mode <= static_cast<int>(Layout::WindowMode::Fullscreen)) {
+            entry.placement.requestedSizingMode = static_cast<Layout::WindowMode>(mode);
+        }
+        const QJsonArray size = object.value(QStringLiteral("savedFloatingSize")).toArray();
+        if (size.size() == 2) {
+            entry.placement.savedFloatingSize = QSize(size.at(0).toInt(), size.at(1).toInt());
+        }
+        const QJsonArray position = object.value(QStringLiteral("savedFloatingPosition")).toArray();
+        if (position.size() == 2) {
+            entry.placement.savedFloatingPosition = QPointF(position.at(0).toDouble(), position.at(1).toDouble());
+        }
         entry.placement.floatingFrame = rectFromJson(object.value(QStringLiteral("frame")).toArray());
         entry.placement.columnIndex = static_cast<std::size_t>(object.value(QStringLiteral("column")).toInteger());
         if (const QJsonValue tile = object.value(QStringLiteral("tile")); !tile.isNull()) {
             entry.placement.tileIndex = static_cast<std::size_t>(tile.toInteger());
         }
         entry.placement.width = {object.value(QStringLiteral("proportion")).toBool(), object.value(QStringLiteral("width")).toDouble()};
+        entry.placement.fillsWidth = object.value(QStringLiteral("fillsWidth")).toBool();
+        const QJsonValue display = object.value(QStringLiteral("columnDisplay"));
+        if (display == static_cast<int>(Config::ColumnDisplay::Normal) || display == static_cast<int>(Config::ColumnDisplay::Tabbed)) {
+            entry.placement.columnDisplay = static_cast<Config::ColumnDisplay>(display.toInt());
+        }
         handoff.m_entries.insert(QUuid::fromString(object.value(QStringLiteral("window")).toString()), entry);
     }
     return handoff;

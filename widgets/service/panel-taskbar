@@ -5,13 +5,15 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 
-from appletsrc import (ADDED, APPLET, MARK, drop_from_order, is_inside, next_applet_id, panel_applets, panel_ids, read_groups, reorder,
+from appletsrc import (ADDED, APPLET, MARK, ORDER, applets_on, drop_from_order, is_inside, next_applet_id, panel_applets, panel_ids, read_groups, reorder,
                        set_value, value, write_groups)
 
 TASKBAR = "org.devl0rd.taskbar"
 LAUNCHER = "org.devl0rd.portal.launcher"
 TASK_MANAGERS = ("org.kde.plasma.icontasks", "org.kde.plasma.taskmanager")
 PINS = "launchers"
+ORDER_BEFORE = "konveyorOriginalOrder"
+ORDER_AFTER = "konveyorInstalledOrder"
 SETTINGS = "[Configuration][General]"
 USAGE = "usage: panel-taskbar install <appletsrc> | uninstall <appletsrc> [<taskbarrc>] | settings <appletsrc> <taskbarrc>\n"
 
@@ -50,6 +52,55 @@ def after_launcher(groups, panel, applet):
     return reorder(groups, panel, change)
 
 
+def order_of(groups, panel):
+    general = f"[Containments][{panel}][General]"
+    lines = next((lines for header, lines in groups if header == general), [])
+    return value(lines, ORDER)
+
+
+def remember_order(groups, result, panel, kept):
+    before = order_of(groups, panel)
+    if before is None:
+        before = ";".join(sorted(applets_on(groups, panel), key=int))
+    after = order_of(result, panel)
+    if before == after:
+        return result
+    return [(header, set_value(set_value(lines, ORDER_BEFORE, before), ORDER_AFTER, after) if header == kept else lines)
+            for header, lines in result]
+
+
+def restore_order(groups, header, lines):
+    before = value(lines, ORDER_BEFORE)
+    installed = value(lines, ORDER_AFTER)
+    current = order_of(groups, panel_of(header))
+    if before is None or installed is None or current is None:
+        return groups
+    applet = APPLET.match(header).group(2)
+    order = [entry for entry in current.split(";") if entry]
+    previous = [entry for entry in before.split(";") if entry]
+    installed = [entry for entry in installed.split(";") if entry]
+    if applet not in order or applet not in installed:
+        return groups
+    known = set(installed) & set(order)
+    current_before = set(order[:order.index(applet)]) & known
+    installed_before = set(installed[:installed.index(applet)]) & known
+    if current_before != installed_before:
+        return groups
+    kept = [entry for entry in order if entry != applet]
+    if applet in previous:
+        index = previous.index(applet)
+        predecessor = next((entry for entry in reversed(previous[:index]) if entry in kept), None)
+        successor = next((entry for entry in previous[index + 1:] if entry in kept), None)
+        if predecessor:
+            at = kept.index(predecessor) + 1
+        elif successor:
+            at = kept.index(successor)
+        else:
+            return groups
+        kept.insert(at, applet)
+    return reorder(groups, panel_of(header), lambda _: kept)
+
+
 def install(groups):
     applets = list(panel_applets(groups))
     if any(value(lines, "plugin") == TASKBAR for _, _, lines in applets):
@@ -73,10 +124,16 @@ def install(groups):
         result.append((kept, ["immutability=1", f"plugin={TASKBAR}", f"{ADDED}=true", ""]))
     if pins and not any(header == settings for header, _ in result):
         result.append((settings, [f"{PINS}=" + ",".join(pins), ""]))
-    return after_launcher(drop_from_order(result, removed), panel, APPLET.match(kept).group(2)), True
+    result = after_launcher(drop_from_order(result, removed), panel, APPLET.match(kept).group(2))
+    if managers:
+        result = remember_order(groups, result, panel, kept)
+    return result, True
 
 
 def uninstall(groups, pins=None):
+    for _, header, lines in list(panel_applets(groups)):
+        if value(lines, "plugin") == TASKBAR and value(lines, MARK):
+            groups = restore_order(groups, header, lines)
     changed = False
     removed = []
     restored = []
@@ -85,6 +142,7 @@ def uninstall(groups, pins=None):
         taskbar = APPLET.match(header or "") and value(lines, "plugin") == TASKBAR
         if taskbar and value(lines, MARK):
             lines = set_value(set_value(lines, "plugin", value(lines, MARK)), MARK, None)
+            lines = set_value(set_value(lines, ORDER_BEFORE, None), ORDER_AFTER, None)
             restored.append(header)
             changed = True
         elif taskbar and value(lines, ADDED):

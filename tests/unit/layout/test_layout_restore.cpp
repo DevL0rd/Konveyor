@@ -27,6 +27,21 @@ Layout::WindowId restore(Fixture &fixture, Layout::WindowId id, const QString &a
     return restored;
 }
 
+Layout::WindowProperties floatingDialog()
+{
+    auto properties = makeWindow(QStringLiteral("dialog"), QStringLiteral("dialog"), QSizeF(400, 300));
+    properties.isDialog = true;
+    return properties;
+}
+
+Layout::WindowId addPositionedDialog(Fixture &fixture, const Layout::WindowProperties &properties)
+{
+    const auto dialog = fixture.addWith(properties);
+    fixture.engine().setFloatingFrame(dialog, QRectF(300, 200, 400, 300));
+    fixture.settle();
+    return dialog;
+}
+
 }
 
 class TestLayoutRestore : public QObject
@@ -74,6 +89,78 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void restoresAnExpandedFloatingWindow_data()
+    {
+        QTest::addColumn<bool>("maximized");
+        QTest::addColumn<bool>("stillExpanded");
+        QTest::newRow("fullscreen hidden") << false << true;
+        QTest::newRow("maximized hidden") << true << true;
+        QTest::newRow("fullscreen ended while hidden") << false << false;
+    }
+
+    void restoresAnExpandedFloatingWindow()
+    {
+        QFETCH(bool, maximized);
+        QFETCH(bool, stillExpanded);
+        Fixture fixture;
+        fixture.add();
+        auto properties = floatingDialog();
+        const auto dialog = addPositionedDialog(fixture, properties);
+        const QRectF before = fixture.frame(dialog);
+        QVERIFY(fixture.perform(maximized ? QStringLiteral("maximize-window-to-edges") : QStringLiteral("fullscreen-window")).ok);
+        const auto placement = fixture.engine().placementOf(dialog);
+        QVERIFY(placement && !placement->isFloating);
+        fixture.remove(dialog);
+        properties.wantsFullscreen = !maximized && stillExpanded;
+        properties.frameSize = QSizeF(1920, 1080);
+        fixture.engine().addWindow(dialog, properties, QString(), Layout::ActivationPolicy::Focus, placement);
+        fixture.settle();
+        if (stillExpanded) {
+            QVERIFY(!fixture.state(dialog).isFloating);
+            QCOMPARE(fixture.state(dialog).requestedSizingMode, maximized ? Layout::WindowMode::Maximized : Layout::WindowMode::Fullscreen);
+            QVERIFY(fixture.perform(maximized ? QStringLiteral("maximize-window-to-edges") : QStringLiteral("fullscreen-window")).ok);
+        }
+        QVERIFY(fixture.state(dialog).isFloating);
+        QCOMPARE(fixture.frame(dialog), before);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void restoresAnExplicitlyTiledFormerFloatingWindow()
+    {
+        Fixture fixture;
+        fixture.add();
+        auto properties = makeWindow(QStringLiteral("dialog"), QStringLiteral("dialog"), QSizeF(400, 300));
+        properties.isDialog = true;
+        const auto dialog = fixture.addWith(properties);
+        QVERIFY(fixture.perform(QStringLiteral("toggle-window-floating")).ok);
+        QVERIFY(!fixture.state(dialog).isFloating);
+        const auto placement = fixture.engine().placementOf(dialog);
+        fixture.remove(dialog);
+        fixture.engine().addWindow(dialog, properties, QString(), Layout::ActivationPolicy::Focus, placement);
+        fixture.settle();
+        QVERIFY(!fixture.state(dialog).isFloating);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void recreatesATabbedColumn()
+    {
+        Fixture fixture;
+        const auto a = fixture.add(QStringLiteral("a"));
+        const auto b = fixture.add(QStringLiteral("b"));
+        fixture.perform(QStringLiteral("consume-or-expel-window-left"));
+        fixture.perform(QStringLiteral("toggle-column-tabbed-display"));
+        const auto first = fixture.engine().placementOf(a);
+        const auto second = fixture.engine().placementOf(b);
+        fixture.remove(a);
+        fixture.remove(b);
+        fixture.engine().addWindow(a, makeWindow(QStringLiteral("a")), QString(), Layout::ActivationPolicy::Focus, first);
+        fixture.engine().addWindow(b, makeWindow(QStringLiteral("b")), QString(), Layout::ActivationPolicy::Focus, second);
+        fixture.settle();
+        QCOMPARE(fixture.engine().workspaceStates().first().columnDisplays.first(), Config::ColumnDisplay::Tabbed);
+        QVERIFY(fixture.state(b).tabBar.visible);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void restoresAFloatingWindowToItsSpotOnItsWorkspace_data()
     {
         QTest::addColumn<Layout::ActivationPolicy>("policy");
@@ -98,11 +185,8 @@ private Q_SLOTS:
         fixture.addOutput(QStringLiteral("DP-2"), QRectF(1920, 0, 1920, 1080));
         fixture.engine().focusOutput(QStringLiteral("DP-1"));
         fixture.add(QStringLiteral("a"));
-        Layout::WindowProperties properties = makeWindow(QStringLiteral("dialog"), QStringLiteral("dialog"), QSizeF(400, 300));
-        properties.isDialog = true;
-        const auto dialog = fixture.addWith(properties);
-        fixture.engine().setFloatingFrame(dialog, QRectF(300, 200, 400, 300));
-        fixture.settle();
+        auto properties = floatingDialog();
+        const auto dialog = addPositionedDialog(fixture, properties);
         const QRectF before = fixture.frame(dialog);
         const std::optional<Layout::RestorePlacement> placement = fixture.engine().placementOf(dialog);
         QVERIFY(placement && placement->isFloating);

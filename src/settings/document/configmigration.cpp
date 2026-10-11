@@ -28,6 +28,7 @@ const QList<ConfigMigration> &configMigrations()
     static const QList<ConfigMigration> migrations {
         {QStringLiteral("focus-column-binds"), numbered(QStringLiteral("Super+Alt+")), {}},
         {QStringLiteral("taskbar-item-binds"), numbered(QStringLiteral("Super+Alt+")), QStringLiteral("focus-column")},
+        {QStringLiteral("fullscreen-window-bind"), {QStringLiteral("Mod+F")}, QStringLiteral("cycle-window-expansion")},
     };
     return migrations;
 }

@@ -72,8 +72,20 @@ ColumnWidth Workspace::tiledWidthFor(const LayoutWindow &window, const std::opti
     return ColumnWidth::fixed(fixed);
 }
 
+void Workspace::clearWindowedFullscreenFallbacks()
+{
+    for (const TileRef &ref : renderedTilesMut(false)) {
+        if (ref.tile->isWindowedFullscreenFallback) {
+            setFullscreen(ref.tile->id(), false);
+        }
+    }
+}
+
 void Workspace::setSizingMode(WindowId window, bool enable, bool maximize)
 {
+    if (Tile *tile = tileFor(window)) {
+        tile->clearWindowedFullscreenFallback();
+    }
     bool returnsToFloating = false;
     if (m_floating.hasWindow(window)) {
         if (!enable) {

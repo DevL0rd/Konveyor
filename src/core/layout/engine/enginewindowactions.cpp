@@ -7,6 +7,11 @@
 namespace Konveyor::Layout
 {
 
+ActionResult actionError(const QString &message)
+{
+    return {false, message};
+}
+
 namespace
 {
 

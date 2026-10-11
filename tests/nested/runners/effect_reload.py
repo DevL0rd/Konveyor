@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, default_config, load_config
-from kwinsession import (CLIENTS, activate, active_title, for_window, konveyor, konveyor_action, konveyor_windows, managed_now, open_client,
+from kwinsession import (CLIENTS, activate, active_title, for_window, frame, konveyor, konveyor_action, konveyor_windows, managed_now, open_client,
                          qdbus, reload_konveyor, run_script, wait_for, window_state)
 
 def reload_effect(checks, titles):
@@ -15,9 +15,11 @@ def reload_effect(checks, titles):
 
 
 def layout():
-    indexes = {workspace["id"]: workspace["idx"] for workspace in json.loads(konveyor("Workspaces"))}
-    return {window["title"]: (indexes[window["workspace_id"]], window["is_floating"], window["layout"]["pos_in_scrolling_layout"],
-                              window["layout"]["tile_size"][0]) for window in konveyor_windows()}
+    workspaces = {workspace["id"]: workspace for workspace in json.loads(konveyor("Workspaces"))}
+    return {window["title"]: (workspaces[window["workspace_id"]]["idx"], window["is_floating"], window["layout"]["pos_in_scrolling_layout"],
+                              window["layout"]["tile_size"][0],
+                              None if window["is_floating"] else workspaces[window["workspace_id"]]["column_displays"][
+                                  window["layout"]["pos_in_scrolling_layout"][0] - 1]) for window in konveyor_windows()}
 
 
 def desktop_of(title):
@@ -28,7 +30,8 @@ def arrange(checks):
     for title in ("D", "E", "F"):
         open_client(title)
     steps = [("C", "move-column-left"), ("C", "move-column-left"), ("D", "consume-or-expel-window-left"), ("A", "set-column-width", "30%"),
-             ("F", "toggle-window-floating"), ("E", "move-window-to-workspace", "2"), ("E", "focus-workspace", "1"), ("B", None)]
+             ("C", "maximize-column"), ("D", "toggle-column-tabbed-display"), ("F", "toggle-window-floating"),
+             ("E", "move-window-to-workspace", "2"), ("E", "focus-workspace", "1"), ("B", None)]
     for title, *action in steps:
         activate(title)
         if action[0]:
@@ -41,7 +44,7 @@ def layout_survives(checks):
     arrange(checks)
     before = layout()
     reload_effect(checks, before)
-    checks.expect(wait_for(lambda: layout() == before, 10), f"columns, stacks, widths, floating and workspaces survive the reload ({before} -> {layout()})")
+    checks.expect(wait_for(lambda: layout() == before, 10), f"columns, tabbed stacks, full widths, floating and workspaces survive the reload ({before} -> {layout()})")
     checks.equal(active_title(), "B", "the focused window keeps focus")
     checks.equal(desktop_of("E"), "1", "E stays on the second KDE desktop")
     run_script(for_window("C", "w.desktops = [workspace.desktops[1]];"))
@@ -60,6 +63,29 @@ def minimized_window_survives(checks):
     minimized("A", False)
     checks.expect(wait_for(lambda: layout().get("A") == before["A"], 10),
                   f"A comes back where it was after a reload while minimized ({before['A']} -> {layout().get('A')})")
+
+
+def floating_expansion_survives(checks):
+    for action in ("fullscreen-window", "maximize-window-to-edges"):
+        activate("F")
+        before = frame("F")
+        checks.equal(konveyor_action(action), "", f"{action} expands floating F")
+        checks.expect(wait_for(lambda: not layout()["F"][1]), "expanded floating F uses the strip")
+        reload_effect(checks, layout())
+        checks.equal(konveyor_action(action), "", f"{action} exits after reload")
+        checks.expect(wait_for(lambda: layout()["F"][1] and frame("F") == before, 10),
+                      f"F returns to its saved floating frame after {action} reload ({before} -> {frame('F')})")
+        checks.equal(konveyor_action(action), "", f"{action} expands F before minimizing")
+        checks.expect(wait_for(lambda: not layout()["F"][1]), "expanded F is tiled before hiding")
+        minimized("F", True)
+        checks.expect(wait_for(lambda: "F" not in layout()), "minimized expanded F leaves the layout")
+        reload_effect(checks, layout())
+        minimized("F", False)
+        checks.expect(wait_for(lambda: "F" in layout()), "expanded F returns after minimized reload")
+        activate("F")
+        checks.equal(konveyor_action(action), "", f"{action} exits after minimized reload")
+        checks.expect(wait_for(lambda: layout()["F"][1] and frame("F") == before, 10),
+                      f"F returns to saved floating frame after minimized {action} reload ({before} -> {frame('F')})")
 
 
 def rules_apply_on_load(checks):
@@ -112,8 +138,8 @@ def unload_gives_back_desktops(checks):
 
 
 def main():
-    Checks().run(layout_survives, minimized_window_survives, rules_apply_on_load, first_load_keeps_desktops, fullscreen_survives,
-                 unload_gives_back_desktops)
+    Checks().run(layout_survives, minimized_window_survives, floating_expansion_survives, rules_apply_on_load, first_load_keeps_desktops,
+                 fullscreen_survives, unload_gives_back_desktops)
 
 
 if __name__ == "__main__":

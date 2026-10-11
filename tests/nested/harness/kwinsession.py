@@ -103,6 +103,10 @@ def konveyor_windows():
     return json.loads(konveyor("Windows"))
 
 
+def client_app_id(title):
+    return next(window["app_id"] for window in konveyor_windows() if window["title"] == title)
+
+
 def managed_titles():
     return sorted(window["title"] for window in konveyor_windows())
 

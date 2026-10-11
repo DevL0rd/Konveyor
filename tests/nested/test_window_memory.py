@@ -2,13 +2,13 @@
 """Start with an unreadable, then a read-only window-memory.json and check window sizes are still remembered or the failure is logged."""
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "harness"))
 
 MEMORY = "state/konveyor/window-memory.json"
-QUARTER = json.dumps({"org.qt-project.qml": {"column-width": {"proportion": True, "value": 0.25}}})
 
 
 def main():
@@ -16,9 +16,12 @@ def main():
 
     config = (REPO / "data" / "default-config.kdl").read_text().replace("remember-window-sizes false", "remember-window-sizes true")
     runner = HERE / "runners" / "window_memory.py"
-    corrupt = run_runner(runner, arguments="corrupt", clients=(), timeout=180, config_kdl=config, files={MEMORY: "{not json"})
-    read_only = run_runner(runner, arguments="read-only", clients=(), timeout=180, config_kdl=config, files={MEMORY: QUARTER})
-    return max(corrupt, read_only)
+    with tempfile.TemporaryDirectory(prefix="konveyor-memory-app-") as temporary:
+        app_id = Path(temporary) / "app-id"
+        corrupt = run_runner(runner, arguments=f"corrupt {app_id}", clients=(), timeout=180, config_kdl=config, files={MEMORY: "{not json"})
+        quarter = json.dumps({app_id.read_text(): {"column-width": {"proportion": True, "value": 0.25}}})
+        read_only = run_runner(runner, arguments="read-only", clients=(), timeout=180, config_kdl=config, files={MEMORY: quarter})
+        return max(corrupt, read_only)
 
 
 if __name__ == "__main__":

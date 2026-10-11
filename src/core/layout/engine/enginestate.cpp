@@ -144,8 +144,7 @@ WindowState buildWindowState(
     state.isWindowedFullscreen = window.windowedFullscreenRequested();
     state.requestedMinSize = nonZeroSize(window.minSize());
     state.requestedMaxSize = nonZeroSize(window.maxSize());
-    const bool coversOutput = !state.isWindowedFullscreen
-        && (state.sizingMode == WindowMode::Fullscreen || state.requestedSizingMode == WindowMode::Fullscreen);
+    const bool coversOutput = state.sizingMode == WindowMode::Fullscreen || state.requestedSizingMode == WindowMode::Fullscreen;
     state.focusRing = decorationFor(tile.focusRingConfig(), window.isActivated() && !coversOutput, window.isUrgent(), true);
     state.border
         = decorationFor(tile.borderConfig(), tile.borderThickness().has_value() && !coversOutput, window.isUrgent(), window.isActivated());
