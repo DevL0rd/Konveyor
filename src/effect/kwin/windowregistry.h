@@ -10,6 +10,7 @@
 #include <QSet>
 
 #include <functional>
+#include <memory>
 
 namespace KWin
 {
@@ -54,6 +55,8 @@ Q_SIGNALS:
     void interactiveFinished(Layout::WindowId id, bool isMove);
 
 private:
+    struct WindowSignalState;
+
     using QObject::event;
     bool event(xcb_generic_event_t *event) override;
     void observe(KWin::Window *window);
@@ -64,7 +67,7 @@ private:
     void remove(KWin::Window *window);
     void connectObserved(KWin::Window *window);
     void connectWindow(KWin::Window *window, Layout::WindowId id);
-    void connectInteractiveSignals(KWin::Window *window, Layout::WindowId id);
+    void connectInteractiveSignals(KWin::Window *window, Layout::WindowId id, const std::shared_ptr<WindowSignalState> &state);
 
     QSet<KWin::Window *> m_observed;
     QHash<KWin::Window *, Layout::WindowId> m_ids;

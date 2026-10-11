@@ -30,6 +30,13 @@ bool isMaximizeRequested(KWin::Window *window)
 
 }
 
+struct WindowRegistry::WindowSignalState
+{
+    Layout::WindowProperties announcedConstraints;
+    bool announcedFullscreen = false;
+    bool isMove = false;
+};
+
 WindowRegistry::WindowRegistry(QObject *parent)
     : QObject(parent)
     , KWin::X11EventFilter(QList<int> {XCB_PROPERTY_NOTIFY})
@@ -241,19 +248,21 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
     connect(window, &KWin::Window::desktopsChanged, this, emitProperties);
     connect(window, &KWin::Window::demandsAttentionChanged, this,
         [this, window, id] { Q_EMIT urgencyChanged(id, window->isDemandingAttention()); });
-    const auto announcedConstraints = std::make_shared<Layout::WindowProperties>(propertiesOf(window));
-    const auto announceConstraints = [this, window, id, announcedConstraints] {
+    const auto state = std::make_shared<WindowSignalState>();
+    state->announcedConstraints = propertiesOf(window);
+    state->announcedFullscreen = window->isFullScreen();
+    const auto announceConstraints = [this, window, id, state] {
         const auto properties = propertiesOf(window);
-        const bool changed = properties.minSize != announcedConstraints->minSize || properties.maxSize != announcedConstraints->maxSize
-            || properties.isResizable != announcedConstraints->isResizable;
-        *announcedConstraints = properties;
+        const bool changed = properties.minSize != state->announcedConstraints.minSize
+            || properties.maxSize != state->announcedConstraints.maxSize
+            || properties.isResizable != state->announcedConstraints.isResizable;
+        state->announcedConstraints = properties;
         if (changed) {
             Q_EMIT propertiesChanged(id);
         }
     };
-    const auto announcedFullscreen = std::make_shared<bool>(window->isFullScreen());
-    const auto announceFullscreen = [this, window, id, announcedFullscreen](bool fullscreen) {
-        if (std::exchange(*announcedFullscreen, fullscreen) != fullscreen) {
+    const auto announceFullscreen = [this, window, id, state](bool fullscreen) {
+        if (std::exchange(state->announcedFullscreen, fullscreen) != fullscreen) {
             qCInfo(lcKonveyor) << "konveyor: layout told" << appIdOf(window) << "fullscreen =" << fullscreen
                                << "active =" << window->isActive() << "frame =" << window->frameGeometry();
             Q_EMIT fullscreenRequested(id, fullscreen);
@@ -274,22 +283,21 @@ void WindowRegistry::connectWindow(KWin::Window *window, Layout::WindowId id)
         announceFullscreen(window->isRequestedFullScreen());
         Q_EMIT sizeCommitted(id, window->frameGeometry().size());
     });
-    connectInteractiveSignals(window, id);
+    connectInteractiveSignals(window, id, state);
 }
 
-void WindowRegistry::connectInteractiveSignals(KWin::Window *window, Layout::WindowId id)
+void WindowRegistry::connectInteractiveSignals(KWin::Window *window, Layout::WindowId id, const std::shared_ptr<WindowSignalState> &state)
 {
-    const auto isMove = std::make_shared<bool>(false);
-    connect(window, &KWin::Window::interactiveMoveResizeStarted, this, [this, window, id, isMove] {
-        *isMove = window->isInteractiveMove();
-        qCInfo(lcKonveyor) << "konveyor: interactive" << (*isMove ? "move" : "resize") << "started on" << appIdOf(window);
-        Q_EMIT interactiveStarted(id, *isMove);
+    connect(window, &KWin::Window::interactiveMoveResizeStarted, this, [this, window, id, state] {
+        state->isMove = window->isInteractiveMove();
+        qCInfo(lcKonveyor) << "konveyor: interactive" << (state->isMove ? "move" : "resize") << "started on" << appIdOf(window);
+        Q_EMIT interactiveStarted(id, state->isMove);
     });
-    connect(window, &KWin::Window::interactiveMoveResizeStepped, this, [this, id, isMove] { Q_EMIT interactiveStepped(id, *isMove); });
-    connect(window, &KWin::Window::interactiveMoveResizeFinished, this, [this, window, id, isMove] {
-        qCInfo(lcKonveyor) << "konveyor: interactive" << (*isMove ? "move" : "resize") << "finished on" << appIdOf(window)
+    connect(window, &KWin::Window::interactiveMoveResizeStepped, this, [this, id, state] { Q_EMIT interactiveStepped(id, state->isMove); });
+    connect(window, &KWin::Window::interactiveMoveResizeFinished, this, [this, window, id, state] {
+        qCInfo(lcKonveyor) << "konveyor: interactive" << (state->isMove ? "move" : "resize") << "finished on" << appIdOf(window)
                            << window->frameGeometry();
-        Q_EMIT interactiveFinished(id, *isMove);
+        Q_EMIT interactiveFinished(id, state->isMove);
     });
 }
 
