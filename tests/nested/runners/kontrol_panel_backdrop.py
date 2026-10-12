@@ -3,7 +3,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
@@ -21,7 +20,6 @@ WHITE = (255, 255, 255)
 DIMMED_WHITE = (115, 115, 115)
 CORNER = (4, 4)
 TASKBAR = (960, 1050)
-SCALE_SECONDS = 8
 
 
 def shot():
@@ -45,6 +43,45 @@ def card_left_edge(image, geometry):
     return next((column for column in range(max(x, 0), x + width // 2) if not close(image.getpixel((column, row)), DIMMED_GREEN, 6)), None)
 
 
+def rendered_card_left_edge(image, geometry):
+    x, y, width, height = (int(value) for value in geometry)
+    row = y + height // 2
+    return next((column for column in range(max(x, 0), x + width // 2)
+                 if max(image.getpixel((column, row))[0], image.getpixel((column, row))[2]) > 16), None)
+
+
+def scale_active():
+    return "scale" in qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.activeEffects").splitlines()
+
+
+def wait_image(checks, condition, message, geometry=None, active=False):
+    last = "no screenshot captured"
+
+    def capture():
+        nonlocal last
+        before = scale_active()
+        if before != active:
+            last = f"Scale={before}, waiting for Scale={active}"
+            return None
+        image = shot()
+        after = scale_active()
+        last = f"Scale={before}/{after}, corner={image.getpixel(CORNER)}, taskbar={image.getpixel(TASKBAR)}"
+        if geometry is not None:
+            last += f", card edge={rendered_card_left_edge(image, geometry)}"
+        return image if condition(image, before, after) else None
+
+    image = wait_for(capture, 60, interval=0.2)
+    if image is None:
+        raise RuntimeError(f"{message}: {last}")
+    checks.expect(True, f"{message}: {last}")
+    return image
+
+
+def wait_baseline(checks, message):
+    return wait_image(checks, lambda image, before, after: not before and not after and not panel_windows()
+                      and close(image.getpixel(CORNER), GREEN) and close(image.getpixel(TASKBAR), WHITE), message)
+
+
 def start_panel(settings):
     rc = Path(os.environ["XDG_CONFIG_HOME"]) / "konveyor" / "kontrolpanelrc"
     rc.parent.mkdir(exist_ok=True)
@@ -64,20 +101,37 @@ def stop_panel(process):
 
 
 def open_panel(checks, settings):
+    wait_baseline(checks, f"{settings}: the previous panel and its closing animation are gone")
     process = start_panel(settings)
-    panel("Toggle")
-    checks.expect(wait_for(lambda: card() is not None, 30), f"{settings}: the card maps")
-    time.sleep(1)
-    early = shot()
-    geometry = card()[1]
-    kind = backdrop_type()
-    time.sleep(SCALE_SECONDS)
-    settled = shot()
-    order = stacking()
-    panel("Hide")
-    checks.expect(wait_for(lambda: not panel_windows(), 30), f"{settings}: Hide closes it")
-    stop_panel(process)
-    time.sleep(SCALE_SECONDS)
+    try:
+        panel("Toggle")
+        if not checks.expect(wait_for(lambda: {"card", "backdrop"} <= panel_windows().keys(), 30), f"{settings}: the card and backdrop map"):
+            raise RuntimeError("the panel windows never mapped")
+        geometry = card()[1]
+        kind = backdrop_type()
+        fading = settings.get("backdropAnimation") == "fade"
+
+        def opening(image, before, after):
+            edge = rendered_card_left_edge(image, geometry)
+            return before and after and edge is not None and edge > geometry[0] + 30 \
+                and (not fading or close(image.getpixel(CORNER), DIMMED_GREEN))
+
+        early = wait_image(checks, opening, f"{settings}: Scale is active and the growing card is drawn", geometry, active=True)
+        taskbar_color = DIMMED_WHITE if settings.get("useTaskbarWhileOpen") == "false" else WHITE
+
+        def fully_open(image, before, after):
+            edge = card_left_edge(image, geometry)
+            return not before and not after and {"card", "backdrop"} <= panel_windows().keys() \
+                and edge is not None and edge <= geometry[0] + 16 and close(image.getpixel(CORNER), DIMMED_GREEN) \
+                and close(image.getpixel(TASKBAR), taskbar_color)
+
+        settled = wait_image(checks, fully_open, f"{settings}: Scale ended and the settled panel is drawn", geometry)
+        order = stacking()
+    finally:
+        panel("Hide")
+        checks.expect(wait_for(lambda: not panel_windows(), 30), f"{settings}: Hide closes it")
+        stop_panel(process)
+        wait_baseline(checks, f"{settings}: closing Scale ended and the wallpaper and taskbar are restored")
     return early, settled, order, geometry, kind
 
 

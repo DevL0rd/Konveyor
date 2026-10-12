@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
+from dragging import settled
 from kwinsession import CLIENTS, activate, kwin_titles, wait_for, window_state
 from screenshot import capture_workspace, close
 
@@ -53,8 +54,16 @@ def main():
     print(f"while unfocused: {unfocused}")
     if any(state != FULLSCREEN for state in unfocused):
         problems.append(f"window did not stay fullscreen and still while unfocused ({unfocused})")
-    wait_for(lambda: not overlay_problems(), 60)
-    problems += overlay_problems()
+    settled("A")
+    overlay = []
+
+    def overlay_is_rendered():
+        nonlocal overlay
+        overlay = overlay_problems()
+        return not overlay
+
+    wait_for(overlay_is_rendered, 60)
+    problems += overlay
     (signals / "leave-fullscreen").touch()
     wait_for(lambda: (window_state(TITLE) or "").startswith("false|") and " 1920x1080" not in window_state(TITLE), 60)
     state = window_state(TITLE)
