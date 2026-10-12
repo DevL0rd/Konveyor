@@ -9,7 +9,7 @@ from checks import Checks, config_path
 from dragging import LEFT_BUTTON, META, center, dragging, grab_point, placement, quick_tiling, settled, window_json
 from drophint import MAGENTA, hint_area
 from fakepointer import Held, move
-from kwinsession import activate, frame, konveyor, konveyor_action, open_client, wait_for
+from kwinsession import activate, for_window, frame, konveyor, konveyor_action, open_client, run_script, wait_for
 
 ESCAPE = 1
 GREEN = (0, 255, 0)
@@ -24,6 +24,17 @@ def output_of(title):
 def workspace_index(title):
     workspaces = {workspace["id"]: workspace for workspace in json.loads(konveyor("Workspaces"))}
     return workspaces[window_json(title)["workspace_id"]]["idx"]
+
+
+def active_workspace_index(output):
+    return next(workspace["idx"] for workspace in json.loads(konveyor("Workspaces"))
+                if workspace["output"] == output and workspace["is_active"])
+
+
+def on_inactive_desktop(title, index):
+    statement = f'print("MARK|" + (w.desktops.length === 1 && w.desktops[0] === workspace.desktops[{index - 1}]' \
+                ' && w.desktops.indexOf(workspace.currentDesktop) < 0));'
+    return run_script(for_window(title, statement)) == ["true"]
 
 
 def open_rows(checks):
@@ -98,8 +109,11 @@ def switch_workspace_mid_drag(checks):
     activate("D")
     home = workspace_index("D")
     with dragging("D", (960, 540)):
+        local_y = settled("A")[1]
         checks.equal(konveyor_action("focus-workspace-down"), "", "switch to the workspace below mid-drag")
-        checks.expect(wait_for(lambda: not 0 <= settled("A")[1] < 1080, 10), f"the row moves away with the workspace switch ({frame('A')})")
+        checks.expect(wait_for(lambda: active_workspace_index(output_of("A")) == home + 1, 10), "the output activates the workspace below")
+        checks.expect(wait_for(lambda: on_inactive_desktop("A", home), 10), "A stays on the original KDE desktop and is excluded from the current one")
+        checks.equal(settled("A")[1], local_y, "the hidden row retains its desktop-local Y position")
     checks.equal(workspace_index("D"), home + 1, "D drops onto the workspace it was carried to")
     checks.equal(workspace_index("A"), home, "A stays behind")
     checks.equal(konveyor_action("move-window-to-workspace-up"), "", "send D back")

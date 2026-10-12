@@ -20,11 +20,11 @@ constexpr ElasticLimit WorkspaceSwipeResistance {0.5, 0.05};
 
 }
 
-void Monitor::beginWorkspaceSwipe(bool isTouchpad)
+void Monitor::beginWorkspaceSwipe(bool isTouchpad, bool continueMotion)
 {
     WorkspaceSwipe gesture;
     gesture.centerIndex = m_activeWorkspaceIndex;
-    gesture.startIndex = visibleWorkspacePosition();
+    gesture.startIndex = continueMotion ? visibleWorkspacePosition() : static_cast<double>(m_activeWorkspaceIndex);
     gesture.currentIndex = gesture.startIndex;
     gesture.isTouchpad = isTouchpad;
     gesture.clampToRange = !overviewOpen;
@@ -71,7 +71,7 @@ bool Monitor::endWorkspaceSwipe(std::optional<bool> isTouchpad)
     }
     m_activeWorkspaceIndex = newIndex;
     m_transition = WorkspaceTransition::withAnimation(
-        Anim::Animation(m_clock, fromIndex, static_cast<double>(newIndex), velocity, m_options->animations.workspaceSwitch));
+        Anim::Animation(m_clock, fromIndex, static_cast<double>(newIndex), velocity, m_options->animations.workspaceSwitch), true);
     return true;
 }
 

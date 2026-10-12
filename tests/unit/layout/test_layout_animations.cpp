@@ -13,6 +13,13 @@ Config::Config animatedConfig()
     return config;
 }
 
+void addPresentationModes()
+{
+    QTest::addColumn<bool>("nativeDesktops");
+    QTest::newRow("standalone") << false;
+    QTest::newRow("native-desktops") << true;
+}
+
 }
 
 class TestLayoutAnimations : public QObject
@@ -20,9 +27,13 @@ class TestLayoutAnimations : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void openAnimationFadesIn_data() { addPresentationModes(); }
+
     void openAnimationFadesIn()
     {
+        QFETCH(bool, nativeDesktops);
         Fixture fixture(animatedConfig());
+        fixture.engine().setNativeDesktopPresentation(nativeDesktops);
         const auto id = fixture.add();
         QVERIFY(fixture.state(id).renderAlpha < 1.0);
         QVERIFY(fixture.engine().isAnimating());
@@ -32,11 +43,15 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void viewOffsetAnimatesToNewColumn_data() { addPresentationModes(); }
+
     void viewOffsetAnimatesToNewColumn()
     {
+        QFETCH(bool, nativeDesktops);
         Config::Config config = animatedConfig();
         config.layout.defaultColumnWidth = Config::PresetSize(Config::Fixed {1500});
         Fixture fixture(config);
+        fixture.engine().setNativeDesktopPresentation(nativeDesktops);
         fixture.add(QStringLiteral("a"));
         const auto second = fixture.add(QStringLiteral("b"));
         fixture.advance(2000);
@@ -52,9 +67,13 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void windowMovementAnimates_data() { addPresentationModes(); }
+
     void windowMovementAnimates()
     {
+        QFETCH(bool, nativeDesktops);
         Fixture fixture(animatedConfig());
+        fixture.engine().setNativeDesktopPresentation(nativeDesktops);
         const auto first = fixture.add(QStringLiteral("a"));
         fixture.add(QStringLiteral("b"));
         fixture.advance(2000);
@@ -67,9 +86,13 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void resizeAnimatesOnlyForLargeChanges_data() { addPresentationModes(); }
+
     void resizeAnimatesOnlyForLargeChanges()
     {
+        QFETCH(bool, nativeDesktops);
         Fixture fixture(animatedConfig());
+        fixture.engine().setNativeDesktopPresentation(nativeDesktops);
         const auto id = fixture.add();
         fixture.advance(2000);
         fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("400")});

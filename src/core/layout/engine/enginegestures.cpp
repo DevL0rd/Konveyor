@@ -48,7 +48,7 @@ void Engine::beginWorkspaceSwipe(const QString &output, bool isTouchpad)
         return;
     }
     d->switchGestureOutput = output;
-    monitor->beginWorkspaceSwipe(isTouchpad);
+    monitor->beginWorkspaceSwipe(isTouchpad, d->usesWorkspaceMotion(*monitor));
 }
 
 void Engine::updateWorkspaceSwipe(double delta, qint64 timestampMs, bool isTouchpad)

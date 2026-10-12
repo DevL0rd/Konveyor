@@ -39,6 +39,7 @@ void TestConfigDefaults::defaultLayoutValues()
     QCOMPARE(layout.alwaysCenterSingleColumn, false);
     QCOMPARE(layout.alwaysExpandSingleColumn, true);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, false);
+    QCOMPARE(layout.fixedWorkspaceCount, 0);
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Normal);
     QCOMPARE(layout.presetColumnWidths.size(), 4);
     QCOMPARE(proportionOf(layout.presetColumnWidths.at(0)), 0.25);

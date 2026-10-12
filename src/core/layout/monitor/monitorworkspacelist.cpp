@@ -14,10 +14,22 @@ void Monitor::insertWorkspace(Workspace workspace, std::size_t idx, bool activat
     workspace.setOutput(m_area);
     workspace.updateConfig(m_options);
 
-    if (idx == m_workspaces.size()) {
+    if (m_options->layout.fixedWorkspaceCount > 0) {
+        const auto empty = std::find_if(
+            m_workspaces.rbegin(), m_workspaces.rend(), [](const Workspace &existing) { return !existing.isOccupiedOrNamed(); });
+        if (empty != m_workspaces.rend()) {
+            const std::size_t removed = static_cast<std::size_t>(std::distance(m_workspaces.begin(), empty.base()) - 1);
+            m_workspaces.erase(empty.base() - 1);
+            if (removed < m_activeWorkspaceIndex) {
+                m_activeWorkspaceIndex -= 1;
+            }
+            m_activeWorkspaceIndex = std::min(m_activeWorkspaceIndex, m_workspaces.size());
+        }
+        idx = std::min(idx, m_workspaces.size());
+    } else if (idx == m_workspaces.size()) {
         idx -= 1;
     }
-    if (idx == 0 && m_options->layout.emptyWorkspaceAboveFirst) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && idx == 0 && m_options->layout.emptyWorkspaceAboveFirst) {
         prependEmptyWorkspace();
         idx += 1;
     }
@@ -25,6 +37,7 @@ void Monitor::insertWorkspace(Workspace workspace, std::size_t idx, bool activat
     if (idx <= m_activeWorkspaceIndex) {
         m_activeWorkspaceIndex += 1;
     }
+    m_activeWorkspaceIndex = std::min(m_activeWorkspaceIndex, m_workspaces.size() - 1);
     if (activate) {
         m_transition.reset();
         activateWorkspace(idx);
@@ -62,6 +75,13 @@ void Monitor::appendWorkspaces(std::vector<Workspace> workspaces)
         workspace.updateConfig(m_options);
     }
 
+    if (m_options->layout.fixedWorkspaceCount > 0) {
+        for (Workspace &workspace : workspaces) {
+            insertWorkspace(std::move(workspace), m_workspaces.size(), false);
+        }
+        return;
+    }
+
     const bool emptyWasFocused = m_activeWorkspaceIndex == m_workspaces.size() - 1;
     Workspace empty = std::move(m_workspaces.back());
     m_workspaces.pop_back();
@@ -82,6 +102,9 @@ void Monitor::appendWorkspaces(std::vector<Workspace> workspaces)
 
 void Monitor::addEmptyWorkspacesAround(std::size_t &workspaceIndex)
 {
+    if (m_options->layout.fixedWorkspaceCount > 0) {
+        return;
+    }
     if (workspaceIndex == m_workspaces.size() - 1) {
         appendEmptyWorkspace();
     }
@@ -131,7 +154,8 @@ std::vector<Workspace> Monitor::takeWorkspacesForOutput(const OutputArea &target
         m_transition.reset();
         workspace.clearOutput();
         taken.push_back(std::move(workspace));
-        const bool keepFirstNamed = m_options->layout.emptyWorkspaceAboveFirst && m_activeWorkspaceIndex == 1;
+        const bool keepFirstNamed
+            = m_options->layout.fixedWorkspaceCount == 0 && m_options->layout.emptyWorkspaceAboveFirst && m_activeWorkspaceIndex == 1;
         if (idx <= m_activeWorkspaceIndex && m_activeWorkspaceIndex > 0 && !keepFirstNamed) {
             m_activeWorkspaceIndex -= 1;
         }
@@ -140,7 +164,8 @@ std::vector<Workspace> Monitor::takeWorkspacesForOutput(const OutputArea &target
         m_workspaces.emplace_back(m_area, m_clock, m_options, std::nullopt);
         m_activeWorkspaceIndex = 0;
     }
-    if (stoppedSwitch || (m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.size() == 2)) {
+    if (m_options->layout.fixedWorkspaceCount > 0 || stoppedSwitch
+        || (m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.size() == 2)) {
         pruneWorkspaces();
     }
     std::ranges::reverse(taken);
@@ -203,6 +228,14 @@ void Monitor::nameWorkspace(std::size_t idx, const QString &name)
 
 Workspace Monitor::detachWorkspaceAt(std::size_t idx)
 {
+    if (m_options->layout.fixedWorkspaceCount > 0) {
+        Workspace workspace = std::move(m_workspaces[idx]);
+        m_workspaces[idx] = Workspace(m_area, m_clock, m_options, std::nullopt);
+        workspace.clearOutput();
+        m_transition.reset();
+        pruneWorkspaces();
+        return workspace;
+    }
     if (idx == m_workspaces.size() - 1) {
         appendEmptyWorkspace();
     }
@@ -225,6 +258,10 @@ Workspace Monitor::detachWorkspaceAt(std::size_t idx)
 
 void Monitor::pruneWorkspaces()
 {
+    if (m_options->layout.fixedWorkspaceCount > 0) {
+        maintainFixedWorkspaces();
+        return;
+    }
     if (m_transition) {
         return;
     }

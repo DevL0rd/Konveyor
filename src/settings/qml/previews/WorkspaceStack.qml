@@ -8,18 +8,25 @@ Item {
 
     property var names: []
     property var outputs: []
+    property int fixedCount: 0
     property bool emptyAbove: false
     property bool backAndForth: false
     property int current: 0
 
     readonly property var entries: {
         const list = [];
-        if (emptyAbove) {
+        if (emptyAbove && fixedCount === 0) {
             list.push({ label: "Empty", output: "", empty: true });
         }
         names.forEach((name, i) => list.push({ label: name, output: outputs[i] || "", empty: false }));
-        list.push({ label: "Workspace", output: "", empty: false });
-        list.push({ label: "New workspace appears here", output: "", empty: true });
+        if (fixedCount > 0) {
+            while (list.length < fixedCount) {
+                list.push({ label: "Workspace " + (list.length + 1), output: "", empty: false });
+            }
+        } else {
+            list.push({ label: "Workspace", output: "", empty: false });
+            list.push({ label: "New workspace appears here", output: "", empty: true });
+        }
         return list;
     }
 
@@ -27,7 +34,7 @@ Item {
         interval: 1400
         repeat: true
         running: stack.visible
-        onTriggered: stack.current = (stack.current + 1) % Math.max(1, stack.entries.length - 1)
+        onTriggered: stack.current = (stack.current + 1) % Math.max(1, stack.entries.length - (stack.fixedCount > 0 ? 0 : 1))
     }
 
     MonitorFrame {
@@ -122,7 +129,9 @@ Item {
         }
 
         QQC2.Label {
-            text: "Each monitor has its own stack. Named workspaces stay put; unnamed ones come and go as you fill them."
+            text: stack.fixedCount > 0
+                ? "Each monitor keeps at least " + stack.fixedCount + " workspaces. Empty workspaces stay in place; named workspaces set the minimum count."
+                : "Each monitor has its own stack. Named workspaces stay put; unnamed ones come and go as you fill them."
             wrapMode: Text.Wrap
             opacity: 0.75
             Layout.fillWidth: true

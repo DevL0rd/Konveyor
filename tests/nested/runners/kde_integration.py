@@ -4,12 +4,14 @@ import json
 import os
 import subprocess
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, config_path, default_config
-from kwinsession import activate, for_window, konveyor, konveyor_action, konveyor_windows, qdbus, run_script, wait_for
+from kwinsession import activate, for_window, frames, konveyor, konveyor_action, konveyor_windows, marked_lines, qdbus, run_script, wait_for
 
 RULES = Path(os.environ["XDG_CONFIG_HOME"]) / "kwinrulesrc"
 RULE = "konveyor-no-minimize"
@@ -77,6 +79,37 @@ def user_moves(checks):
     checks.expect(wait_for(lambda: focused_workspace() == 2), "switching KDE to desktop 2 focuses workspace 2")
     run_script("workspace.currentDesktop = workspace.desktops[0];")
     checks.expect(wait_for(lambda: focused_workspace() == 1), "switching KDE back focuses workspace 1")
+
+
+def desktop_switch_geometry(checks):
+    time.sleep(2)
+    before = frames()
+    checks.expect(all(0 <= rect[1] < 1080 for rect in before.values()),
+                  f"both KDE desktops keep their windows at local positions ({before})")
+    observer = 'for (const w of workspace.windowList()) { if (!w.deleted && w.normalWindow) {' \
+               ' w.frameGeometryChanged.connect(() => print("MARK|" + w.caption + "|" + w.frameGeometry.y)); } }'
+
+    def switch_round(external, ready):
+        if not checks.expect(wait_for(lambda: marked_lines(ready)), "the geometry observer is connected"):
+            return
+        for index in (2, 1):
+            if external:
+                run_script(f"workspace.currentDesktop = workspace.desktops[{index - 1}];")
+            else:
+                checks.equal(konveyor_action("focus-workspace", str(index)), "", f"Konveyor focuses workspace {index}")
+            checks.expect(wait_for(lambda: focused_workspace() == index), f"workspace {index} becomes active")
+            time.sleep(0.5)
+
+    for external in (False, True):
+        ready = f"native-desktop-observer-{time.monotonic_ns()}"
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            pending = executor.submit(switch_round, external, ready)
+            changes = run_script(observer + f'print("MARK|{ready}");', seconds=2)
+            pending.result()
+        shifts = [change for change in changes if change != ready and float(change.rsplit("|", 1)[1]) != before[change.split("|", 1)[0]][1]]
+        source = "KDE" if external else "Konveyor"
+        checks.equal(shifts, [], f"{source} desktop switches add no outgoing or incoming window slides")
+        checks.equal(frames(), before, f"{source} desktop switches preserve both desktops' frames")
 
 
 def named_indexes():
@@ -152,7 +185,7 @@ def unload(checks):
 
 
 def main():
-    Checks().run(desktop_count, user_moves, names, minimize_rule, unload)
+    Checks().run(desktop_count, user_moves, desktop_switch_geometry, names, minimize_rule, unload)
 
 
 if __name__ == "__main__":

@@ -119,8 +119,10 @@ public:
     std::vector<double> workspaceRenderOffsets() const;
     double transitionProgress() const;
     bool isWorkspaceSwitching() const { return m_transition.has_value(); }
+    bool isWorkspaceGesture() const { return m_transition && m_transition->isGesture(); }
+    void finishWorkspaceSwitch();
 
-    void beginWorkspaceSwipe(bool isTouchpad);
+    void beginWorkspaceSwipe(bool isTouchpad, bool continueMotion = true);
     std::optional<bool> updateWorkspaceSwipe(double deltaY, Anim::Duration timestamp, bool isTouchpad);
     bool endWorkspaceSwipe(std::optional<bool> isTouchpad);
     void beginEdgeScroll();
@@ -132,7 +134,7 @@ public:
         DropWorkspace workspace;
         double workspaceY = 0;
     };
-    InsertTarget insertTargetAt(QPointF pos) const;
+    InsertTarget insertTargetAt(QPointF pos, bool workspaceMotion = true) const;
 
     std::optional<DropHint> dropHint;
     bool overviewOpen = false;
@@ -140,6 +142,7 @@ public:
     QString checkConsistency() const;
 
 private:
+    void maintainFixedWorkspaces();
     void applyOptions();
     void shiftForInsertion(std::size_t idx);
     void ownWorkspace(std::size_t idx);

@@ -220,6 +220,7 @@ public:
     Engine &operator=(const Engine &) = delete;
 
     void setConfig(const Config::Config &config);
+    void setNativeDesktopPresentation(bool enabled);
 
     void addOutput(const OutputInfo &output);
     void updateOutput(const OutputInfo &output);

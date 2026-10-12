@@ -40,6 +40,20 @@ output "DP-2" {
 }
 ```
 
+## Fixed workspaces
+
+Settings → Workspaces → **Use a fixed number of workspaces** keeps a chosen number of numbered workspaces on every monitor, including empty ones. Choose **Workspaces per monitor** from 1 to 20; Konveyor sets KDE's virtual desktop count to match. The default remains dynamic, with a new empty workspace at the bottom and empty unnamed workspaces removed automatically.
+
+```kdl
+layout {
+    fixed-workspace-count 4
+}
+```
+
+`fixed-workspace-count 0` restores dynamic workspaces. This option is global. Fixed mode ignores `empty-workspace-above-first`, allows the last workspace to hold windows, and keeps workspace numbers when windows close. Switching modes and changing the count apply immediately.
+
+When reducing the count or collecting workspaces from a disconnected monitor, extra unnamed workspaces combine into a remaining workspace, preserving their windows, tiled columns, and floating windows. Named workspaces are always kept: the number of names on a monitor is its minimum count, even when that exceeds the requested count. Reconnecting a monitor restores named workspaces to their configured home; combined unnamed workspaces stay together.
+
 ## Mouse, wheel and touchpad binds
 
 Besides keys, binds take `MouseLeft`, `MouseRight`, `MouseMiddle`, `MouseBack`, `MouseForward`, `WheelScrollUp`/`Down`/`Left`/`Right` and `TouchpadScrollUp`/`Down`/`Left`/`Right`, with or without modifiers. KWin's own wheel shortcuts come first: Meta+Ctrl with the vertical wheel zooms (the Zoom effect) and Meta+Alt with it switches desktops, so a bind on one of those only runs once that KWin shortcut is changed or turned off. `ISO_Level3_Shift` (AltGr) and `ISO_Level5_Shift` work as modifiers and as `mod-key`; KDE's shortcut system cannot hold them, so Konveyor catches those binds itself.

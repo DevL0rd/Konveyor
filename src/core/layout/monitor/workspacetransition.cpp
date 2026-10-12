@@ -9,9 +9,10 @@
 namespace Konveyor::Layout
 {
 
-WorkspaceTransition WorkspaceTransition::withAnimation(Anim::Animation animation)
+WorkspaceTransition WorkspaceTransition::withAnimation(Anim::Animation animation, bool isGesture)
 {
     WorkspaceTransition result;
+    result.m_isGesture = isGesture;
     result.m_animation = std::move(animation);
     return result;
 }
@@ -19,6 +20,7 @@ WorkspaceTransition WorkspaceTransition::withAnimation(Anim::Animation animation
 WorkspaceTransition WorkspaceTransition::withSwipe(WorkspaceSwipe gesture)
 {
     WorkspaceTransition result;
+    result.m_isGesture = true;
     result.m_swipe = std::move(gesture);
     return result;
 }

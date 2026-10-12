@@ -45,6 +45,21 @@ Engine::Engine(Anim::Clock &clock, Hooks hooks)
 
 Engine::~Engine() = default;
 
+void Engine::setNativeDesktopPresentation(bool enabled)
+{
+    d->nativeDesktopPresentation = enabled;
+}
+
+bool Engine::Private::usesWorkspaceMotion(const Monitor &monitor) const
+{
+    return !nativeDesktopPresentation || overviewOpen || monitor.isWorkspaceGesture();
+}
+
+std::vector<double> Engine::Private::workspaceRenderOffsets(const Monitor &monitor) const
+{
+    return usesWorkspaceMotion(monitor) ? monitor.workspaceRenderOffsets() : std::vector<double>(monitor.workspaces().size() + 1, 0.0);
+}
+
 void Engine::setConfig(const Config::Config &config)
 {
     std::vector<Config::Layout> previous;
@@ -220,12 +235,20 @@ void Engine::setOverviewOpen(bool open)
     if (d->overviewOpen == open) {
         return;
     }
-    d->overviewOpen = open;
-    for (Monitor &monitor : d->monitors) {
-        monitor.overviewOpen = open;
-    }
+    d->setOverviewState(open);
     if (d->hooks.setOverviewOpen) {
         d->hooks.setOverviewOpen(open);
+    }
+}
+
+void Engine::Private::setOverviewState(bool open)
+{
+    overviewOpen = open;
+    for (Monitor &monitor : monitors) {
+        if (open && nativeDesktopPresentation) {
+            monitor.finishWorkspaceSwitch();
+        }
+        monitor.overviewOpen = open;
     }
 }
 

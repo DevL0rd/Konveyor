@@ -44,6 +44,7 @@ SettingRow {
 
         QQC2.Slider {
             id: slider
+            Accessible.name: row.label
             from: row.from
             to: row.to
             stepSize: row.stepSize
@@ -61,6 +62,7 @@ SettingRow {
 
         QQC2.SpinBox {
             id: spin
+            Accessible.name: row.label
             readonly property real factor: Math.pow(10, row.decimals)
             from: Math.round(row.from * factor)
             to: Math.round(row.to * factor)

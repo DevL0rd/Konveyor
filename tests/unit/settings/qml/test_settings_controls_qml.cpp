@@ -45,6 +45,14 @@ void TestSettingsControlsQml::controls_data()
     addControl("back and forth",
         {"WorkspacesPage", "Go back when switching to the current workspace", "switched", "[true]", "input/workspace-auto-back-and-forth",
             R"({"args":[]})"});
+    addControl("fixed count on",
+        {"WorkspacesPage", "Use a fixed number of workspaces", "switched", "[true]", "layout/fixed-workspace-count", R"({"args":[4]})"});
+    addControl("fixed count off",
+        {"WorkspacesPage", "Use a fixed number of workspaces", "switched", "[false]", "layout/fixed-workspace-count", R"({"args":[0]})",
+            "layout { fixed-workspace-count 4; }\n"});
+    addControl("workspace quantity",
+        {"WorkspacesPage", "Workspaces per monitor", "edited", "[6]", "layout/fixed-workspace-count", R"({"args":[6]})",
+            "layout { fixed-workspace-count 4; }\n"});
     addControl("empty above",
         {"WorkspacesPage", "Keep an empty workspace above the first", "switched", "[true]", "layout/empty-workspace-above-first",
             R"({"args":[]})"});

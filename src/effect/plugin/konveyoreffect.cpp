@@ -35,6 +35,7 @@ KonveyorEffect::KonveyorEffect()
         d->lastBindAction = bind.action.name;
         performAction(bind.action);
     });
+    d->engine.setNativeDesktopPresentation(true);
     d->flushTimer.setSingleShot(true);
     d->flushTimer.setInterval(0);
     connect(&d->flushTimer, &QTimer::timeout, this, &KonveyorEffect::flush);

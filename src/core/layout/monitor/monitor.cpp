@@ -35,11 +35,14 @@ Monitor::Monitor(const OutputArea &area, std::vector<Workspace> workspaces, std:
             m_activeWorkspaceIndex = idx;
         }
     }
-    if (m_options->layout.emptyWorkspaceAboveFirst && !m_workspaces.empty()) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && m_options->layout.emptyWorkspaceAboveFirst && !m_workspaces.empty()) {
         m_workspaces.insert(m_workspaces.begin(), Workspace(m_area, m_clock, m_options, std::nullopt));
         m_activeWorkspaceIndex += 1;
     }
     m_workspaces.emplace_back(m_area, m_clock, m_options, std::nullopt);
+    if (m_options->layout.fixedWorkspaceCount > 0) {
+        maintainFixedWorkspaces();
+    }
 }
 
 std::vector<Workspace> Monitor::releaseWorkspaces()
@@ -53,13 +56,24 @@ std::vector<Workspace> Monitor::releaseWorkspaces()
 
 void Monitor::applyOptions()
 {
+    const int previousFixedCount = m_options->layout.fixedWorkspaceCount;
     const bool wasEmptyAbove = m_options->layout.emptyWorkspaceAboveFirst;
     m_options = resolveMonitorOptions(m_globalOptions, m_layoutOverride);
-    if (wasEmptyAbove != m_options->layout.emptyWorkspaceAboveFirst) {
-        if (m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.front().isOccupiedOrNamed()) {
-            prependEmptyWorkspace();
+    if (previousFixedCount != m_options->layout.fixedWorkspaceCount || wasEmptyAbove != m_options->layout.emptyWorkspaceAboveFirst) {
+        if (previousFixedCount != m_options->layout.fixedWorkspaceCount) {
+            m_transition.reset();
+        }
+        if (m_options->layout.fixedWorkspaceCount == 0) {
+            if (m_workspaces.back().isOccupiedOrNamed()) {
+                appendEmptyWorkspace();
+            }
+            if (m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.front().isOccupiedOrNamed()) {
+                prependEmptyWorkspace();
+            }
         }
         pruneWorkspaces();
+    } else if (m_options->layout.fixedWorkspaceCount > 0) {
+        maintainFixedWorkspaces();
     }
     for (Workspace &workspace : m_workspaces) {
         workspace.updateConfig(m_options);
@@ -133,10 +147,11 @@ QString Monitor::checkConsistency() const
     if (m_activeWorkspaceIndex >= m_workspaces.size()) {
         return QStringLiteral("monitor: active workspace index out of range");
     }
-    if (m_workspaces.back().isOccupiedOrNamed()) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && m_workspaces.back().isOccupiedOrNamed()) {
         return QStringLiteral("monitor: the last workspace must be empty");
     }
-    if (m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.size() > 1 && m_workspaces[0].isOccupiedOrNamed()) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.size() > 1
+        && m_workspaces[0].isOccupiedOrNamed()) {
         return QStringLiteral("monitor: the first workspace must be empty");
     }
     for (const Workspace &workspace : m_workspaces) {

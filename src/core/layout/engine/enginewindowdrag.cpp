@@ -118,7 +118,7 @@ void Engine::Private::updateDropHint()
         return;
     }
     const QPointF local = windowDrag->pointerPos;
-    const Monitor::InsertTarget insertTarget = monitor->insertTargetAt(local);
+    const Monitor::InsertTarget insertTarget = monitor->insertTargetAt(local, usesWorkspaceMotion(*monitor));
     DropHint hint;
     hint.workspace = insertTarget.workspace;
     if (windowDrag->isFloating) {
@@ -246,7 +246,9 @@ void Engine::Private::dropInteractiveTile(Monitor &monitor, const Monitor::Inser
         workspaceIndex = monitor.indexOfWorkspace(insertTarget.workspace.id).value_or(monitor.activeWorkspaceIndex());
     } else {
         const std::size_t requested = insertTarget.workspace.newAt;
-        if (monitor.options()->layout.emptyWorkspaceAboveFirst && requested == 0) {
+        if (monitor.options()->layout.fixedWorkspaceCount > 0) {
+            workspaceIndex = std::min(requested, monitor.workspaces().size() - 1);
+        } else if (monitor.options()->layout.emptyWorkspaceAboveFirst && requested == 0) {
             workspaceIndex = 0;
         } else if (monitor.workspaces().size() - 1 <= requested) {
             workspaceIndex = monitor.workspaces().size() - 1;
@@ -313,7 +315,7 @@ void Engine::Private::interactiveMoveFinish()
         activeMonitorIndex = *idx;
     }
     if (Monitor *monitor = activeMonitor()) {
-        dropInteractiveTile(*monitor, monitor->insertTargetAt(windowDrag->pointerPos));
+        dropInteractiveTile(*monitor, monitor->insertTargetAt(windowDrag->pointerPos, usesWorkspaceMotion(*monitor)));
     }
     windowDrag.reset();
 }
@@ -344,7 +346,7 @@ void Engine::Private::returnDraggedTile(WindowDrag &move)
     if (!workspaceById(origin.placement.workspace)) {
         const std::size_t last = monitor->workspaces().size() - 1;
         const std::size_t index = std::min(origin.workspaceIndex, last);
-        if (index < last) {
+        if (monitor->options()->layout.fixedWorkspaceCount == 0 && index < last) {
             monitor->insertEmptyWorkspace(index);
         }
         origin.placement.workspace = monitor->workspaces()[index].id();

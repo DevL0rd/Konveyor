@@ -9,6 +9,7 @@ input {
 }
 
 layout {
+    fixed-workspace-count 0
     gaps 16
     center-focused-column "never"
 

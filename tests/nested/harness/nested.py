@@ -71,7 +71,8 @@ def run_in_plasmashell(runner, **options):
 
 class NestedSession:
     def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1,
-                 input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=(), permission_checks=False, lockscreen=False):
+                 input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=(), permission_checks=False, lockscreen=False,
+                 force_animations=False):
         self.output_count = output_count
         self.width = width
         self.height = height
@@ -115,6 +116,7 @@ class NestedSession:
         self.notifications_log = self.root / "notifications.jsonl"
         self.permission_checks = permission_checks
         self.lockscreen = lockscreen
+        self.force_animations = force_animations
         self.proc = None
         self.log_path = self.root / "kwin.log"
 
@@ -151,6 +153,10 @@ class NestedSession:
         env["QT_LOGGING_RULES"] = "kwin_*.debug=false"
         env["QT_FORCE_STDERR_LOGGING"] = "1"
         env["KSCREEN_BACKEND_INPROCESS"] = "1"
+        if self.lockscreen:
+            env["DBUS_SYSTEM_BUS_ADDRESS"] = f"unix:path={self.runtime / 'system-bus'}"
+        if self.force_animations:
+            env["KWIN_EFFECTS_FORCE_ANIMATIONS"] = "1"
         return env
 
     def kwin_arguments(self, script):

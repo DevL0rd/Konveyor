@@ -100,6 +100,9 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     if (part.floatChildWindows) {
         base.floatChildWindows = *part.floatChildWindows;
     }
+    if (part.fixedWorkspaceCount) {
+        base.fixedWorkspaceCount = *part.fixedWorkspaceCount;
+    }
     if (part.emptyWorkspaceAboveFirst) {
         base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;
     }

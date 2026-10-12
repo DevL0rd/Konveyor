@@ -175,10 +175,7 @@ ActionResult setUrgency(Engine::Private &d, const Config::Action &action, std::o
 void registerOverviewActions(ActionTable &table)
 {
     addEngineAction(table, "toggle-overview", [](Engine::Private &d, const Config::Action &, std::optional<WindowId>) {
-        d.overviewOpen = !d.overviewOpen;
-        for (Monitor &monitor : d.monitors) {
-            monitor.overviewOpen = d.overviewOpen;
-        }
+        d.setOverviewState(!d.overviewOpen);
         if (d.hooks.toggleOverview) {
             d.hooks.toggleOverview();
         }
@@ -187,10 +184,7 @@ void registerOverviewActions(ActionTable &table)
     for (const bool open : {true, false}) {
         const char *name = open ? "open-overview" : "close-overview";
         addEngineAction(table, name, [open](Engine::Private &d, const Config::Action &, std::optional<WindowId>) {
-            d.overviewOpen = open;
-            for (Monitor &monitor : d.monitors) {
-                monitor.overviewOpen = open;
-            }
+            d.setOverviewState(open);
             if (d.hooks.setOverviewOpen) {
                 d.hooks.setOverviewOpen(open);
             }

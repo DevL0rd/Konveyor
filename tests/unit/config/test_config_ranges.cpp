@@ -26,6 +26,7 @@ struct RangeCase
 constexpr qint64 kIntMax = 2147483647;
 
 constexpr RangeCase kCases[] = {
+    {"layout { fixed-workspace-count »%1; }", Kind::Integer, 0, 20},
     {"layout { gaps »%1; }", Kind::Number, 0, 65535},
     {"layout { struts { left »%1; }; }", Kind::Number, -65535, 65535},
     {"layout { struts { right »%1; }; }", Kind::Number, -65535, 65535},

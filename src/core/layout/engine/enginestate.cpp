@@ -168,7 +168,8 @@ QList<WindowState> Engine::windowStates() const
     QList<WindowState> states;
     for (std::size_t monitorIndex = 0; monitorIndex < d->monitors.size(); ++monitorIndex) {
         const Monitor &monitor = d->monitors[monitorIndex];
-        const std::vector<double> renderOffsets = monitor.workspaceRenderOffsets();
+        const std::vector<double> renderOffsets = d->workspaceRenderOffsets(monitor);
+        const bool workspaceMotion = d->usesWorkspaceMotion(monitor);
         const double heightWithGap = monitor.workspaceHeightWithGap();
         const QPointF origin = d->originOf(monitor.outputName());
         const double viewHeight = monitor.area().viewSize.height();
@@ -178,11 +179,12 @@ QList<WindowState> Engine::windowStates() const
             WorkspaceRenderContext context;
             context.origin = origin;
             context.renderY = renderOffsets[idx];
-            context.targetY = (static_cast<double>(idx) - static_cast<double>(monitor.activeWorkspaceIndex())) * heightWithGap;
+            context.targetY
+                = workspaceMotion ? (static_cast<double>(idx) - static_cast<double>(monitor.activeWorkspaceIndex())) * heightWithGap : 0.0;
             context.output = monitor.outputName();
             context.index = static_cast<int>(idx) + 1;
             context.onActive = idx == monitor.activeWorkspaceIndex();
-            context.visible = context.onActive || (context.renderY > -viewHeight && context.renderY < viewHeight);
+            context.visible = context.onActive || (workspaceMotion && context.renderY > -viewHeight && context.renderY < viewHeight);
             d->appendWorkspaceStates(states, workspace, context);
         }
     }
@@ -234,6 +236,7 @@ void applyTabBars(QList<WindowState> &states, const Workspace &workspace, const 
         for (WindowState &state : states) {
             if (state.id == active) {
                 state.tabBar = indicator;
+                state.tabBar.visible = indicator.visible && context.visible;
             }
         }
     }
@@ -339,7 +342,8 @@ QList<OutputState> Engine::outputStates() const
     for (const Monitor &monitor : d->monitors) {
         OutputState state;
         state.name = monitor.outputName();
-        state.transitionProgress = monitor.transitionProgress();
+        state.transitionProgress
+            = d->usesWorkspaceMotion(monitor) ? monitor.transitionProgress() : static_cast<double>(monitor.activeWorkspaceIndex());
         const Config::InsertHint &hint = monitor.options()->layout.insertHint;
         state.dropHintPaint = {hint.paint.source, hint.paint.color, hint.paint.gradient};
         state.backgroundColor = monitor.activeWorkspace().options()->layout.backgroundColor;
@@ -366,7 +370,7 @@ std::optional<QRectF> Engine::Private::dropHintRect(const Monitor &monitor) cons
     if (!area) {
         return std::nullopt;
     }
-    const std::vector<double> offsets = monitor.workspaceRenderOffsets();
+    const std::vector<double> offsets = workspaceRenderOffsets(monitor);
     return area->translated(originOf(monitor.outputName()) + QPointF(0.0, offsets[*idx]));
 }
 

@@ -315,7 +315,7 @@ void Engine::Private::setFloatingFrame(WindowId id, const QRectF &frame)
     if (!tile || !workspace.isFloating(id)) {
         return;
     }
-    const QPointF origin = originOf(monitor->outputName()) + QPointF(0.0, monitor->workspaceRenderOffsets()[*index]);
+    const QPointF origin = originOf(monitor->outputName()) + QPointF(0.0, workspaceRenderOffsets(*monitor)[*index]);
     workspace.setFloatingFrame(id, frame.topLeft() - origin - tile->windowOffset(), frame.size());
 }
 

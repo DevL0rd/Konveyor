@@ -209,10 +209,10 @@ void Monitor::moveWorkspaceDown()
         return;
     }
     std::swap(m_workspaces[m_activeWorkspaceIndex], m_workspaces[newIndex]);
-    if (newIndex == m_workspaces.size() - 1) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && newIndex == m_workspaces.size() - 1) {
         appendEmptyWorkspace();
     }
-    if (m_options->layout.emptyWorkspaceAboveFirst && m_activeWorkspaceIndex == 0) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && m_options->layout.emptyWorkspaceAboveFirst && m_activeWorkspaceIndex == 0) {
         prependEmptyWorkspace();
         newIndex += 1;
     }
@@ -231,10 +231,10 @@ void Monitor::moveWorkspaceUp()
         return;
     }
     std::swap(m_workspaces[m_activeWorkspaceIndex], m_workspaces[newIndex]);
-    if (m_activeWorkspaceIndex == m_workspaces.size() - 1) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && m_activeWorkspaceIndex == m_workspaces.size() - 1) {
         appendEmptyWorkspace();
     }
-    if (m_options->layout.emptyWorkspaceAboveFirst && newIndex == 0) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && m_options->layout.emptyWorkspaceAboveFirst && newIndex == 0) {
         prependEmptyWorkspace();
         newIndex += 1;
     }
@@ -269,10 +269,12 @@ void Monitor::moveWorkspaceToIndex(std::size_t oldIndex, std::size_t newIndex)
     }
 
     const bool movedDown = newIndex > oldIndex;
-    if ((movedDown && newIndex == m_workspaces.size() - 1) || (!movedDown && oldIndex == m_workspaces.size() - 1)) {
+    if (m_options->layout.fixedWorkspaceCount == 0
+        && ((movedDown && newIndex == m_workspaces.size() - 1) || (!movedDown && oldIndex == m_workspaces.size() - 1))) {
         appendEmptyWorkspace();
     }
-    if (m_options->layout.emptyWorkspaceAboveFirst && (movedDown ? oldIndex == 0 : newIndex == 0)) {
+    if (m_options->layout.fixedWorkspaceCount == 0 && m_options->layout.emptyWorkspaceAboveFirst
+        && (movedDown ? oldIndex == 0 : newIndex == 0)) {
         prependEmptyWorkspace();
     }
 

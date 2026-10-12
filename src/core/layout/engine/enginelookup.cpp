@@ -147,8 +147,12 @@ std::optional<WindowHit> Engine::hitAt(const QPointF &globalPos) const
             continue;
         }
         const QPointF local = globalPos - origin;
-        const std::vector<double> offsets = monitor.workspaceRenderOffsets();
+        const std::vector<double> offsets = d->workspaceRenderOffsets(monitor);
+        const bool workspaceMotion = d->usesWorkspaceMotion(monitor);
         for (std::size_t idx = 0; idx < monitor.workspaces().size(); ++idx) {
+            if (!workspaceMotion && idx != monitor.activeWorkspaceIndex()) {
+                continue;
+            }
             const auto hit = monitor.workspaces()[idx].windowUnder(local - QPointF(0.0, offsets[idx]));
             if (hit) {
                 return hit;

@@ -40,20 +40,41 @@ double Monitor::transitionProgress() const
     return visibleWorkspacePosition();
 }
 
-Monitor::InsertTarget Monitor::insertTargetAt(QPointF pos) const
+void Monitor::finishWorkspaceSwitch()
 {
+    if (m_transition && !m_transition->isGesture()) {
+        m_transition.reset();
+        pruneWorkspaces();
+    }
+}
+
+Monitor::InsertTarget Monitor::insertTargetAt(QPointF pos, bool workspaceMotion) const
+{
+    if (!workspaceMotion) {
+        return {DropWorkspace {true, activeWorkspace().id(), 0}, 0.0};
+    }
     const std::vector<double> offsets = workspaceRenderOffsets();
     const double height = ceilToPixels(m_area.scale, m_area.viewSize.height());
+    const bool fixed = m_options->layout.fixedWorkspaceCount > 0;
     if (pos.y() < offsets[0]) {
+        if (fixed) {
+            return {DropWorkspace {true, m_workspaces.front().id(), 0}, offsets.front()};
+        }
         return {DropWorkspace {false, 0, 0}, 0.0};
     }
     for (std::size_t idx = 0; idx < m_workspaces.size(); ++idx) {
         if (idx > 0 && pos.y() < offsets[idx]) {
+            if (fixed) {
+                return {DropWorkspace {true, m_workspaces[idx].id(), 0}, offsets[idx]};
+            }
             return {DropWorkspace {false, 0, idx}, 0.0};
         }
         if (pos.y() < offsets[idx] + height) {
             return {DropWorkspace {true, m_workspaces[idx].id(), 0}, offsets[idx]};
         }
+    }
+    if (fixed) {
+        return {DropWorkspace {true, m_workspaces.back().id(), 0}, offsets[m_workspaces.size() - 1]};
     }
     return {DropWorkspace {false, 0, m_workspaces.size()}, 0.0};
 }

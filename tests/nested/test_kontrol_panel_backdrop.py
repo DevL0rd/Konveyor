@@ -7,6 +7,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "harness"))
 
 SLOW_SCALE = """
+[Plugins]
+scaleEnabled=true
+
 [Effect-scale]
 Duration=8000
 """
@@ -19,7 +22,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="konveyor-kontrol-panel-") as temporary:
         panel, imports, _ = stage(Path(temporary))
         return run_runner(HERE / "runners" / "kontrol_panel_backdrop.py", clients=(), timeout=420, setup=SETUP.format(imports=imports, panel=panel),
-                          extra_kwinrc=SLOW_SCALE)
+                          extra_kwinrc=SLOW_SCALE, force_animations=True)
 
 
 if __name__ == "__main__":

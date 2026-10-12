@@ -92,6 +92,7 @@ struct Engine::Private
     QString switchGestureOutput;
     std::optional<WindowId> resizeWindow;
     bool overviewOpen = false;
+    bool nativeDesktopPresentation = false;
     Anim::Duration startupTime;
     bool rulesAtStartup = true;
     WindowMemory windowMemory;
@@ -99,6 +100,9 @@ struct Engine::Private
     bool atStartup() const;
     OutputArea areaFor(const OutputInfo &info) const;
     QPointF originOf(const QString &outputName) const;
+    bool usesWorkspaceMotion(const Monitor &monitor) const;
+    std::vector<double> workspaceRenderOffsets(const Monitor &monitor) const;
+    void setOverviewState(bool open);
 
     Monitor *activeMonitor();
     Workspace *activeWorkspace();

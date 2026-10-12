@@ -47,6 +47,7 @@ constexpr LayoutNode kLayoutNodes[] = {
     {"remember-window-sizes", Nowhere},
     {"remember-window-positions", Nowhere},
     {"float-child-windows", Nowhere},
+    {"fixed-workspace-count 4", Nowhere},
 };
 
 struct ScopeSpec

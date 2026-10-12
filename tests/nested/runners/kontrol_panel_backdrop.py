@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 import dbus
 from checks import Checks
 from kontrol_panel import SERVICE, card, panel, panel_windows
-from kwinsession import CLIENTS, run_script, wait_for
+from kwinsession import CLIENTS, qdbus, run_script, wait_for
 from nested import build_dir
 from screenshot import capture_workspace, close
 
@@ -82,6 +82,8 @@ def open_panel(checks, settings):
 
 
 def taskbar_ready(checks):
+    checks.expect(wait_for(lambda: "scale" in qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.loadedEffects").splitlines(), 30),
+                  "KWin loaded Scale before the opening animation checks")
     subprocess.Popen(["qml6", str(CLIENTS / "backdrop-client.qml")])
     checks.expect(wait_for(lambda: "taskbar" in stacking(), 30), "the stand-in taskbar mapped")
     checks.expect(wait_for(lambda: close(shot().getpixel(TASKBAR), WHITE) and close(shot().getpixel(CORNER), GREEN), 30), "the wallpaper and taskbar are drawn")
