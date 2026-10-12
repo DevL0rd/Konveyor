@@ -4,6 +4,7 @@ import QtQml.Models
 HeroCard {
     id: appHero
     required property var model
+    readonly property var sourceModel: page.appGroup
     readonly property int sourceRow: DelegateModel.itemsIndex
     readonly property var grid: GridView.view
     readonly property string favoriteId: model.favoriteId || ""

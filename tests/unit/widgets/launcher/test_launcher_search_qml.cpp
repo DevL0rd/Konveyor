@@ -135,7 +135,7 @@ private Q_SLOTS:
         TRY_COMPARE(results(QStringLiteral("hero.kind")).toString(), QStringLiteral("app"));
         TRY_VERIFY(eval(QStringLiteral("launcher.currentSection() !== null && launcher.currentSection().currentIndex === 0")).toBool());
         eval(QStringLiteral("launcher.activateCurrent()"));
-        QCOMPARE(host->property("hideCount").toInt(), 1);
+        TRY_COMPARE(host->property("hideCount").toInt(), 1);
         QCOMPARE(eval(QStringLiteral("launcherData.runner.modelForRow(0).triggered[0].favoriteId")).toString(),
             QStringLiteral("firefox.desktop"));
         QVERIFY(eval(QStringLiteral("launcherData.learnedFor('fire')[0] === 'firefox.desktop'")).toBool());

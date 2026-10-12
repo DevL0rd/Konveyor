@@ -182,6 +182,14 @@ PopScroll {
             Qt.callLater(page.rebuildSections)
         }
     }
+    Connections {
+        target: {
+            const section = launcher.currentSection()
+            return section && section.currentItem ? section.currentItem.sourceModel || null : null
+        }
+        ignoreUnknownSignals: true
+        function onQueryingChanged() { Qt.callLater(page.rebuildSections) }
+    }
 
     SectionHeader {
         visible: heroApp.visible || heroGame.visible

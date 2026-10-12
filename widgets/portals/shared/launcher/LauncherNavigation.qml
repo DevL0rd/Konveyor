@@ -86,8 +86,15 @@ LauncherMenus {
     }
     function activatePending() {
         const section = currentSection()
-        if (!activationPending || launcherData.runner.querying || !section || !section.currentItem)
+        if (!activationPending || !searchSettled || !section || !section.currentItem)
             return
+        const source = section.currentItem.sourceModel
+        if (source && source.queryString !== undefined) {
+            if (source.queryString !== presentedTerm || source.querying)
+                return
+        } else if (source && launcherData.runner.querying) {
+            return
+        }
         activationPending = false
         section.activate()
     }
@@ -216,11 +223,14 @@ LauncherMenus {
                 openPin(pin)
             return
         }
+        if (searching) {
+            activationPending = true
+            Qt.callLater(ensureSelection)
+            return
+        }
         const section = currentSection()
-        if (section && (section.currentItem || !searching))
+        if (section)
             section.activate()
-        else
-            activationPending = searching
     }
     function menuForCurrent() {
         const pin = currentPin()

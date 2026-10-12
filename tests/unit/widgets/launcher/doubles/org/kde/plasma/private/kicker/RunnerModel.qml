@@ -8,11 +8,15 @@ KickerModel {
     property var runners: []
     property string query: ""
     property bool querying: false
+    property bool deferQueries: false
     property var groupModels: []
     property var queries: []
     signal queryFinished()
     property Component groupComponent: Component {
-        KickerModel {}
+        KickerModel {
+            property var queryString: undefined
+            property bool querying: false
+        }
     }
     name: "runner"
 
@@ -43,8 +47,14 @@ KickerModel {
         }
         groupModels = models
         fill(models.map(model => ({ display: model.name })))
+        querying = false
         queryFinished()
     }
-    onQueryChanged: rebuild()
+    onQueryChanged: {
+        if (deferQueries)
+            querying = true
+        else
+            rebuild()
+    }
     onRunnersChanged: if (query !== "") rebuild()
 }

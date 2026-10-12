@@ -119,7 +119,7 @@ private Q_SLOTS:
         QVERIFY(search(QStringLiteral("dev.zed")));
         QVERIFY(windowRows(1));
         eval(QStringLiteral("launcher.select(searchLoader.item.windowSection.grid, 0); launcher.activateCurrent()"));
-        QCOMPARE(host->property("hideCount").toInt(), 1);
+        TRY_COMPARE(host->property("hideCount").toInt(), 1);
         QCOMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(),
             QStringList {QStringLiteral("main.cpp - Konveyor")});
     }
@@ -144,6 +144,97 @@ private Q_SLOTS:
         QVERIFY(windowRows(1));
         QCOMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(), QStringList());
         QCOMPARE(host->property("hideCount").toInt(), 0);
+    }
+
+    void enterDuringAQueryDoesNotOpenAnOldApp_data()
+    {
+        QTest::addColumn<bool>("typeAgain");
+        QTest::newRow("finish activates the current window") << false;
+        QTest::newRow("typing again cancels pending activation") << true;
+    }
+
+    void enterRunsItsCompletedSourceWhileOtherRunnersAreBusy()
+    {
+        QObject *host = openWithWindows(onlyWindowResults);
+        QVERIFY(host);
+        QVERIFY(search(QStringLiteral("kon")));
+        TRY_VERIFY(eval(QStringLiteral("launcher.currentSection() && launcher.currentSection().currentItem && "
+                                       "launcher.currentSection().currentItem.label === 'Konsole'"))
+                .toBool());
+        QObject *group = eval(QStringLiteral("launcherData.runner.modelForRow(0)")).value<QObject *>();
+        QVERIFY(group);
+        eval(QStringLiteral("launcherData.runner.querying = true"));
+        group->setProperty("queryString", QStringLiteral("old query"));
+        QTest::keyClick(m_harness.window(), Qt::Key_Return);
+        QCoreApplication::processEvents();
+        QVERIFY(eval(QStringLiteral("launcher.activationPending")).toBool());
+        QCOMPARE(host->property("hideCount").toInt(), 0);
+        QCOMPARE(eval(QStringLiteral("launcherData.runner.modelForRow(0).triggered.length")).toInt(), 0);
+        group->setProperty("querying", true);
+        group->setProperty("queryString", QStringLiteral("kon"));
+        QCoreApplication::processEvents();
+        QCOMPARE(host->property("hideCount").toInt(), 0);
+        group->setProperty("querying", false);
+        TRY_COMPARE(host->property("hideCount").toInt(), 1);
+        QCOMPARE(eval(QStringLiteral("launcherData.runner.querying")).toBool(), true);
+        QCOMPARE(eval(QStringLiteral("launcherData.runner.modelForRow(0).triggered.length")).toInt(), 1);
+        QCOMPARE(eval(QStringLiteral("launcherData.runner.modelForRow(0).triggered[0].favoriteId")).toString(),
+            QStringLiteral("org.kde.konsole.desktop"));
+        QVERIFY(!eval(QStringLiteral("launcher.activationPending")).toBool());
+    }
+
+    void enterRunsALocalWindowWhileRunnersAreBusy()
+    {
+        QObject *host = openWithWindows(onlyWindowResults);
+        QVERIFY(host);
+        QVERIFY(search(QStringLiteral("dev.zed")));
+        QVERIFY(windowRows(1));
+        TRY_VERIFY(eval(QStringLiteral("launcher.currentSection() && launcher.currentSection().currentItem && "
+                                       "launcher.currentSection().currentItem.label === 'main.cpp - Konveyor'"))
+                .toBool());
+        QVERIFY(eval(QStringLiteral("launcher.currentSection().currentItem.sourceModel === undefined")).toBool());
+        eval(QStringLiteral("launcherData.runner.querying = true"));
+        QTest::keyClick(m_harness.window(), Qt::Key_Return);
+        TRY_COMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(),
+            QStringList {QStringLiteral("main.cpp - Konveyor")});
+        QCOMPARE(host->property("hideCount").toInt(), 1);
+        QVERIFY(eval(QStringLiteral("launcherData.runner.querying")).toBool());
+        QVERIFY(!eval(QStringLiteral("launcher.activationPending")).toBool());
+    }
+
+    void enterDuringAQueryDoesNotOpenAnOldApp()
+    {
+        QFETCH(bool, typeAgain);
+        QObject *host = openWithWindows(onlyWindowResults);
+        QVERIFY(host);
+        const QString selectedLabel
+            = QStringLiteral("(section => section && section.currentItem ? section.currentItem.label : '')(launcher.currentSection())");
+        QVERIFY(search(QStringLiteral("kon")));
+        TRY_COMPARE(eval(selectedLabel).toString(), QStringLiteral("Konsole"));
+        eval(QStringLiteral("launcherData.runner.deferQueries = true"));
+        QVERIFY(search(QStringLiteral("dev.zed")));
+        QVERIFY(eval(QStringLiteral("launcherData.runner.querying")).toBool());
+        TRY_COMPARE(eval(selectedLabel).toString(), QStringLiteral("Konsole"));
+        QTest::keyClick(m_harness.window(), Qt::Key_Return);
+        QCOMPARE(host->property("hideCount").toInt(), 0);
+        QVERIFY(eval(QStringLiteral("launcher.activationPending")).toBool());
+        QCOMPARE(eval(QStringLiteral("launcherData.runner.modelForRow(0).triggered.length")).toInt(), 0);
+        QCOMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(), QStringList());
+        if (typeAgain) {
+            QVERIFY(search(QStringLiteral("dev.ze")));
+            QVERIFY(!eval(QStringLiteral("launcher.activationPending")).toBool());
+        }
+        eval(QStringLiteral("launcherData.runner.rebuild()"));
+        QVERIFY(windowRows(1));
+        if (typeAgain) {
+            QCOMPARE(host->property("hideCount").toInt(), 0);
+            QCOMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(), QStringList());
+            QTest::keyClick(m_harness.window(), Qt::Key_Return);
+        }
+        TRY_COMPARE(eval(QStringLiteral("launcherData.windows.tasks.activated")).toStringList(),
+            QStringList {QStringLiteral("main.cpp - Konveyor")});
+        QCOMPARE(host->property("hideCount").toInt(), 1);
+        QVERIFY(!eval(QStringLiteral("launcher.activationPending")).toBool());
     }
 
     void clickingAWindowSwitchesToIt()

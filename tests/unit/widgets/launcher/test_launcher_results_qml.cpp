@@ -68,7 +68,7 @@ private Q_SLOTS:
         QVERIFY(search(QStringLiteral("=2+2")));
         QVERIFY(selectRow(QStringLiteral("4")));
         eval(QStringLiteral("launcher.activateCurrent()"));
-        QCOMPARE(QGuiApplication::clipboard()->text(), QStringLiteral("4"));
+        TRY_COMPARE(QGuiApplication::clipboard()->text(), QStringLiteral("4"));
         QCOMPARE(host->property("hideCount").toInt(), 1);
     }
 
@@ -79,7 +79,7 @@ private Q_SLOTS:
         QVERIFY(search(QStringLiteral(">ls")));
         QVERIFY(selectRow(QStringLiteral("Run ls")));
         eval(QStringLiteral("launcher.activateCurrent()"));
-        QCOMPARE(host->property("hideCount").toInt(), 1);
+        TRY_COMPARE(host->property("hideCount").toInt(), 1);
         QCOMPARE(eval(QStringLiteral("launcherData.runner.modelForRow(0).triggered.length")).toInt(), 1);
     }
 
@@ -91,7 +91,7 @@ private Q_SLOTS:
         const QVariantMap first = results(QStringLiteral("settingMatches[0]")).toMap();
         QVERIFY(selectRow(first.value(QStringLiteral("label")).toString()));
         eval(QStringLiteral("launcher.activateCurrent()"));
-        QCOMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("settings"));
+        TRY_COMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("settings"));
         QCOMPARE(eval(QStringLiteral("field.text")).toString(), QString());
         QCOMPARE(eval(QStringLiteral("launcherData.settingsTarget.page")).toString(), first.value(QStringLiteral("page")).toString());
         QCOMPARE(eval(QStringLiteral("launcherData.settingsTarget.label")).toString(), first.value(QStringLiteral("label")).toString());
@@ -104,7 +104,7 @@ private Q_SLOTS:
         QVERIFY(search(QStringLiteral("show desk")));
         QVERIFY(selectRow(QStringLiteral("Show Desktop")));
         eval(QStringLiteral("launcher.activateCurrent()"));
-        QCOMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("shortcuts"));
+        TRY_COMPARE(eval(QStringLiteral("launcher.page")).toString(), QStringLiteral("shortcuts"));
         QCOMPARE(eval(QStringLiteral("launcherData.shortcutFocus")).toString(), QStringLiteral("Show Desktop"));
     }
 
