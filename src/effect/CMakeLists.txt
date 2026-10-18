@@ -16,6 +16,12 @@ string(FIND "${KONVEYOR_KWIN_WINDOW}" "takesAsyncFocus" KONVEYOR_KWIN_ASYNC_FOCU
 if(NOT KONVEYOR_KWIN_ASYNC_FOCUS_AT EQUAL -1)
     target_compile_definitions(konveyor_effect PRIVATE KONVEYOR_KWIN_ASYNC_FOCUS)
 endif()
+find_file(KONVEYOR_KWIN_EFFECT_HEADER effect/effect.h PATHS ${KONVEYOR_KWIN_INCLUDES} NO_DEFAULT_PATH NO_CACHE REQUIRED)
+file(READ ${KONVEYOR_KWIN_EFFECT_HEADER} KONVEYOR_KWIN_EFFECT)
+string(REGEX MATCH "bool[ \t\n]+paintWindow[ \t\n]*\\(" KONVEYOR_KWIN_PAINT_WINDOW_BOOL "${KONVEYOR_KWIN_EFFECT}")
+if(KONVEYOR_KWIN_PAINT_WINDOW_BOOL)
+    target_compile_definitions(konveyor_effect PRIVATE KONVEYOR_KWIN_PAINT_WINDOW_BOOL)
+endif()
 target_compile_options(konveyor_effect PRIVATE -Wall -Wextra -Werror)
 target_link_options(konveyor_effect PRIVATE LINKER:--no-undefined)
 

@@ -156,6 +156,21 @@ void KonveyorEffect::prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *
     KWin::Effect::prePaintWindow(view, w, data);
 }
 
+#ifdef KONVEYOR_KWIN_PAINT_WINDOW_BOOL
+bool KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,
+    int mask, const KWin::Region &deviceRegion, KWin::WindowPaintData &data)
+{
+    const std::optional<QRectF> home = spillHome(w->window());
+    if (!home) {
+        return KWin::Effect::paintWindow(renderTarget, viewport, w, mask, deviceRegion, data);
+    }
+    const KWin::Region clipped = deviceRegion & viewport.mapToDeviceCoordinatesAligned(KWin::RectF(*home));
+    if (!clipped.isEmpty()) {
+        return KWin::Effect::paintWindow(renderTarget, viewport, w, mask, clipped, data);
+    }
+    return true;
+}
+#else
 void KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,
     int mask, const KWin::Region &deviceRegion, KWin::WindowPaintData &data)
 {
@@ -169,6 +184,7 @@ void KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTarget, const K
         KWin::Effect::paintWindow(renderTarget, viewport, w, mask, clipped, data);
     }
 }
+#endif
 
 void KonveyorEffect::prePaintScreen(KWin::ScreenPrePaintData &data)
 {

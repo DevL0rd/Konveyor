@@ -43,8 +43,13 @@ public:
     void prePaintScreen(KWin::ScreenPrePaintData &data) override;
     void postPaintScreen() override;
     void prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data) override;
+#ifdef KONVEYOR_KWIN_PAINT_WINDOW_BOOL
+    bool paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w, int mask,
+        const KWin::Region &deviceRegion, KWin::WindowPaintData &data) override;
+#else
     void paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w, int mask,
         const KWin::Region &deviceRegion, KWin::WindowPaintData &data) override;
+#endif
     bool blocksDirectScanout() const override;
 
 private:
