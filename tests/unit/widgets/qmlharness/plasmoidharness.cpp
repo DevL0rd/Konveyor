@@ -25,8 +25,7 @@ void collectMessage(QtMsgType type, const QMessageLogContext &context, const QSt
 {
     const QLatin1String category(context.category ? context.category : "default");
     const bool fromQml = category == QLatin1String("default") || category == QLatin1String("qml") || category == QLatin1String("js");
-    const bool offscreenLimit = message.startsWith(QLatin1String("This plugin does not support "))
-        || message.startsWith(QLatin1String("Failed to create wl_display"));
+    const bool offscreenLimit = message.startsWith(u"This plugin does not support ") || message.startsWith(u"Failed to create wl_display");
     if (type != QtDebugMsg && type != QtInfoMsg && fromQml && !offscreenLimit) {
         PlasmoidHarness::messages().append(message);
     }

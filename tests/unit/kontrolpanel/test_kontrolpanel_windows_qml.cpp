@@ -26,7 +26,8 @@ QStringList warnings;
 void collectWarnings(QtMsgType type, const QMessageLogContext &, const QString &message)
 {
     if (type != QtDebugMsg && type != QtInfoMsg && !message.contains(QLatin1String("is not a wayland window"))
-        && message != QLatin1String("Could not find any platform plugin")) {
+        && message != QLatin1String("Could not find any platform plugin")
+        && !message.startsWith(QLatin1String("Failed to create wl_display"))) {
         warnings.append(message);
     }
 }

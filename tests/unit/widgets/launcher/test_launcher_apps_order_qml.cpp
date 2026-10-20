@@ -147,11 +147,12 @@ private Q_SLOTS:
         QCOMPARE(
             tiles(QStringLiteral("selected")), QStringList({QStringLiteral("false"), QStringLiteral("true"), QStringLiteral("false")}));
         QVERIFY(eval(QStringLiteral("launcher.currentView().sections[0].itemAtIndex(1).favoriteId")).toString()
-            == QLatin1String("org.blender.Blender.desktop"));
+            == QLatin1String("applications:org.blender.Blender.desktop"));
         QTest::keyClick(m_harness.window(), Qt::Key_Escape);
         TRY_VERIFY(!eval(QStringLiteral("launcher.menuOpen")).toBool());
-        eval(QStringLiteral("launcher.kickerEntries(launcher.currentView().categoryModel, "
-                            "launcher.currentView().activeGroup.get(1).model.index, [], 'org.blender.Blender.desktop')[0].run()"));
+        eval(QStringLiteral(
+            "launcher.kickerEntries(launcher.currentView().categoryModel, "
+            "launcher.currentView().activeGroup.get(1).model.index, [], 'applications:org.blender.Blender.desktop')[0].run()"));
         TRY_COMPARE(m_harness.launched(), QStringList {QStringLiteral("org.blender.Blender")});
     }
 
@@ -164,8 +165,8 @@ private Q_SLOTS:
         hover(tile(1));
         TRY_COMPARE(grid(QStringLiteral("currentIndex")).toInt(), 1);
         QTest::keyClick(m_harness.window(), Qt::Key_P, Qt::ControlModifier);
-        TRY_VERIFY(eval(QStringLiteral("launcherData.favorites.isFavorite('org.libreoffice.Writer.desktop')")).toBool());
-        QVERIFY(!eval(QStringLiteral("launcherData.favorites.isFavorite('md.obsidian.Obsidian.desktop')")).toBool());
+        TRY_VERIFY(eval(QStringLiteral("launcherData.favorites.isFavorite('applications:org.libreoffice.Writer.desktop')")).toBool());
+        QVERIFY(!eval(QStringLiteral("launcherData.favorites.isFavorite('applications:md.obsidian.Obsidian.desktop')")).toBool());
     }
 };
 
