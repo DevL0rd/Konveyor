@@ -28,7 +28,8 @@ inline QStringList &portalWarnings()
 
 inline void collectPortalWarnings(QtMsgType type, const QMessageLogContext &, const QString &message)
 {
-    if (type != QtDebugMsg && type != QtInfoMsg && message != QLatin1String("Could not find any platform plugin")) {
+    if (type != QtDebugMsg && type != QtInfoMsg && message != QLatin1String("Could not find any platform plugin")
+        && !message.startsWith(QLatin1String("Failed to create wl_display"))) {
         portalWarnings().append(message);
     }
 }

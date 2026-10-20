@@ -32,7 +32,7 @@ ColumnLayout {
             currentIndex: Math.max(0, clientsTab.filters.findIndex(filter => filter.key === Plasmoid.configuration.clientFilter))
             onActivated: index => Plasmoid.configuration.clientFilter = clientsTab.filters[index].key
         }
-        PlasmaComponents.ComboBox {
+        QQC2.ComboBox {
             textRole: "text"
             valueRole: "value"
             model: [
