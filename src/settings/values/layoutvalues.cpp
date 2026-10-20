@@ -60,6 +60,7 @@ QVariantMap layoutValues(const Config::Layout &layout)
         {QStringLiteral("always-expand-single-column"), layout.alwaysExpandSingleColumn},
         {QStringLiteral("empty-workspace-above-first"), layout.emptyWorkspaceAboveFirst},
         {QStringLiteral("fixed-workspace-count"), layout.fixedWorkspaceCount},
+        {QStringLiteral("horizontal-desktops"), layout.horizontalDesktops},
         {QStringLiteral("remember-window-sizes"), layout.rememberWindowSizes},
         {QStringLiteral("remember-window-positions"), layout.rememberWindowPositions},
         {QStringLiteral("group-app-windows"), groupModes.at(static_cast<qsizetype>(layout.groupAppWindows))},

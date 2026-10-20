@@ -27,7 +27,7 @@ public:
     ~DesktopSync() override;
 
     void start();
-    void apply(const QList<Layout::WorkspaceState> &workspaces, const QList<Layout::WindowState> &windows);
+    void apply(const QList<Layout::WorkspaceState> &workspaces, const QList<Layout::WindowState> &windows, bool horizontal);
 
 Q_SIGNALS:
     void workspaceActivatedByUser(const QString &output, int index);
@@ -36,6 +36,7 @@ Q_SIGNALS:
 private:
     void growDesktops(int count);
     void shrinkDesktops(int count);
+    void applyRows(bool horizontal);
     void applyNames(const QList<Layout::WorkspaceState> &workspaces);
     void applyCurrentDesktops(const QList<Layout::WorkspaceState> &workspaces);
     void applyWindowDesktops(const QList<Layout::WindowState> &windows);

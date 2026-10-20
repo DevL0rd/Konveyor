@@ -83,6 +83,7 @@ void addLayoutSizingHandlers(NodeTable &table, LayoutPart &part)
     table.insert(QStringLiteral("float-child-windows"), [&part](const Kdl::Node &node) { part.floatChildWindows = flagArgument(node); });
     table.insert(QStringLiteral("fixed-workspace-count"),
         [&part](const Kdl::Node &node) { part.fixedWorkspaceCount = static_cast<int>(integerArgument(node, Range {0, 20})); });
+    table.insert(QStringLiteral("horizontal-desktops"), [&part](const Kdl::Node &node) { part.horizontalDesktops = flagArgument(node); });
     table.insert(QStringLiteral("empty-workspace-above-first"),
         [&part](const Kdl::Node &node) { part.emptyWorkspaceAboveFirst = flagArgument(node); });
     table.insert(QStringLiteral("default-column-display"), [&part](const Kdl::Node &node) {

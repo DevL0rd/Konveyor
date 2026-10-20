@@ -3,6 +3,7 @@
 const entries = [
     { page: "workspaces", section: "Workspace count", label: "Use a fixed number of workspaces", keywords: "fixed static dynamic workspace count KDE virtual desktops" },
     { page: "workspaces", section: "Workspace count", label: "Workspaces per monitor", keywords: "number fixed static workspace count quantity" },
+    { page: "workspaces", section: "Workspace count", label: "Lay out KDE desktops horizontally", keywords: "horizontal vertical pager panel grid rows desktops layout" },
     { page: "workspaces", section: "Switching", label: "Go back when switching to the current workspace", keywords: "workspace auto back and forth previous toggle" },
     { page: "workspaces", section: "Switching", label: "Keep an empty workspace above the first", keywords: "empty workspace above first top" },
     { page: "workspaces", section: "Named workspaces", label: "Add named workspace", keywords: "named workspace name create" },

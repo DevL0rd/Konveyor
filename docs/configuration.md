@@ -50,6 +50,8 @@ layout {
 }
 ```
 
+`horizontal-desktops` lays out KDE's virtual desktops side by side in one row instead of one column, so pager widgets on a thin top or bottom panel stay thin. Settings → Workspaces → **Lay out KDE desktops horizontally** turns it on. It only changes how KDE arranges its desktops; Konveyor's workspaces still move up and down. This option is global.
+
 `fixed-workspace-count 0` restores dynamic workspaces. This option is global. Fixed mode ignores `empty-workspace-above-first`, allows the last workspace to hold windows, and keeps workspace numbers when windows close. Switching modes and changing the count apply immediately.
 
 When reducing the count or collecting workspaces from a disconnected monitor, extra unnamed workspaces combine into a remaining workspace, preserving their windows, tiled columns, and floating windows. Named workspaces are always kept: the number of names on a monitor is its minimum count, even when that exceeds the requested count. Reconnecting a monitor restores named workspaces to their configured home; combined unnamed workspaces stay together.

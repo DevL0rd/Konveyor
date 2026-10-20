@@ -53,6 +53,15 @@ SettingsPage {
             value: page.fixedCount || 4
             onEdited: value => SettingsStore.setValue("layout/fixed-workspace-count", [Math.round(value)])
         }
+
+        SwitchRow {
+            label: "Lay out KDE desktops horizontally"
+            description: "Place KDE's virtual desktops side by side, so pagers on a top or bottom panel stay thin. Konveyor's workspaces still move up and down."
+            iconName: "view-split-left-right"
+            resetPaths: ["layout/horizontal-desktops"]
+            isOn: page.layoutValues["horizontal-desktops"] === true
+            onSwitched: on => SettingsStore.setFlag("layout/horizontal-desktops", on)
+        }
     }
 
     CardHeader {

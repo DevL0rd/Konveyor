@@ -30,6 +30,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
         layout {
             gaps 8
             fixed-workspace-count 4
+            horizontal-desktops
             center-focused-column "on-overflow"
             new-column-position "left"
             always-center-single-column
@@ -54,6 +55,7 @@ void TestConfigLayout::parsesEveryLayoutSetting()
     QCOMPARE(layout.alwaysExpandSingleColumn, true);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, true);
     QCOMPARE(layout.fixedWorkspaceCount, 4);
+    QCOMPARE(layout.horizontalDesktops, true);
     QCOMPARE(layout.rememberWindowSizes, true);
     QCOMPARE(layout.rememberWindowPositions, true);
     QCOMPARE(layout.groupAppWindows, GroupAppWindows::Off);

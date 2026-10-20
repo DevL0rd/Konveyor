@@ -10,6 +10,7 @@ input {
 
 layout {
     fixed-workspace-count 0
+    horizontal-desktops false
     gaps 16
     center-focused-column "never"
 

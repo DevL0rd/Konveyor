@@ -164,7 +164,7 @@ animations {
 void TestSettingsValues::layoutDefaults()
 {
     const QVariantMap values = layoutValues(Config::Layout());
-    QCOMPARE(values.size(), 23);
+    QCOMPARE(values.size(), 24);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("never"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("right"));
     QCOMPARE(values.value(QStringLiteral("always-expand-single-column")).toBool(), true);
@@ -174,6 +174,7 @@ void TestSettingsValues::layoutDefaults()
     QCOMPARE(values.value(QStringLiteral("remember-window-positions")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("empty-workspace-above-first")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("fixed-workspace-count")).toInt(), 0);
+    QCOMPARE(values.value(QStringLiteral("horizontal-desktops")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("default-column-display")).toString(), QStringLiteral("normal"));
     QCOMPARE(values.value(QStringLiteral("new-window-placement")).toString(), QStringLiteral("column"));
     QCOMPARE(values.value(QStringLiteral("tab-indicator")).toMap().size(), 12);

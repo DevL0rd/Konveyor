@@ -103,6 +103,9 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     if (part.fixedWorkspaceCount) {
         base.fixedWorkspaceCount = *part.fixedWorkspaceCount;
     }
+    if (part.horizontalDesktops) {
+        base.horizontalDesktops = *part.horizontalDesktops;
+    }
     if (part.emptyWorkspaceAboveFirst) {
         base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;
     }

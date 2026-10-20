@@ -216,7 +216,7 @@ void KonveyorEffect::flush()
     const QList<Layout::WorkspaceState> workspaces = readEngine().workspaceStates();
     endMoveIntoFullscreen(states);
     updateHomeOutputs(states);
-    d->desktops.apply(workspaces, states);
+    d->desktops.apply(workspaces, states, d->config.config().layout.horizontalDesktops);
     if (workspaces != d->announcedWorkspaces && d->dbus) {
         d->announcedWorkspaces = workspaces;
         d->dbus->announceLayoutChange();

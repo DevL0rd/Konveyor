@@ -32,6 +32,7 @@ const FlagCase kFlags[] = {
     {"layout { %1; }", "remember-window-sizes", [](const Config &c) { return c.layout.rememberWindowSizes; }, false},
     {"layout { %1; }", "remember-window-positions", [](const Config &c) { return c.layout.rememberWindowPositions; }, false},
     {"layout { %1; }", "float-child-windows", [](const Config &c) { return c.layout.floatChildWindows; }, false},
+    {"layout { %1; }", "horizontal-desktops", [](const Config &c) { return c.layout.horizontalDesktops; }, false},
     {"layout { %1; }", "empty-workspace-above-first", [](const Config &c) { return c.layout.emptyWorkspaceAboveFirst; }, false},
     {"layout { tab-indicator { %1; }; }", "hide-when-single-tab", [](const Config &c) { return c.layout.tabIndicator.hideWhenSingleTab; },
         false},

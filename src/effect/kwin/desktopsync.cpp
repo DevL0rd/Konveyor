@@ -115,7 +115,7 @@ void DesktopSync::start()
         [this](Layout::WindowId id, KWin::Window *window) { watchWindowDesktops(window, id); });
 }
 
-void DesktopSync::apply(const QList<Layout::WorkspaceState> &workspaces, const QList<Layout::WindowState> &windows)
+void DesktopSync::apply(const QList<Layout::WorkspaceState> &workspaces, const QList<Layout::WindowState> &windows, bool horizontal)
 {
     const QScopedValueRollback guard(m_applying, true);
     const int count = maxWorkspaceIndex(workspaces);
@@ -123,6 +123,7 @@ void DesktopSync::apply(const QList<Layout::WorkspaceState> &workspaces, const Q
     applyWindowDesktops(windows);
     applyCurrentDesktops(workspaces);
     shrinkDesktops(count);
+    applyRows(horizontal);
     applyNames(workspaces);
 }
 
@@ -131,7 +132,6 @@ void DesktopSync::growDesktops(int count)
     while (static_cast<int>(manager()->count()) < count) {
         manager()->createVirtualDesktop(manager()->count());
     }
-    manager()->setRows(std::max(manager()->count(), 1U));
 }
 
 void DesktopSync::shrinkDesktops(int count)
@@ -139,7 +139,14 @@ void DesktopSync::shrinkDesktops(int count)
     while (static_cast<int>(manager()->count()) > count) {
         manager()->removeVirtualDesktop(manager()->desktops().constLast());
     }
-    manager()->setRows(std::max(manager()->count(), 1U));
+}
+
+void DesktopSync::applyRows(bool horizontal)
+{
+    const uint rows = horizontal ? 1U : std::max(manager()->count(), 1U);
+    if (manager()->rows() != rows) {
+        manager()->setRows(rows);
+    }
 }
 
 void DesktopSync::applyNames(const QList<Layout::WorkspaceState> &workspaces)
