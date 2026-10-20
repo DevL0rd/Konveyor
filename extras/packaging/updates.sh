@@ -26,6 +26,7 @@ package_manager() {
 
 record_fingerprint() {
     system_fingerprint | run_prefix tee "$KONVEYOR_BUILT_FOR" >/dev/null
+    run_prefix rm -f "$KONVEYOR_BUILD_FAILED"
 }
 
 copy_updater() {

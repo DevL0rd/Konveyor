@@ -22,7 +22,7 @@ STUBS = ("sudo", "runuser", "systemctl", "systemd-run", "busctl", "gdbus", "kwri
 MANAGERS = ("pacman", "dnf", "zypper", "apt-get")
 TOOLS = ("bash", "sh", "cat", "cp", "mv", "rm", "rmdir", "mkdir", "ln", "chmod", "find", "sed", "grep", "sort", "comm", "basename",
          "dirname", "tee", "install", "touch", "head", "cut", "tr", "awk", "join", "xargs", "sha256sum", "readlink", "env", "mktemp",
-         "ls", "python3", "git", "wc", "uname", "tar", "gzip")
+         "ls", "python3", "git", "wc", "uname", "tar", "gzip", "flock", "timeout")
 OS_RELEASE = {
     "arch": "ID=arch\n",
     "fedora-atomic": "ID=fedora\nVERSION_ID=42\nOSTREE_VERSION=42.20250101.0\n",

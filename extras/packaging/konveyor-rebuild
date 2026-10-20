@@ -55,6 +55,14 @@ pull_updates() {
     log "updated to $(git_owner rev-parse --short HEAD)"
 }
 
+build_inputs() {
+    printf '%s\n%s\n' "$(git_owner rev-parse HEAD)" "$(system_fingerprint)"
+}
+
+mkdir -p "$KONVEYOR_STATE_DIR"
+exec 9>"$KONVEYOR_REBUILD_LOCK"
+flock 9
+
 pulled=false
 pull_updates && pulled=true
 if $pulled || [[ $(system_fingerprint) != "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/null)" ]]; then
@@ -62,6 +70,17 @@ if $pulled || [[ $(system_fingerprint) != "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/nu
         log "KWin $(kwin_version) and its development files $(kwin_headers_version) don't match yet, waiting for the update to finish"
         exit 0
     fi
+    inputs=$(build_inputs)
+    if [[ $inputs == "$(cat "$KONVEYOR_BUILD_FAILED" 2>/dev/null)" ]]; then
+        log "last build failed for these inputs, skipping; run ./install.sh to retry"
+        exit 0
+    fi
     $pulled && SOURCE_DIR="$source_dir" copy_updater "$SUPPORT"
-    KONVEYOR_OWNER="$owner" KONVEYOR_SOURCE_DIR="$source_dir" KONVEYOR_INSTALL_SUPPORT="$SUPPORT" "$SUPPORT/install" --system-update
+    KONVEYOR_OWNER="$owner" KONVEYOR_SOURCE_DIR="$source_dir" KONVEYOR_INSTALL_SUPPORT="$SUPPORT" "$SUPPORT/install" --system-update 9>&-
+    status=$?
+    if [[ $status -ne 0 ]]; then
+        printf '%s\n' "$inputs" >"$KONVEYOR_BUILD_FAILED"
+        log "the build failed; it won't be tried again until Konveyor or the system changes, or you run ./install.sh"
+    fi
+    exit "$status"
 fi

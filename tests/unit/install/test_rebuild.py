@@ -30,9 +30,9 @@ class TestRebuild(HarnessTest):
     def register(self, source, owner):
         self.harness.write(self.state / "update-source", f"{source}\n{owner}\n")
 
-    def rebuild(self):
+    def rebuild(self, status=0):
         result = self.harness.run(str(self.support / "konveyor-rebuild"), env={"KONVEYOR_INSTALL_SUPPORT": str(self.support)})
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, status, result.stdout + result.stderr)
         return result.stderr
 
     def assertRebuilt(self):
@@ -94,6 +94,43 @@ class TestRebuild(HarnessTest):
         self.harness.set_headers("6.6.0")
         (self.state / "built-for").write_text("kwin=6.6.0\n")
         self.assertIn("KWin 6.7.0 and its development files 6.6.0 don't match yet", self.rebuild())
+        self.assertFalse(self.installed.exists())
+
+    def failing_installer(self):
+        installer = self.support / "install"
+        installer.write_text(self.recorder("installed").replace('" >', '" >>') + "exit 1\n")
+        self.installed.write_text("")
+
+    def attempts(self):
+        return self.installed.read_text().count("--system-update")
+
+    def test_a_failed_build_is_not_repeated_for_the_same_inputs(self):
+        (self.state / "built-for").write_text("kwin=6.6.0\n")
+        self.failing_installer()
+        self.assertIn("the build failed", self.rebuild(1))
+        self.assertEqual(self.attempts(), 1)
+        self.assertIn("last build failed for these inputs, skipping; run ./install.sh to retry", self.rebuild())
+        self.assertEqual(self.attempts(), 1)
+
+    def test_a_failed_build_is_retried_when_the_inputs_change(self):
+        (self.state / "built-for").write_text("kwin=6.6.0\n")
+        self.failing_installer()
+        self.rebuild(1)
+        self.harness.write(self.state / "build-failed", "other\ninputs\n")
+        self.rebuild(1)
+        self.assertEqual(self.attempts(), 2)
+
+    def test_recording_the_fingerprint_clears_a_failed_build(self):
+        self.harness.write(self.state / "build-failed", "x\n")
+        result = self.harness.functions("record_fingerprint")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(["sudo", "rm", "-f", str(self.state / "build-failed")], self.harness.calls("sudo"))
+
+    def test_a_running_rebuild_holds_the_lock(self):
+        (self.state / "built-for").write_text("kwin=6.6.0\n")
+        result = self.harness.run("-c", f'exec 9>"{self.state}/rebuild.lock"; flock 9; timeout 1 {self.support}/konveyor-rebuild; echo $?',
+                                  env={"KONVEYOR_INSTALL_SUPPORT": str(self.support)})
+        self.assertEqual(result.stdout.strip().splitlines()[-1], "124")
         self.assertFalse(self.installed.exists())
 
 

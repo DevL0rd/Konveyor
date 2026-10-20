@@ -1,4 +1,4 @@
-find_package(KWin 6.7 REQUIRED COMPONENTS kwineffects)
+find_package(KWin 6.8 REQUIRED COMPONENTS kwineffects)
 find_package(KDecoration3 REQUIRED)
 find_package(KF6 REQUIRED COMPONENTS CoreAddons GlobalAccel Config ColorScheme Notifications I18n)
 find_package(XCB REQUIRED COMPONENTS XCB ICCCM)

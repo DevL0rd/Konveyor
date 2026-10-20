@@ -31,6 +31,7 @@ check "KWin loaded $telemetry" "gdbus call --session --dest org.kde.KWin --objec
 check "org.kde.Konveyor answers" "gdbus call --session --dest org.kde.Konveyor --object-path /Konveyor --method org.kde.Konveyor.Windows"
 check "the cheatsheet lists shortcuts" "konveyor-cheatsheet --json | python3 -c 'import json, sys; assert json.load(sys.stdin)'"
 check "the system update hook is registered" "test -f /usr/share/libalpm/hooks/konveyor-rebuild.hook"
+check "the system update hook locks and remembers failed builds" "grep -q flock /usr/lib/konveyor/konveyor-rebuild && grep -q build-failed /usr/lib/konveyor/konveyor-rebuild"
 check "konveyor-widgets.service runs" "systemctl --user is-active konveyor-widgets.service"
 check "Plasma runs" "systemctl --user is-active plasma-plasmashell.service"
 for collector in Linux-System-Monitor Linux-Process-Mon Linux-Log-Monitor; do
