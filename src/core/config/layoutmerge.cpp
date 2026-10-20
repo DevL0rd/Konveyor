@@ -73,9 +73,23 @@ void mergeLayoutPlacement(Layout &base, const LayoutPart &part)
     }
 }
 
+void mergeLayoutWorkspaces(Layout &base, const LayoutPart &part)
+{
+    if (part.fixedWorkspaceCount) {
+        base.fixedWorkspaceCount = *part.fixedWorkspaceCount;
+    }
+    if (part.horizontalDesktops) {
+        base.horizontalDesktops = *part.horizontalDesktops;
+    }
+    if (part.emptyWorkspaceAboveFirst) {
+        base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;
+    }
+}
+
 void mergeLayoutSizing(Layout &base, const LayoutPart &part)
 {
     mergeLayoutPlacement(base, part);
+    mergeLayoutWorkspaces(base, part);
     if (part.gaps) {
         base.gaps = *part.gaps;
     }
@@ -99,15 +113,6 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     }
     if (part.floatChildWindows) {
         base.floatChildWindows = *part.floatChildWindows;
-    }
-    if (part.fixedWorkspaceCount) {
-        base.fixedWorkspaceCount = *part.fixedWorkspaceCount;
-    }
-    if (part.horizontalDesktops) {
-        base.horizontalDesktops = *part.horizontalDesktops;
-    }
-    if (part.emptyWorkspaceAboveFirst) {
-        base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;
     }
     if (part.defaultColumnDisplay) {
         base.defaultColumnDisplay = *part.defaultColumnDisplay;
