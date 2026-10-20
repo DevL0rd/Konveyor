@@ -141,6 +141,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
+        run: tests/nested/ci/vgem.sh
+
       - name: Install, check and uninstall Konveyor in a Plasma session
         run: tests/install/run.sh
 
