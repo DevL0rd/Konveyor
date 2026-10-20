@@ -34,6 +34,7 @@ private:
     static QRectF placedFrame(const Layout::WindowState &state);
     void applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled, bool allowResize,
         bool fullscreenPresentation) const;
+    void applyOpacity(KWin::Window *window, const Layout::WindowState &state);
     static void applyBorderRadius(KWin::Window *window, const Layout::WindowState &state);
     void applySizingMode(KWin::Window *window, const Layout::WindowState &state) const;
     void applyStacking(const QList<Layout::WindowState> &states);
@@ -55,6 +56,7 @@ private:
 
     const WindowRegistry &m_windows;
     QHash<Layout::WindowId, QRectF> m_appliedFrames;
+    QHash<Layout::WindowId, double> m_overriddenOpacity;
     QHash<Layout::WindowId, LoggedTarget> m_loggedTargets;
     bool m_applying = false;
 };

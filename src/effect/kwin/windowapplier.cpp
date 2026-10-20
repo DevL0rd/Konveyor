@@ -48,9 +48,7 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
         if (!window) {
             continue;
         }
-        if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
-            window->setOpacity(state.ruleOpacity);
-        }
+        applyOpacity(window, state);
         logTargetChange(window, state);
         if (isUserManipulated(window)) {
             continue;
@@ -89,8 +87,27 @@ bool WindowApplier::isEchoOfAppliedFrame(Layout::WindowId id, const QRectF &fram
     return applied != m_appliedFrames.constEnd() && nearlyEqual(*applied, frame);
 }
 
+void WindowApplier::applyOpacity(KWin::Window *window, const Layout::WindowState &state)
+{
+    const auto overridden = m_overriddenOpacity.constFind(state.id);
+    if (state.ruleOpacity >= 1.0) {
+        if (overridden != m_overriddenOpacity.constEnd()) {
+            window->setOpacity(*overridden);
+            m_overriddenOpacity.erase(overridden);
+        }
+        return;
+    }
+    if (overridden == m_overriddenOpacity.constEnd()) {
+        m_overriddenOpacity.insert(state.id, window->opacity());
+    }
+    if (!qFuzzyCompare(window->opacity(), state.ruleOpacity)) {
+        window->setOpacity(state.ruleOpacity);
+    }
+}
+
 void WindowApplier::forget(Layout::WindowId id)
 {
+    m_overriddenOpacity.remove(id);
     m_appliedFrames.remove(id);
     m_loggedTargets.remove(id);
 }
