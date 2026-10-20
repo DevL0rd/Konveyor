@@ -40,14 +40,6 @@ double Monitor::transitionProgress() const
     return visibleWorkspacePosition();
 }
 
-void Monitor::finishWorkspaceSwitch()
-{
-    if (m_transition && !m_transition->isGesture()) {
-        m_transition.reset();
-        pruneWorkspaces();
-    }
-}
-
 Monitor::InsertTarget Monitor::insertTargetAt(QPointF pos, bool workspaceMotion) const
 {
     if (!workspaceMotion) {

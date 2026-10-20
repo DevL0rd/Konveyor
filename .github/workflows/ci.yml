@@ -5,6 +5,16 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      job:
+        description: Which job to run
+        type: choice
+        default: all
+        options: [all, checks, install, sanitizers, distros]
+      tests:
+        description: Run only the ctest tests matching this regex in the checks job (skips lint, coverage and xunused)
+        type: string
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,6 +22,7 @@ concurrency:
 
 jobs:
   checks:
+    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'checks'
     name: Build, test and lint
     runs-on: ubuntu-latest
     steps:
@@ -31,8 +42,10 @@ jobs:
         run: tests/nested/ci/udmabuf.sh
 
       - name: Lint, build, run the unit and nested KWin tests with coverage and check it against tests/coverage/thresholds.json
+        env:
+          KONVEYOR_CI_TESTS: ${{ inputs.tests }}
         run: >-
-          docker run --rm --device /dev/udmabuf --shm-size 2g --security-opt seccomp=unconfined
+          docker run --rm -e KONVEYOR_CI_TESTS --device /dev/udmabuf --shm-size 2g --security-opt seccomp=unconfined
           -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh
 
       - name: Save the compiler cache
@@ -58,6 +71,7 @@ jobs:
             build-coverage/coverage/python.json
 
   sanitizers:
+    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'sanitizers'
     name: Layout tests under sanitizers
     runs-on: ubuntu-latest
     container:
@@ -80,6 +94,7 @@ jobs:
         run: ./tools/sanitize.sh layout
 
   distros:
+    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'distros'
     name: Install dependencies and build on ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:
@@ -134,6 +149,7 @@ jobs:
           find staging -path '*/plasma/kcms/systemsettings/kcm_konveyor.so' | grep .
 
   install:
+    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'install'
     name: Install, check and uninstall on Arch Linux
     runs-on: ubuntu-latest
     steps:
@@ -141,8 +157,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Give KWin /dev/udmabuf, so it composites with OpenGL on Mesa's llvmpipe
-        run: tests/nested/ci/udmabuf.sh
+      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
+        run: tests/nested/ci/vgem.sh
 
       - name: Install, check and uninstall Konveyor in a Plasma session
         run: tests/install/run.sh

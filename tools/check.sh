@@ -5,20 +5,36 @@ cd "$(dirname "$0")/.."
 BUILD_DIR="${KONVEYOR_BUILD_DIR:-build}"
 NESTED=false
 COVERAGE=false
-for argument in "$@"; do
-    case "$argument" in
+TESTS=""
+while (($#)); do
+    case "$1" in
         --nested) NESTED=true ;;
         --coverage) COVERAGE=true ;;
+        --tests)
+            TESTS="${2:?--tests needs a ctest -R regex}"
+            shift
+            ;;
         *)
-            echo "usage: tools/check.sh [--nested] [--coverage]" >&2
+            echo "usage: tools/check.sh [--nested] [--coverage] [--tests <ctest -R regex>]" >&2
             exit 2
             ;;
     esac
+    shift
 done
 
 step() {
     printf '\n==> %s\n' "$1"
 }
+
+if [[ -n $TESTS ]]; then
+    step "configure"
+    cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null
+    step "build"
+    cmake --build "$BUILD_DIR"
+    step "tests matching $TESTS"
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R "$TESTS" -j 2
+    exit
+fi
 
 step "file length (at most 400 lines per file)"
 mapfile -t length_checked < <(git ls-files --cached --others --exclude-standard -- '*.cpp' '*.h' '*.py' '*.qml' '*.sh' '*.kdl' 'src/cheatsheet/konveyor-cheatsheet.in')
