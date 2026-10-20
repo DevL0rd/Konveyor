@@ -81,7 +81,7 @@ That's it. The installer grabs what it needs, builds Konveyor for your exact KWi
   </tr>
   <tr>
     <td>🖥️ <b>Needs</b></td>
-    <td>KDE Plasma 6.8 or newer on Wayland.</td>
+    <td>KDE Plasma 6.7 or newer on Wayland.</td>
   </tr>
   <tr>
     <td>🐧 <b>Distros</b></td>

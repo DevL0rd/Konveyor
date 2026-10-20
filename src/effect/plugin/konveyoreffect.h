@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 
 namespace KWin
 {
@@ -30,6 +31,10 @@ class ShortcutManager;
 class WindowApplier;
 class WindowRegistry;
 
+using PaintWindowResult = decltype(std::declval<KWin::Effect &>().paintWindow(std::declval<const KWin::RenderTarget &>(),
+    std::declval<const KWin::RenderViewport &>(), std::declval<KWin::EffectWindow *>(), 0, std::declval<const KWin::Region &>(),
+    std::declval<KWin::WindowPaintData &>()));
+
 class KonveyorEffect : public KWin::Effect
 {
     Q_OBJECT
@@ -43,7 +48,7 @@ public:
     void prePaintScreen(KWin::ScreenPrePaintData &data) override;
     void postPaintScreen() override;
     void prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data) override;
-    [[nodiscard]] bool paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,
+    PaintWindowResult paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,
         int mask, const KWin::Region &deviceRegion, KWin::WindowPaintData &data) override;
     bool blocksDirectScanout() const override;
 

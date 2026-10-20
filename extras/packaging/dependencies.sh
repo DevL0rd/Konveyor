@@ -70,8 +70,8 @@ steamos_mismatches() {
 
 prepare_steamos_box() {
     local repos pins name version rest mismatched
-    [[ $(printf '%s\n' 6.8 "$(kwin_version)" | sort -V | head -1) == 6.8 ]] \
-        || die "this SteamOS build has KWin $(kwin_version), and Konveyor needs Plasma 6.8, which a later SteamOS brings. Switch to the Preview update channel in Settings > System, update, and run ./install.sh again"
+    [[ $(printf '%s\n' 6.7 "$(kwin_version)" | sort -V | head -1) == 6.7 ]] \
+        || die "this SteamOS build has KWin $(kwin_version), and Konveyor needs Plasma 6.7, which SteamOS 3.9 brings. Switch to the Preview update channel in Settings > System, update, and run ./install.sh again"
     command -v distrobox >/dev/null || die "distrobox is missing; SteamOS 3.5 and newer ship it"
     mapfile -t repos < <(sed -n 's/^\[\(.*\)\]$/\1/p' "$KONVEYOR_SYSTEM_ROOT/etc/pacman.conf" | grep -vx options)
     if ! podman container exists "$KONVEYOR_BUILD_BOX"; then

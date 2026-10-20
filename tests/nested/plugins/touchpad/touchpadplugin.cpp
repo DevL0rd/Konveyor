@@ -102,7 +102,16 @@ public Q_SLOTS:
     void Scroll(bool horizontal, double delta)
     {
         const KWin::PointerAxis axis = horizontal ? KWin::PointerAxis::Horizontal : KWin::PointerAxis::Vertical;
-        Q_EMIT m_device->pointerAxisChanged(axis, delta, 0, KWin::PointerAxisSource::Finger, false, false, now(), m_device.get());
+        const auto emitAxis = [&](auto &device) {
+            if constexpr (requires {
+                              device.pointerAxisChanged(axis, delta, 0, KWin::PointerAxisSource::Finger, false, false, now(), &device);
+                          }) {
+                Q_EMIT device.pointerAxisChanged(axis, delta, 0, KWin::PointerAxisSource::Finger, false, false, now(), &device);
+            } else {
+                Q_EMIT device.pointerAxisChanged(axis, delta, 0, KWin::PointerAxisSource::Finger, false, now(), &device);
+            }
+        };
+        emitAxis(*m_device);
         Q_EMIT m_device->pointerFrame(m_device.get());
     }
 
