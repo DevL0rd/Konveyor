@@ -27,12 +27,12 @@ jobs:
           key: ccache-${{ github.sha }}
           restore-keys: ccache-
 
-      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
-        run: tests/nested/ci/vgem.sh
+      - name: Give KWin /dev/udmabuf, so it composites with OpenGL on Mesa's llvmpipe
+        run: tests/nested/ci/udmabuf.sh
 
       - name: Lint, build, run the unit and nested KWin tests with coverage and check it against tests/coverage/thresholds.json
         run: >-
-          docker run --rm --device /dev/dri --shm-size 2g --security-opt seccomp=unconfined
+          docker run --rm --device /dev/udmabuf --shm-size 2g --security-opt seccomp=unconfined
           -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh
 
       - name: Save the compiler cache
@@ -141,8 +141,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Give KWin a vgem render node, so it composites with OpenGL on Mesa's llvmpipe
-        run: tests/nested/ci/vgem.sh
+      - name: Give KWin /dev/udmabuf, so it composites with OpenGL on Mesa's llvmpipe
+        run: tests/nested/ci/udmabuf.sh
 
       - name: Install, check and uninstall Konveyor in a Plasma session
         run: tests/install/run.sh

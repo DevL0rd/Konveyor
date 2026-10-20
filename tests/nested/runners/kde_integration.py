@@ -50,9 +50,15 @@ def rules():
     return parser
 
 
+def list_key(parser):
+    return "Order" if parser.has_option("General", "Order") else "rules"
+
+
 def listed_rules():
     parser = rules()
-    return parser.get("General", "rules", fallback="").split(",") if parser.has_section("General") else []
+    if not parser.has_section("General"):
+        return []
+    return [rule for rule in parser.get("General", list_key(parser), fallback="").split(",") if rule in (USER_RULE, RULE)]
 
 
 def minimizable(title):
@@ -155,7 +161,7 @@ def minimize_rule(checks):
     config_path().write_text(default_config() + "\n")
     checks.expect(wait_for(lambda: not rules().has_section(RULE)), "a stale unlisted rule group is cleaned up on reload")
     parser = rules()
-    parser["General"]["rules"] = f"{USER_RULE},{RULE}"
+    parser["General"][list_key(parser)] = f"{USER_RULE},{RULE}"
     with RULES.open("w") as file:
         parser.write(file, space_around_delimiters=False)
     config_path().write_text(default_config() + "\ndisable-minimize\n")

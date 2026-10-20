@@ -5,6 +5,8 @@ import sys
 import dbus
 from PIL import Image
 
+RAW_MODES = {4: "BGRA", 5: "BGRA", 6: "BGRA", 16: "RGBA", 17: "RGBA", 18: "RGBA"}
+
 
 def capture_workspace(path):
     bus = dbus.SessionBus()
@@ -19,8 +21,9 @@ def capture_workspace(path):
     width = int(results["width"])
     height = int(results["height"])
     stride = int(results["stride"])
+    raw_mode = RAW_MODES[int(results["format"])]
     rows = [bytes(data[y * stride: y * stride + width * 4]) for y in range(height)]
-    image = Image.frombytes("RGBA", (width, height), b"".join(rows), "raw", "BGRA")
+    image = Image.frombytes("RGBA", (width, height), b"".join(rows), "raw", raw_mode)
     image.save(path)
     return image
 

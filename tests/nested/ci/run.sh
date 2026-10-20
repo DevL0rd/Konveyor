@@ -25,10 +25,9 @@ git config --global --add safe.directory "$PWD"
 extras/packaging/dependencies.sh
 setcap -r "$(command -v kwin_wayland)"
 useradd -m tester
-chmod a+rw /dev/dri/card* /dev/dri/renderD*
 chown -R tester: .
 install -d -m 700 -o tester /tmp/runtime-tester
 install -d -m 1777 /tmp/.X11-unix
-runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester CCACHE_DIR="$PWD/.ccache" CCACHE_MAXSIZE=2G \
+runuser -u tester -- env QT_QUICK_BACKEND=software XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester CCACHE_DIR="$PWD/.ccache" CCACHE_MAXSIZE=2G \
     CMAKE_C_COMPILER_LAUNCHER=ccache CMAKE_CXX_COMPILER_LAUNCHER=ccache ./tools/check.sh --nested --coverage
 runuser -u tester -- env CCACHE_DIR="$PWD/.ccache" ccache --show-stats
