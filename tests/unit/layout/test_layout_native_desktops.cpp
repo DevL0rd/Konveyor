@@ -186,19 +186,18 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void overviewKeepsDirectWorkspaceMotion()
+    void overviewKeepsInactiveWindowsInTheirLocalFrame()
     {
         Fixture fixture(animatedConfig());
         fixture.engine().setNativeDesktopPresentation(true);
         const auto id = fixture.add();
         fixture.advance(4000);
-        fixture.engine().setOverviewOpen(true);
         fixture.perform(QStringLiteral("focus-workspace-down"));
-        QVERIFY(fixture.state(id).renderFrame.y() != fixture.state(id).targetFrame.y());
-        QVERIFY(fixture.state(id).visible);
+        fixture.engine().setOverviewOpen(true);
+        QCOMPARE(fixture.state(id).renderFrame.y(), 16.0);
+        QCOMPARE(fixture.state(id).targetFrame.y(), 16.0);
         fixture.engine().setOverviewOpen(false);
         QCOMPARE(fixture.state(id).renderFrame.y(), 16.0);
-        QVERIFY(!fixture.state(id).visible);
         VERIFY_INVARIANTS(fixture);
     }
 

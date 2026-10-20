@@ -52,7 +52,7 @@ void Engine::setNativeDesktopPresentation(bool enabled)
 
 bool Engine::Private::usesWorkspaceMotion(const Monitor &monitor) const
 {
-    return !nativeDesktopPresentation || overviewOpen || monitor.isWorkspaceGesture();
+    return !nativeDesktopPresentation || monitor.isWorkspaceGesture();
 }
 
 std::vector<double> Engine::Private::workspaceRenderOffsets(const Monitor &monitor) const
@@ -245,9 +245,6 @@ void Engine::Private::setOverviewState(bool open)
 {
     overviewOpen = open;
     for (Monitor &monitor : monitors) {
-        if (open && nativeDesktopPresentation) {
-            monitor.finishWorkspaceSwitch();
-        }
         monitor.overviewOpen = open;
     }
 }
