@@ -120,22 +120,22 @@ private Q_SLOTS:
         QVERIFY(eval(QStringLiteral("launcher.currentSection().sectionActive")).toBool());
     }
 
-    void leftAndRightEditTheSearchAndControlArrowsStillNavigate()
+    void leftAndRightNavigateTheResultsWhileSearchingAndLeaveTheCursorAlone()
     {
         QVERIFY(open());
         eval(QStringLiteral("launcherData.sidebarPins = [{ kind: 'app', id: 'firefox', name: 'Firefox' }]"));
         for (const char key : {'k', 'o', 'n'}) {
             QTest::keyClick(m_harness.window(), key);
         }
+        QVERIFY(eval(QStringLiteral("launcher.searching")).toBool());
         press(Qt::Key_Left);
-        QCOMPARE(eval(QStringLiteral("field.cursorPosition")).toInt(), 2);
-        QCOMPARE(eval(QStringLiteral("launcher.railIndex")).toInt(), -1);
-        QTest::keyClick(m_harness.window(), 's');
-        QCOMPARE(eval(QStringLiteral("field.text")).toString(), QStringLiteral("kosn"));
-        press(Qt::Key_Left, Qt::ControlModifier);
         QCOMPARE(eval(QStringLiteral("launcher.railIndex")).toInt(), 0);
-        QCOMPARE(eval(QStringLiteral("field.text")).toString(), QStringLiteral("kosn"));
+        QCOMPARE(eval(QStringLiteral("field.cursorPosition")).toInt(), 3);
+        press(Qt::Key_Right);
+        QCOMPARE(eval(QStringLiteral("launcher.railIndex")).toInt(), -1);
+        QCOMPARE(eval(QStringLiteral("field.cursorPosition")).toInt(), 3);
         QVERIFY(eval(QStringLiteral("field.activeFocus")).toBool());
+        QCOMPARE(eval(QStringLiteral("field.text")).toString(), QStringLiteral("kon"));
     }
 
     void tabCyclesSections()

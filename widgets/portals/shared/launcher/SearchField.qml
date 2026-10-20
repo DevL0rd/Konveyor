@@ -24,7 +24,7 @@ QQC2.TextField {
             launcher.navigate(0, 1)
         } else if (event.key === Qt.Key_Up) {
             launcher.navigate(0, -1)
-        } else if (event.key === Qt.Key_Left && (field.text === "" || ctrl)) {
+        } else if (event.key === Qt.Key_Left && (field.text === "" || launcher.searching || ctrl)) {
             launcher.navigate(-1, 0)
         } else if (event.key === Qt.Key_Right && (field.text === "" || ctrl || field.cursorPosition === field.length)) {
             launcher.navigate(1, 0)

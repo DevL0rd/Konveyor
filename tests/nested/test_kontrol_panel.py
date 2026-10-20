@@ -20,6 +20,9 @@ NoDisplay=true
 X-KDE-Wayland-Interfaces=org_kde_plasma_window_management
 """
 
+NORMAL_FOCUS_STEALING_PREVENTION = "[Windows]\nFocusStealingPreventionLevel=2"
+
+
 def stage(root):
     from nested import REPO, build_dir, link_konveyor_imports
 
@@ -44,7 +47,7 @@ def main():
         panel, imports, program = stage(Path(temporary))
         files = {"data/applications/konveyor-kontrol-panel.desktop": PROGRAM_DESKTOP.format(program=program, panel=panel)}
         return run_runner(HERE / "runners" / "kontrol_panel.py", clients=(), timeout=420, setup=SETUP.format(imports=imports, panel=panel),
-                          files=files, permission_checks=True, global_shortcuts=True, output_count=2)
+                          files=files, extra_kwinrc=NORMAL_FOCUS_STEALING_PREVENTION, permission_checks=True, global_shortcuts=True, output_count=2)
 
 
 if __name__ == "__main__":

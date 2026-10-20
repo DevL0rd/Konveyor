@@ -100,8 +100,10 @@ def search_switches_to_a_minimized_window(checks):
     open_client(PROBE)
     run_script(for_window(PROBE, "w.minimized = true;"))
     checks.expect(wait_for(lambda: window_minimized(PROBE), 30), f"{PROBE} is minimized")
-    panel("Toggle")
-    if not checks.expect(opened_and_focused(), "Toggle opens the Kontrol Panel with focus"):
+    open_client("typing.txt")
+    type_text("a")
+    press(META)
+    if not checks.expect(opened_and_focused(), "Meta opens the Kontrol Panel with focus right after typing in another window"):
         return
     type_text(APP)
     press(KEY_CODES["Return"])

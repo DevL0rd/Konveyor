@@ -54,6 +54,9 @@ void KontrolPanelStacking::onWindowAdded(KWin::Window *window)
     if (isKontrolPanelBackdrop(window) && taskbarUsableWhileOpen()) {
         qCInfo(lcKonveyor) << "konveyor: lowering the Kontrol Panel backdrop below panels";
         KWin::workspace()->lowerWindow(window);
+    } else if (isKontrolPanelCard(window)) {
+        qCInfo(lcKonveyor) << "konveyor: giving the Kontrol Panel keyboard focus";
+        KWin::workspace()->activateWindow(window);
     }
 }
 
