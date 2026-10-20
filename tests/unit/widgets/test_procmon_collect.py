@@ -134,6 +134,13 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         self.assertEqual(rows[21]["icon"], "google-chrome")
         self.assertNotIn("icon", rows[22])
 
+    def test_flatpak_apps_get_icons_through_their_command_name(self):
+        (self.applications / "org.mozilla.firefox.desktop").write_text(
+            "[Desktop Entry]\nName=Firefox\nExec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=firefox org.mozilla.firefox @@u %u @@\nIcon=org.mozilla.firefox\n")
+        self.process(23, "firefox", 1)
+        rows = self.rows(self.build_at(self.module(), 100.0))
+        self.assertEqual(rows[23]["icon"], "org.mozilla.firefox")
+
     def test_unreadable_io_counts_as_no_disk_activity(self):
         self.process(30, "secret", 1, io=(5, 5))
         io = self.home / "root" / "proc" / "30" / "io"

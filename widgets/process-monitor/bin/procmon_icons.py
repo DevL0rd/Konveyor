@@ -52,7 +52,13 @@ def _parse_desktop(path):
 
 
 def _exec_basename(exe):
-    for t in exe.split():
+    tokens = exe.split()
+    for t in tokens:
+        if t.startswith("--command="):
+            command = os.path.basename(t.split("=", 1)[1].strip("\"'"))
+            if command:
+                return command
+    for t in tokens:
         if not t or t.startswith("%") or t.startswith("-") or "=" in t.split("/")[0]:
             continue
         b = os.path.basename(t)
