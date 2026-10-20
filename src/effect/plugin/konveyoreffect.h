@@ -43,8 +43,8 @@ public:
     void prePaintScreen(KWin::ScreenPrePaintData &data) override;
     void postPaintScreen() override;
     void prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data) override;
-    [[nodiscard]] bool paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w, int mask,
-        const KWin::Region &deviceRegion, KWin::WindowPaintData &data) override;
+    [[nodiscard]] bool paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,
+        int mask, const KWin::Region &deviceRegion, KWin::WindowPaintData &data) override;
     bool blocksDirectScanout() const override;
 
 private:
