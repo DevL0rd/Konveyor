@@ -31,10 +31,10 @@ chown -R tester: .
 install -d -m 700 -o tester /tmp/runtime-tester
 install -d -m 1777 /tmp/.X11-unix
 if [[ -n ${KONVEYOR_CI_TESTS:-} ]]; then
-    check_arguments=(--nested --tests "$KONVEYOR_CI_TESTS")
+    check_arguments=(--tests "$KONVEYOR_CI_TESTS")
 else
-    check_arguments=(--nested --coverage)
+    check_arguments=(--coverage)
 fi
 runuser -u tester -- env QT_QUICK_BACKEND=software XDG_RUNTIME_DIR=/tmp/runtime-tester HOME=/home/tester CCACHE_DIR="$PWD/.ccache" CCACHE_MAXSIZE=2G \
-    CMAKE_C_COMPILER_LAUNCHER=ccache CMAKE_CXX_COMPILER_LAUNCHER=ccache ./tools/check.sh "${check_arguments[@]}"
+    CMAKE_C_COMPILER_LAUNCHER=ccache CMAKE_CXX_COMPILER_LAUNCHER=ccache ./tools/check.sh --nested "${check_arguments[@]}"
 runuser -u tester -- env CCACHE_DIR="$PWD/.ccache" ccache --show-stats
