@@ -165,7 +165,7 @@ PlasmoidItem {
         onTriggered: root.collectorAlive = false
     }
     function applyInterval() {
-        run("$HOME/.local/bin/sysmon-collect --set-interval " + (Math.max(500, Plasmoid.configuration.updateInterval) / 1000))
+        run("PATH=\"$HOME/.local/bin:$PATH\" sysmon-collect --set-interval " + (Math.max(500, Plasmoid.configuration.updateInterval) / 1000))
     }
     Connections {
         target: Plasmoid.configuration

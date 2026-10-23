@@ -103,7 +103,7 @@ bool finished(QObject *page, const QString &result, bool error)
 
 const PlasmoidSpec router = spec(
     "router-monitor/plasmoids/org.devl0rd.routermon.panel", "org.devl0rd.routermon.panel", {QStringLiteral("router-monitor/shared/lib")});
-const QString config = QStringLiteral("$HOME/.local/bin/routermon-config ");
+const QString config = QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-config ");
 
 }
 

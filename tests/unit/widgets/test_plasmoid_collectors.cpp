@@ -6,8 +6,8 @@
 namespace
 {
 
-const QString procmonRestart = QStringLiteral("$HOME/.local/bin/procmon-collect --restart");
-const QString routerRestart = QStringLiteral("$HOME/.local/bin/routermon-collect --restart");
+const QString procmonRestart = QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" procmon-collect --restart");
+const QString routerRestart = QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-collect --restart");
 
 qsizetype restarts(const QString &command)
 {

@@ -9,8 +9,8 @@ using Router::started;
 namespace
 {
 
-const QString ctl = QStringLiteral("$HOME/.local/bin/routermon-ctl");
-const QString speedtest = QStringLiteral("$HOME/.local/bin/routermon-speedtest");
+const QString ctl = QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-ctl");
+const QString speedtest = QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-speedtest");
 
 QVariantList macs(std::initializer_list<int> endings)
 {

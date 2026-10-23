@@ -224,7 +224,7 @@ PlasmoidItem {
         id: watchdog
         active: root.dataWanted && root.runtimeDir !== ""
         staleAfter: Math.max(2000, Plasmoid.configuration.updateInterval * 4)
-        restartCommand: "$HOME/.local/bin/procmon-collect --restart"
+        restartCommand: "PATH=\"$HOME/.local/bin:$PATH\" procmon-collect --restart"
     }
     FileWatcher {
         path: root.dataWanted && root.compactOnly ? root.panelPath : ""
@@ -314,7 +314,7 @@ PlasmoidItem {
         DBus.SessionBus.asyncCall(message)
     }
     function applyInterval() {
-        actions.run("$HOME/.local/bin/procmon-collect --set-interval " + (Math.max(500, Plasmoid.configuration.updateInterval) / 1000))
+        actions.run("PATH=\"$HOME/.local/bin:$PATH\" procmon-collect --set-interval " + (Math.max(500, Plasmoid.configuration.updateInterval) / 1000))
     }
 
     ProcessRows { id: rowModel }

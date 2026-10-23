@@ -63,7 +63,7 @@ private:
 
     void reloadGames(const QByteArray &json)
     {
-        m_harness.respondWithLibrary({response(QStringLiteral("^\\$HOME/\\.local/bin/portal-games # "), json)});
+        m_harness.respondWithLibrary({response(QStringLiteral("^PATH=\"\\$HOME/\\.local/bin:\\$PATH\" portal-games # "), json)});
         eval(QStringLiteral("launcherData.refreshGames(true)"));
     }
 
