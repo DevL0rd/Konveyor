@@ -20,12 +20,33 @@ private Q_SLOTS:
         QVERIFY(m_home->isValid());
         qputenv("HOME", QFile::encodeName(m_home->path()));
         QVERIFY(QDir(m_home->path()).mkpath(QStringLiteral(".local/bin")));
+        QVERIFY(QDir(m_home->path()).mkpath(QStringLiteral("usr/bin")));
+        m_path = qgetenv("PATH");
+        qputenv("PATH", QFile::encodeName(m_home->filePath(QStringLiteral("usr/bin"))));
     }
 
-    void cleanup() { m_home.reset(); }
+    void cleanup()
+    {
+        qputenv("PATH", m_path);
+        m_home.reset();
+    }
 
     void findsToolsInTheUsersLocalBin()
     {
+        QCOMPARE(widgetToolPath(QStringLiteral("portal-launcher")), m_home->filePath(QStringLiteral(".local/bin/portal-launcher")));
+    }
+
+    void fallsBackToPathForSystemPackages()
+    {
+        writeTool(QStringLiteral("#!/bin/sh\n"), QFileDevice::ReadOwner | QFileDevice::ExeOwner, QStringLiteral("usr/bin"));
+        QCOMPARE(widgetToolPath(QStringLiteral("portal-launcher")), m_home->filePath(QStringLiteral("usr/bin/portal-launcher")));
+        QVERIFY(widgetToolInstalled(QStringLiteral("portal-launcher")));
+    }
+
+    void prefersTheUsersLocalBinOverPath()
+    {
+        writeTool(QStringLiteral("#!/bin/sh\n"), QFileDevice::ReadOwner | QFileDevice::ExeOwner, QStringLiteral("usr/bin"));
+        writeTool(QStringLiteral("#!/bin/sh\n"), QFileDevice::ReadOwner | QFileDevice::ExeOwner);
         QCOMPARE(widgetToolPath(QStringLiteral("portal-launcher")), m_home->filePath(QStringLiteral(".local/bin/portal-launcher")));
     }
 
@@ -53,6 +74,7 @@ private Q_SLOTS:
 
     void startsAnInstalledToolWithItsArguments()
     {
+        qputenv("PATH", m_path); // the tool script needs mv
         const QString record = m_home->filePath(QStringLiteral("arguments"));
         writeTool(QStringLiteral("#!/bin/sh\nprintf '%s\\n' \"$@\" > \"%1.part\"\nmv \"%1.part\" \"%1\"\n").arg(record),
             QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
@@ -65,9 +87,9 @@ private Q_SLOTS:
     }
 
 private:
-    void writeTool(const QString &script, QFileDevice::Permissions permissions)
+    void writeTool(const QString &script, QFileDevice::Permissions permissions, const QString &directory = QStringLiteral(".local/bin"))
     {
-        QFile tool(m_home->filePath(QStringLiteral(".local/bin/portal-launcher")));
+        QFile tool(m_home->filePath(directory + QStringLiteral("/portal-launcher")));
         QVERIFY(tool.open(QIODevice::WriteOnly));
         tool.write(script.toUtf8());
         tool.close();
@@ -75,6 +97,7 @@ private:
     }
 
     std::unique_ptr<QTemporaryDir> m_home;
+    QByteArray m_path;
 };
 
 QTEST_GUILESS_MAIN(TestWidgetTool)

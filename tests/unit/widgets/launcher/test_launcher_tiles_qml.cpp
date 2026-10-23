@@ -70,7 +70,7 @@ private Q_SLOTS:
         QCOMPARE(eval(QStringLiteral("launcherData.folders[0].apps")).toStringList(),
             QStringList({QStringLiteral("org.kde.dolphin.desktop"), QStringLiteral("org.kde.konsole.desktop")}));
         QCOMPARE(eval(QStringLiteral("launcher.openFolder")).toString(), eval(QStringLiteral("launcherData.folders[0].id")).toString());
-        QVERIFY(m_harness.commands().last().startsWith(QStringLiteral("$HOME/.local/bin/portal-games --folder-create ")));
+        QVERIFY(m_harness.commands().last().startsWith(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --folder-create ")));
         QCOMPARE(eval(QStringLiteral("launcherData.favorites.triggered.length")).toInt(), 0);
     }
 

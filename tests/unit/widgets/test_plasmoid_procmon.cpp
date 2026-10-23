@@ -38,8 +38,8 @@ private Q_SLOTS:
         QCOMPARE(harness->plasmoid()->status, 2);
         QCOMPARE(harness->root()->property("runtimeDir").toString(), runtime());
         QCOMPARE(harness->root()->property("compactOnly").toBool(), form != Form::Planar);
-        QCOMPARE(harness->command(QStringLiteral("$HOME/.local/bin/procmon-collect --set-interval ")),
-            QStringLiteral("$HOME/.local/bin/procmon-collect --set-interval 0.5"));
+        QCOMPARE(harness->command(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" procmon-collect --set-interval ")),
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" procmon-collect --set-interval 0.5"));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 

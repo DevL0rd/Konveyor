@@ -10,7 +10,7 @@ const PlasmoidSpec screenRotate {
 
 QString helper(const char *mode)
 {
-    return qEnvironmentVariable("HOME") + QStringLiteral("/.local/bin/linux-plasma-screen-rotate ") + QLatin1String(mode);
+    return QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" linux-plasma-screen-rotate ") + QLatin1String(mode);
 }
 
 std::unique_ptr<PlasmoidHarness> started(int form)

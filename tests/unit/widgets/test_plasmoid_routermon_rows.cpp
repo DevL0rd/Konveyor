@@ -131,8 +131,8 @@ private Q_SLOTS:
         trigger(*harness, QStringLiteral("Copy MAC"));
         QCOMPARE(harness->root()->property("message").toString(), QStringLiteral("Copied %1").arg(macOf(1)));
         trigger(*harness, QStringLiteral("Block internet"));
-        QCOMPARE(harness->command(QStringLiteral("$HOME/.local/bin/routermon-ctl")),
-            QStringLiteral("$HOME/.local/bin/routermon-ctl block %1").arg(macOf(1)));
+        QCOMPARE(harness->command(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-ctl")),
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-ctl block %1").arg(macOf(1)));
         trigger(*harness, QStringLiteral("Pin to top"));
         QCOMPARE(harness->config(QStringLiteral("pinnedMacs")).toString(), macOf(1));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));

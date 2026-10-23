@@ -1,4 +1,3 @@
-import QtCore
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
@@ -10,7 +9,7 @@ import org.kde.kirigami as Kirigami
 PlasmoidItem {
     id: root
 
-    readonly property string helper: String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace("file://", "") + "/.local/bin/linux-plasma-screen-rotate"
+    readonly property string helper: "PATH=\"$HOME/.local/bin:$PATH\" linux-plasma-screen-rotate"
     readonly property string readCommand: helper + " state"
     readonly property string toggleCommand: helper + " toggle"
 
