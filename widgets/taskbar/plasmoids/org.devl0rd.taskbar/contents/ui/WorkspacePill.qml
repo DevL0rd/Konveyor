@@ -30,8 +30,10 @@ PlasmaCore.ToolTipArea {
 
     signal picked()
 
-    implicitWidth: vertical ? thickness : Math.max(thickness, content.implicitWidth + thickness * 0.6)
-    implicitHeight: vertical ? Math.max(thickness, content.implicitHeight + thickness * 0.6) : thickness
+    readonly property bool badged: showBadge && badge.label.length > 0
+
+    implicitWidth: vertical ? thickness : Math.max(thickness, content.implicitWidth + thickness * 0.6, badged ? badge.width : 0)
+    implicitHeight: vertical ? Math.max(thickness, content.implicitHeight + thickness * 0.6, badged ? badge.height : 0) : thickness
     mainText: name || i18n("Workspace %1", workspace.idx)
     subText: columns.length === 0 ? i18n("Empty") : i18np("%1 column", "%1 columns", columns.length)
     location: Plasmoid.location
@@ -128,6 +130,7 @@ PlasmaCore.ToolTipArea {
     }
 
     ShortcutBadge {
+        id: badge
         label: pill.badge
         shown: pill.showBadge
         animate: pill.animate

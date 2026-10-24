@@ -10,6 +10,12 @@ const QStringList everyRunner {QStringLiteral("krunner_services"), QStringLitera
     QStringLiteral("krunner_recentdocuments"), QStringLiteral("baloosearch"), QStringLiteral("locations"),
     QStringLiteral("krunner_sessions"), QStringLiteral("krunner_powerdevil")};
 
+void setBalooRegistered(LauncherTest::Harness &harness, bool registered)
+{
+    harness.singleton("org.kde.plasma.workspace.dbus", "Services")
+        ->setProperty("registered", QVariantMap {{QStringLiteral("org.kde.baloo"), registered}});
+}
+
 }
 
 class TestLauncherSearchQml : public LauncherTest::TestCase
@@ -54,6 +60,34 @@ private Q_SLOTS:
             QCOMPARE(queries.last().toMap().value(QStringLiteral("runners")).toStringList(), runners);
             QCOMPARE(queries.last().toMap().value(QStringLiteral("query")).toString(), eval(QStringLiteral("launcher.term")).toString());
         }
+    }
+
+    void aMissingBalooIsNeverAsked()
+    {
+        QVERIFY(m_harness.openHost(false));
+        setBalooRegistered(m_harness, false);
+        QVERIFY(search(QStringLiteral("f notes")));
+        QStringList expected = everyRunner;
+        expected.removeAll(QStringLiteral("baloosearch"));
+        const QStringList files {
+            QStringLiteral("krunner_placesrunner"), QStringLiteral("krunner_recentdocuments"), QStringLiteral("locations")};
+        QCOMPARE(
+            eval(QStringLiteral("launcherData.runner.queries")).toList().last().toMap().value(QStringLiteral("runners")).toStringList(),
+            files);
+        QVERIFY(search(QStringLiteral("kon")));
+        QCOMPARE(
+            eval(QStringLiteral("launcherData.runner.queries")).toList().last().toMap().value(QStringLiteral("runners")).toStringList(),
+            expected);
+    }
+
+    void balooComingOnlineBringsItsRunnerBack()
+    {
+        QVERIFY(m_harness.openHost(false));
+        setBalooRegistered(m_harness, false);
+        QVERIFY(search(QStringLiteral("f notes")));
+        setBalooRegistered(m_harness, true);
+        QVERIFY(search(QStringLiteral("f notes today")));
+        QVERIFY(eval(QStringLiteral("launcherData.runner.queries.slice(-1)[0].runners.indexOf('baloosearch') >= 0")).toBool());
     }
 
     void theBestMatchIsTheFirstShownApp()

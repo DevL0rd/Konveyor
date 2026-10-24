@@ -113,7 +113,7 @@ public:
     bool stageDoublesWithoutKicker()
     {
         const QString doubles = source("tests/unit/widgets/launcher/doubles");
-        for (const char *module : {"org/kde/plasma/plasma5support", "org/kde/plasma/plasmoid"}) {
+        for (const char *module : {"org/kde/plasma/plasma5support", "org/kde/plasma/plasmoid", "org/kde/plasma/workspace/dbus"}) {
             if (!copyTree(
                     QDir(doubles).filePath(QLatin1String(module)), QDir(path(QStringLiteral("doubles"))).filePath(QLatin1String(module)))) {
                 return false;

@@ -2,6 +2,7 @@ import QtQuick
 import QtCore
 import QtQuick.Dialogs
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.workspace.dbus as DBus
 import org.kde.plasma.private.kicker as Kicker
 import org.kde.coreaddons as KCoreAddons
 
@@ -95,6 +96,17 @@ Item {
         Component.onCompleted: favoritesModel.initForClient(launcherData.applet.favoritesClient)
     }
 
+    readonly property bool balooAvailable: balooWatcher.registered
+    readonly property var fileRunners: balooAvailable
+        ? ["krunner_placesrunner", "krunner_recentdocuments", "baloosearch", "locations"]
+        : ["krunner_placesrunner", "krunner_recentdocuments", "locations"]
+
+    DBus.DBusServiceWatcher {
+        id: balooWatcher
+        busType: DBus.BusType.Session
+        watchedService: "org.kde.baloo"
+    }
+
     readonly property var allRunners: {
         const list = ["krunner_services"]
         if (launcherData.config.searchSettings)
@@ -104,7 +116,7 @@ Item {
         if (launcherData.config.searchCommands)
             list.push("krunner_shell")
         if (launcherData.config.searchFiles)
-            list.push("krunner_placesrunner", "krunner_recentdocuments", "baloosearch", "locations")
+            list.push(...launcherData.fileRunners)
         list.push("krunner_sessions", "krunner_powerdevil")
         if (launcherData.config.searchWeb)
             list.push("krunner_webshortcuts")
@@ -113,7 +125,7 @@ Item {
     readonly property var modeRunners: ({
         all: allRunners,
         apps: ["krunner_services"],
-        files: ["krunner_placesrunner", "krunner_recentdocuments", "baloosearch", "locations"],
+        files: fileRunners,
         calc: ["calculator", "unitconverter"],
         command: ["krunner_shell"],
         games: [],
