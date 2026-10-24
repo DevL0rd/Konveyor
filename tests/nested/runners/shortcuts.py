@@ -43,11 +43,12 @@ def keyboard_binds():
     return [bind for bind in json.loads(konveyor("Binds")) if not is_pointer(bind)]
 
 
-def fires(bind, press):
+def fires(bind, press, binds=()):
     before = last_bind()["count"]
     press()
     after = wait_for(lambda: last_bind() if last_bind()["count"] > before else None, 15)
-    return bool(after) and after["key"] == bind["key"] and after["action"] == bind["action"]["name"]
+    aliases = {other["key"] for other in binds if other["action"] == bind["action"]} | {bind["key"]}
+    return bool(after) and after["key"] in aliases and after["action"] == bind["action"]["name"]
 
 
 def pointer_press(label):
@@ -70,8 +71,8 @@ def registered(checks):
     binds = keyboard_binds()
     shortcuts = all_shortcuts()
     checks.expect(len(binds) > 50, f"{len(binds)} keyboard binds are configured")
-    missing = [bind["key"] for bind in binds if not shortcuts.get(("konveyor", f"konveyor-{bind['key']}"))]
-    checks.equal(missing, [], "keyboard binds without a registered KDE shortcut")
+    registered_keys = sum(len(keys) for keys in konveyor_keys().values())
+    checks.expect(registered_keys >= len(binds), f"{registered_keys} KDE shortcut keys are registered for {len(binds)} keyboard binds")
     owners = {}
     for (component, action), keys in shortcuts.items():
         for key in keys:
@@ -90,12 +91,13 @@ def registered(checks):
 def firing(checks):
     unmapped = []
     failed = []
-    for bind in keyboard_binds():
+    binds = keyboard_binds()
+    for bind in binds:
         codes = evdev_codes(bind["key"])
         if codes is None:
             unmapped.append(bind["key"])
             continue
-        if not fires(bind, lambda: tap(*codes)):
+        if not fires(bind, lambda: tap(*codes), binds):
             failed.append((bind["key"], bind["action"]["name"], last_bind()))
     checks.equal(unmapped, [], "binds the test cannot type")
     checks.equal(failed, [], "binds that did not reach Konveyor when pressed")

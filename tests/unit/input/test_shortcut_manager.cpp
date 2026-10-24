@@ -120,6 +120,44 @@ private Q_SLOTS:
         QCOMPARE(shortcuts->binds().size(), 6);
     }
 
+    void aliasedBindsShareOneKdeAction()
+    {
+        auto shortcuts = manager();
+        shortcuts->setBinds(binds(QStringLiteral("Mod+Shift+J { focus-monitor-down; }\n"
+                                                 "Mod+Shift+Down { focus-monitor-down; }\n"
+                                                 "Mod+H { focus-column-left; }\n"
+                                                 "Mod+Left repeat=false { focus-column-left; }")));
+        FakeKGlobalAccel::settle();
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 3);
+        QCOMPARE(keys(QStringLiteral("konveyor-Super+Shift+J")),
+            (QList<QKeySequence> {QKeySequence(QStringLiteral("Meta+Shift+J")), QKeySequence(QStringLiteral("Meta+Shift+Down"))}));
+        QVERIFY(keys(QStringLiteral("konveyor-Super+Shift+Down")).isEmpty());
+        shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+Shift+J"))->trigger();
+        QCOMPARE(m_fired, QStringList {QStringLiteral("Super+Shift+J focus-monitor-down")});
+    }
+
+    void sameTitleOnDifferentActionsStaysSeparate()
+    {
+        auto shortcuts = manager();
+        shortcuts->setBinds(binds(QStringLiteral("Mod+J hotkey-overlay-title=\"Move\" { focus-window-down; }\n"
+                                                 "Mod+K hotkey-overlay-title=\"Move\" { focus-window-up; }\n"
+                                                 "Mod+Down hotkey-overlay-title=\"Move\" { focus-window-down; }")));
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 2);
+        shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+K"))->trigger();
+        QCOMPARE(m_fired, QStringList {QStringLiteral("Super+K focus-window-up")});
+    }
+
+    void actionsDifferingInOneSettingStaySeparate()
+    {
+        auto shortcuts = manager();
+        shortcuts->setBinds(binds(QStringLiteral("Mod+Shift+1 { move-column-to-workspace 1; }\n"
+                                                 "Mod+Ctrl+1 { move-column-to-workspace 1 focus=false; }\n"
+                                                 "Mod+Alt+1 { move-column-to-workspace 1; }")));
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 2);
+        shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+Ctrl+1"))->trigger();
+        QCOMPARE(m_fired, QStringList {QStringLiteral("Super+Ctrl+1 move-column-to-workspace")});
+    }
+
     void leavesIsoLevelBindsOutOfKde()
     {
         auto shortcuts = manager();

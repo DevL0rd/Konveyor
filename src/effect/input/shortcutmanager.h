@@ -36,7 +36,7 @@ private:
     static bool registersWithKde(const Config::Bind &bind);
     static bool keyMatches(const Config::Bind &bind, quint32 keycode, xkb_keymap *keymap, xkb_layout_index_t layout);
     static QList<QKeySequence> keySequences(const Config::Bind &bind);
-    void registerKeyBind(const Config::Bind &bind);
+    void registerKeyBinds(const QList<Config::Bind> &group);
     void unregisterAll();
     bool isOnCooldown(const QString &name, int cooldownMs);
     void invoke(const Config::Bind &bind);

@@ -10,6 +10,8 @@
 #include <QHash>
 #include <QKeySequence>
 
+#include <algorithm>
+
 namespace Konveyor
 {
 
@@ -86,10 +88,25 @@ void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
     ShortcutConflicts::merge(m_released, ShortcutConflicts::takeOver(wanted, QStringLiteral("konveyor")));
     m_released = ShortcutConflicts::restoreUnwanted(m_released, wanted);
     ShortcutConflicts::save(m_released);
+    QList<QList<Config::Bind>> groups;
     for (const Config::Bind &bind : m_binds) {
-        if (registersWithKde(bind)) {
-            registerKeyBind(bind);
+        if (!registersWithKde(bind)) {
+            continue;
         }
+        const auto sameGroup = [&bind](const QList<Config::Bind> &group) {
+            const Config::Bind &first = group.first();
+            return first.action == bind.action && first.repeat == bind.repeat && first.cooldownMs == bind.cooldownMs
+                && describe(first) == describe(bind);
+        };
+        const auto found = std::find_if(groups.begin(), groups.end(), sameGroup);
+        if (found == groups.end()) {
+            groups.append({bind});
+        } else {
+            found->append(bind);
+        }
+    }
+    for (const QList<Config::Bind> &group : std::as_const(groups)) {
+        registerKeyBinds(group);
     }
 }
 
@@ -160,8 +177,9 @@ QList<QKeySequence> ShortcutManager::keySequences(const Config::Bind &bind)
     return sequences;
 }
 
-void ShortcutManager::registerKeyBind(const Config::Bind &bind)
+void ShortcutManager::registerKeyBinds(const QList<Config::Bind> &group)
 {
+    const Config::Bind &bind = group.first();
     const QString name = actionName(bind);
     if (m_actions.contains(name)) {
         return;
@@ -173,7 +191,11 @@ void ShortcutManager::registerKeyBind(const Config::Bind &bind)
     action->setProperty("componentDisplayName", QStringLiteral("Konveyor"));
     action->setAutoRepeat(bind.repeat);
     connect(action, &QAction::triggered, this, [this, bind] { invoke(bind); });
-    KGlobalAccel::self()->setShortcut(action, keySequences(bind), KGlobalAccel::NoAutoloading);
+    QList<QKeySequence> sequences;
+    for (const Config::Bind &member : group) {
+        sequences.append(keySequences(member));
+    }
+    KGlobalAccel::self()->setShortcut(action, sequences, KGlobalAccel::NoAutoloading);
     m_actions.insert(name, action);
 }
 
