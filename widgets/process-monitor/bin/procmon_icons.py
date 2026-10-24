@@ -80,6 +80,11 @@ def build_icon_map():
             if exe:
                 b = _exec_basename(exe)
                 if b: keys.add(b.lower())
+                tokens = exe.split()
+                flatpak_run = any(os.path.basename(token).lower() == "flatpak" for token in tokens)
+                has_command = any(token.startswith("--command=") for token in tokens)
+                if flatpak_run and not has_command and "." in b:
+                    keys.add(b.rsplit(".", 1)[-1].lower())
             if tryexe:
                 keys.add(os.path.basename(tryexe).lower())
             if wm:
@@ -112,7 +117,7 @@ def resolve_icon(comm):
     if _icon_map is None:
         refresh_icon_map(time.monotonic())
     c = comm.lower()
-    icon = ICON_ALIASES.get(c) or ("" if c in GENERIC_COMMS else _icon_map.get(c, "")) or ""
+    icon = _icon_map.get(c, "") or ICON_ALIASES.get(c) or ("" if c in GENERIC_COMMS else "")
     _icon_resolved[comm] = icon
     return icon
 

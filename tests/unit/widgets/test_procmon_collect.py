@@ -141,6 +141,24 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         rows = self.rows(self.build_at(self.module(), 100.0))
         self.assertEqual(rows[23]["icon"], "org.mozilla.firefox")
 
+    def test_flatpak_apps_without_command_match_the_process_name(self):
+        (self.applications / "com.valvesoftware.Steam.desktop").write_text(
+            "[Desktop Entry]\nName=Steam\nExec=/usr/bin/flatpak run --branch=stable --arch=x86_64 com.valvesoftware.Steam %U\nIcon=com.valvesoftware.Steam\n")
+        self.process(24, "steam", 1)
+        rows = self.rows(self.build_at(self.module(), 100.0))
+        self.assertEqual(rows[24]["icon"], "com.valvesoftware.Steam")
+
+    def test_flatpak_desktop_icons_take_precedence_over_executable_aliases(self):
+        (self.applications / "com.google.Chrome.desktop").write_text(
+            "[Desktop Entry]\nName=Google Chrome\nExec=flatpak run --command=chrome com.google.Chrome %U\nIcon=com.google.Chrome\n")
+        (self.applications / "com.vscodium.codium.desktop").write_text(
+            "[Desktop Entry]\nName=VSCodium\nExec=flatpak run --command=codium com.vscodium.codium %U\nIcon=com.vscodium.codium\n")
+        self.process(25, "chrome", 1)
+        self.process(26, "codium", 1)
+        rows = self.rows(self.build_at(self.module(), 100.0))
+        self.assertEqual(rows[25]["icon"], "com.google.Chrome")
+        self.assertEqual(rows[26]["icon"], "com.vscodium.codium")
+
     def test_unreadable_io_counts_as_no_disk_activity(self):
         self.process(30, "secret", 1, io=(5, 5))
         io = self.home / "root" / "proc" / "30" / "io"
