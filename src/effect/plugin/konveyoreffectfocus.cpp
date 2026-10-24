@@ -2,6 +2,7 @@
 
 #include "config/log.h"
 
+#include <ranges>
 #include <utility>
 
 namespace Konveyor
@@ -17,6 +18,22 @@ bool focusArrivesLater(const KWin::Window *window)
     Q_UNUSED(window)
     return false;
 #endif
+}
+
+bool isVisibleOnCurrentDesktop(const KWin::Window *window)
+{
+    return !window->isDeleted() && window->isOnCurrentActivity() && window->isOnCurrentDesktop() && !window->isMinimized()
+        && !window->isHidden() && !window->isHiddenByShowDesktop() && window->readyForPainting();
+}
+
+KWin::Window *topWindowAt(const QPointF &position)
+{
+    for (KWin::Window *window : std::views::reverse(KWin::workspace()->stackingOrder())) {
+        if (isVisibleOnCurrentDesktop(window) && window->hitTest(position)) {
+            return window;
+        }
+    }
+    return nullptr;
 }
 }
 
@@ -67,7 +84,7 @@ void KonveyorEffect::followActiveWindow()
 void KonveyorEffect::followActiveOutput(const QString &name)
 {
     KWin::Window *active = KWin::workspace()->activeWindow();
-    if (active != d->followedWindow && d->windows.idOf(active)) {
+    if (d->windows.idOf(active)) {
         return;
     }
     changeEngine().focusOutput(name);
@@ -117,7 +134,7 @@ void KonveyorEffect::focusWindowUnderPointer(const QPointF &position)
 {
     const std::optional<Layout::WindowId> id = readEngine().windowAt(position);
     KWin::Window *window = id ? d->windows.windowOf(*id) : nullptr;
-    if (window && window != KWin::workspace()->activeWindow()) {
+    if (window && window != KWin::workspace()->activeWindow() && topWindowAt(position) == window) {
         qCInfo(lcKonveyor) << "konveyor: focus follows mouse to" << window->resourceClass();
         KWin::workspace()->activateWindow(window);
     }
