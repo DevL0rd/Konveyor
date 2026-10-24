@@ -222,6 +222,10 @@ void TestConfigBinds::capturesActionArgumentsAndProperties()
     const Bind named = firstBind(QStringLiteral("Mod+2 { focus-workspace \"chat\"; }"));
     QCOMPARE(named.action.arguments, QStringList({QStringLiteral("chat")}));
 
+    const Bind monitor = firstBind(QStringLiteral("Mod+3 { move-all-windows-to-monitor \"DP-2\"; }"));
+    QCOMPARE(monitor.action.name, QStringLiteral("move-all-windows-to-monitor"));
+    QCOMPARE(monitor.action.arguments, QStringList({QStringLiteral("DP-2")}));
+
     const Bind width = firstBind(QStringLiteral("Mod+Minus { set-column-width \"-10%\"; }"));
     QCOMPARE(width.action.arguments, QStringList({QStringLiteral("-10%")}));
 
@@ -242,6 +246,7 @@ void TestConfigBinds::rejectsMissingActionArgument()
 {
     QVERIFY(bindError(QStringLiteral("Mod+A { focus-workspace; }")).message.contains(QStringLiteral("requires an argument")));
     QVERIFY(bindError(QStringLiteral("Mod+A { spawn-sh; }")).message.contains(QStringLiteral("requires an argument")));
+    QVERIFY(bindError(QStringLiteral("Mod+A { move-all-windows-to-monitor; }")).message.contains(QStringLiteral("requires an argument")));
     QVERIFY(bindError(QStringLiteral("Mod+A { close-window 1; }")).message.contains(QStringLiteral("unexpected argument")));
 }
 

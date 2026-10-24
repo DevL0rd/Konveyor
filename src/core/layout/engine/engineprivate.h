@@ -171,6 +171,10 @@ struct Engine::Private
         std::optional<WindowId> window, std::size_t monitorIndex, bool activate, std::optional<std::size_t> workspaceIndex);
     void moveColumnToMonitor(std::size_t monitorIndex, bool activate, std::optional<std::size_t> workspaceIndex);
     void moveWorkspaceToMonitor(std::size_t monitorIndex);
+    std::vector<std::pair<std::size_t, WorkspaceId>> occupiedWorkspacesOutside(std::size_t monitorIndex) const;
+    bool activateOnMonitor(std::size_t monitorIndex, const Workspace &workspace);
+    void revealWindowOnMonitor(std::size_t monitorIndex, WindowId window, WorkspaceId fallback);
+    void moveAllWindowsToMonitor(std::size_t monitorIndex);
 
     void appendWorkspaceStates(QList<WindowState> &states, const Workspace &workspace, const WorkspaceRenderContext &context) const;
     std::optional<QRectF> dropHintRect(const Monitor &monitor) const;

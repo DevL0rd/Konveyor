@@ -188,6 +188,11 @@ const table = [
     [/^center-/, center],
     [/^close-window|^spawn|^system-run|^show-hotkey-overlay|overview/, lifecycle],
     [/workspace/, id => workspaces(id, /up|previous/.test(id))],
+    [/^move-all-windows-to-monitor$/, () => {
+        const start = merge(C([hot("a"), col("b")], { monitor: 0 }), C([col("c")], { monitor: 1 }));
+        const end = merge(C([], { monitor: 0 }), C([col("c"), hot("a"), col("b")], { monitor: 1 }));
+        return S([start, end], { monitors: 2, key: "letter" });
+    }],
     [/^focus-window-(up|down|top|bottom)|^focus-window-in-column/, id => focusWindow(id, /up|top/.test(id))],
     [/^move-window-(up|down)$/, id => moveWindow(id, /up/.test(id))],
     [/monitor/, id => monitors(id, /left|up/.test(id))]

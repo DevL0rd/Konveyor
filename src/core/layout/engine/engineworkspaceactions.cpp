@@ -313,6 +313,11 @@ void moveWorkspaceToMonitorAt(Engine::Private &d, std::size_t idx, const Config:
     d.moveWorkspaceToMonitor(idx);
 }
 
+void moveAllWindowsToMonitorAt(Engine::Private &d, std::size_t idx, const Config::Action &)
+{
+    d.moveAllWindowsToMonitor(idx);
+}
+
 void addNamedMonitorAction(ActionTable &table, const QString &name, const DirectionHandler &handler)
 {
     addNamed(table, name, [handler](Engine::Private &d, const Config::Action &action, std::optional<WindowId>) {
@@ -332,6 +337,7 @@ void registerMonitorActions(ActionTable &table)
     addNamedMonitorAction(table, QStringLiteral("move-window-to-monitor"), moveWindowToMonitorAt);
     addNamedMonitorAction(table, QStringLiteral("move-column-to-monitor"), moveColumnToMonitorAt);
     addNamedMonitorAction(table, QStringLiteral("move-workspace-to-monitor"), moveWorkspaceToMonitorAt);
+    addNamedMonitorAction(table, QStringLiteral("move-all-windows-to-monitor"), moveAllWindowsToMonitorAt);
 }
 
 }

@@ -91,7 +91,8 @@ inline QStringList actionArguments(Dice &dice, const QString &name)
     static const QStringList sized {
         QStringLiteral("set-column-width"), QStringLiteral("set-window-width"), QStringLiteral("set-window-height")};
     static const QStringList monitors {QStringLiteral("focus-monitor"), QStringLiteral("move-window-to-monitor"),
-        QStringLiteral("move-column-to-monitor"), QStringLiteral("move-workspace-to-monitor")};
+        QStringLiteral("move-column-to-monitor"), QStringLiteral("move-workspace-to-monitor"),
+        QStringLiteral("move-all-windows-to-monitor")};
     if (indexed.contains(name)) {
         return {QString::number(dice.below(7))};
     }

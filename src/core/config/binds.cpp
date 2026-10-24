@@ -70,6 +70,7 @@ constexpr ActionSpec kSpecialActions[] = {
     {"move-column-to-workspace", 1, 1, ArgumentKind::Workspace, "focus"},
     {"move-workspace-to-index", 1, 1, ArgumentKind::Index, ""},
     {"move-workspace-to-monitor", 1, 1, ArgumentKind::Text, ""},
+    {"move-all-windows-to-monitor", 1, 1, ArgumentKind::Text, ""},
     {"set-workspace-name", 1, 1, ArgumentKind::Text, ""},
     {"focus-monitor", 1, 1, ArgumentKind::Text, ""},
     {"move-window-to-monitor", 1, 1, ArgumentKind::Text, ""},

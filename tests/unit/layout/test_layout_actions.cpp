@@ -126,7 +126,8 @@ private Q_SLOTS:
     void everyNamedMonitorActionSucceeds()
     {
         static const QStringList names {QStringLiteral("focus-monitor"), QStringLiteral("move-window-to-monitor"),
-            QStringLiteral("move-column-to-monitor"), QStringLiteral("move-workspace-to-monitor")};
+            QStringLiteral("move-column-to-monitor"), QStringLiteral("move-workspace-to-monitor"),
+            QStringLiteral("move-all-windows-to-monitor")};
         const auto run = [](const QString &name) { return runMonitorAction(name, {QStringLiteral("DP-2")}); };
         QCOMPARE(collectErrors(names, run), QStringList());
     }

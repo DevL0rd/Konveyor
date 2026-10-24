@@ -171,4 +171,70 @@ void Engine::Private::moveWorkspaceToMonitor(std::size_t monitorIndex)
     activeMonitorIndex = monitorIndex;
 }
 
+std::vector<std::pair<std::size_t, WorkspaceId>> Engine::Private::occupiedWorkspacesOutside(std::size_t monitorIndex) const
+{
+    std::vector<std::pair<std::size_t, WorkspaceId>> result;
+    for (std::size_t source = 0; source < monitors.size(); ++source) {
+        if (source == monitorIndex) {
+            continue;
+        }
+        for (const Workspace &workspace : monitors[source].workspaces()) {
+            if (workspace.isOccupiedOrNamed()) {
+                result.emplace_back(source, workspace.id());
+            }
+        }
+    }
+    return result;
+}
+
+bool Engine::Private::activateOnMonitor(std::size_t monitorIndex, const Workspace &workspace)
+{
+    const auto idx = monitors[monitorIndex].indexOfWorkspace(workspace.id());
+    if (!idx) {
+        return false;
+    }
+    monitors[monitorIndex].activateWorkspace(*idx);
+    return true;
+}
+
+void Engine::Private::revealWindowOnMonitor(std::size_t monitorIndex, WindowId window, WorkspaceId fallback)
+{
+    Workspace *workspace = workspaceOf(window);
+    if (!workspace) {
+        workspace = workspaceById(fallback);
+    }
+    if (workspace && activateOnMonitor(monitorIndex, *workspace) && workspace->hasWindow(window)) {
+        workspace->activateWindow(window);
+    }
+}
+
+void Engine::Private::moveAllWindowsToMonitor(std::size_t monitorIndex)
+{
+    if (monitorIndex >= monitors.size() || monitors.empty()) {
+        return;
+    }
+
+    const std::optional<WindowId> focusedWindow = focused;
+    const bool focusedWasOnTarget = focusedWindow.has_value() && monitors[monitorIndex].hasWindow(*focusedWindow);
+    const std::size_t previousActiveMonitor = std::min(activeMonitorIndex, monitors.size() - 1);
+    const WorkspaceId targetWorkspace = monitors[monitorIndex].activeWorkspace().id();
+
+    std::vector<Workspace> moved;
+    for (const auto &[sourceIndex, id] : occupiedWorkspacesOutside(monitorIndex)) {
+        if (const auto idx = monitors[sourceIndex].indexOfWorkspace(id)) {
+            moved.push_back(monitors[sourceIndex].detachWorkspaceAt(*idx));
+        }
+    }
+    monitors[monitorIndex].appendWorkspaces(std::move(moved));
+
+    activeMonitorIndex = monitorIndex;
+    if (focusedWindow && !focusedWasOnTarget) {
+        revealWindowOnMonitor(monitorIndex, *focusedWindow, targetWorkspace);
+    } else if (!focusedWindow && previousActiveMonitor == monitorIndex) {
+        if (const Workspace *workspace = workspaceById(targetWorkspace)) {
+            activateOnMonitor(monitorIndex, *workspace);
+        }
+    }
+}
+
 }

@@ -132,7 +132,8 @@ const actions = [
     a("spawn", "apps", "Launch an app or command", "system-run", "command"),
     a("spawn-sh", "apps", "Run a shell command", "utilities-terminal", "shell")
 ].concat(monitorFamily("focus-monitor", "Focus"), monitorFamily("move-window-to-monitor", "Send the window to"),
-    monitorFamily("move-column-to-monitor", "Send the column to"), monitorFamily("move-workspace-to-monitor", "Send this workspace to"));
+    monitorFamily("move-column-to-monitor", "Send the column to"), monitorFamily("move-workspace-to-monitor", "Send this workspace to"),
+    [a("move-all-windows-to-monitor", "monitors", "Send all windows (all workspaces) to a specific monitor", "video-display", "monitor")]);
 
 function byId(id) {
     return actions.find(action => action.id === id) || null;

@@ -195,6 +195,63 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(f.fixture);
     }
 
+    void moveAllWindowsToMonitorKeepsWorkspaceGroupingAndFocus()
+    {
+        Config::Config config = instantConfig();
+        config.layout.fixedWorkspaceCount = 0;
+        Fixture fixture(config);
+        placeSide(fixture);
+        fixture.engine().focusOutput(Side);
+        const auto resident = fixture.add(QStringLiteral("resident"));
+        fixture.engine().focusOutput(Home);
+        const WindowIds home = columnsOf(fixture, 2);
+        act(fixture, QStringLiteral("focus-workspace-down"));
+        const auto hidden = fixture.add();
+        act(fixture, QStringLiteral("set-workspace-name"), {QStringLiteral("hidden-work")});
+        fixture.engine().focusOutput(Home);
+        QVERIFY(act(fixture, QStringLiteral("move-all-windows-to-monitor"), {Side}).ok);
+        QCOMPARE(placeOf(fixture, resident).first, Side);
+        QCOMPARE(placeOf(fixture, home[0]).first, Side);
+        QCOMPARE(placeOf(fixture, hidden).first, Side);
+        QCOMPARE(fixture.workspaceNamed(QStringLiteral("hidden-work")).output, Side);
+        COMPARE_FOCUS(fixture, hidden);
+        QCOMPARE(focusedOutput(fixture), Side);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void moveAllWindowsToMonitorPreservesTargetFocusAndRejectsUnknownOutput()
+    {
+        TwoOutputs f;
+        f.fixture.engine().focusOutput(Side);
+        const auto targetFocus = f.resident;
+        const auto original = f.home[0];
+        QVERIFY(act(f.fixture, QStringLiteral("move-all-windows-to-monitor"), {Side.toLower()}).ok);
+        QCOMPARE(placeOf(f.fixture, original).first, Side);
+        COMPARE_FOCUS(f.fixture, targetFocus);
+        QVERIFY(!act(f.fixture, QStringLiteral("move-all-windows-to-monitor"), {QStringLiteral("HDMI-9")}).ok);
+        QCOMPARE(placeOf(f.fixture, original).first, Side);
+        QVERIFY(act(f.fixture, QStringLiteral("move-all-windows-to-monitor"), {Side}).ok);
+        QCOMPARE(placeOf(f.fixture, original).first, Side);
+        VERIFY_INVARIANTS(f.fixture);
+    }
+
+    void moveAllWindowsToMonitorPreservesFocusWhenFixedWorkspacesMerge()
+    {
+        Config::Config config = instantConfig();
+        config.layout.fixedWorkspaceCount = 1;
+        Fixture fixture(config);
+        placeSide(fixture);
+        fixture.engine().focusOutput(Side);
+        const auto resident = fixture.add(QStringLiteral("resident"));
+        fixture.engine().focusOutput(Home);
+        const auto source = fixture.add(QStringLiteral("source"));
+        QVERIFY(act(fixture, QStringLiteral("move-all-windows-to-monitor"), {Side}).ok);
+        QCOMPARE(placeOf(fixture, source).first, Side);
+        COMPARE_FOCUS(fixture, source);
+        QVERIFY(fixture.engine().windowState(resident));
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void moveColumnLeftOrToMonitorLeftCrossesFromTheFirstColumn()
     {
         TwoOutputs f;
