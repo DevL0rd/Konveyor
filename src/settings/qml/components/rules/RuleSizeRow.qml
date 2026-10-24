@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
 import ".."
 import "../../catalog/Kdl.js" as Kdl
 import org.kde.konveyor.settings
@@ -18,8 +18,9 @@ SettingRow {
 
     wideControl: true
 
-    RowLayout {
+    Flow {
         width: parent.width
+        spacing: Kirigami.Units.smallSpacing
 
         Segmented {
             currentValue: row.mode
@@ -40,6 +41,7 @@ SettingRow {
         }
 
         SizePicker {
+            maxWidth: row.availableWidth
             visible: row.mode === "size"
             allowAuto: false
             size: row.size

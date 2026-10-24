@@ -15,6 +15,8 @@ FormCard.AbstractFormDelegate {
     default property alias control: controlSlot.data
     property bool wideControl: false
     property var taskbarKeys: []
+    readonly property bool stacked: wideControl
+        || controlSlot.implicitWidth + Kirigami.Units.gridUnit * 12 + 2 * Kirigami.Units.largeSpacing > availableWidth
     readonly property bool modified: (SettingsStore.revision >= 0 && resetPaths.some(path => !SettingsStore.isDefault(path)))
         || taskbarKeys.some(key => TaskbarSettings.values[key] !== undefined && !TaskbarSettings.isDefault(key))
 
@@ -31,7 +33,7 @@ FormCard.AbstractFormDelegate {
     background: null
 
     contentItem: GridLayout {
-        columns: row.wideControl ? 1 : 3
+        columns: row.stacked ? 1 : 3
         columnSpacing: Kirigami.Units.largeSpacing
         rowSpacing: Kirigami.Units.smallSpacing
 
@@ -77,7 +79,7 @@ FormCard.AbstractFormDelegate {
         }
 
         Item {
-            visible: !row.wideControl
+            visible: !row.stacked
             Layout.preferredWidth: 0
         }
 
@@ -85,7 +87,7 @@ FormCard.AbstractFormDelegate {
             id: controlSlot
             implicitWidth: childrenRect.width
             implicitHeight: childrenRect.height
-            Layout.alignment: row.wideControl ? Qt.AlignLeft : (Qt.AlignRight | Qt.AlignVCenter)
+            Layout.alignment: row.stacked ? Qt.AlignLeft : (Qt.AlignRight | Qt.AlignVCenter)
             Layout.fillWidth: row.wideControl
         }
     }

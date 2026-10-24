@@ -22,6 +22,7 @@ RowLayout {
             text: modelData.label
             icon.name: modelData.icon || ""
             checkable: true
+            Layout.fillHeight: true
             checked: root.currentValue === modelData.value
             flat: !checked
             onClicked: root.chosen(modelData.value)

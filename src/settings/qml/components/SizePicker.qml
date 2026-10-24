@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 
-RowLayout {
+Flow {
     id: picker
 
     property var size
@@ -14,9 +14,26 @@ RowLayout {
 
     readonly property string kind: size ? size.kind : "auto"
 
+    property real maxWidth: Infinity
+    readonly property real naturalWidth: {
+        let total = 0;
+        let count = 0;
+        for (const child of children) {
+            if (child.visible && child.implicitWidth > 0) {
+                total += child.implicitWidth;
+                count += 1;
+            }
+        }
+        return total + Math.max(0, count - 1) * spacing;
+    }
+
     spacing: Kirigami.Units.smallSpacing
+    readonly property real rowHeight: Math.max(proportionBox.implicitHeight, fixedBox.implicitHeight)
+
+    width: Math.min(naturalWidth, maxWidth)
 
     Segmented {
+        height: picker.rowHeight
         currentValue: picker.kind
         options: (picker.allowAuto ? [{ value: "auto", label: picker.autoLabel }] : []).concat([
             { value: "proportion", label: "% of screen" },
@@ -34,6 +51,7 @@ RowLayout {
     }
 
     QQC2.SpinBox {
+        id: proportionBox
         visible: picker.kind === "proportion"
         from: 5
         to: 100
@@ -46,6 +64,7 @@ RowLayout {
     }
 
     QQC2.SpinBox {
+        id: fixedBox
         visible: picker.kind === "fixed"
         from: 100
         to: 16000
@@ -62,6 +81,7 @@ RowLayout {
 
         QQC2.ToolButton {
             required property var modelData
+            height: picker.rowHeight
             text: Math.round(modelData.value * 100) + "%"
             checkable: true
             checked: picker.size && Math.abs(picker.size.value - modelData.value) < 0.001

@@ -116,6 +116,7 @@ ColumnLayout {
         }
 
         ScopedRow {
+            id: widthRow
             scope: root
             key: "default-column-width"
             label: "Starting width"
@@ -123,6 +124,7 @@ ColumnLayout {
             iconName: "zoom-fit-width"
 
             SizePicker {
+                maxWidth: widthRow.availableWidth
                 size: root.values["default-column-width"]
                 presets: root.values["preset-column-widths"] || []
                 onEdited: size => LayoutKeys.write(SettingsStore, root.scopePath, "default-column-width", size)
