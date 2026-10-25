@@ -6,7 +6,7 @@ import types
 import unittest
 from unittest import mock
 
-from collectorharness import WIDGETS, CollectorTest, ServeLoopTests, run_main
+from collectorharness import WIDGETS, CollectorTest, ServeLoopTests, load_script, run_main
 
 SCRIPT = WIDGETS / "process-monitor" / "bin" / "procmon-collect"
 
@@ -85,6 +85,13 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
 
     def rows(self, snapshot):
         return {row["pid"]: row for row in snapshot["procs"]}
+
+    def test_scans_xdg_data_dirs_after_the_usual_application_dirs(self):
+        with mock.patch.dict(os.environ, {"XDG_DATA_DIRS": "/run/current-system/sw/share:/usr/share"}):
+            icons = load_script(SCRIPT.parent / "procmon_icons.py", "procmon_icons_xdg")
+        self.assertEqual(icons.DESKTOP_DIRS[0], "/usr/share/applications")
+        self.assertEqual(icons.DESKTOP_DIRS[-1], "/run/current-system/sw/share/applications")
+        self.assertEqual(icons.DESKTOP_DIRS.count("/usr/share/applications"), 1)
 
     def test_reports_cpu_memory_disk_and_threads_per_process(self):
         self.process(1, "systemd", 0, ticks=0, io=(0, 0))

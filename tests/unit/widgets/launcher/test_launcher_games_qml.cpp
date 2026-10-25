@@ -106,7 +106,7 @@ private Q_SLOTS:
                 .toBool());
         eval(QStringLiteral("launcher.activateCurrent()"));
         QCOMPARE(host->property("hideCount").toInt(), 1);
-        QVERIFY(m_harness.commands().last().contains(QStringLiteral("$HOME/.local/bin/portal-games --track '")));
+        QVERIFY(m_harness.commands().last().contains(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --track '")));
     }
 
     void cardSizeIsClamped()
@@ -141,7 +141,7 @@ private Q_SLOTS:
             QStringList({QStringLiteral("Play"), QStringLiteral("Pin to sidebar"), QStringLiteral("-"), QStringLiteral("Set custom art…"),
                 QStringLiteral("Reset art")}));
         eval(entries + QStringLiteral(".find(e => e.text === 'Reset art').run()"));
-        QCOMPARE(m_harness.commands().last(), QStringLiteral("$HOME/.local/bin/portal-games --reset-art 'celeste'"));
+        QCOMPARE(m_harness.commands().last(), QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --reset-art 'celeste'"));
     }
 
     void pickedArtIsSavedForTheGame()
@@ -156,8 +156,8 @@ private Q_SLOTS:
         m_harness.evalData(QStringLiteral("artDialogLoader.item.selectedFile = '%1'").arg(art.toString(QUrl::FullyEncoded)));
         QCOMPARE(m_harness.evalData(QStringLiteral("artDialogLoader.item.selectedFile")).toUrl(), art);
         m_harness.evalData(QStringLiteral("artDialogLoader.item.accepted()"));
-        QCOMPARE(
-            m_harness.commands().last(), QStringLiteral("$HOME/.local/bin/portal-games --set-art 'celeste' '%1'").arg(art.toLocalFile()));
+        QCOMPARE(m_harness.commands().last(),
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --set-art 'celeste' '%1'").arg(art.toLocalFile()));
         TRY_VERIFY(!m_harness.evalData(QStringLiteral("artDialogLoader.active")).toBool());
     }
 

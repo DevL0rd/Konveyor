@@ -2,12 +2,13 @@ import glob
 import os
 import time
 
-DESKTOP_DIRS = [
+# XDG_DATA_DIRS last, for distros that keep applications outside /usr (NixOS, Guix).
+DESKTOP_DIRS = list(dict.fromkeys([
     "/usr/share/applications", "/usr/local/share/applications",
     os.path.expanduser("~/.local/share/applications"),
     "/var/lib/flatpak/exports/share/applications",
     os.path.expanduser("~/.local/share/flatpak/exports/share/applications"),
-]
+] + [os.path.join(d, "applications") for d in os.environ.get("XDG_DATA_DIRS", "").split(":") if d]))
 ICON_ALIASES = {
     "chrome": "google-chrome", "chromium": "chromium", "msedge": "microsoft-edge",
     "brave": "brave-browser", "code-oss": "code-oss", "codium": "vscodium",

@@ -245,7 +245,7 @@ public:
     void respondWithLibrary(const QVariantList &extra = {})
     {
         QVariantList responses = extra;
-        responses.append(response(QStringLiteral("^\\$HOME/\\.local/bin/portal-games # "), fixture("games.json")));
+        responses.append(response(QStringLiteral("^PATH=\"\\$HOME/\\.local/bin:\\$PATH\" portal-games # "), fixture("games.json")));
         responses.append(response(QStringLiteral("^printf "), friendsPath().toUtf8()));
         respond(responses);
     }

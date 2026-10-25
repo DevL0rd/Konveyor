@@ -60,10 +60,10 @@ Kirigami.FormLayout {
         }
     }
     function loadHidden() {
-        hiddenSource.connectSource("$HOME/.local/bin/portal-games --hidden # " + Date.now())
+        hiddenSource.connectSource("PATH=\"$HOME/.local/bin:$PATH\" portal-games --hidden # " + Date.now())
     }
     function unhide(id) {
-        hiddenSource.connectSource("$HOME/.local/bin/portal-games --unhide '" + String(id).replace(/'/g, "'\\''") + "'")
+        hiddenSource.connectSource("PATH=\"$HOME/.local/bin:$PATH\" portal-games --unhide '" + String(id).replace(/'/g, "'\\''") + "'")
     }
     Component.onCompleted: loadHidden()
     property string cfg_learnedRanking

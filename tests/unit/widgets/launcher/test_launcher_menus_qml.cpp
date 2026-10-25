@@ -103,7 +103,7 @@ private Q_SLOTS:
         eval(run(entriesFor(konsole), text));
         QCOMPARE(host->property("hideCount").toInt(), 1);
         QVERIFY(m_harness.commands().contains(
-            QStringLiteral("$HOME/.local/bin/portal-launcher add-to %1 'org.kde.konsole.desktop'").arg(place)));
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-launcher add-to %1 'org.kde.konsole.desktop'").arg(place)));
     }
 
     void hidingAnAppTellsPortalGames()
@@ -111,10 +111,10 @@ private Q_SLOTS:
         QVERIFY(m_harness.host(false));
         eval(run(entriesFor(konsole), QStringLiteral("Hide from launcher")));
         QVERIFY(eval(QStringLiteral("launcherData.isHidden('%1')").arg(konsole)).toBool());
-        QVERIFY(m_harness.commands().contains(QStringLiteral("$HOME/.local/bin/portal-games --hide 'org.kde.konsole'")));
+        QVERIFY(m_harness.commands().contains(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --hide 'org.kde.konsole'")));
         eval(QStringLiteral("launcherData.setHidden('%1', false)").arg(konsole));
         QVERIFY(!eval(QStringLiteral("launcherData.isHidden('%1')").arg(konsole)).toBool());
-        QVERIFY(m_harness.commands().contains(QStringLiteral("$HOME/.local/bin/portal-games --unhide 'org.kde.konsole'")));
+        QVERIFY(m_harness.commands().contains(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --unhide 'org.kde.konsole'")));
     }
 
     void pinningTogglesTheFavorite()
@@ -139,7 +139,8 @@ private Q_SLOTS:
         eval(run(entriesFor(konsole), QStringLiteral("Move to “Folder 2”")));
         QCOMPARE(eval(QStringLiteral("launcherData.folderFor('%1').id").arg(konsole)).toString(), QStringLiteral("f2"));
         QVERIFY(eval(QStringLiteral("launcherData.folderById('work') === null")).toBool());
-        QVERIFY(m_harness.commands().contains(QStringLiteral("$HOME/.local/bin/portal-games --folder-add 'f2' '%1'").arg(konsole)));
+        QVERIFY(m_harness.commands().contains(
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --folder-add 'f2' '%1'").arg(konsole)));
     }
 
     void sidebarEntriesToggle()
@@ -165,7 +166,7 @@ private Q_SLOTS:
         eval(run(folder, QStringLiteral("Ungroup")));
         QCOMPARE(eval(QStringLiteral("launcher.openFolder")).toString(), QString());
         QCOMPARE(eval(QStringLiteral("launcherData.folders.length")).toInt(), 0);
-        QVERIFY(m_harness.commands().contains(QStringLiteral("$HOME/.local/bin/portal-games --folder-delete 'work'")));
+        QVERIFY(m_harness.commands().contains(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --folder-delete 'work'")));
     }
 
     void powerMenuListsTheSessionActions()

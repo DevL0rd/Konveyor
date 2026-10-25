@@ -15,7 +15,7 @@ Item {
     property string query: ""
     property string searchMode: "all"
 
-    readonly property string portalBin: "$HOME/.local/bin/portal-games"
+    readonly property string portalBin: "PATH=\"$HOME/.local/bin:$PATH\" portal-games"
     readonly property bool gamesEnabled: launcherData.config.showGames
     readonly property bool friendsEnabled: launcherData.config.showFriends
 
@@ -235,7 +235,7 @@ Item {
         runner.connectSource(command)
     }
     function addLauncher(place, app) {
-        run("$HOME/.local/bin/portal-launcher add-to " + place + " " + shq(app))
+        run("PATH=\"$HOME/.local/bin:$PATH\" portal-launcher add-to " + place + " " + shq(app))
     }
 
     P5Support.DataSource {
@@ -340,7 +340,7 @@ Item {
         interval: 450
         onTriggered: {
             const request = launcherData.packagesRequest
-            packagesSource.connectSource("$HOME/.local/bin/portal-packages " + launcherData.shq(launcherData.packageTerm) + " " + (launcherData.searchMode === "packages" ? 30 : 6) + " # " + request)
+            packagesSource.connectSource("PATH=\"$HOME/.local/bin:$PATH\" portal-packages " + launcherData.shq(launcherData.packageTerm) + " " + (launcherData.searchMode === "packages" ? 30 : 6) + " # " + request)
         }
     }
     P5Support.DataSource {

@@ -179,7 +179,7 @@ private Q_SLOTS:
     {
         auto harness = started(Form::Horizontal);
         QVERIFY(harness);
-        const QString set = QStringLiteral("$HOME/.local/bin/sysmon-collect --set-interval ");
+        const QString set = QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" sysmon-collect --set-interval ");
         QCOMPARE(harness->command(set), set + QStringLiteral("0.5"));
         harness->reply(set, QString());
         harness->setConfig(QStringLiteral("updateInterval"), 2000);

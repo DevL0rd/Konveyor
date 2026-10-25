@@ -242,8 +242,8 @@ private Q_SLOTS:
         QVERIFY(!root()->property("saving").toBool());
         m_harness->call("saveKey", QStringLiteral(" ab'cd "));
         QVERIFY(root()->property("saving").toBool());
-        const QString command
-            = QStringLiteral("$HOME/.local/bin/portal-friends --set-key 'ab'\\''cd' && systemctl --user restart konveyor-widgets.service");
+        const QString command = QStringLiteral(
+            "PATH=\"$HOME/.local/bin:$PATH\" portal-friends --set-key 'ab'\\''cd' && systemctl --user restart konveyor-widgets.service");
         QVERIFY(m_harness->requested().contains(command));
         QVERIFY(PortalHarness::answer(runner(), command, QStringLiteral("ok\n")));
         QVERIFY(!root()->property("saving").toBool());
@@ -253,8 +253,8 @@ private Q_SLOTS:
     void aRejectedKeyShowsWhy()
     {
         m_harness->call("saveKey", QStringLiteral("bad"));
-        const QString command
-            = QStringLiteral("$HOME/.local/bin/portal-friends --set-key 'bad' && systemctl --user restart konveyor-widgets.service");
+        const QString command = QStringLiteral(
+            "PATH=\"$HOME/.local/bin:$PATH\" portal-friends --set-key 'bad' && systemctl --user restart konveyor-widgets.service");
         const QVariantMap failed {{QStringLiteral("exit code"), 1},
             {QStringLiteral("stdout"), QStringLiteral("HTTP Error 403: Forbidden\n")}, {QStringLiteral("stderr"), QString()}};
         QVERIFY(QMetaObject::invokeMethod(runner(), "newData", Q_ARG(QString, command), Q_ARG(QVariant, QVariant(failed))));
