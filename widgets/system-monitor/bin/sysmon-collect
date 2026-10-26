@@ -15,7 +15,7 @@ interfaces.
 
 Modes: --serve | --snapshot | --once
 """
-import os, sys, json, time, glob, socket
+import os, sys, json, time, glob, socket, collections
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path[:0] = [HERE, os.path.join(os.path.dirname(os.path.dirname(HERE)), "shared")]
@@ -242,9 +242,19 @@ def read_net_counters():
     return out
 
 
-def net_rates(prev, cur, dt):
-    """Summed down/up bytes per second. An interface whose counters went
-    backwards (re-plugged, driver reload) sits this sample out."""
+NET_WINDOW = 2.0                                     # seconds the rates average over
+
+
+def net_rates(samples, tick, cur):
+    """Summed down/up bytes per second, averaged over the last NET_WINDOW
+    seconds whatever the poll interval, so bursty traffic reads steadily.
+    samples holds (tick, counters) from earlier polls. An interface whose
+    counters went backwards (re-plugged, driver reload) sits this one out."""
+    samples.append((tick, cur))
+    while len(samples) > 2 and tick - samples[1][0] >= NET_WINDOW:
+        samples.popleft()
+    then, prev = samples[0]
+    dt = tick - then
     down = up = 0
     for name, (rx, tx) in cur.items():
         if name in prev and dt > 0 and rx >= prev[name][0] and tx >= prev[name][1]:
@@ -255,7 +265,7 @@ def net_rates(prev, cur, dt):
 
 
 # ---------------------------------------------------------------- build
-_prev = {"stat": {}, "energy": None, "when": None, "net": {}}
+_prev = {"stat": {}, "energy": None, "when": None, "net": collections.deque()}
 
 
 def _usage(name, prev, cur):
@@ -314,13 +324,11 @@ def build():
     else:
         cpu["watts"] = 0
 
-    counters = read_net_counters()
-    net = net_rates(_prev["net"], counters, dt)
+    net = net_rates(_prev["net"], tick, read_net_counters())
 
     _prev["stat"] = stat
     _prev["energy"] = energy
     _prev["when"] = tick
-    _prev["net"] = counters
 
     try:
         uptime = float(open("/proc/uptime").read().split()[0])

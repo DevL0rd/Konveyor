@@ -241,6 +241,19 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
         with mock.patch.object(module.time, "monotonic", return_value=54.0):
             self.assertEqual(module.build()["net"]["down"], 1000)
 
+    def test_network_throughput_averages_over_two_seconds_at_any_poll_interval(self):
+        self.write_minimal()
+        self.fake.write("/sys/class/net/enp5s0/device/uevent", "")
+        module = self.load(SCRIPT, "sysmon_collect")
+        downs = []
+        for step, received in enumerate([0, 0, 4000, 4000, 4000, 4000, 4000]):
+            self.write_net({"enp5s0": (received, 0)})
+            with mock.patch.object(module.time, "monotonic", return_value=50.0 + step * 0.5):
+                downs.append(module.build()["net"]["down"])
+        # A 4000-byte burst in one half-second poll reads as 2000 B/s over the
+        # two-second window until the window has moved past it.
+        self.assertEqual(downs, [0, 0, 4000, 2667, 2000, 2000, 0])
+
     def test_snapshot_before_the_first_write_is_empty(self):
         self.write_minimal()
         module = self.load(SCRIPT, "sysmon_collect")
