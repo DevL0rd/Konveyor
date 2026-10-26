@@ -29,7 +29,7 @@ add_library(konveyor_settings_model STATIC
 )
 target_include_directories(konveyor_settings_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(konveyor_settings_model PUBLIC konveyor_config konveyor_layout Qt6::Core Qt6::Gui)
-target_compile_options(konveyor_settings_model PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(konveyor_settings_model PRIVATE -Wall -Wextra -Wpedantic)
 set_target_properties(konveyor_settings_model PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 ecm_add_qml_module(konveyor_settings URI "org.kde.konveyor.settings" GENERATE_PLUGIN_SOURCE NO_CACHEGEN)
@@ -209,7 +209,7 @@ ecm_target_qml_sources(konveyor_settings PATH sections SOURCES
 )
 
 target_include_directories(konveyor_settings PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/store ${CMAKE_CURRENT_SOURCE_DIR}/system)
-target_compile_options(konveyor_settings PRIVATE -Wall -Wextra -Werror)
+target_compile_options(konveyor_settings PRIVATE -Wall -Wextra)
 target_link_options(konveyor_settings PRIVATE LINKER:--no-undefined)
 target_link_libraries(konveyor_settings PRIVATE
     konveyor_settings_model

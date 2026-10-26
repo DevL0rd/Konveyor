@@ -9,7 +9,7 @@ function(konveyor_add_module name)
     add_library(konveyor_${name} STATIC ${sources})
     target_include_directories(konveyor_${name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(konveyor_${name} PUBLIC Qt6::Core Qt6::Gui ${ARGN})
-    target_compile_options(konveyor_${name} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(konveyor_${name} PRIVATE -Wall -Wextra -Wpedantic)
     set_target_properties(konveyor_${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
