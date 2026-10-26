@@ -18,7 +18,7 @@ sys.dont_write_bytecode = True
 REPO = Path(__file__).resolve().parents[3]
 WIDGETS = REPO / "widgets"
 FAKED = ("/proc", "/sys")
-RECORDING_STUB = """#!/usr/bin/env python3
+RECORDING_STUB = "#!" + sys.executable + """
 import json, os, sys
 with open(os.environ["STUB_LOG"], "a") as log:
     log.write(json.dumps([os.path.basename(sys.argv[0])] + sys.argv[1:]) + "\\n")

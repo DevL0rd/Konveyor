@@ -12,7 +12,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 SCRIPT = REPO / "widgets" / "portals" / "bin" / "portal-launcher"
 SERVICE = ["--user", "call", "org.devl0rd.KontrolPanel", "/KontrolPanel", "org.devl0rd.KontrolPanel"]
-STUB = """#!/usr/bin/env python3
+STUB = "#!" + sys.executable + """
 import json, os, sys
 with open(os.environ["STUB_LOG"], "a") as log:
     log.write(json.dumps([os.path.basename(sys.argv[0])] + sys.argv[1:]) + "\\n")

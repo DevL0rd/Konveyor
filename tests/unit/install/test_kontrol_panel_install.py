@@ -2,6 +2,7 @@
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,7 +20,7 @@ for step in "$@"; do
     $step
 done
 """
-STUB = """#!/usr/bin/env python3
+STUB = "#!" + sys.executable + """
 import json, os, sys
 with open(os.environ["STUB_LOG"], "a") as log:
     log.write(json.dumps([os.path.basename(sys.argv[0])] + sys.argv[1:]) + "\\n")
