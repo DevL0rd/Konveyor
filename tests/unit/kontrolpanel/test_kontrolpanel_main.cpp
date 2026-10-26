@@ -9,6 +9,7 @@
 #include <QDBusReply>
 #include <QDBusServiceWatcher>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTest>
 
 #include <csignal>
@@ -200,7 +201,8 @@ private Q_SLOTS:
         QFETCH(QString, expectedColors);
         const QString configDirectory = m_session->dir(QStringLiteral("config"));
         QVERIFY(writeFile(configDirectory + QStringLiteral("/plasmarc"), QStringLiteral("[Theme]\nname=%1\n").arg(plasmaTheme).toUtf8()));
-        QFile applicationColors(QStringLiteral("/usr/share/color-schemes/%1.colors").arg(applicationScheme));
+        QFile applicationColors(
+            QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("color-schemes/%1.colors").arg(applicationScheme)));
         QVERIFY(applicationColors.open(QIODevice::ReadOnly));
         QVERIFY(writeFile(configDirectory + QStringLiteral("/kdeglobals"), applicationColors.readAll()));
         QVERIFY(writeFile(configPath(), "[General]\nappsCategory=\n"));
