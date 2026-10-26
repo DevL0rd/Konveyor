@@ -98,8 +98,12 @@ public:
         environment.insert(QStringLiteral("XDG_STATE_HOME"), dir(QStringLiteral("state")));
         environment.insert(QStringLiteral("XDG_CACHE_HOME"), dir(QStringLiteral("cache")));
         environment.insert(QStringLiteral("XDG_RUNTIME_DIR"), dir(QStringLiteral("runtime")));
-        if (qEnvironmentVariableIsSet("LLVM_PROFILE_FILE")) {
-            environment.insert(QStringLiteral("LLVM_PROFILE_FILE"), qEnvironmentVariable("LLVM_PROFILE_FILE"));
+        // Passed through when set: coverage, and the search paths a distro
+        // build uses to point Qt and KDE at its modules and data.
+        for (const char *name : {"LLVM_PROFILE_FILE", "XDG_DATA_DIRS", "QML_IMPORT_PATH", "QML2_IMPORT_PATH", "QT_PLUGIN_PATH"}) {
+            if (qEnvironmentVariableIsSet(name)) {
+                environment.insert(QString::fromLatin1(name), qEnvironmentVariable(name));
+            }
         }
         return environment;
     }
