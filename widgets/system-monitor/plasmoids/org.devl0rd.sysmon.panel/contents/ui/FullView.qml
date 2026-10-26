@@ -306,7 +306,7 @@ Item {
                     }
                     PopBar {
                         Layout.fillWidth: true
-                        label: i18n("VRAM")
+                        label: root.gpu && root.gpu.shared ? i18n("GPU memory") : i18n("VRAM")
                         value: root.gpu ? root.gpu.vram_pct || 0 : 0
                         valueText: root.gpu ? Style.bytes(root.gpu.vram_used) + " / " + Style.bytes(root.gpu.vram_total) : ""
                         color: (root.gpu ? root.gpu.vram_pct || 0 : 0) >= 75 ? Style.heatStrong(root.gpu.vram_pct, 75, 90, Kirigami.Theme) : Style.hue("memory", Kirigami.Theme)
@@ -319,7 +319,7 @@ Item {
                                 { label: i18n("Memory clock"), value: Math.round(root.gpu.clock_mem || 0), unit: "MHz" },
                                 { label: i18n("Power limit"), value: Math.round(root.gpu.power_max || 0), unit: "W" },
                                 { label: i18n("Max clock"), value: Math.round(root.gpu.clock_max || 0), unit: "MHz" }
-                            ] : []
+                            ].filter(stat => stat.value > 0) : []
                             PopStat {
                                 required property var modelData
                                 Layout.fillWidth: true

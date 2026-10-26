@@ -3,13 +3,14 @@
 Linux-System-Monitor :: resident system collector.
 
 A single `--serve` daemon (systemd --user service, pinned to the E-cores) reads
-/proc + /sys + nvidia-smi once per interval and writes a snapshot to
+/proc + /sys + NVML once per interval and writes a snapshot to
 $XDG_RUNTIME_DIR/Linux-System-Monitor/data.json. The widget reads it in-process
 via XHR (no per-poll process spawn).
 
 Collected: total + per-core CPU% (split into P-cores / E-cores on Intel hybrid),
 per-group average frequency, package power (Intel RAPL), CPU temperature, RAM +
-swap, and NVIDIA GPU (util, VRAM, temp, power, clocks, fan).
+swap, and the GPU (util, VRAM, temp, power, clocks, fan) from NVML for NVIDIA
+or amdgpu sysfs for AMD.
 
 Modes: --serve | --snapshot | --once
 """
@@ -19,7 +20,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path[:0] = [HERE, os.path.join(os.path.dirname(os.path.dirname(HERE)), "shared")]
 
 import collectors
-from sysmon_sensors import cpu_fan, cpu_freqs, cpu_temp
+from sysmon_sensors import amd_gpu, cpu_fan, cpu_freqs, cpu_temp
 
 APP = "Linux-System-Monitor"
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)
@@ -168,7 +169,7 @@ _nvml = {"init": False, "h": None}
 
 def read_gpu():
     """Overall GPU stats via NVML -- no fork, ~4ms. None if there's no NVIDIA
-    GPU / NVML present (the widget then hides the GPU card)."""
+    GPU / NVML present (build() then tries amd_gpu)."""
     try:
         import pynvml as N
     except Exception:
@@ -294,7 +295,7 @@ def build():
     return {
         "ts": now, "host": socket.gethostname(), "cpu_model": CPU_MODEL,
         "uptime": uptime, "load": load, "ncpu": ncpu,
-        "cpu": cpu, "mem": read_mem(), "gpu": read_gpu(),
+        "cpu": cpu, "mem": read_mem(), "gpu": read_gpu() or amd_gpu(CPU_MODEL),
     }
 
 
