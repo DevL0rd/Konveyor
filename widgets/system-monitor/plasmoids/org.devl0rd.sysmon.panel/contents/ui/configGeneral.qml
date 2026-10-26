@@ -12,6 +12,7 @@ Kirigami.FormLayout {
     property alias cfg_showCharts: chartsCheck.checked
     property alias cfg_showPerCore: coresCheck.checked
     property alias cfg_showGpu: gpuCheck.checked
+    property alias cfg_showNet: netCheck.checked
     property alias cfg_cpuClockMax: cpuClock.value
     property alias cfg_cpuPowerMax: cpuPower.value
     property alias cfg_cpuFanMax: cpuFan.value
@@ -21,6 +22,7 @@ Kirigami.FormLayout {
     property alias cfg_compactShowCpu: compactCpu.checked
     property alias cfg_compactShowGpu: compactGpu.checked
     property alias cfg_compactShowRam: compactRam.checked
+    property alias cfg_compactShowNet: compactNet.checked
     property alias cfg_compactShowTemps: compactTemps.checked
     property string cfg_compactStyle
     property alias cfg_panelShrink: panelShrink.checked
@@ -29,12 +31,14 @@ Kirigami.FormLayout {
     property string cfg_middleClickAction
     property int cfg_cpuTab
     property int cfg_gpuTab
+    property int cfg_netTab
     property string cfg_collapsedCards
     property var cfg_accentColorDefault
     property var cfg_collapsedCardsDefault
     property var cfg_compactShowCpuDefault
     property var cfg_compactShowGpuDefault
     property var cfg_compactShowRamDefault
+    property var cfg_compactShowNetDefault
     property var cfg_compactShowTempsDefault
     property var cfg_compactStyleDefault
     property var cfg_cpuClockMaxDefault
@@ -47,17 +51,20 @@ Kirigami.FormLayout {
     property var cfg_gpuTabDefault
     property var cfg_historyLengthDefault
     property var cfg_middleClickActionDefault
+    property var cfg_netTabDefault
     property var cfg_panelDetailDefault
     property var cfg_panelIconDefault
     property var cfg_panelShrinkDefault
     property var cfg_showChartsDefault
     property var cfg_showGpuDefault
+    property var cfg_showNetDefault
     property var cfg_showPerCoreDefault
     property var cfg_updateIntervalDefault
 
     QQC2.CheckBox { id: compactCpu; Kirigami.FormData.label: i18n("Panel shows:"); text: i18n("CPU") }
     QQC2.CheckBox { id: compactGpu; text: i18n("GPU") }
     QQC2.CheckBox { id: compactRam; text: i18n("Memory") }
+    QQC2.CheckBox { id: compactNet; text: i18n("Network download and upload") }
     QQC2.CheckBox { id: compactTemps; text: i18n("Temperatures next to CPU and GPU") }
     QQC2.ComboBox {
         Kirigami.FormData.label: i18n("Panel style:")
@@ -117,6 +124,7 @@ Kirigami.FormLayout {
     QQC2.CheckBox { id: chartsCheck; Kirigami.FormData.label: i18n("Popup shows:"); text: i18n("History graphs") }
     QQC2.CheckBox { id: coresCheck; text: i18n("Per-core bars") }
     QQC2.CheckBox { id: gpuCheck; text: i18n("GPU section") }
+    QQC2.CheckBox { id: netCheck; text: i18n("Network section") }
 
     Item { Kirigami.FormData.isSection: true }
 

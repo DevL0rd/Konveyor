@@ -5,6 +5,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import "lib"
 import "lib/PopStyle.js" as Style
+import "lib/Format.js" as Fmt
 
 MouseArea {
     id: compact
@@ -55,7 +56,7 @@ MouseArea {
         shrink: Plasmoid.configuration.panelShrink
         flushEnds: true
         fixed: compact.hasData ? 0 : Math.round(compact.thickness * 0.55)
-        items: [cpuChip.stageSpan, gpuChip.stageSpan, ramChip.stageSpan]
+        items: [cpuChip.stageSpan, gpuChip.stageSpan, ramChip.stageSpan, netChip.stageSpan]
     }
 
     Timer {
@@ -158,6 +159,23 @@ MouseArea {
             valueColor: Style.heat(root.mem.pct || 0, 75, 90, Kirigami.Theme)
             fraction: (root.mem.pct || 0) / 100
             barColor: Style.hue("memory", Kirigami.Theme)
+        }
+        PopChip {
+            id: netChip
+            visible: Plasmoid.configuration.compactShowNet && root.net !== null
+            vertical: compact.vertical
+            adaptive: true
+            panelThickness: fit.innerThickness
+            chipStyle: compact.chipStyle
+            showLabel: compact.showLabels
+            minimumStage: "small"
+            lockedStage: compact.lockedStage
+            fitSpace: fit.space(3)
+            label: i18n("NET")
+            widestValue: "↓ 999.9 Mb/s"
+            widestSecondary: "↑ 999.9 Mb/s"
+            value: root.net ? "↓ " + Fmt.rate(root.net.down) : ""
+            secondary: root.net ? "↑ " + Fmt.rate(root.net.up) : ""
         }
     }
 }

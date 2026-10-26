@@ -219,6 +219,28 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
         self.write_amdgpu("card1", 3, (1 << 29, 1 << 29), (0, 1 << 30))
         self.assertEqual(self.load(SCRIPT, "sysmon_collect", pynvml=fake_nvml()).build()["gpu"]["name"], "Test GPU")
 
+    def write_net(self, counters):
+        lines = ["Inter-|   Receive |  Transmit", " face |bytes packets|bytes packets"]
+        for name, (rx, tx) in counters.items():
+            lines.append("%6s: %d 0 0 0 0 0 0 0 %d 0 0 0 0 0 0 0" % (name, rx, tx))
+        self.fake.write("/proc/net/dev", "\n".join(lines) + "\n")
+
+    def test_network_throughput_sums_the_physical_interfaces(self):
+        self.write_minimal()
+        for nic in ("enp5s0", "wlan0"):
+            self.fake.write("/sys/class/net/%s/device/uevent" % nic, "")
+        self.write_net({"lo": (0, 0), "enp5s0": (1000, 500), "wlan0": (0, 0), "tailscale0": (0, 0)})
+        module = self.load(SCRIPT, "sysmon_collect")
+        with mock.patch.object(module.time, "monotonic", return_value=50.0):
+            module.build()
+        self.write_net({"lo": (9 << 20, 9 << 20), "enp5s0": (5000, 1500), "wlan0": (2000, 0), "tailscale0": (4000, 4000)})
+        with mock.patch.object(module.time, "monotonic", return_value=52.0):
+            net = module.build()["net"]
+        self.assertEqual(net, {"down": 3000, "up": 500, "ifaces": ["enp5s0", "wlan0"]})
+        self.write_net({"lo": (0, 0), "enp5s0": (100, 100), "wlan0": (4000, 200), "tailscale0": (0, 0)})
+        with mock.patch.object(module.time, "monotonic", return_value=54.0):
+            self.assertEqual(module.build()["net"]["down"], 1000)
+
     def test_snapshot_before_the_first_write_is_empty(self):
         self.write_minimal()
         module = self.load(SCRIPT, "sysmon_collect")

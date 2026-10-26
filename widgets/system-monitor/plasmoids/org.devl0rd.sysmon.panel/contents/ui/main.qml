@@ -25,6 +25,7 @@ PlasmoidItem {
     readonly property var cpu: snap.cpu || ({})
     readonly property var mem: snap.mem || ({})
     readonly property var gpu: snap.gpu || null
+    readonly property var net: snap.net || null
     property bool collectorAlive: false
     property int tick: 0
 
@@ -88,6 +89,11 @@ PlasmoidItem {
                g => Plasmoid.configuration.gpuFanMax > 0 ? Plasmoid.configuration.gpuFanMax : 100)
     ]
 
+    readonly property var netMetrics: [
+        metric("down", i18n("Download"), ["download", "down", "receive", "rx"], n => n.down || 0, Fmt.rate, n => 0),
+        metric("up", i18n("Upload"), ["upload", "up", "send", "tx"], n => n.up || 0, Fmt.rate, n => 0)
+    ]
+
     function record() {
         for (const m of cpuMetrics)
             History.push(history, "cpu." + m.key, m.get(cpu))
@@ -96,6 +102,10 @@ PlasmoidItem {
                 History.push(history, "gpu." + m.key, m.get(gpu))
         }
         History.push(history, "mem.usage", mem.pct || 0)
+        if (net) {
+            for (const m of netMetrics)
+                History.push(history, "net." + m.key, m.get(net))
+        }
         tick++
     }
     function series(key) {
@@ -117,6 +127,8 @@ PlasmoidItem {
                             gpu.shared ? i18n("Memory") : i18n("VRAM"), Style.bytes(gpu.vram_used), Style.bytes(gpu.vram_total)))
         lines.push(i18n("RAM %1 / %2", Style.bytes(mem.used), Style.bytes(mem.total))
                    + ((mem.swap_total || 0) > 0 ? i18n(" · Swap %1 / %2", Style.bytes(mem.swap_used), Style.bytes(mem.swap_total)) : ""))
+        if (net)
+            lines.push(i18n("Network ↓ %1 · ↑ %2", Fmt.rate(net.down), Fmt.rate(net.up)))
         return lines.filter(line => line !== "").join("\n")
     }
     toolTipSubText: tooltipWanted ? tooltipText() : ""
