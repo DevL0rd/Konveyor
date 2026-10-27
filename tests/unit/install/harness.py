@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import json
 import os
@@ -30,6 +31,16 @@ OS_RELEASE = {
 }
 NOBODY = 65534
 KWIN = "6.7.0"
+
+
+@functools.cache
+def can_fake_root():
+    # Build sandboxes and hosts that restrict unprivileged user namespaces (Ubuntu 24.04's AppArmor) refuse this.
+    unshare = shutil.which("unshare")
+    return unshare is not None and subprocess.run([unshare, "--user", "--map-root-user", "--", "true"],
+                                                  capture_output=True).returncode == 0
+
+
 SOURCE_FUNCTIONS = """
 set -euo pipefail
 source "$1"
@@ -169,6 +180,8 @@ class Harness:
     def run(self, *command, root=False, env=None):
         wrapper = []
         if root and os.geteuid() != 0:
+            if not can_fake_root():
+                raise unittest.SkipTest("cannot fake root: unprivileged user namespaces are unavailable")
             wrapper = [shutil.which("unshare"), "--user", "--map-root-user", "--"]
         if not root and os.geteuid() == 0:
             for path in [self.root, *self.root.rglob("*")]:
