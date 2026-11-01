@@ -39,6 +39,11 @@ std::chrono::milliseconds pointerFocusDelay()
     return std::chrono::milliseconds(std::max(0, config->group(QStringLiteral("Windows")).readEntry("DelayFocusInterval", kwinDefaultMs)));
 }
 
+bool isPopupType(const KWin::Window *window)
+{
+    return window && !window->isDeleted() && (window->isAppletPopup() || window->isPopupWindow() || window->isMenu());
+}
+
 KWin::Window *topWindowAt(const QPointF &position)
 {
     for (KWin::Window *window : std::views::reverse(KWin::workspace()->stackingOrder())) {
@@ -147,7 +152,8 @@ KWin::Window *KonveyorEffect::windowToFollowAt(const QPointF &position) const
 {
     const std::optional<Layout::WindowId> id = readEngine().windowAt(position);
     KWin::Window *window = id ? d->windows.windowOf(*id) : nullptr;
-    return window && window != KWin::workspace()->activeWindow() && topWindowAt(position) == window ? window : nullptr;
+    KWin::Window *active = KWin::workspace()->activeWindow();
+    return window && window != active && !isPopupType(active) && topWindowAt(position) == window ? window : nullptr;
 }
 
 void KonveyorEffect::focusWindowUnderPointer(const QPointF &position)
