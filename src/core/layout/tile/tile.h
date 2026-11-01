@@ -115,6 +115,7 @@ public:
     std::optional<std::size_t> floatingWidthPresetIndex;
     std::optional<std::size_t> floatingHeightPresetIndex;
     std::optional<CarriedHeight> carriedHeight;
+    std::optional<StackSlot> fullscreenOrigin;
     QPointF dragOffset;
 
 private:

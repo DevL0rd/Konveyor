@@ -38,12 +38,40 @@ bool ColumnStrip::setFullscreen(WindowId window, bool fullscreen)
         return false;
     }
     cancelResizeForColumn(m_columns[colIndex]);
-    if (fullscreen && m_columns[colIndex].tiles.size() > 1 && !m_columns[colIndex].isTabbed()) {
+    if (!fullscreen) {
+        m_columns[colIndex].setFullscreen(false);
+        Tile &tile = m_columns[colIndex].tiles[*m_columns[colIndex].position(window)];
+        if (const std::optional<StackSlot> origin = std::exchange(tile.fullscreenOrigin, std::nullopt)) {
+            returnFromFullscreen(window, *origin);
+        }
+        return true;
+    }
+    if (m_columns[colIndex].tiles.size() > 1 && !m_columns[colIndex].isTabbed()) {
+        const Column &column = m_columns[colIndex];
+        const StackSlot origin {column.id(), *column.position(window)};
         consumeOrExpelWindowRight(window);
         colIndex = columnIndexOf(window);
+        Tile &tile = m_columns[colIndex].tiles[*m_columns[colIndex].position(window)];
+        tile.fullscreenOrigin = origin;
     }
-    m_columns[colIndex].setFullscreen(fullscreen);
+    m_columns[colIndex].setFullscreen(true);
     return true;
+}
+
+void ColumnStrip::returnFromFullscreen(WindowId window, StackSlot origin)
+{
+    const std::size_t source = columnIndexOf(window);
+    const Column *target = columnById(origin.columnId);
+    if (!target || target == &m_columns[source] || m_columns[source].tiles.size() != 1 || target->isTabbed()
+        || target->requestedMode() != WindowMode::Normal) {
+        return;
+    }
+    const std::size_t targetId = target->id();
+    const bool wasActive = m_activeColumnIndex == source;
+    DetachedTile removed = detachTileAt(source, 0, std::nullopt);
+    const auto it = std::ranges::find_if(m_columns, [targetId](const Column &column) { return column.id() == targetId; });
+    const auto targetIndex = static_cast<std::size_t>(it - m_columns.begin());
+    insertIntoColumn(targetIndex, std::min(origin.tileIndex, it->tiles.size()), std::move(removed.tile), wasActive);
 }
 
 bool ColumnStrip::setMaximized(WindowId window, bool maximize)

@@ -57,8 +57,63 @@ private Q_SLOTS:
         QCOMPARE(fixture.state(bottom).columnIndex, 1);
         QCOMPARE(fixture.frame(top), QRectF(-952, 16, 936, 1048));
         fixture.perform(QStringLiteral("fullscreen-window"));
-        QCOMPARE(fixture.frame(bottom), QRectF(968, 16, 936, 1048));
+        QCOMPARE(fixture.state(bottom).columnIndex, fixture.state(top).columnIndex);
+        QVERIFY(fixture.frame(bottom).y() > fixture.frame(top).y());
         QCOMPARE(fixture.focused(), std::optional(bottom));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void exitingFullscreenReturnsTheWindowToItsSlotInTheStack()
+    {
+        Fixture fixture;
+        const auto first = fixture.add(QStringLiteral("first"));
+        const auto top = fixture.add(QStringLiteral("top"));
+        const auto middle = addIntoColumn(fixture, QStringLiteral("middle"), QStringLiteral("left"));
+        const auto bottom = addIntoColumn(fixture, QStringLiteral("bottom"), QStringLiteral("left"));
+        fixture.engine().activateWindow(middle);
+        const QRectF before = fixture.frame(middle);
+        const int column = fixture.state(middle).columnIndex;
+        fixture.perform(QStringLiteral("fullscreen-window"));
+        QVERIFY(fixture.state(middle).columnIndex != column);
+        fixture.perform(QStringLiteral("fullscreen-window"));
+        QCOMPARE(fixture.state(middle).columnIndex, column);
+        QCOMPARE(fixture.state(top).columnIndex, column);
+        QCOMPARE(fixture.state(bottom).columnIndex, column);
+        QCOMPARE(fixture.state(first).columnIndex, column == 0 ? 1 : 0);
+        QVERIFY(fixture.frame(top).y() < fixture.frame(middle).y());
+        QVERIFY(fixture.frame(middle).y() < fixture.frame(bottom).y());
+        QCOMPARE(fixture.frame(middle), before);
+        QCOMPARE(fixture.focused(), std::optional(middle));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void exitingFullscreenAfterTheStackLostWindowsClampsTheSlot()
+    {
+        Fixture fixture;
+        const auto top = fixture.add(QStringLiteral("top"));
+        const auto middle = addIntoColumn(fixture, QStringLiteral("middle"), QStringLiteral("left"));
+        const auto bottom = addIntoColumn(fixture, QStringLiteral("bottom"), QStringLiteral("left"));
+        fixture.engine().activateWindow(bottom);
+        fixture.perform(QStringLiteral("fullscreen-window"));
+        fixture.remove(middle);
+        const auto added = fixture.add(QStringLiteral("added"));
+        fixture.engine().activateWindow(bottom);
+        fixture.perform(QStringLiteral("fullscreen-window"));
+        QCOMPARE(fixture.state(bottom).columnIndex, fixture.state(top).columnIndex);
+        QVERIFY(fixture.frame(top).y() < fixture.frame(bottom).y());
+        QVERIFY(fixture.state(added).columnIndex != fixture.state(bottom).columnIndex);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void exitingFullscreenKeepsTheWindowAloneWhenItsStackIsGone()
+    {
+        Fixture fixture;
+        const auto [top, bottom] = addStackedPair(fixture);
+        fixture.perform(QStringLiteral("fullscreen-window"));
+        fixture.remove(top);
+        fixture.perform(QStringLiteral("fullscreen-window"));
+        QCOMPARE(fixture.state(bottom).columnIndex, 0);
+        QCOMPARE(fixture.frame(bottom).size(), QSizeF(936, 1048));
         VERIFY_INVARIANTS(fixture);
     }
 

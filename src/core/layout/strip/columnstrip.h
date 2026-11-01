@@ -179,6 +179,7 @@ private:
     double scrollForColumn(std::optional<double> targetX, std::size_t idx, std::optional<std::size_t> prevIndex) const;
     double overflowScrollForColumn(std::optional<double> targetX, std::size_t idx, std::size_t prevIndex) const;
     void toggleFillWidthAt(std::size_t idx);
+    void returnFromFullscreen(WindowId window, StackSlot origin);
     void reconcileView();
     std::optional<double> overlayViewOffset() const;
     double constrainScrollPosition(double scrollPosition) const;

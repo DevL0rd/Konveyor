@@ -75,6 +75,12 @@ struct CarriedHeight
     double share = 1.0;
 };
 
+struct StackSlot
+{
+    quint64 columnId = 0;
+    std::size_t tileIndex = 0;
+};
+
 struct PresetExtent
 {
     bool isTile = true;
