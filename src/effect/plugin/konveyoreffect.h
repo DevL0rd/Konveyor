@@ -90,7 +90,9 @@ private:
     void moveActiveOutputHome(Layout::WindowId id);
     void keepOnHomeOutput(Layout::WindowId id);
     void applyFocusRequest();
+    KWin::Window *windowToFollowAt(const QPointF &position) const;
     void focusWindowUnderPointer(const QPointF &position);
+    void followPointerFocus();
     bool switchToTabUnderPointer(const QPointF &position);
     void warpPointerTo(Layout::WindowId id);
     bool isFloatingWindow(Layout::WindowId id) const;

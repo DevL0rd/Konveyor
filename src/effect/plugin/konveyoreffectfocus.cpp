@@ -2,6 +2,11 @@
 
 #include "config/log.h"
 
+#include <KConfigGroup>
+#include <KSharedConfig>
+
+#include <algorithm>
+#include <chrono>
 #include <ranges>
 #include <utility>
 
@@ -24,6 +29,14 @@ bool isVisibleOnCurrentDesktop(const KWin::Window *window)
 {
     return !window->isDeleted() && window->isOnCurrentActivity() && window->isOnCurrentDesktop() && !window->isMinimized()
         && !window->isHidden() && !window->isHiddenByShowDesktop() && window->readyForPainting();
+}
+
+std::chrono::milliseconds pointerFocusDelay()
+{
+    constexpr int kwinDefaultMs = 300;
+    const KSharedConfig::Ptr config = KSharedConfig::openConfig(QStringLiteral("kwinrc"));
+    config->reparseConfiguration();
+    return std::chrono::milliseconds(std::max(0, config->group(QStringLiteral("Windows")).readEntry("DelayFocusInterval", kwinDefaultMs)));
 }
 
 KWin::Window *topWindowAt(const QPointF &position)
@@ -130,11 +143,30 @@ void KonveyorEffect::applyFocusRequest()
     }
 }
 
-void KonveyorEffect::focusWindowUnderPointer(const QPointF &position)
+KWin::Window *KonveyorEffect::windowToFollowAt(const QPointF &position) const
 {
     const std::optional<Layout::WindowId> id = readEngine().windowAt(position);
     KWin::Window *window = id ? d->windows.windowOf(*id) : nullptr;
-    if (window && window != KWin::workspace()->activeWindow() && topWindowAt(position) == window) {
+    return window && window != KWin::workspace()->activeWindow() && topWindowAt(position) == window ? window : nullptr;
+}
+
+void KonveyorEffect::focusWindowUnderPointer(const QPointF &position)
+{
+    KWin::Window *window = windowToFollowAt(position);
+    if (!window) {
+        d->pointerFocusTimer.stop();
+        d->pointerFocusCandidate.clear();
+    } else if (window != d->pointerFocusCandidate) {
+        d->pointerFocusCandidate = window;
+        d->pointerFocusTimer.start(pointerFocusDelay());
+    }
+}
+
+void KonveyorEffect::followPointerFocus()
+{
+    KWin::Window *window = d->pointerFocusCandidate.data();
+    d->pointerFocusCandidate.clear();
+    if (window && windowToFollowAt(KWin::effects->cursorPos()) == window) {
         qCInfo(lcKonveyor) << "konveyor: focus follows mouse to" << window->resourceClass();
         KWin::workspace()->activateWindow(window);
     }

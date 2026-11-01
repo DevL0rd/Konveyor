@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, default_config, load_config
-from fakepointer import click, move
+from fakepointer import Held, click, move
 from kwinsession import CLIENTS, active_title, for_window, frame, konveyor_action, kwin_titles, run_script, wait_for
 
 WARP = "    // warp-mouse-to-focus\n"
@@ -112,6 +112,29 @@ def applet_popup_over_tiled_window(checks):
     load_config(default_config())
 
 
+def applet_popup_reached_across_tiled_window(checks):
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(focus("focus-column-first", "A"), "A is focused")
+    popup = subprocess.Popen(["qml6", str(CLIENTS / "applet-popup-client.qml"), "--", "0", "0"])
+    try:
+        checks.expect(wait_for(lambda: "Qml Runtime" in kwin_titles(), 30), "the applet popup mapped")
+        run_script(for_window("Qml Runtime", "w.frameGeometry = {x: 400, y: 500, width: 500, height: 500};"))
+        checks.expect(wait_for(lambda: window_geometry("Qml Runtime") == "400,500 500x500", 5), "the applet popup sits over the lower part of A")
+        checks.expect(wait_for(lambda: active_title() == "Qml Runtime", 5), "the applet popup is active")
+        move(500, 1072)
+        with Held() as held:
+            held.glide((500, 1072), (500, 700), 40)
+        checks.expect(not wait_for(lambda: "Qml Runtime" not in kwin_titles() or active_title() != "Qml Runtime", 2), f"sweeping across A to reach the popup keeps the popup ({active_title()})")
+    finally:
+        popup.terminate()
+    load_config(default_config())
+
+
+def window_geometry(title):
+    printed = run_script(for_window(title, 'const g = w.frameGeometry; print("MARK|" + g.x + "," + g.y + " " + g.width + "x" + g.height);'))
+    return printed[0] if printed else None
+
+
 def window_under_pointer_at(point):
     printed = run_script(f'const w = workspace.windowAt({{x: {point[0]}, y: {point[1]}}}, 1)[0]; print("MARK|" + (w ? w.caption : "none"));')
     return printed[0]
@@ -137,7 +160,8 @@ def wayland_popup_over_neighbour(checks):
 
 
 def main():
-    Checks().run(warp_modes, focus_follows_mouse, popup_over_tiled_window, override_redirect_menu_over_tiled_window, applet_popup_over_tiled_window, wayland_popup_over_neighbour)
+    Checks().run(warp_modes, focus_follows_mouse, popup_over_tiled_window, override_redirect_menu_over_tiled_window, applet_popup_over_tiled_window, applet_popup_reached_across_tiled_window,
+                  wayland_popup_over_neighbour)
 
 
 if __name__ == "__main__":

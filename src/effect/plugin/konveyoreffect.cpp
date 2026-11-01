@@ -44,6 +44,8 @@ KonveyorEffect::KonveyorEffect()
     d->memorySaveTimer.setSingleShot(true);
     d->memorySaveTimer.setInterval(memorySaveDelayMs);
     connect(&d->memorySaveTimer, &QTimer::timeout, this, [this] { d->memoryStore.save(readEngine().windowMemory()); });
+    d->pointerFocusTimer.setSingleShot(true);
+    connect(&d->pointerFocusTimer, &QTimer::timeout, this, &KonveyorEffect::followPointerFocus);
     d->startupRulesTimer.setSingleShot(true);
     d->startupRulesTimer.setTimerType(Qt::PreciseTimer);
     connect(&d->startupRulesTimer, &QTimer::timeout, this, [this] { changeEngine().refreshRules(); });

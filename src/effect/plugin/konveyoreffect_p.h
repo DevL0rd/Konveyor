@@ -130,6 +130,8 @@ struct KonveyorEffect::Private
     QTimer animationTimer;
     QTimer memorySaveTimer;
     QTimer startupRulesTimer;
+    QTimer pointerFocusTimer;
+    QPointer<KWin::Window> pointerFocusCandidate;
     WindowMemoryStore memoryStore;
     LayoutHandoff handoff;
     bool animating = false;
