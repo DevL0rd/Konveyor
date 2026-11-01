@@ -66,11 +66,13 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         self.applications = self.home / "applications"
         self.applications.mkdir()
 
-    def process(self, pid, comm, ppid, ticks=0, threads=1, rss_pages=1, io=None, environ=b""):
+    def process(self, pid, comm, ppid, ticks=0, threads=1, rss_pages=1, io=None, environ=b"", flatpak=None):
         self.fake.write("/proc/%d/stat" % pid, stat_line(pid, comm, ppid, ticks, threads, rss_pages))
         if io is not None:
             self.fake.write("/proc/%d/io" % pid, "rchar: 1\nread_bytes: %d\nwrite_bytes: %d\ncancelled_write_bytes: 0\n" % io)
         (self.home / "root" / "proc" / str(pid) / "environ").write_bytes(environ)
+        if flatpak is not None:
+            self.fake.write("/proc/%d/root/.flatpak-info" % pid, "[Application]\nname=%s\nruntime=runtime/org.freedesktop.Platform/x86_64/24.08\n\n[Instance]\nbranch=stable\n" % flatpak)
 
     def module(self, pynvml=None):
         module = self.load(SCRIPT, "procmon_collect", pynvml=pynvml)
@@ -165,6 +167,35 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         rows = self.rows(self.build_at(self.module(), 100.0))
         self.assertEqual(rows[25]["icon"], "com.google.Chrome")
         self.assertEqual(rows[26]["icon"], "com.vscodium.codium")
+
+    def write_real_flatpak_exports(self):
+        (self.applications / "com.valvesoftware.Steam.desktop").write_text(
+            "[Desktop Entry]\nName=Steam\nExec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=/app/bin/steam --file-forwarding com.valvesoftware.Steam @@u %U @@\nIcon=com.valvesoftware.Steam\n")
+        (self.applications / "com.vscodium.codium.desktop").write_text(
+            "[Desktop Entry]\nName=VSCodium\nExec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=codium --file-forwarding com.vscodium.codium @@ %F @@\nIcon=com.vscodium.codium\n")
+
+    def test_sandboxed_processes_take_the_icon_of_their_flatpak_app_id(self):
+        self.write_real_flatpak_exports()
+        self.process(40, "steam", 1, flatpak="com.valvesoftware.Steam")
+        self.process(41, "steam-runtime-l", 40, flatpak="com.valvesoftware.Steam")
+        self.process(42, "exe", 1, flatpak="com.vscodium.codium")
+        self.process(43, "codium", 42, flatpak="com.vscodium.codium")
+        self.process(44, "exe", 1)
+        rows = self.rows(self.build_at(self.module(), 100.0))
+        self.assertEqual(rows[40]["icon"], "com.valvesoftware.Steam")
+        self.assertEqual(rows[41]["icon"], "com.valvesoftware.Steam")
+        self.assertEqual(rows[42]["icon"], "com.vscodium.codium")
+        self.assertEqual(rows[43]["icon"], "com.vscodium.codium")
+        self.assertNotIn("icon", rows[44])
+
+    def test_a_reused_pid_does_not_keep_the_previous_apps_icon(self):
+        self.write_real_flatpak_exports()
+        module = self.module()
+        self.process(45, "exe", 1, flatpak="com.vscodium.codium")
+        self.assertEqual(self.rows(self.build_at(module, 100.0))[45]["icon"], "com.vscodium.codium")
+        self.fake.write("/proc/45/stat", stat_line(45, "exe", 1, 0, 1, 1, start=500))
+        os.remove(self.home / "root" / "proc" / "45" / "root" / ".flatpak-info")
+        self.assertNotIn("icon", self.rows(self.build_at(module, 101.0))[45])
 
     def test_unreadable_io_counts_as_no_disk_activity(self):
         self.process(30, "secret", 1, io=(5, 5))

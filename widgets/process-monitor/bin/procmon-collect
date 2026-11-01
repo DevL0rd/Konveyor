@@ -55,9 +55,9 @@ _KEYS = ("cpu", "ram", "threads", "gpu", "enc", "dec", "vram", "disk")
 _AKEYS = tuple("a" + key for key in _KEYS)
 
 
-def _base_row(pid, comm, ppid, own):
+def _base_row(pid, comm, ppid, own, start):
     row = {"pid": pid, "ppid": ppid, "name": comm}
-    icon = icons.resolve_icon(comm)
+    icon = icons.resolve_process_icon(pid, start, comm)
     if icon:
         row["icon"] = icon
     for key, value in zip(_KEYS, own):
@@ -74,6 +74,7 @@ def build():
     if icons.refresh_icon_map(tick):
         _row_cache.clear()
     procs, stat_changed = proc.read_procs()
+    icons.forget_gone(procs)
     io, io_changed = proc.read_io(procs)
     gpu = graphics.gpu_usage(_poll_interval)
     frames = graphics.frame_rates()
@@ -92,7 +93,7 @@ def build():
     rows = {}
     kids = {}
     kids_get = kids.get
-    for pid, (comm, ppid, t, rss, threads, _start) in procs.items():
+    for pid, (comm, ppid, t, rss, threads, start) in procs.items():
         ticks[pid] = t
         cached = previous_get(pid)
         g = gpu_get(pid) if gpu else None
@@ -108,7 +109,7 @@ def build():
             prev_io = pio.get(pid)
             disk = round(max(0.0, (cur_io - prev_io) * disk_scale)) if cur_io is not None and prev_io is not None else 0
             own = [cpu, rss, threads, g["gpu"], g["enc"], g["dec"], g["vram"], disk] if g else [cpu, rss, threads, 0, 0, 0, 0, disk]
-            base = _base_row(pid, comm, ppid, own)
+            base = _base_row(pid, comm, ppid, own, start)
             if frame:
                 base.update(frame)
             if g is None and frame is None and cpu == 0.0 and disk == 0:

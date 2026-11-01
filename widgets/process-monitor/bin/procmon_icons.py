@@ -27,6 +27,7 @@ _steam_apps = {}
 _icon_map_when = 0.0
 _icon_resolved = {}
 _identity_cache = {}
+_app_ids = {}
 
 
 def _parse_desktop(path):
@@ -109,6 +110,40 @@ def refresh_icon_map(now):
     _icon_resolved.clear()
     _identity_cache.clear()
     return True
+
+
+def _flatpak_app_id(pid):
+    section = ""
+    try:
+        with open(f"/proc/{pid}/root/.flatpak-info", encoding="utf-8", errors="ignore") as f:
+            for ln in f:
+                ln = ln.strip()
+                if ln.startswith("["):
+                    section = ln
+                elif section == "[Application]" and ln.startswith("name="):
+                    return ln[5:].strip()
+    except OSError:
+        pass
+    return ""
+
+
+def resolve_process_icon(pid, start, comm):
+    cached = _app_ids.get(pid)
+    if cached is None or cached[0] != start:
+        cached = (start, _flatpak_app_id(pid))
+        _app_ids[pid] = cached
+    if cached[1]:
+        if _icon_map is None:
+            refresh_icon_map(time.monotonic())
+        icon = _icon_map.get(cached[1].lower())
+        if icon:
+            return icon
+    return resolve_icon(comm)
+
+
+def forget_gone(alive):
+    for pid in [pid for pid in _app_ids if pid not in alive]:
+        del _app_ids[pid]
 
 
 def resolve_icon(comm):
