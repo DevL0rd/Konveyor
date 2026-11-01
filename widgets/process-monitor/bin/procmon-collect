@@ -135,12 +135,16 @@ def build():
     _prev["t"] = ticks
     _prev["io"] = io
     _prev["when"] = tick
-    focus_pid = _read_focus()
+    plasma_pid = min((pid for pid, row in rows.items() if row["name"] == "plasmashell"), default=0)
+    focus_pid = _focus_target(rows, plasma_pid)
     focused = rows.get(focus_pid)
     if focused is not None:
-        focused["name"], focused["icon"] = icons.process_identity(
-            focus_pid, _panel["focus_name"] or focused["name"], focused.get("icon", ""))
-    snap = {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL,
+        if focus_pid == plasma_pid:
+            focused["name"], focused["icon"] = "Plasma", "plasma"
+        else:
+            focused["name"], focused["icon"] = icons.process_identity(
+                focus_pid, _panel["focus_name"] or focused["name"], focused.get("icon", ""))
+    snap = {"ts": now, "ncpu": NCPU, "mem_total": MEM_TOTAL, "plasma_pid": plasma_pid,
             "vram_total": graphics.vram_total(), "procs": list(rows.values())}
     _panel["rows"] = rows
     _panel["totals"] = totals
@@ -180,6 +184,11 @@ def _read_focus():
     return _panel["focus"]
 
 
+def _focus_target(rows, plasma_pid):
+    pid = _read_focus()
+    return pid if pid in rows else plasma_pid
+
+
 def panel_snapshot(snap):
     rows = _panel["rows"]
     totals = _panel["totals"]
@@ -195,7 +204,7 @@ def panel_snapshot(snap):
     summary = {"count": len(snap["procs"]), "cpu": min(100, cpu), "gpu": min(100, gpu), "vram": vram,
                "memTotal": snap["mem_total"], "vramTotal": snap["vram_total"], "ncpu": snap["ncpu"], "gpuTop": gpu_top}
     focus = None
-    pid = _read_focus()
+    pid = _focus_target(rows, snap["plasma_pid"])
     row = rows.get(pid) if pid else None
     if row is not None:
         best = None

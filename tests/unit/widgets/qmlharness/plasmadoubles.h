@@ -184,6 +184,7 @@ public:
     QModelIndex activeTask() const;
     void activate(int pid, const QString &name);
     void clearActive();
+    void closeAll();
 
     static QList<TasksModelDouble *> &instances();
 

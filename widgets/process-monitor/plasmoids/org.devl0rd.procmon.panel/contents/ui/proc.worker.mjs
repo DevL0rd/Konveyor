@@ -10,6 +10,7 @@ var focusHistPid = 0
 var memTotal = 0
 var vramTotal = 0
 var ncpu = 1
+var plasmaPid = 0
 var lastRowSig = ""
 
 function ringMake(cap) { return { buf: new Array(cap), head: 0, len: 0, cap: cap } }
@@ -86,6 +87,8 @@ function frameInfo(pid) {
     }
     return best ? { pid: best.pid, fps: best.fps, frametime: best.frametime, fpsLow: best.fps_low } : null
 }
+
+function focusTarget(pid) { return findProc(pid) ? pid : plasmaPid }
 
 function focusInfo(pid) {
     var p = findProc(pid)
@@ -215,6 +218,7 @@ function ingest(text, s) {
     memTotal = d.mem_total || 0
     vramTotal = d.vram_total || 0
     ncpu = d.ncpu || 1
+    plasmaPid = d.plasma_pid || 0
     var keys = s.histKeys
     var fields = s.aggregate ? keys.map(function(k) { return "a" + k }) : keys
     var f0 = fields[0], f1 = fields[1], f2 = fields[2], f3 = fields[3], f4 = fields[4], f5 = fields[5], f6 = fields[6], f7 = fields[7]
@@ -272,14 +276,14 @@ WorkerScript.onMessage = function(msg) {
     if (msg.path) {
         var text = readSnapshot(msg.path)
         if (!text || !ingest(text, s)) return
-        focus = focusInfo(s.focusPid)
+        focus = focusInfo(focusTarget(s.focusPid))
         recordFocus(focus, s.histLen)
     } else if (msg.text) {
         if (!ingest(msg.text, s)) return
-        focus = focusInfo(s.focusPid)
+        focus = focusInfo(focusTarget(s.focusPid))
         recordFocus(focus, s.histLen)
     } else {
-        focus = focusInfo(s.focusPid)
+        focus = focusInfo(focusTarget(s.focusPid))
     }
     var sum = summary()
     var out = { focus: focus, summary: sum, full: s.full, compactSig: compactSignature(focus, sum) }

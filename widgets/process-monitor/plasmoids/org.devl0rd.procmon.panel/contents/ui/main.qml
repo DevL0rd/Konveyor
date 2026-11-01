@@ -111,6 +111,11 @@ PlasmoidItem {
         const name = tasks.activeTask ? tasks.data(tasks.activeTask, TaskManager.AbstractTasksModel.AppName) : ""
         return name ? String(name) : ""
     }
+    readonly property bool anyAppOpen: tasks.count > 0
+    onAnyAppOpenChanged: if (!anyAppOpen) {
+        lastActivePid = 0
+        lastActiveAppName = ""
+    }
     property int lastActivePid: 0
     property string lastActiveAppName: ""
     onActivePidChanged: if (activePid > 0) {

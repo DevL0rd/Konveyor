@@ -254,6 +254,32 @@ class TestProcmonCollect(ServeLoopTests, CollectorTest):
         self.assertEqual(panel["focus"]["threads"], 3)
         self.assertEqual(panel["focus"]["fps"], -1)
 
+    def plasma_panel(self, focus_text):
+        self.process(1, "init", 0, io=(0, 0))
+        self.process(90, "plasmashell", 1, io=(0, 0))
+        self.process(91, "app", 1, io=(0, 0))
+        module = self.module()
+        (self.runtime / "Linux-Process-Mon").mkdir()
+        if focus_text is not None:
+            (self.runtime / "Linux-Process-Mon" / "focus").write_text(focus_text)
+        snapshot = self.build_at(module, 100.0)
+        module.panel_snapshot(snapshot)
+        panel = json.loads((self.runtime / "Linux-Process-Mon" / "panel" / "panel.json").read_text())
+        return snapshot, panel["focus"]
+
+    def test_no_focused_app_shows_plasma(self):
+        snapshot, focus = self.plasma_panel("0\n\n")
+        self.assertEqual((focus["pid"], focus["name"], focus["icon"]), (90, "Plasma", "plasma"))
+        self.assertEqual(snapshot["plasma_pid"], 90)
+
+    def test_a_focused_process_that_no_longer_exists_shows_plasma(self):
+        _, focus = self.plasma_panel("555\nGone\n")
+        self.assertEqual((focus["pid"], focus["name"]), (90, "Plasma"))
+
+    def test_a_running_focused_process_is_kept(self):
+        _, focus = self.plasma_panel("91\nApp\n")
+        self.assertEqual((focus["pid"], focus["name"]), (91, "App"))
+
     def test_frame_rates_from_a_child_show_on_the_focused_parent(self):
         self.process(1, "init", 0)
         self.process(80, "steam", 1)

@@ -79,6 +79,24 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
+    void closingTheLastAppShowsPlasma()
+    {
+        auto harness = started(Form::Planar);
+        QVERIFY(harness);
+        QByteArray json = Procmon::snapshot;
+        json.replace("\"ncpu\": 8", "\"plasma_pid\": 100, \"ncpu\": 8");
+        QVERIFY(feed(*harness, json));
+        tasks()->activate(200, QStringLiteral("Game"));
+        QTRY_COMPARE(harness->eval(QStringLiteral("focusProc ? focusProc.pid : 0")).toInt(), 200);
+        tasks()->clearActive();
+        QCOMPARE(harness->root()->property("focusPid").toInt(), 200);
+        tasks()->closeAll();
+        QTRY_COMPARE(harness->root()->property("focusPid").toInt(), 0);
+        QCOMPARE(harness->root()->property("focusAppName").toString(), QString());
+        QTRY_COMPARE(harness->eval(QStringLiteral("focusProc ? focusProc.pid : 0")).toInt(), 100);
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
     void focusedProcessWithoutFramesHasNoFrameLine()
     {
         auto harness = started(Form::Planar);

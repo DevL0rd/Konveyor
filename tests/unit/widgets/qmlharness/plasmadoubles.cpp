@@ -140,6 +140,16 @@ void TasksModelDouble::clearActive()
     Q_EMIT countChanged();
 }
 
+void TasksModelDouble::closeAll()
+{
+    beginResetModel();
+    m_tasks.clear();
+    m_active = -1;
+    endResetModel();
+    Q_EMIT activeTaskChanged();
+    Q_EMIT countChanged();
+}
+
 void SessionBusDouble::asyncCall(const QVariantMap &message)
 {
     calls().append(message);
