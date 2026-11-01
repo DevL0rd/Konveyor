@@ -148,7 +148,7 @@ private Q_SLOTS:
         QVERIFY(m_harness.openHost(false));
         QVERIFY(search(QStringLiteral("s vimb")));
         TRY_COMPARE(eval(QStringLiteral("launcherData.packages.length")).toInt(), 2);
-        QVERIFY(m_harness.commands().last().startsWith(QStringLiteral("$HOME/.local/bin/portal-packages 'vimb' 30 # ")));
+        QVERIFY(m_harness.commands().last().startsWith(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-packages 'vimb' 30 # ")));
         TRY_COMPARE(results(QStringLiteral("totalResults")).toInt(), 2);
         QCOMPARE(results(QStringLiteral("sections.slice(-1)[0].count")).toInt(), 2);
     }

@@ -15,7 +15,7 @@ Item {
 
     property string section: "all"       // kept for API compat (whole file is read)
     property int interval: 2000
-    property string tool: "$HOME/.local/bin/routermon-collect"
+    property string tool: "PATH=\"$HOME/.local/bin:$PATH\" routermon-collect"
 
     property var snapshot: ({})
     property bool online: false

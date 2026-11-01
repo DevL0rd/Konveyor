@@ -235,8 +235,8 @@ private Q_SLOTS:
         popup->setProperty("searchText", QStringLiteral("pause"));
         QTRY_COMPARE(popup->property("matchCount").toInt(), 1);
         QMetaObject::invokeMethod(popup, "searchAccepted");
-        QCOMPARE(harness->command(QStringLiteral("$HOME/.local/bin/routermon-ctl")),
-            QStringLiteral("$HOME/.local/bin/routermon-ctl pause toggle"));
+        QCOMPARE(harness->command(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-ctl")),
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" routermon-ctl pause toggle"));
         popup->setProperty("searchText", QStringLiteral("home net"));
         QTRY_COMPARE(popup->property("matchCount").toInt(), 2);
         QMetaObject::invokeMethod(popup, "searchAccepted");

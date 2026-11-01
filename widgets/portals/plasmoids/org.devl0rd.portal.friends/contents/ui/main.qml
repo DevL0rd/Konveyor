@@ -299,7 +299,7 @@ PlasmoidItem {
         k = String(k).trim()
         if (k === "") return
         root.saving = true
-        root.keySource = "$HOME/.local/bin/portal-friends --set-key " + root.shq(k)
+        root.keySource = "PATH=\"$HOME/.local/bin:$PATH\" portal-friends --set-key " + root.shq(k)
             + " && systemctl --user restart konveyor-widgets.service"
         runner.connectSource(root.keySource)
     }

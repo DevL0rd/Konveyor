@@ -241,7 +241,7 @@ private Q_SLOTS:
         m_harness.respond(
             {response(QStringLiteral("--unhide"), ""), response(QStringLiteral("portal-games --hidden"), R"(["org.kde.konsole"])")});
         form(QStringLiteral("unhide(\"it's\")"));
-        QVERIFY(m_harness.commands().contains(QStringLiteral("$HOME/.local/bin/portal-games --unhide 'it'\\''s'")));
+        QVERIFY(m_harness.commands().contains(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --unhide 'it'\\''s'")));
         TRY_COMPARE(root->property("hiddenApps").toStringList(), QStringList {QStringLiteral("org.kde.konsole")});
         m_harness.respond({response(QStringLiteral("portal-games --hidden"), "broken")});
         form(QStringLiteral("loadHidden()"));

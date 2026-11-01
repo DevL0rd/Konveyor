@@ -33,7 +33,7 @@ PlasmoidItem {
     readonly property color accent: Plasmoid.configuration.accentColor !== "" ? Plasmoid.configuration.accentColor : Kirigami.Theme.highlightColor
     readonly property color downColor: Style.hue("down", Kirigami.Theme)
     readonly property color upColor: Style.hue("up", Kirigami.Theme)
-    readonly property string ctl: "$HOME/.local/bin/routermon-ctl"
+    readonly property string ctl: "PATH=\"$HOME/.local/bin:$PATH\" routermon-ctl"
 
     RouterData {
         id: routerData

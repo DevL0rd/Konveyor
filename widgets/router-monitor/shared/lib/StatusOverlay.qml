@@ -15,7 +15,7 @@ Rectangle {
 
     property bool online: true
     property bool paused: false
-    readonly property string ctl: "$HOME/.local/bin/routermon-ctl"
+    readonly property string ctl: "PATH=\"$HOME/.local/bin:$PATH\" routermon-ctl"
     property string sshKey: "~/.ssh/id_ed25519"
     property string remoteScript: "/jffs/lrm-collect.sh"
     property bool connectionLoaded: false
@@ -33,7 +33,7 @@ Rectangle {
         connectionBusy = true
         connectionError = false
         connectionResult = i18n("Connecting…")
-        const command = "$HOME/.local/bin/routermon-config connect"
+        const command = "PATH=\"$HOME/.local/bin:$PATH\" routermon-config connect"
             + " " + shq(routerHost.text.trim())
             + " " + shq(routerUser.text.trim())
             + " " + shq(sshKey)
@@ -88,7 +88,7 @@ Rectangle {
         }
     }
 
-    Component.onCompleted: connectionReader.connectSource("$HOME/.local/bin/routermon-config get # " + Date.now())
+    Component.onCompleted: connectionReader.connectSource("PATH=\"$HOME/.local/bin:$PATH\" routermon-config get # " + Date.now())
 
     ColumnLayout {
         anchors.centerIn: parent

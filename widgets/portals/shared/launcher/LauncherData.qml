@@ -130,7 +130,7 @@ LauncherPinsData {
         steamKeyBusy = true
         steamKeyResult = ""
         steamKeyError = false
-        steamKeyWriter.connectSource("$HOME/.local/bin/portal-friends --set-key " + shq(clean) + " # " + Date.now())
+        steamKeyWriter.connectSource("PATH=\"$HOME/.local/bin:$PATH\" portal-friends --set-key " + shq(clean) + " # " + Date.now())
     }
     P5Support.DataSource {
         id: pathSource

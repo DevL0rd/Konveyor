@@ -20,8 +20,8 @@ private Q_SLOTS:
     {
         m_harness.respondWithLibrary();
         QVERIFY(m_harness.openHost(false));
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games # ")), 1);
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games --sidebar # ")), 1);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games # ")), 1);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --sidebar # ")), 1);
         TRY_COMPARE(eval(QStringLiteral("launcherData.games.length")).toInt(), 3);
         QCOMPARE(eval(QStringLiteral("launcherData.recentGames.map(g => g.id)")).toStringList(),
             QStringList({QStringLiteral("steam_app_620"), QStringLiteral("steam_app_70")}));
@@ -41,12 +41,12 @@ private Q_SLOTS:
         TRY_VERIFY(!eval(QStringLiteral("launcher.shown")).toBool());
         eval(QStringLiteral("launcherData.gamesLoadedAt = Date.now() - 29000"));
         host->setProperty("open", true);
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games # ")), 1);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games # ")), 1);
         eval(QStringLiteral("launcherData.refreshGames(true)"));
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games # ")), 2);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games # ")), 2);
         eval(QStringLiteral("launcherData.gamesLoadedAt = Date.now() - 31000"));
         eval(QStringLiteral("launcherData.refreshGames()"));
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games # ")), 3);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games # ")), 3);
     }
 
     void gamesOffSkipsTheLibrary()
@@ -54,7 +54,7 @@ private Q_SLOTS:
         m_harness.respondWithLibrary();
         QVERIFY(m_harness.openHost(false, {{QStringLiteral("showGames"), false}}));
         eval(QStringLiteral("launcherData.refreshGames(true)"));
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games # ")), 0);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games # ")), 0);
     }
 
     void aBrokenLibraryKeepsTheLastGames_data()
@@ -75,7 +75,7 @@ private Q_SLOTS:
         TRY_COMPARE(eval(QStringLiteral("launcherData.games.length")).toInt(), 3);
         m_harness.respond({response(QStringLiteral("portal-games # "), output, exitCode, QStringLiteral("Traceback"))});
         eval(QStringLiteral("launcherData.refreshGames(true)"));
-        QVERIFY(m_harness.waitHandled(QStringLiteral("$HOME/.local/bin/portal-games # "), 2));
+        QVERIFY(m_harness.waitHandled(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games # "), 2));
         QCOMPARE(eval(QStringLiteral("launcherData.games.length")).toInt(), 3);
     }
 
@@ -86,7 +86,7 @@ private Q_SLOTS:
         TRY_COMPARE(eval(QStringLiteral("launcherData.games.length")).toInt(), 3);
         eval(QStringLiteral("launcher.launchGame(launcherData.games.find(g => g.id === 'celeste'))"));
         QVERIFY(m_harness.commands().last().startsWith(
-            QStringLiteral("celeste </dev/null >/dev/null 2>&1 & $HOME/.local/bin/portal-games --track 'celeste' # ")));
+            QStringLiteral("celeste </dev/null >/dev/null 2>&1 & PATH=\"$HOME/.local/bin:$PATH\" portal-games --track 'celeste' # ")));
         QCOMPARE(eval(QStringLiteral("launcherData.recentGames[0].id")).toString(), QStringLiteral("celeste"));
         const int before = m_harness.commands().size();
         eval(QStringLiteral("launcher.launchGame({ id: 'x', launch: '' })"));
@@ -167,10 +167,10 @@ private Q_SLOTS:
         m_harness.respondWithLibrary({response(QStringLiteral("--set-key"), "", exitCode, QStringLiteral("the key was rejected\n"))});
         QVERIFY(m_harness.openHost(false));
         eval(QStringLiteral("launcherData.setSteamApiKey('   ')"));
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-friends")), 0);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-friends")), 0);
         eval(QStringLiteral("launcherData.setSteamApiKey(\" ab'c \")"));
         QVERIFY(eval(QStringLiteral("launcherData.steamKeyBusy")).toBool());
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-friends --set-key 'ab'\\''c' # ")), 1);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-friends --set-key 'ab'\\''c' # ")), 1);
         TRY_VERIFY(!eval(QStringLiteral("launcherData.steamKeyBusy")).toBool());
         QCOMPARE(eval(QStringLiteral("launcherData.steamKeyResult")).toString(), expected);
         QCOMPARE(eval(QStringLiteral("launcherData.steamKeyError")).toBool(), exitCode != 0);
@@ -197,7 +197,7 @@ private Q_SLOTS:
         QCOMPARE(eval(QStringLiteral("launcherData.packageTerm !== ''")).toBool(), searches);
         QCOMPARE(eval(QStringLiteral("launcherData.packagesBusy")).toBool(), searches);
         if (searches) {
-            TRY_COMPARE(count(QStringLiteral("$HOME/.local/bin/portal-packages ")), 1);
+            TRY_COMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-packages ")), 1);
         }
     }
 
@@ -210,7 +210,7 @@ private Q_SLOTS:
         eval(QStringLiteral("field.text = 'vim'"));
         eval(QStringLiteral("field.text = 'vimb'"));
         TRY_COMPARE(eval(QStringLiteral("launcherData.packagesQuery")).toString(), QStringLiteral("vimb"));
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-packages ")), 1);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-packages ")), 1);
         QCOMPARE(eval(QStringLiteral("launcherData.packages.length")).toInt(), 2);
         QVERIFY(!eval(QStringLiteral("launcherData.packagesBusy")).toBool());
         eval(QStringLiteral("field.text = ''"));
@@ -265,13 +265,14 @@ private Q_SLOTS:
         QVERIFY(id.startsWith(QStringLiteral("folder-")));
         QCOMPARE(eval(QStringLiteral("launcherData.folders.map(f => f.name + ':' + f.apps.length)")).toStringList(),
             QStringList {QStringLiteral("Folder:2")});
-        QVERIFY(
-            m_harness.commands().last().startsWith(QStringLiteral("$HOME/.local/bin/portal-games --folder-create '%1' 'Folder' ").arg(id)));
+        QVERIFY(m_harness.commands().last().startsWith(
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --folder-create '%1' 'Folder' ").arg(id)));
         eval(QStringLiteral("launcherData.renameFolder('%1', '   ')").arg(id));
         QCOMPARE(eval(QStringLiteral("launcherData.folderById('%1').name").arg(id)).toString(), QStringLiteral("Folder"));
         eval(QStringLiteral("launcherData.renameFolder('%1', ' Tools ')").arg(id));
         QCOMPARE(eval(QStringLiteral("launcherData.folderById('%1').name").arg(id)).toString(), QStringLiteral("Tools"));
-        QCOMPARE(m_harness.commands().last(), QStringLiteral("$HOME/.local/bin/portal-games --folder-rename '%1' 'Tools'").arg(id));
+        QCOMPARE(m_harness.commands().last(),
+            QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --folder-rename '%1' 'Tools'").arg(id));
     }
 
     void sidebarWritesAreQueuedAndReloaded()
@@ -284,7 +285,7 @@ private Q_SLOTS:
         eval(QStringLiteral("launcherData.addSidebar({ kind: 'path', id: 'file:///tmp' })"));
         QCOMPARE(eval(QStringLiteral("launcherData.sidebarPins.map(p => p.id)")).toStringList(),
             QStringList({QStringLiteral("a"), QStringLiteral("firefox"), QStringLiteral("file:///tmp")}));
-        QCOMPARE(count(QStringLiteral("$HOME/.local/bin/portal-games --sidebar-set ")), 1);
+        QCOMPARE(count(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --sidebar-set ")), 1);
         QCOMPARE(eval(QStringLiteral("launcherData.sidebarWrites")).toInt(), 1);
         QVERIFY(!eval(QStringLiteral("launcherData.sidebarQueued")).toString().isEmpty());
         eval(QStringLiteral("launcherData.moveSidebar(0, 99)"));

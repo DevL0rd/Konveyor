@@ -90,7 +90,7 @@ Kirigami.FormLayout {
         return out
     }
     function connectionArguments(mode, password) {
-        let command = "$HOME/.local/bin/routermon-config " + mode
+        let command = "PATH=\"$HOME/.local/bin:$PATH\" routermon-config " + mode
             + " " + shq(routerHost.text.trim())
             + " " + shq(routerUser.text.trim())
             + " " + shq(routerKey.text.trim())
@@ -112,7 +112,7 @@ Kirigami.FormLayout {
         connectionBusy = true
         connectionResult = i18n("Working…")
         connectionError = false
-        connectionAction.connectSource("$HOME/.local/bin/routermon-config adguard " + shq(adguardUrl.text.trim()) + " "
+        connectionAction.connectSource("PATH=\"$HOME/.local/bin:$PATH\" routermon-config adguard " + shq(adguardUrl.text.trim()) + " "
             + shq(adguardUser.text.trim()) + " " + shq(base64(password)) + " # " + Date.now())
     }
     function openRouterSettings() {
@@ -121,7 +121,7 @@ Kirigami.FormLayout {
             launcher.connectSource("xdg-open " + shq(/^https?:\/\//.test(host) ? host : "http://" + host))
     }
 
-    Component.onCompleted: connectionReader.connectSource("$HOME/.local/bin/routermon-config get # " + Date.now())
+    Component.onCompleted: connectionReader.connectSource("PATH=\"$HOME/.local/bin:$PATH\" routermon-config get # " + Date.now())
 
     P5Support.DataSource {
         id: connectionReader

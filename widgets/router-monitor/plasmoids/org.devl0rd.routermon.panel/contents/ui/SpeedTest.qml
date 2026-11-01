@@ -63,7 +63,7 @@ Item {
             return
         live = null
         testing = true
-        speedRunner.connectSource("$HOME/.local/bin/routermon-speedtest")
+        speedRunner.connectSource("PATH=\"$HOME/.local/bin:$PATH\" routermon-speedtest")
     }
     function deleteResult(index) {
         const next = speedHistory.slice()

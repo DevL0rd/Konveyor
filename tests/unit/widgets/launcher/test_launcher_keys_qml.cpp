@@ -89,7 +89,8 @@ private Q_SLOTS:
         QCOMPARE(host->property("hideCount").toInt(), 1);
         QCOMPARE(eval(QStringLiteral("launcherData.favorites.triggered.map(t => t.favoriteId)")).toStringList(),
             QStringList {QStringLiteral("org.kde.dolphin.desktop")});
-        QVERIFY(m_harness.commands().contains(QStringLiteral("$HOME/.local/bin/portal-games --track-app 'org.kde.dolphin'")));
+        QVERIFY(
+            m_harness.commands().contains(QStringLiteral("PATH=\"$HOME/.local/bin:$PATH\" portal-games --track-app 'org.kde.dolphin'")));
     }
 
     void controlPPinsAndShiftPinsToTheSidebar()
