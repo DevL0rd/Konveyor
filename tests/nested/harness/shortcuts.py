@@ -15,7 +15,13 @@ def all_shortcuts():
     result = {}
     for path in kglobalaccel().allComponents():
         component = dbus.Interface(dbus.SessionBus().get_object(SERVICE, path), "org.kde.kglobalaccel.Component")
-        for info in component.allShortcutInfos():
+        try:
+            infos = component.allShortcutInfos()
+        except dbus.exceptions.DBusException as error:
+            if error.get_dbus_name() != "org.freedesktop.DBus.Error.UnknownObject":
+                raise
+            continue
+        for info in infos:
             result[(str(info[2]), str(info[0]))] = [int(key) for key in info[6] if int(key)]
     return result
 
