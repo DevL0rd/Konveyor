@@ -87,7 +87,7 @@ bool WindowRegistry::isManageable(KWin::Window *window)
         || window->isMenu() || window->isDropdownMenu() || window->isPopupMenu() || window->isUtility() || window->isSplash()
         || window->isToolbar() || window->isTooltip() || window->isNotification() || window->isOnScreenDisplay()
         || window->isCriticalNotification() || window->isAppletPopup() || window->isLockScreen() || window->isInputMethod();
-    if (specialType || window->isLockScreenOverlay() || window->skipTaskbar()) {
+    if (specialType || window->isLockScreenOverlay() || window->skipTaskbar() || window->tag() == QLatin1String("region-editor")) {
         return false;
     }
     return window->isNormalWindow() || window->isDialog();
