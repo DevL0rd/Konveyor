@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
+from dragging import settled
 from kwinsession import frame, kwin_titles, managed_titles, open_client, wait_for
 from nested import build_dir
 
@@ -21,6 +22,7 @@ def open_overlay(title, tag):
 
 def region_editor_overlay_stays_out_of_the_layout(checks):
     open_client("Target", 800, 600)
+    checks.expect(wait_for(lambda: "Target" in managed_titles()) and settled("Target"), "the window being recorded is tiled and settled")
     before = frame("Target")
     overlay = open_overlay("Overlay", "region-editor")
     checks.expect(wait_for(lambda: "Overlay" in kwin_titles()), "the tagged overlay mapped")
