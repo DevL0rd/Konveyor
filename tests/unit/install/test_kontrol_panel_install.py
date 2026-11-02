@@ -41,7 +41,7 @@ class TestKontrolPanelInstall(unittest.TestCase):
         self.home.mkdir()
         self.stubs = root / "bin"
         self.stubs.mkdir()
-        for tool in ("busctl", "systemctl", "kbuildsycoca6", "konveyor-kontrol-panel"):
+        for tool in ("busctl", "systemctl", "kbuildsycoca6", "konveyor-kontrol-panel", "kpackagetool6"):
             (self.stubs / tool).write_text(STUB)
             (self.stubs / tool).chmod(0o755)
         tools = root / "tools"
@@ -71,6 +71,34 @@ class TestKontrolPanelInstall(unittest.TestCase):
         calls = [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []
         self.log.unlink(missing_ok=True)
         return calls
+
+    def make_plasmoid(self, root, plugin, text):
+        (root / "contents" / "ui").mkdir(parents=True)
+        (root / "metadata.json").write_text(json.dumps({"KPlugin": {"Id": plugin}}))
+        (root / "contents" / "ui" / "main.qml").write_text(text)
+        return root
+
+    def install_plasmoid(self, plugin, restart_plasma):
+        installed = self.home / ".local" / "share" / "plasma" / "plasmoids" / plugin
+        self.make_plasmoid(installed, plugin, "old")
+        package = self.make_plasmoid(self.home / "package", plugin, "new")
+        self.environment["RESTART_PLASMA"] = restart_plasma
+        result = self.run_steps(f"install_plasmoid {package}")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return (installed / "contents" / "ui" / "main.qml").read_text(), self.calls()
+
+    def test_a_running_plasma_keeps_its_overlay_hosts_when_they_are_updated(self):
+        text, calls = self.install_plasmoid("org.devl0rd.sysmon.overlay", "false")
+        self.assertEqual(text, "new")
+        self.assertEqual(calls, [])
+
+    def test_a_restarting_plasma_upgrades_the_overlay_hosts_as_packages(self):
+        _, calls = self.install_plasmoid("org.devl0rd.sysmon.overlay", "true")
+        self.assertEqual([call[:4] for call in calls], [["kpackagetool6", "-t", "Plasma/Applet", "-u"]])
+
+    def test_a_running_plasma_still_upgrades_other_widgets_as_packages(self):
+        _, calls = self.install_plasmoid("org.devl0rd.sysmon.panel", "false")
+        self.assertEqual([call[:4] for call in calls], [["kpackagetool6", "-t", "Plasma/Applet", "-u"]])
 
     def test_takes_meta_and_alt_f1_from_the_plasma_launcher_once(self):
         result = self.run_steps("take_launcher_keys")

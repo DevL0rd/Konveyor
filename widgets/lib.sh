@@ -242,7 +242,11 @@ restore_launcher_keys() {
 install_plasmoid() {
     local id
     id=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['KPlugin']['Id'])" "$1/metadata.json")
-    if kpackagetool6 -t Plasma/Applet -u "$1" >/dev/null 2>&1; then
+    local installed="${XDG_DATA_HOME:-$HOME/.local/share}/plasma/plasmoids/$id"
+    if [[ $id == *.overlay && ${RESTART_PLASMA:-true} == false && -d $installed ]]; then
+        cp -r "$1/." "$installed/"
+        say "  updated $id in place"
+    elif kpackagetool6 -t Plasma/Applet -u "$1" >/dev/null 2>&1; then
         say "  upgraded $id"
     else
         kpackagetool6 -t Plasma/Applet -i "$1" >/dev/null
