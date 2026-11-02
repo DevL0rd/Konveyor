@@ -123,7 +123,7 @@ def reload(checks):
     middle = next(bind for bind in json.loads(konveyor("Binds")) if bind["key"] == "Super+MouseMiddle")
     checks.expect(fires(middle, pointer_press(middle["key"])), "a mouse button bind fires")
     set_foreign("konveyor", "konveyor-Super+F1", [CTRL | ALT | KEY_F1])
-    config_path().write_text(SMALL_BINDS + "\n")
+    config_path().write_text(SMALL_BINDS.replace("Mod+Ctrl+Up { focus-workspace-up; }", "Mod+Ctrl+Up { focus-workspace-down; }"))
     checks.expect(wait_for(lambda: konveyor_keys().get("konveyor-Super+F1") == [META | KEY_F1]),
                   f"the config decides Konveyor's own keys after a reload ({konveyor_keys().get('konveyor-Super+F1')})")
 

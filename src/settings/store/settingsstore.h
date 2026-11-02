@@ -4,6 +4,7 @@
 #include "document/configdocument.h"
 #include "store/edithistory.h"
 #include "system/livesession.h"
+#include "values/configvalues.h"
 
 #include <QFileSystemWatcher>
 #include <QKeySequence>
@@ -26,7 +27,7 @@ class SettingsStore : public QObject
     Q_PROPERTY(QString configPath READ configPath CONSTANT)
     Q_PROPERTY(QVariantMap values READ values NOTIFY documentChanged)
     Q_PROPERTY(LiveSession *live READ live CONSTANT)
-    Q_PROPERTY(bool needsSave READ needsSave NOTIFY documentChanged)
+    Q_PROPERTY(bool needsSave READ needsSave NOTIFY needsSaveChanged)
     Q_PROPERTY(bool representsDefaults READ representsDefaults NOTIFY documentChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY documentChanged)
     Q_PROPERTY(bool autoSave READ autoSave WRITE setAutoSave NOTIFY autoSaveChanged)
@@ -34,15 +35,15 @@ class SettingsStore : public QObject
 public:
     explicit SettingsStore(QObject *parent = nullptr);
 
-    int revision() const;
-    QString configError() const;
+    int revision() const { return m_revision; }
+    QString configError() const { return m_configError; }
     QString configPath() const;
-    QVariantMap values() const;
-    LiveSession *live() const;
+    QVariantMap values() const { return m_values; }
+    LiveSession *live() const { return m_live; }
     bool needsSave() const;
     bool representsDefaults() const;
-    bool canUndo() const;
-    bool autoSave() const;
+    bool canUndo() const { return m_history.canUndo(); }
+    bool autoSave() const { return m_autoSave; }
     void setAutoSave(bool autoSave);
 
     Q_INVOKABLE void load();
@@ -68,18 +69,23 @@ public:
     Q_INVOKABLE QVariantMap checkRule(const QVariantMap &ruleNode) const;
     Q_INVOKABLE QString profileForOutput(const QVariantMap &output) const;
     Q_INVOKABLE void openConfigFile() const;
+    Q_INVOKABLE QVariantList borderStyleLayers(const QVariantMap &styleNode) const { return parsedBorderStyleLayers(styleNode); }
 
 Q_SIGNALS:
     void documentChanged();
+    void needsSaveChanged();
     void autoSaveChanged();
     void editFailed(const QString &message);
     void saved();
+    void saveFailed();
 
 private:
     bool apply(const EditResult &result, const QString &before);
     void replaceText(const QString &text);
+    void revertFailedSave(const QString &message);
     std::optional<QString> readSaved();
     void refresh();
+    void watchFiles(const QStringList &files);
     void watch();
     void fileChanged();
     void adoptDisk(const QString &disk);

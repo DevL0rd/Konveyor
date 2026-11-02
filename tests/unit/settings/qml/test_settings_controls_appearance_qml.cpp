@@ -2,7 +2,7 @@
 
 using namespace Konveyor::Settings::Testing;
 
-class TestSettingsControlsLookQml : public QObject
+class TestSettingsControlsAppearanceQml : public QObject
 {
     Q_OBJECT
 
@@ -16,82 +16,87 @@ private:
     SettingsHome m_home;
 };
 
-void TestSettingsControlsLookQml::controls_data()
+void TestSettingsControlsAppearanceQml::controls_data()
 {
     addControlColumns();
     const char *gradient = R"({"props":{"angle":180,"from":"#7f00ff","to":"#00b4ff"}})";
     addControl("ring off",
-        {"LookPage", "Show focus ring", "switched", "[false]", "layout/focus-ring",
-            R"({"children":["width","active-color","inactive-color","off"]})"});
+        {"AppearancePage", "Show focus ring", "switched", "[false]", "layout/focus-ring",
+            R"({"children":["width","active-color","active-style","inactive-style","urgent-style","off"]})"});
     addControl("border on",
-        {"LookPage", "Show border", "switched", "[true]", "layout/border",
+        {"AppearancePage", "Show border", "switched", "[true]", "layout/border",
             R"({"children":["width","active-color","inactive-color","urgent-color","on"]})"});
-    addControl("ring width", {"LookPage", "Thickness", "edited", "[6.4]", "layout/focus-ring/width", R"({"args":[6]})"});
-    addControl("border width", {"LookPage", "Thickness", "edited", "[2]", "layout/border/width", R"({"args":[2]})", nullptr, 1});
-    addControl("ring gradient", {"LookPage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-gradient", gradient});
+    addControl("ring width", {"AppearancePage", "Thickness", "edited", "[6.4]", "layout/focus-ring/width", R"({"args":[6]})"});
+    addControl("border width", {"AppearancePage", "Thickness", "edited", "[2]", "layout/border/width", R"({"args":[2]})", nullptr, 1});
     addControl(
-        "gradient drops color", {"LookPage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-color", "null"});
+        "ring gradient", {"AppearancePage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-gradient", gradient});
+    addControl("gradient drops color",
+        {"AppearancePage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-color", "null"});
     addControl("gradient after color",
-        {"LookPage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-color", "null",
+        {"AppearancePage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-color", "null",
             "layout { focus-ring { active-gradient from=\"#000\" to=\"#fff\"; active-color \"#123456\"; }; }\n"});
     addControl("ring theme",
-        {"LookPage", "Other windows", "chosen", R"(["theme"])", "layout/focus-ring/inactive-color", R"({"args":["accent"]})"});
+        {"AppearancePage", "Inactive windows", "chosen", R"(["theme"])", "layout/focus-ring/inactive-color", R"({"args":["accent"]})"});
     addControl("ring color",
-        {"LookPage", "Focused window", "chosen", R"(["color"])", "layout/focus-ring/active-color", R"({"args":["#7f00ff"]})"});
-    addControl("urgent auto", {"LookPage", "Needs attention", "chosen", R"(["none"])", "layout/border/urgent-color", "null", nullptr, 1});
+        {"AppearancePage", "Focused window", "chosen", R"(["color"])", "layout/focus-ring/active-color", R"({"args":["#7f00ff"]})"});
+    addControl(
+        "urgent auto", {"AppearancePage", "Needs attention", "chosen", R"(["none"])", "layout/border/urgent-color", "null", nullptr, 1});
     addControl("picked color",
-        {"LookPage", "Focused window", "edited", R"(["#ff000080"])", "layout/focus-ring/active-color", R"({"args":["#ff000080"]})"});
+        {"AppearancePage", "Focused window", "edited", R"(["#ff000080"])", "layout/focus-ring/active-color", R"({"args":["#ff000080"]})"});
     addControl("gradient start",
-        {"LookPage", "Focused window", "edited@1", R"(["#102030"])", "layout/focus-ring/active-gradient",
+        {"AppearancePage", "Focused window", "edited@1", R"([{"from":"#102030"}])", "layout/focus-ring/active-gradient",
             R"({"props":{"angle":180,"from":"#102030","to":"#00b4ff"}})"});
     addControl("gradient end",
-        {"LookPage", "Focused window", "edited@2", R"(["#405060"])", "layout/focus-ring/active-gradient",
+        {"AppearancePage", "Focused window", "edited@1", R"([{"to":"#405060"}])", "layout/focus-ring/active-gradient",
             R"({"props":{"angle":180,"from":"#7f00ff","to":"#405060"}})"});
     addControl("gradient angle",
-        {"LookPage", "Focused window", "edited@3", "[44.6]", "layout/focus-ring/active-gradient",
+        {"AppearancePage", "Focused window", "edited@1", R"([{"angle":44.6}])", "layout/focus-ring/active-gradient",
             R"({"props":{"angle":45,"from":"#7f00ff","to":"#00b4ff"}})"});
     addControl("gradient space",
-        {"LookPage", "Focused window", "edited@4", R"([{"relative-to":"workspace-view","in":"oklab"}])",
+        {"AppearancePage", "Focused window", "edited@1", R"([{"relative-to":"workspace-view","in":"oklab"}])",
             "layout/focus-ring/active-gradient",
             R"({"props":{"angle":180,"from":"#7f00ff","in":"oklab","relative-to":"workspace-view","to":"#00b4ff"}})"});
     addControl("tabs off",
-        {"LookPage", "Show tabs beside tabbed columns", "switched", "[false]", "layout/tab-indicator", R"({"children":["off"]})"});
-    addControl("tab side", {"LookPage", "Placement", "chosen", R"(["top"])", "layout/tab-indicator/position", R"({"args":["top"]})"});
+        {"AppearancePage", "Show tabs beside tabbed columns", "switched", "[false]", "layout/tab-indicator", R"({"children":["off"]})"});
+    addControl("tab side", {"AppearancePage", "Placement", "chosen", R"(["top"])", "layout/tab-indicator/position", R"({"args":["top"]})"});
     addControl("tab inside",
-        {"LookPage", "^Inside the column", "toggle;toggled", "[]", "layout/tab-indicator/place-within-column", R"({"args":[]})"});
+        {"AppearancePage", "^Inside the column", "toggle;toggled", "[]", "layout/tab-indicator/place-within-column", R"({"args":[]})"});
     addControl("tab outside",
-        {"LookPage", "^Inside the column", "toggle;toggled", "[]", "layout/tab-indicator/place-within-column", "null",
+        {"AppearancePage", "^Inside the column", "toggle;toggled", "[]", "layout/tab-indicator/place-within-column", "null",
             "layout { tab-indicator { place-within-column; }; }\n"});
     addControl("hide single tab",
-        {"LookPage", "Hide when there's only one tab", "switched", "[true]", "layout/tab-indicator/hide-when-single-tab",
+        {"AppearancePage", "Hide when there's only one tab", "switched", "[true]", "layout/tab-indicator/hide-when-single-tab",
             R"({"args":[]})"});
-    addControl("tab width", {"LookPage", "Thickness", "edited", "[5]", "layout/tab-indicator/width", R"({"args":[5]})", nullptr, 2});
-    addControl("tab gap", {"LookPage", "Distance from the window", "edited", "[-4]", "layout/tab-indicator/gap", R"({"args":[-4]})"});
+    addControl("tab width", {"AppearancePage", "Thickness", "edited", "[5]", "layout/tab-indicator/width", R"({"args":[5]})", nullptr, 2});
+    addControl("tab gap", {"AppearancePage", "Distance from the window", "edited", "[-4]", "layout/tab-indicator/gap", R"({"args":[-4]})"});
     addControl("tab length",
-        {"LookPage", "Length", "edited", "[55.4]", "layout/tab-indicator/length", R"({"args":[],"props":{"total-proportion":0.55}})"});
-    addControl(
-        "tab spacing", {"LookPage", "Space between tabs", "edited", "[3]", "layout/tab-indicator/gaps-between-tabs", R"({"args":[3]})"});
-    addControl("tab roundness", {"LookPage", "Roundness", "edited", "[2]", "layout/tab-indicator/corner-radius", R"({"args":[2]})"});
-    addControl(
-        "tab color", {"LookPage", "Showing tab", "chosen", R"(["theme"])", "layout/tab-indicator/active-color", R"({"args":["accent"]})"});
+        {"AppearancePage", "Length", "edited", "[55.4]", "layout/tab-indicator/length",
+            R"({"args":[],"props":{"total-proportion":0.55}})"});
+    addControl("tab spacing",
+        {"AppearancePage", "Space between tabs", "edited", "[3]", "layout/tab-indicator/gaps-between-tabs", R"({"args":[3]})"});
+    addControl("tab roundness", {"AppearancePage", "Roundness", "edited", "[2]", "layout/tab-indicator/corner-radius", R"({"args":[2]})"});
+    addControl("tab color",
+        {"AppearancePage", "Showing tab", "chosen", R"(["theme"])", "layout/tab-indicator/active-color", R"({"args":["accent"]})"});
     addControl("hint off",
-        {"LookPage", "Show where a dragged window will land", "switched", "[false]", "layout/insert-hint", R"({"children":["off"]})"});
-    addControl("hint gradient", {"LookPage", "Hint color", "chosen", R"(["gradient"])", "layout/insert-hint/gradient", gradient});
+        {"AppearancePage", "Show where a dragged window will land", "switched", "[false]", "layout/insert-hint",
+            R"({"children":["off"]})"});
+    addControl("hint gradient", {"AppearancePage", "Hint color", "chosen", R"(["gradient"])", "layout/insert-hint/gradient", gradient});
     addControl("even corners",
-        {"LookPage", "Corner roundness for every window", "edited", "[[4,4,4,4]]", "window-rule/geometry-corner-radius",
+        {"AppearancePage", "Corner roundness for every window", "edited", "[[4,4,4,4]]", "window-rule/geometry-corner-radius",
             R"({"args":[4]})"});
     addControl("uneven corners",
-        {"LookPage", "Corner roundness for every window", "edited", "[[1,2.4,3,4]]", "window-rule/geometry-corner-radius",
+        {"AppearancePage", "Corner roundness for every window", "edited", "[[1,2.4,3,4]]", "window-rule/geometry-corner-radius",
             R"({"args":[1,2,3,4]})"});
     addControl("one corner",
-        {"LookPage", "Corner roundness for every window | Corner roundness for every window",
+        {"AppearancePage", "Corner roundness for every window | Corner roundness for every window",
             "toggle@Same for every corner;toggled | value=7@1;valueModified", "[] | []", "window-rule/geometry-corner-radius",
             R"({"args":[12,7,12,12]})"});
     addControl("first corner rule",
-        {"LookPage", "Corner roundness for every window", "edited", "[[8,8,8,8]]", "window-rule#1/geometry-corner-radius",
+        {"AppearancePage", "Corner roundness for every window", "edited", "[[8,8,8,8]]", "window-rule#1/geometry-corner-radius",
             R"({"args":[8]})", "window-rule { match app-id=\"a\"; }\n"});
     addControl("no clipping",
-        {"LookPage", "Cut app content to the rounded shape", "switched", "[false]", "window-rule/clip-to-geometry", R"({"args":[false]})"});
+        {"AppearancePage", "Cut app content to the rounded shape", "switched", "[false]", "window-rule/clip-to-geometry",
+            R"({"args":[false]})"});
     addControl("animations off", {"MotionPage", "Animate windows", "switched", "[false]", "animations", R"({"children":["off"]})"});
     addControl("slowdown", {"MotionPage", "Animation speed", "edited", "[2.46]", "animations/slowdown", R"({"args":[2.5]})"});
     addControl("open instantly", {"MotionPage", "Opening windows", "toggle;toggled", "[]", "animations/window-open/off", R"({"args":[]})"});
@@ -158,5 +163,5 @@ void TestSettingsControlsLookQml::controls_data()
             R"({"args":["cycle-width"]})"});
 }
 
-QTEST_MAIN(TestSettingsControlsLookQml)
-#include "test_settings_controls_look_qml.moc"
+QTEST_MAIN(TestSettingsControlsAppearanceQml)
+#include "test_settings_controls_appearance_qml.moc"

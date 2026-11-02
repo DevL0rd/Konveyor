@@ -10,20 +10,26 @@ import org.kde.konveyor.settings
 SettingsPage {
     id: page
 
-    title: "Look"
+    title: "Appearance"
+    jumpSections: ["Focus ring", "Border", "Animated styles", "Event effects", "Tab indicator", "Drop hint", "Window corners"]
+    previewBackdrop: true
     preview: RowLayout {
+        id: stage
         readonly property var values: SettingsStore.revision >= 0 ? SettingsStore.scope("layout") : ({})
+        readonly property bool wide: width >= Kirigami.Units.gridUnit * 46
         spacing: Kirigami.Units.gridUnit
 
         DecorationPreview {
             values: parent.values
             cornerRadius: SettingsStore.revision >= 0 ? Math.min(12, CornerRule.find(SettingsStore).radii[0] / 2) : 0
+            tryOn: (gallery.item && gallery.item.tryOn) || (eventEffects.item && eventEffects.item.tryOn) || null
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredWidth: 3
         }
 
         TabIndicatorPreview {
+            visible: stage.wide
             values: parent.values
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -31,6 +37,7 @@ SettingsPage {
         }
 
         InsertHintPreview {
+            visible: stage.wide
             values: parent.values
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -46,23 +53,34 @@ SettingsPage {
         iconName: "window-new"
     }
 
-    RingSection {
-        Layout.fillWidth: true
-        key: "border"
-        title: "Border"
-        summary: "An outline on every window. Unlike the focus ring, it takes up space inside the column."
-        iconName: "window"
+    LaterSection {
+        sourceComponent: RingSection {
+            key: "border"
+            title: "Border"
+            summary: "An outline on every window. Unlike the focus ring, it takes up space inside the column."
+            iconName: "window"
+        }
     }
 
-    TabIndicatorSection {
-        Layout.fillWidth: true
+    LaterSection {
+        id: gallery
+        sourceComponent: BorderGallerySection {}
     }
 
-    InsertHintSection {
-        Layout.fillWidth: true
+    LaterSection {
+        id: eventEffects
+        sourceComponent: EventEffectsSection {}
     }
 
-    CornersSection {
-        Layout.fillWidth: true
+    LaterSection {
+        sourceComponent: TabIndicatorSection {}
+    }
+
+    LaterSection {
+        sourceComponent: InsertHintSection {}
+    }
+
+    LaterSection {
+        sourceComponent: CornersSection {}
     }
 }

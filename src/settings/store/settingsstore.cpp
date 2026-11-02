@@ -8,6 +8,7 @@
 #include "values/configvalues.h"
 #include "values/livematching.h"
 
+#include <QDebug>
 #include <QDesktopServices>
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -39,35 +40,17 @@ SettingsStore::SettingsStore(QObject *parent)
 {
     m_saveTimer.setSingleShot(true);
     m_saveTimer.setInterval(SaveDelayMs);
+    connect(
+        this, &SettingsStore::editFailed, this, [](const QString &message) { qWarning().noquote() << "Konveyor settings:" << message; });
     connect(&m_saveTimer, &QTimer::timeout, this, &SettingsStore::save);
     connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &SettingsStore::fileChanged);
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, &SettingsStore::fileChanged);
     load();
 }
 
-int SettingsStore::revision() const
-{
-    return m_revision;
-}
-
-QString SettingsStore::configError() const
-{
-    return m_configError;
-}
-
 QString SettingsStore::configPath() const
 {
     return Config::configPath();
-}
-
-QVariantMap SettingsStore::values() const
-{
-    return m_values;
-}
-
-LiveSession *SettingsStore::live() const
-{
-    return m_live;
 }
 
 bool SettingsStore::needsSave() const
@@ -78,16 +61,6 @@ bool SettingsStore::needsSave() const
 bool SettingsStore::representsDefaults() const
 {
     return !m_defaultText.isEmpty() && m_document.text() == m_defaultText;
-}
-
-bool SettingsStore::canUndo() const
-{
-    return m_history.canUndo();
-}
-
-bool SettingsStore::autoSave() const
-{
-    return m_autoSave;
 }
 
 void SettingsStore::setAutoSave(bool autoSave)
@@ -122,18 +95,35 @@ void SettingsStore::save()
     }
     const QString error = m_readError.isEmpty() ? m_configError : m_readError;
     if (!error.isEmpty()) {
-        Q_EMIT editFailed(QStringLiteral("Not saved, the config has an error: ") + error);
+        const QString message = QStringLiteral("Not saved, the config has an error: ") + error;
+        if (Config::loadString(m_savedText, configPath())) {
+            revertFailedSave(message);
+        } else {
+            Q_EMIT editFailed(message);
+        }
         return;
     }
     const QString text = m_document.text();
     if (auto written = writeConfigText(configPath(), text); !written) {
-        Q_EMIT editFailed(written.error());
+        revertFailedSave(written.error());
         return;
     }
     m_savedText = text;
     watch();
-    refresh();
+    Q_EMIT needsSaveChanged();
     Q_EMIT saved();
+}
+
+void SettingsStore::revertFailedSave(const QString &message)
+{
+    while (const std::optional<QString> previous = m_history.undo()) {
+        if (*previous == m_savedText) {
+            break;
+        }
+    }
+    replaceText(m_savedText);
+    Q_EMIT saveFailed();
+    Q_EMIT editFailed(message);
 }
 
 void SettingsStore::defaults()
@@ -334,14 +324,20 @@ void SettingsStore::refresh()
     if (loaded) {
         m_config = loaded->config;
     }
-    for (const QString &file : loaded ? loaded->files : loaded.error().files) {
+    watchFiles(loaded ? loaded->files : loaded.error().files);
+    m_values = globalValues(m_config);
+    ++m_revision;
+    Q_EMIT documentChanged();
+    Q_EMIT needsSaveChanged();
+}
+
+void SettingsStore::watchFiles(const QStringList &files)
+{
+    for (const QString &file : files) {
         if (!m_watcher.files().contains(file) && QFileInfo::exists(file)) {
             m_watcher.addPath(file);
         }
     }
-    m_values = globalValues(m_config);
-    ++m_revision;
-    Q_EMIT documentChanged();
 }
 
 void SettingsStore::watch()
@@ -360,11 +356,16 @@ void SettingsStore::fileChanged()
 {
     watch();
     const std::optional<QString> disk = readSaved();
-    if (!disk || *disk == m_savedText) {
-        refresh();
+    if (disk && *disk != m_savedText) {
+        adoptDisk(*disk);
         return;
     }
-    adoptDisk(*disk);
+    const auto loaded = Config::loadString(m_document.text(), configPath());
+    if (disk && loaded && m_configError.isEmpty() && loaded->config == m_config) {
+        watchFiles(loaded->files);
+        return;
+    }
+    refresh();
 }
 
 void SettingsStore::adoptDisk(const QString &disk)

@@ -18,7 +18,7 @@ import state
 
 STUBS = ("sudo", "runuser", "systemctl", "systemd-run", "busctl", "gdbus", "kwriteconfig6", "kreadconfig6", "kpackagetool6",
          "kbuildsycoca6", "cmake", "konveyor-kontrol-panel", "konveyor", "toolbox", "distrobox", "podman", "rpm", "dpkg", "id",
-         "getent", "date", "sleep", "journalctl", "kscreen-doctor", "jq", "ssh", "curl")
+         "getent", "date", "ldd", "sleep", "journalctl", "kscreen-doctor", "jq", "ssh", "curl")
 MANAGERS = ("pacman", "dnf", "zypper", "apt-get")
 TOOLS = ("bash", "sh", "cat", "cp", "mv", "rm", "rmdir", "mkdir", "ln", "chmod", "find", "sed", "grep", "sort", "comm", "basename",
          "dirname", "tee", "install", "touch", "head", "cut", "tr", "awk", "join", "xargs", "sha256sum", "readlink", "env", "mktemp",

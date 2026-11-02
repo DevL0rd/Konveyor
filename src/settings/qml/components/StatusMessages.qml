@@ -20,15 +20,33 @@ ColumnLayout {
         id: editError
         Layout.fillWidth: true
         position: Kirigami.InlineMessage.Position.Header
-        type: Kirigami.MessageType.Warning
+        property bool saveFailed: false
+        property bool saveJustFailed: false
+        type: saveFailed ? Kirigami.MessageType.Error : Kirigami.MessageType.Warning
         showCloseButton: true
         visible: false
+        actions: Kirigami.Action {
+            visible: editError.saveFailed
+            icon.name: "document-edit"
+            text: "Open config.kdl"
+            onTriggered: SettingsStore.openConfigFile()
+        }
 
         Connections {
             target: SettingsStore
+            function onSaveFailed() {
+                editError.saveJustFailed = true;
+            }
             function onEditFailed(message) {
-                editError.text = message;
+                editError.saveFailed = editError.saveJustFailed;
+                editError.saveJustFailed = false;
+                editError.text = editError.saveFailed ? message + "\nThe setting went back to its saved value. The same message is in the log." : message;
                 editError.visible = true;
+            }
+            function onSaved() {
+                if (editError.saveFailed) {
+                    editError.visible = false;
+                }
             }
         }
     }

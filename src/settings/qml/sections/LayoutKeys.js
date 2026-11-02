@@ -1,5 +1,6 @@
 .pragma library
 .import "../catalog/Kdl.js" as Kdl
+.import "../catalog/EventEffects.js" as EventEffects
 
 function paintNodes(prefix, paint) {
     if (!paint) {
@@ -34,12 +35,12 @@ function tabIndicatorNode(tab) {
 
 function inheritedFrom(scopePath) {
     if (scopePath.startsWith("output")) {
-        return "the monitor profile this monitor uses, then your main layout on the Layout and Look pages";
+        return "the monitor profile this monitor uses, then your main layout on the Layout and Appearance pages";
     }
     if (scopePath.startsWith("workspace")) {
         return "the monitor the workspace is on, with its profile and per-monitor settings";
     }
-    return "your main layout on the Layout and Look pages";
+    return "your main layout on the Layout and Appearance pages";
 }
 
 function strutsNode(struts) {
@@ -60,6 +61,8 @@ function nodeFor(key, value) {
         return ringNode(key, value);
     case "tab-indicator":
         return tabIndicatorNode(value);
+    case "event-effects":
+        return EventEffects.blockNode(value);
     case "insert-hint":
         return Kdl.block(key, [Kdl.leaf(value.enabled ? "on" : "off")].concat(paintNodes("", value.paint)));
     case "background-color":

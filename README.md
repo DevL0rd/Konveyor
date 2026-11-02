@@ -371,7 +371,7 @@ Every Konveyor setting lives in the Kontrol Panel. Press <kbd>Meta</kbd> + <kbd>
 <table>
   <tr>
     <td width="50%"><img alt="Layout settings" src="docs/media/settings-layout.png"><p align="center"><b>Layout</b> — gaps, column widths, where new windows land and which apps stay together</p></td>
-    <td width="50%"><img alt="Look settings" src="docs/media/settings-look.png"><p align="center"><b>Look</b> — focus ring, borders, tabs and corners</p></td>
+    <td width="50%"><img alt="Appearance settings" src="docs/media/settings-appearance.png"><p align="center"><b>Appearance</b> — focus ring, borders, animated styles, tabs and corners</p></td>
   </tr>
   <tr>
     <td><img alt="Motion settings" src="docs/media/settings-motion.png"><p align="center"><b>Motion</b> — shape every animation and watch it play</p></td>

@@ -26,3 +26,15 @@ konveyor_add_module(tools)
 
 add_library(konveyor_core INTERFACE)
 target_link_libraries(konveyor_core INTERFACE konveyor_ipc konveyor_tools konveyor_layout konveyor_render konveyor_config konveyor_anim konveyor_kdl)
+
+function(konveyor_compose_shader out)
+    set(text "")
+    foreach(file IN LISTS ARGN)
+        file(READ "${file}" part)
+        string(APPEND text "${part}")
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${file}")
+    endforeach()
+    set(${out} "${text}" PARENT_SCOPE)
+endfunction()
+
+set(KONVEYOR_BORDER_SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/render/shaders" CACHE INTERNAL "Shared border shader bodies")

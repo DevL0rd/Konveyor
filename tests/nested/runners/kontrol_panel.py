@@ -14,6 +14,7 @@ from fakepointer import binary, click, keys, move, tap
 from keycodes import KEY_CODES, MODIFIER_CODES
 from kwinsession import active_title, client_app_id, for_window, kwin_titles, marked_lines, open_client, qdbus, run_script, wait_for, window_minimized
 from nested import build_dir
+from sessionguard import popen
 
 PROBE = "notes.txt"
 APP = "probe editor"
@@ -166,7 +167,7 @@ def main():
     probe.wait(timeout=30)
     checks.expect(wait_for(lambda: PROBE not in kwin_titles(), 30), "the metadata probe closes before output checks")
     log = open(os.environ["KONVEYOR_KWIN_LOG"], "a")
-    process = subprocess.Popen([str(build_dir() / "bin" / "konveyor-kontrol-panel"), os.environ["KONVEYOR_KONTROL_PANEL_DIR"]],
+    process = popen([str(build_dir() / "bin" / "konveyor-kontrol-panel"), os.environ["KONVEYOR_KONTROL_PANEL_DIR"]],
                                stdout=log, stderr=subprocess.STDOUT)
     if checks.expect(wait_for(lambda: dbus.SessionBus().name_has_owner(SERVICE[0]), 60), "the Kontrol Panel takes its bus name"):
         checks.run(it_opens_on_the_output_under_the_pointer_and_fits_it, meta_and_alt_f1_open_and_close_it, clicking_beside_the_card_closes_it,

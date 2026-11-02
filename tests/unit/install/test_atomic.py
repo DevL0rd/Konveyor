@@ -29,8 +29,8 @@ class TestFedoraAtomic(AtomicTest):
 
     def test_a_new_toolbox_is_created_and_matched_to_the_system(self):
         self.harness.set_stub_state("podman", {"containers": {"konveyor-fedora-41": "old", "other": "x"}, "images": []})
-        self.harness.set_stub_state("packages", packages({"kwin": "6.7.0-1.fc42", "qt6-qtbase": "6.9.1-2.fc42", "bash": "5.2-1"},
-                                                         {"kwin": "6.7.0-1.fc42", "qt6-qtbase": "6.9.1-2.fc42"}))
+        self.harness.set_stub_state("packages", packages({"kwin": "6.7.0-1.fc42", "libplasma": "6.7.0-1.fc42", "qt6-qtbase": "6.9.1-2.fc42", "bash": "5.2-1"},
+                                                         {"kwin": "6.7.0-1.fc42", "libplasma": "6.7.0-1.fc42", "qt6-qtbase": "6.9.1-2.fc42"}))
         result = self.dependencies()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(f"Creating the {self.box} toolbox", result.stdout)
@@ -39,7 +39,7 @@ class TestFedoraAtomic(AtomicTest):
         self.assertIn(["toolbox", "--assumeyes", "create", "--distro", "fedora", "--release", "42", self.box], calls)
         sudo = [call[1:] for call in calls if call[0] == "sudo"]
         self.assertEqual(sudo[:3], [["dnf", "install", "--assumeyes", "--quiet", "fedora-repos-archive"], ["dnf", "versionlock", "clear"],
-                                    ["dnf", "versionlock", "add", "kwin-6.7.0-1.fc42", "qt6-qtbase-6.9.1-2.fc42"]])
+                                    ["dnf", "versionlock", "add", "kwin-6.7.0-1.fc42", "libplasma-6.7.0-1.fc42", "qt6-qtbase-6.9.1-2.fc42"]])
         self.assertEqual(sudo[3][:3], ["dnf", "install", "--assumeyes"])
         self.assertEqual(sudo[4], ["dnf", "distro-sync", "--assumeyes"])
         self.assertEqual(self.harness.stub_state("podman")["containers"], {"other": "x", self.box: self.image})
@@ -69,6 +69,19 @@ class TestFedoraAtomic(AtomicTest):
         result = self.dependencies()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("kwin (system 6.7.0-1.fc42, toolbox 6.7.1-1.fc42)", result.stderr)
+
+    def test_a_newer_libplasma_in_the_toolbox_stops_the_install(self):
+        self.harness.set_stub_state("packages", packages({"libplasma": "6.7.0-1.fc42"}, {"libplasma": "6.7.1-1.fc42"}))
+        result = self.dependencies()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("libplasma (system 6.7.0-1.fc42, toolbox 6.7.1-1.fc42)", result.stderr)
+
+    def test_a_library_the_system_lacks_stops_the_install_before_anything_is_replaced(self):
+        result = self.harness.install("--skip-deps", "--no-widgets", env={"STUB_MISSING_LIBRARY": "libPlasma.so.6.8"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("libPlasma.so.6.8", result.stderr)
+        self.assertFalse((self.harness.home / ".local" / "bin" / "konveyor").exists())
+        self.assertEqual([call[1] for call in self.inside() if call[0] == "cmake"], ["-S", "--build"])
 
     def test_an_image_based_system_that_is_not_fedora_is_refused(self):
         self.harness.write(self.harness.system / "etc" / "os-release", "ID=centos\nVERSION_ID=10\n")
@@ -140,9 +153,9 @@ class TestSteamOS(AtomicTest):
     box = "konveyor-steamos"
 
     def test_the_box_is_created_and_pinned_to_the_system_versions(self):
-        self.harness.set_stub_state("packages", packages({"kwin": "6.7.0-1", "kf6-kconfig": "6.19-1", "qt6-base": "6.9.1-1"},
-                                                         {"kwin": "6.7.2-1", "kf6-kconfig": "6.19-1", "qt6-base": "6.9.1-1"},
-                                                         {"kwin": "jupiter-3.9"}, {"kf6": ["kf6-kconfig"]}))
+        self.harness.set_stub_state("packages", packages({"kwin": "6.7.0-1", "libplasma": "6.7.0-1", "kf6-kconfig": "6.19-1", "qt6-base": "6.9.1-1"},
+                                                         {"kwin": "6.7.2-1", "libplasma": "6.7.2-1", "kf6-kconfig": "6.19-1", "qt6-base": "6.9.1-1"},
+                                                         {"kwin": "jupiter-3.9", "libplasma": "jupiter-3.9"}, {"kf6": ["kf6-kconfig"]}))
         result = self.dependencies()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         entries = self.harness.entries()
@@ -153,7 +166,8 @@ class TestSteamOS(AtomicTest):
         self.assertEqual(confs["/etc/pacman.conf"], "[options]\nArchitecture = auto\nSigLevel = Required DatabaseOptional\n"
                                                     f"LocalFileSigLevel = Optional\n{repositories}")
         self.assertIn("SigLevel = Never\n", confs["/etc/pacman-keyring.conf"])
-        self.assertIn(["sudo", "pacman", "-U", "--noconfirm", f"{MIRROR}/jupiter-3.9/os/x86_64/kwin-6.7.0-1-x86_64.pkg.tar.zst"], calls)
+        self.assertIn(["sudo", "pacman", "-U", "--noconfirm", f"{MIRROR}/jupiter-3.9/os/x86_64/kwin-6.7.0-1-x86_64.pkg.tar.zst",
+                       f"{MIRROR}/jupiter-3.9/os/x86_64/libplasma-6.7.0-1-x86_64.pkg.tar.zst"], calls)
         self.assertTrue(all(entry.get("inside") == self.box for entry in entries if entry["argv"][0] == "sudo"))
 
     def test_versions_valve_lacks_stop_the_install(self):

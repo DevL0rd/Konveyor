@@ -1,6 +1,6 @@
 .pragma library
 .import "index/LayoutIndex.js" as LayoutIndex
-.import "index/LookIndex.js" as LookIndex
+.import "index/AppearanceIndex.js" as AppearanceIndex
 .import "index/MotionIndex.js" as MotionIndex
 .import "index/MouseIndex.js" as MouseIndex
 .import "index/TouchIndex.js" as TouchIndex
@@ -13,7 +13,7 @@
 .import "index/ExperimentsIndex.js" as ExperimentsIndex
 
 const entries = [].concat(
-    LayoutIndex.entries, LookIndex.entries, MotionIndex.entries, MouseIndex.entries, TouchIndex.entries, ShortcutsIndex.entries,
+    LayoutIndex.entries, AppearanceIndex.entries, MotionIndex.entries, MouseIndex.entries, TouchIndex.entries, ShortcutsIndex.entries,
     RulesIndex.entries, MonitorsIndex.entries, WorkspacesIndex.entries, TaskbarIndex.entries, PlasmaIndex.entries, ExperimentsIndex.entries);
 
 function search(query) {

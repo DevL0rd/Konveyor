@@ -66,6 +66,7 @@ std::expected<LoadResult, LoadError> runLoad(LoadContext &context, const QString
         processDocument(context, *document, baseDir, QStringList {QDir(baseDir).filePath(name)});
         resolveBinds(context);
         warnAboutHiddenWindowSwipes(context);
+        warnAboutUnknownBorderStyles(context);
     } catch (const DecodeError &error) {
         return std::unexpected(LoadError {error.message, error.location, sourceLineOf(context, error.location), context.files});
     }
@@ -88,13 +89,14 @@ Config defaultConfig()
 {
     Config config;
     config.layout.focusRing.enabled = true;
+    config.layout.focusRing.width = 2;
     config.layout.focusRing.active = solidPaint(127, 200, 255, 255);
-    config.layout.focusRing.inactive = solidPaint(80, 80, 80, 255);
     config.layout.focusRing.urgent = solidPaint(155, 0, 0, 255);
     config.layout.border.enabled = false;
     config.layout.border.active = solidPaint(255, 200, 127, 255);
     config.layout.border.inactive = solidPaint(80, 80, 80, 255);
     config.layout.border.urgent = solidPaint(155, 0, 0, 255);
+    config.layout.tabIndicator.inactive = solidPaint(80, 80, 80, 255);
     config.layout.insertHint.paint = solidPaint(127, 200, 255, 128);
     config.layout.presetColumnWidths = defaultColumnWidthPresets();
     config.layout.presetWindowHeights = defaultWindowHeightPresets();

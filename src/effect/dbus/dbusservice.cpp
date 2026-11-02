@@ -116,6 +116,11 @@ QString DBusService::LastBind() const
     return compact(m_handlers.lastBind());
 }
 
+QString DBusService::SignalFrames() const
+{
+    return compact(m_handlers.signalFrames());
+}
+
 QString DBusService::Gestures() const
 {
     return compact(m_handlers.gestures());

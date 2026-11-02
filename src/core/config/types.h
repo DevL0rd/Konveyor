@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/types/binds.h"
+#include "config/types/borderstyle.h"
 
 #include <QList>
 #include <QString>
@@ -24,6 +25,7 @@ struct Config
     bool hideDesktopWidgets = false;
     bool fillPanelsOnMaximize = false;
     bool disableMinimize = false;
+    double audioBeatThreshold = 1.4;
     Experiments experiments;
     QList<OutputConfig> outputs;
     QList<MonitorProfile> monitorProfiles;
@@ -31,6 +33,7 @@ struct Config
     QList<WindowRule> windowRules;
     QList<Bind> binds;
     bool configNotificationDisableFailed = false;
+    QList<BorderStyle> borderStyles;
     bool operator==(const Config &) const = default;
 };
 

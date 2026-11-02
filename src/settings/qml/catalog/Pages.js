@@ -3,8 +3,8 @@
 const pages = [
     { id: "layout", title: "Layout", icon: "view-split-left-right", file: "pages/LayoutPage.qml",
       description: "Columns, gaps, widths and where new windows land" },
-    { id: "look", title: "Look", icon: "preferences-desktop-color", file: "pages/LookPage.qml",
-      description: "Focus ring, borders, tabs, drop hint and corners" },
+    { id: "appearance", title: "Appearance", icon: "preferences-desktop-color", file: "pages/AppearancePage.qml",
+      description: "Focus ring, borders, animated styles, tabs and corners" },
     { id: "motion", title: "Motion", icon: "preferences-desktop-effects", file: "pages/MotionPage.qml",
       description: "Animation springs, curves and speed" },
     { id: "mouse", title: "Mouse", icon: "input-mouse", file: "pages/MousePage.qml",

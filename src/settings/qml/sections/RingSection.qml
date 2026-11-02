@@ -46,7 +46,7 @@ ColumnLayout {
             key: root.key
             subPaths: ["width"]
             showOverride: false
-            enabled: root.ring.enabled === true
+            visible: root.ring.enabled === true && !root.excluded.includes(key) && (!root.overrideMode || overridden)
             label: "Thickness"
             iconName: "format-stroke-color"
 
@@ -62,28 +62,65 @@ ColumnLayout {
         Repeater {
             model: [
                 { state: "active", label: "Focused window", description: "The window you're typing into", icon: "window-new" },
-                { state: "inactive", label: "Other windows", description: "Every window that doesn't have focus", icon: "window" },
+                { state: "inactive", label: "Inactive windows", description: "Every window that doesn't have focus", icon: "window" },
                 { state: "urgent", label: "Needs attention", description: "A window asking for your attention", icon: "emblem-important" }
             ]
 
             ScopedRow {
+                id: stateRow
                 required property var modelData
+                readonly property string stylePath: root.blockPath + "/" + modelData.state + "-style"
+                readonly property string styleName: root.ring[modelData.state + "-style"] || ""
+                readonly property bool animated: styleName.length > 0 && styleName !== "none"
                 scope: root
                 key: root.key
-                subPaths: [modelData.state + "-color", modelData.state + "-gradient"]
+                subPaths: [modelData.state + "-color", modelData.state + "-gradient", modelData.state + "-style"]
+                resetPaths: []
                 showOverride: false
-                enabled: root.ring.enabled === true
+                visible: root.ring.enabled === true && !root.excluded.includes(key) && (!root.overrideMode || overridden)
                 label: modelData.label
                 description: modelData.description
                 iconName: modelData.icon
+
+                function chooseStyle() {
+                    chooser.ask(stylePath, root.title + " · " + modelData.label);
+                }
+
+                function clearStyle() {
+                    if (!root.overrideMode) {
+                        SettingsStore.remove(stylePath);
+                    } else if (animated) {
+                        SettingsStore.setValue(stylePath, ["none"]);
+                    }
+                }
 
                 PaintEditor {
                     blockPath: root.blockPath
                     colorName: modelData.state + "-color"
                     gradientName: modelData.state + "-gradient"
                     paint: root.ring[modelData.state]
+                    allowAuto: root.key === "focus-ring" && modelData.state === "inactive" && !root.overrideMode
+                    autoLabel: "Off"
+                    extraModes: [{ value: "animated", label: "Animated" }]
+                    extraMode: stateRow.animated ? "animated" : ""
+                    resetPaths: root.overrideMode ? [] : stateRow.subPaths.map(sub => stateRow.path + "/" + sub)
+                    stacked: root.width < Kirigami.Units.gridUnit * 40
+                    onExtraChosen: stateRow.chooseStyle()
+                    onPlainChosen: stateRow.clearStyle()
+
+                    StyleSwatchButton {
+                        visible: stateRow.animated
+                        Layout.fillWidth: true
+                        styleName: stateRow.styleName
+                        onClicked: stateRow.chooseStyle()
+                    }
                 }
             }
         }
+    }
+
+    StyleChooser {
+        id: chooser
+        onChosen: name => SettingsStore.setValue(chooser.targetPath, [name])
     }
 }

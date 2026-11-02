@@ -167,7 +167,8 @@ void TestSettingsControlsQml::controls_data()
     addControl("reset widgets",
         {"PlasmaPage", "Hide desktop widgets behind windows", "resetRequested", "[]", "hide-desktop-widgets", R"({"args":[]})", ""});
     addControl("reset ring",
-        {"LookPage", "Show focus ring", "resetRequested", "[]", "layout/focus-ring/off", "null", "layout { focus-ring { off; }; }\n"});
+        {"AppearancePage", "Show focus ring", "resetRequested", "[]", "layout/focus-ring/off", "null",
+            "layout { focus-ring { off; }; }\n"});
     addControl("reset corners",
         {"MousePage", "Active corners", "resetRequested", "[]", "gestures/hot-corners", R"({"children":["off"]})",
             "gestures { hot-corners { top-right; }; }\n"});

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from checks import Checks, default_config, load_config
+from checks import Checks, config_path, default_config, load_config
 from kwinsession import activate, active_title, frame, konveyor_action, wait_for, watch_signals
 from screenshot import capture_workspace, close
 
@@ -57,9 +57,14 @@ def focus_ring(checks):
     activate("B")
     checks.expect(wait_for(lambda: ring_is("B", RED), 30, 0.5), f"the focused window has the red accent ring ({ring_pixel(screenshot(), 'B')})")
     other = neighbour("B")
-    checks.expect(not ring_is(other, RED) and not ring_is(other, GREEN), f"an unfocused window has no ring ({ring_pixel(screenshot(), other)})")
+    checks.expect(wait_for(lambda: ring_is(other, GREEN), 30, 0.5), f"an unfocused window has the inactive ring ({ring_pixel(screenshot(), other)})")
     activate(other)
-    checks.expect(wait_for(lambda: ring_is(other, RED) and not ring_is("B", RED), 30, 0.5), "the ring follows focus")
+    checks.expect(wait_for(lambda: ring_is(other, RED) and ring_is("B", GREEN), 30, 0.5), "the rings follow focus")
+    config = config_path().read_text()
+    load_config(config.replace('        inactive-color "#00ff00"\n', ""))
+    checks.expect(wait_for(lambda: not ring_is("B", GREEN), 30, 0.5), f"without an inactive paint an unfocused window has no ring ({ring_pixel(screenshot(), 'B')})")
+    load_config(config)
+    checks.expect(wait_for(lambda: ring_is("B", GREEN), 30, 0.5), "the inactive ring comes back")
 
 
 def accent_change(checks):

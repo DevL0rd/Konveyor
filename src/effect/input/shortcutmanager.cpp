@@ -75,6 +75,9 @@ ShortcutManager::~ShortcutManager()
 
 void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
 {
+    if (!m_actions.isEmpty() && binds == m_binds) {
+        return;
+    }
     unregisterAll();
     m_binds = binds;
     QList<QKeySequence> wanted;

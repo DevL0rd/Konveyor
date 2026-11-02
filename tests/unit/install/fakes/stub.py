@@ -11,7 +11,7 @@ MODULES = {
     "busctl": "desktop", "gdbus": "desktop", "systemctl": "desktop", "kwriteconfig6": "desktop", "kreadconfig6": "desktop",
     "kpackagetool6": "desktop", "konveyor": "desktop", "cmake": "system", "toolbox": "system", "distrobox": "system",
     "podman": "system", "rpm": "system", "pacman": "system", "dpkg": "system", "runuser": "system", "id": "system",
-    "getent": "system", "date": "system",
+    "getent": "system", "date": "system", "ldd": "system",
 }
 
 

@@ -6,6 +6,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from sessionguard import require_harness_session
+
 CLIENTS = Path(__file__).resolve().parent.parent / "clients"
 
 
@@ -28,6 +30,7 @@ def marked_lines(marker):
 
 
 def run_script(body, seconds=None):
+    require_harness_session("a KWin script")
     marker = f"PROBE{time.monotonic_ns()}"
     end = f"{marker}|__end__"
     with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as script:

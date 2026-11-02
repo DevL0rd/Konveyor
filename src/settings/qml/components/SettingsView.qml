@@ -40,6 +40,7 @@ Item {
         ColumnLayout {
             Layout.preferredWidth: Kirigami.Units.gridUnit * 12
             Layout.maximumWidth: Layout.preferredWidth
+            Layout.minimumWidth: Layout.preferredWidth
             Layout.fillHeight: true
             spacing: Kirigami.Units.largeSpacing
 
@@ -113,7 +114,7 @@ Item {
                     }
                     QQC2.Label {
                         Layout.fillWidth: true
-                        text: view.current.description
+                        text: stackLoader.item && stackLoader.item.currentItem && stackLoader.item.currentItem.subtitle ? stackLoader.item.currentItem.subtitle : view.current.description
                         opacity: 0.55
                         elide: Text.ElideRight
                     }

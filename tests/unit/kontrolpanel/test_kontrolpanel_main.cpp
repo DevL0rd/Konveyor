@@ -333,8 +333,12 @@ private:
 
     void start()
     {
+        QProcessEnvironment environment = m_session->environment();
+        environment.remove(QStringLiteral("WAYLAND_DISPLAY"));
+        environment.remove(QStringLiteral("DISPLAY"));
+        environment.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
         m_process = std::make_unique<QProcess>();
-        m_process->setProcessEnvironment(m_session->environment());
+        m_process->setProcessEnvironment(environment);
         QDBusServiceWatcher watcher(busName, QDBusConnection::sessionBus(), QDBusServiceWatcher::WatchForRegistration);
         QSignalSpy registered(&watcher, &QDBusServiceWatcher::serviceRegistered);
         m_process->start(QStringLiteral(KONVEYOR_KONTROL_PANEL), {m_directory});

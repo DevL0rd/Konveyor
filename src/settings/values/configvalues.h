@@ -13,5 +13,8 @@ QVariantMap layoutValues(const Config::Layout &layout);
 QVariant colorValue(const QColor &color);
 QVariant paintValue(const std::optional<Config::Paint> &paint);
 QVariant sizeValue(const std::optional<Config::PresetSize> &size);
+QVariantList borderStyleValues(const QList<Config::BorderStyle> &styles);
+QVariantList parsedBorderStyleLayers(const QVariantMap &styleNode);
+Config::BorderLayer borderLayerWithoutColors(const QVariantMap &value);
 
 }

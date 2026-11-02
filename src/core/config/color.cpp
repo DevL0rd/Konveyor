@@ -256,6 +256,11 @@ QColor decodeColorNode(const Kdl::Node &node)
     return paint.color;
 }
 
+Paint decodePaintValue(const Kdl::Value &value)
+{
+    return paintFromText(value);
+}
+
 Paint decodePaintNode(const Kdl::Node &node)
 {
     expectLeafNode(node);

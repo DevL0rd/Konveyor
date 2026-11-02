@@ -38,7 +38,7 @@ private:
 void TestSettingsValues::globalDefaults()
 {
     const QVariantMap values = globalValues(Config::Config());
-    QCOMPARE(values.size(), 25);
+    QCOMPARE(values.size(), 27);
     for (const QString &key :
         {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"), QStringLiteral("disable-minimize"),
             QStringLiteral("experiments/prevent-fullscreen-minimize"), QStringLiteral("experiments/prevent-fullscreen-exit"),
@@ -164,7 +164,7 @@ animations {
 void TestSettingsValues::layoutDefaults()
 {
     const QVariantMap values = layoutValues(Config::Layout());
-    QCOMPARE(values.size(), 24);
+    QCOMPARE(values.size(), 25);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("never"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("right"));
     QCOMPARE(values.value(QStringLiteral("always-expand-single-column")).toBool(), true);

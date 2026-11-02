@@ -1,0 +1,21 @@
+layout(std140, binding = 0) uniform buf {
+    mat4 qt_Matrix;
+    vec4 colors[8];
+    vec4 radii;
+    vec4 params;
+    vec4 reactive;
+    vec4 audioBands[4];
+    vec4 audioWave[16];
+    vec4 front;
+    vec2 halfSize;
+    float qt_Opacity;
+    float layerOpacity;
+    float pixels;
+    float inset;
+    float bandWidth;
+    float phase;
+    int colorCount;
+    int kind;
+    float colorMix;
+    float additive;
+};

@@ -172,6 +172,7 @@ void decodeAnimations(const Kdl::Node &node, Animations &animations)
     NodeTable table;
     table.insert(QStringLiteral("on"), [&on](const Kdl::Node &child) { on = flagArgument(child); });
     table.insert(QStringLiteral("off"), [&off](const Kdl::Node &child) { off = flagArgument(child); });
+    table.insert(QStringLiteral("reduce-motion"), [&animations](const Kdl::Node &child) { animations.reduceMotion = flagArgument(child); });
     table.insert(QStringLiteral("slowdown"),
         [&animations](const Kdl::Node &child) { animations.slowdown = positiveNumberArgument(child, 2147483647); });
     static const Animations defaults = defaultAnimations();

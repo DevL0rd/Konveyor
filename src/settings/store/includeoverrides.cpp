@@ -29,7 +29,7 @@ struct Search
 bool isListSection(const QString &name)
 {
     static const QStringList names {QStringLiteral("output"), QStringLiteral("window-rule"), QStringLiteral("workspace"),
-        QStringLiteral("monitor-profile"), QStringLiteral("include")};
+        QStringLiteral("monitor-profile"), QStringLiteral("include"), QStringLiteral("border-style")};
     return names.contains(name);
 }
 

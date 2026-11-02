@@ -97,7 +97,7 @@ SettingsPage {
             QQC2.Button {
                 icon.name: "list-add"
                 text: "Add shortcut"
-                onClicked: editor.openFor(null)
+                onClicked: editor.item.openFor(null)
             }
 
             QQC2.ToolButton {
@@ -137,31 +137,33 @@ SettingsPage {
     Repeater {
         model: Actions.categories
 
-        ColumnLayout {
+        LaterSection {
             id: group
 
             required property var modelData
             readonly property var entries: page.binds.filter(bind => page.categoryOf(bind) === modelData.id && page.matches(bind))
 
-            Layout.fillWidth: true
             visible: entries.length > 0
-            spacing: 0
 
-            CardHeader {
-                title: group.modelData.label + " · " + group.entries.length
-            }
+            sourceComponent: ColumnLayout {
+                spacing: 0
 
-            Card {
-                Repeater {
-                    model: group.entries
+                CardHeader {
+                    title: group.modelData.label + " · " + group.entries.length
+                }
 
-                    ShortcutRow {
-                        required property var modelData
-                        bind: modelData
-                        modKey: page.modKey
-                        conflicting: page.conflicts[modelData.name] === true
-                        onEditRequested: editor.openFor(modelData)
-                        onRemoveRequested: SettingsStore.remove("binds/" + modelData.name)
+                Card {
+                    Repeater {
+                        model: group.entries
+
+                        ShortcutRow {
+                            required property var modelData
+                            bind: modelData
+                            modKey: page.modKey
+                            conflicting: page.conflicts[modelData.name] === true
+                            onEditRequested: editor.item.openFor(modelData)
+                            onRemoveRequested: SettingsStore.remove("binds/" + modelData.name)
+                        }
                     }
                 }
             }
@@ -186,10 +188,12 @@ SettingsPage {
         explanation: "Add one, or restore the default set."
     }
 
-    BindEditorDialog {
+    LaterSection {
         id: editor
-        modKey: page.modKey
-        binds: page.binds
+        sourceComponent: BindEditorDialog {
+            modKey: page.modKey
+            binds: page.binds
+        }
     }
 
     Kirigami.PromptDialog {

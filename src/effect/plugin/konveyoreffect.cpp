@@ -108,7 +108,7 @@ bool KonveyorEffect::placedBefore(KWin::Window *first, KWin::Window *second) con
 
 bool KonveyorEffect::isActive() const
 {
-    return d->animating || d->draggedOpacity || hasSpill();
+    return d->animating || d->draggedOpacity || d->decorations.paintsBorders() || hasSpill();
 }
 
 bool KonveyorEffect::blocksDirectScanout() const
@@ -148,38 +148,6 @@ bool KonveyorEffect::hasSpill() const
         }
     }
     return false;
-}
-
-void KonveyorEffect::prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data)
-{
-    if (spillHome(w->window()) || isDragged(w->window())) {
-        data.setTranslucent();
-    }
-    KWin::Effect::prePaintWindow(view, w, data);
-}
-
-PaintWindowResult KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport,
-    KWin::EffectWindow *w, int mask, const KWin::Region &deviceRegion, KWin::WindowPaintData &data)
-{
-    const std::optional<QRectF> home = spillHome(w->window());
-    if (!home) {
-        return KWin::Effect::paintWindow(renderTarget, viewport, w, mask, deviceRegion, data);
-    }
-    const KWin::Region clipped = deviceRegion & viewport.mapToDeviceCoordinatesAligned(KWin::RectF(*home));
-    if (clipped.isEmpty()) {
-        return PaintWindowResult(true);
-    }
-    return KWin::Effect::paintWindow(renderTarget, viewport, w, mask, clipped, data);
-}
-
-void KonveyorEffect::prePaintScreen(KWin::ScreenPrePaintData &data)
-{
-    KWin::Effect::prePaintScreen(data);
-}
-
-void KonveyorEffect::postPaintScreen()
-{
-    KWin::Effect::postPaintScreen();
 }
 
 Layout::Engine &KonveyorEffect::changeEngine()
@@ -275,6 +243,12 @@ void KonveyorEffect::updateDecorations(const QList<Layout::WindowState> &states)
             d->decorations.update(window, state, home->geometryF(), home->scale());
         }
     }
+    d->decorations.syncEventEffects(states, [this](Layout::WindowId id) { return d->windows.windowOf(id); });
+    if (d->decorations.wantsViewStates()) {
+        d->decorations.updateViewSignals(readEngine().outputViewStates(), states);
+    }
+    const KWin::Window *active = KWin::workspace()->activeWindow();
+    d->inputSignals->setFullscreen(active && active->isFullScreen());
 }
 
 void KonveyorEffect::updateDropHint(const QList<Layout::WindowState> &states)
@@ -317,6 +291,9 @@ bool KonveyorEffect::isDragged(KWin::Window *window) const
 void KonveyorEffect::applyConfig(const Config::Config &config)
 {
     d->clock.applyConfig(config.animations);
+    d->decorations.setBorderStyles(config.borderStyles, config.animations.reduceMotion || !config.animations.enabled);
+    d->decorations.setAudioBeatThreshold(static_cast<float>(config.audioBeatThreshold));
+    d->inputSignals->setReduceMotion(config.animations.reduceMotion || !config.animations.enabled);
     changeEngine().setConfig(config);
     d->gestures.setConfig(config.gestures);
     d->windows.reevaluate();

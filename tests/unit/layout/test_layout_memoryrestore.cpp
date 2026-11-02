@@ -134,7 +134,7 @@ private Q_SLOTS:
         Config::OutputConfig output;
         output.name = QStringLiteral("DP-1");
         output.layout = Config::LayoutPart {};
-        output.layout->border = Config::BorderRule {true, 4.0, {}, {}, {}};
+        output.layout->border = Config::BorderRule {true, 4.0, {}, {}, {}, {}, {}, {}};
         config.outputs.append(output);
         Fixture fixture(config);
         const auto first = fixture.add(QStringLiteral("app"));

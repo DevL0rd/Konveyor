@@ -32,6 +32,7 @@ Window {
                 visit(child);
             }
             visit(item.contentItem);
+            visit(item.item);
             const data = item.data;
             for (let index = 0; data && typeof data === "object" && index < (data.length || 0); ++index) {
                 visit(data[index]);
@@ -51,6 +52,9 @@ Window {
     function supports(item, call) {
         const name = call.split("=")[0];
         return item[name] !== undefined && (call.includes("=") || typeof item[name] === "function");
+    }
+    function loading() {
+        return items(page).some(item => item.sourceComponent !== undefined && item.status === Loader.Loading);
     }
     function targetIn(row, calls, filter) {
         const slots = Array.from(row.editor || []).concat(Array.from(row.control || []));
@@ -178,6 +182,12 @@ inline void runControl(const SettingsHome &home)
     QCOMPARE(argumentLists.size(), labels.size());
     for (qsizetype step = 0; step < labels.size(); ++step) {
         QVariant problem;
+        QVariant loading = true;
+        for (int waited = 0; loading.toBool() && waited < 5000; waited += 10) {
+            QTest::qWait(10);
+            QVERIFY(QMetaObject::invokeMethod(driver.get(), "loading", Q_RETURN_ARG(QVariant, loading)));
+        }
+        QVERIFY(!loading.toBool());
         QVERIFY(QMetaObject::invokeMethod(driver.get(), "drive", Q_RETURN_ARG(QVariant, problem), Q_ARG(QVariant, labels.at(step)),
             Q_ARG(QVariant, step == 0 ? nth : 0), Q_ARG(QVariant, steps.at(step)),
             Q_ARG(QVariant, parsedJson(argumentLists.at(step).toUtf8()))));

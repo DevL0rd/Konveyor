@@ -268,6 +268,13 @@ target_compile_options(test_held_modifiers PRIVATE -Wall -Wextra -Werror)
 add_test(NAME test_held_modifiers COMMAND test_held_modifiers)
 set_tests_properties(test_held_modifiers PROPERTIES LABELS "unit;input")
 
+add_executable(test_input_motion unit/input/test_input_motion.cpp ${PROJECT_SOURCE_DIR}/src/effect/input/inputmotion.cpp)
+target_include_directories(test_input_motion PRIVATE ${PROJECT_SOURCE_DIR}/src/effect)
+target_link_libraries(test_input_motion PRIVATE Qt6::Core Qt6::Test)
+target_compile_options(test_input_motion PRIVATE -Wall -Wextra -Werror)
+add_test(NAME test_input_motion COMMAND test_input_motion)
+set_tests_properties(test_input_motion PROPERTIES LABELS "unit;input")
+
 find_package(KF6 REQUIRED COMPONENTS Notifications)
 add_executable(test_config_manager unit/plugin/test_config_manager.cpp ${PROJECT_SOURCE_DIR}/src/effect/plugin/configmanager.cpp
     ${PROJECT_SOURCE_DIR}/src/effect/plugin/notifications.cpp)

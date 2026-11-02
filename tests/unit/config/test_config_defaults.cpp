@@ -66,9 +66,9 @@ void TestConfigDefaults::defaultAppearanceValues()
 {
     const Layout layout = defaultConfig().layout;
     QCOMPARE(layout.focusRing.enabled, true);
-    QCOMPARE(layout.focusRing.width, 4.0);
+    QCOMPARE(layout.focusRing.width, 2.0);
     QCOMPARE(layout.focusRing.active.color, QColor(127, 200, 255));
-    QCOMPARE(layout.focusRing.inactive.color, QColor(80, 80, 80));
+    QVERIFY(!layout.focusRing.inactive.isSet());
     QCOMPARE(layout.focusRing.urgent.color, QColor(155, 0, 0));
     QCOMPARE(layout.border.enabled, false);
     QCOMPARE(layout.border.width, 4.0);
@@ -127,7 +127,7 @@ void TestConfigDefaults::defaultDecorationDetails()
     QCOMPARE(layout.tabIndicator.gapsBetweenTabs, 0.0);
     QCOMPARE(layout.tabIndicator.cornerRadius, 0.0);
     QCOMPARE(layout.tabIndicator.active, std::nullopt);
-    QCOMPARE(layout.tabIndicator.inactive, std::nullopt);
+    QCOMPARE(layout.tabIndicator.inactive.color, QColor(80, 80, 80));
     QCOMPARE(layout.tabIndicator.urgent, std::nullopt);
     QCOMPARE(layout.insertHint.paint.gradient, std::nullopt);
 }
@@ -194,7 +194,7 @@ void TestConfigDefaults::mergedLayoutAppliesPart()
     QCOMPARE(merged.struts, (Struts {1, 2, 3, 4}));
     QCOMPARE(merged.border.enabled, true);
     QCOMPARE(merged.border.width, 9.0);
-    QCOMPARE(merged.focusRing.width, 4.0);
+    QCOMPARE(merged.focusRing.width, 2.0);
 }
 
 void TestConfigDefaults::mergedLayoutUnsetsWithFalseFlag()

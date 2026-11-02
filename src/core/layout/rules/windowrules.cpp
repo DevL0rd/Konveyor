@@ -38,6 +38,9 @@ void mergeBorderRule(Config::BorderRule &target, const Config::BorderRule &sourc
     assignIfSet(target.active, source.active);
     assignIfSet(target.inactive, source.inactive);
     assignIfSet(target.urgent, source.urgent);
+    target.activeStyle = source.activeStyle.isEmpty() ? target.activeStyle : source.activeStyle;
+    target.inactiveStyle = source.inactiveStyle.isEmpty() ? target.inactiveStyle : source.inactiveStyle;
+    target.urgentStyle = source.urgentStyle.isEmpty() ? target.urgentStyle : source.urgentStyle;
 }
 
 void applyOpenRules(EffectiveWindowRules &resolved, const Config::WindowRule &rule)
@@ -156,6 +159,7 @@ Config::Border mergeBorder(Config::Border border, const Config::BorderRule &rule
     border.active = rule.active.value_or(border.active);
     border.inactive = rule.inactive.value_or(border.inactive);
     border.urgent = rule.urgent.value_or(border.urgent);
+    Config::mergeStyleNames(border, rule);
     return border;
 }
 

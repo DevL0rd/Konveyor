@@ -173,13 +173,13 @@ SettingsPage {
 
     CardHeader {
         visible: page.rule.name !== undefined
-        title: "Look"
+        title: "Appearance"
     }
 
     Card {
         visible: page.rule.name !== undefined
 
-        RuleLookSection {
+        RuleAppearanceSection {
             Layout.fillWidth: true
             rulePath: page.rulePath
         }

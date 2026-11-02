@@ -26,6 +26,7 @@ private Q_SLOTS:
     void fixingABrokenIncludeInASubfolderClearsTheError();
     void newSectionsStayBeforeForceResizableInclude();
     void forceResizableToggleAfterUiEdits();
+    void failedSaveGoesBackToTheSavedText();
 
 private:
     struct Session
@@ -246,6 +247,28 @@ void TestSettingsIncludesQml::forceResizableToggleAfterUiEdits()
     QCOMPARE(config.disableMinimize, true);
     QCOMPARE(config.windowRules.size(), 1);
     QCOMPARE(messages(session), QStringList {});
+}
+
+void TestSettingsIncludesQml::failedSaveGoesBackToTheSavedText()
+{
+    const QString text = QStringLiteral("layout {\n    gaps 4\n}\n");
+    Session session = open(text, {});
+    QSignalSpy reverted(session.store, SIGNAL(saveFailed()));
+    QVERIFY(QFile::setPermissions(m_home.configPath(), QFile::ReadOwner));
+    QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {9}, QVariantMap {}));
+    QVERIFY(QMetaObject::invokeMethod(session.store, "save"));
+    QVERIFY(QFile::setPermissions(m_home.configPath(), QFile::ReadOwner | QFile::WriteOwner));
+    QCOMPARE(reverted.count(), 1);
+    QVERIFY(messages(session).constLast().startsWith(QStringLiteral("Could not write ")));
+    QCOMPARE(SettingsHome::read(m_home.configPath()), text);
+    QCOMPARE(session.store->property("needsSave").toBool(), false);
+    QCOMPARE(session.store->property("canUndo").toBool(), false);
+
+    QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {QStringLiteral("wide")}, QVariantMap {}));
+    QVERIFY(QMetaObject::invokeMethod(session.store, "save"));
+    QCOMPARE(reverted.count(), 2);
+    QVERIFY(session.store->property("configError").toString().isEmpty());
+    QCOMPARE(SettingsHome::read(m_home.configPath()), text);
 }
 
 QTEST_MAIN(TestSettingsIncludesQml)

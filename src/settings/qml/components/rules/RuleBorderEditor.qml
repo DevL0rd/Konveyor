@@ -21,7 +21,7 @@ ColumnLayout {
     readonly property var widthNode: blockChildren.find(child => child.name === "width")
     readonly property var states: [
         { key: "active", label: "Focused window" },
-        { key: "inactive", label: "Other windows" },
+        { key: "inactive", label: "Inactive windows" },
         { key: "urgent", label: "Needs attention" }
     ]
 
