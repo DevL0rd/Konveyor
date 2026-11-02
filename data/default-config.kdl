@@ -156,7 +156,6 @@ border-style "Default-Style" {
 }
 
 border-style "Default-Style-Inactive" {
-    layer "gradient" { speed 0; colors "#141414" "#0e0e0e"; }
     layer "shimmer" { width 6; blend "add"; colors "#141414" "#ffffff"; }
     layer "bass-thump" { width 3; blend "add"; baseline 0; colors "#ffffff"; }
     layer "waveform" { width 14; blend "add"; colors "#141414" "#ffffff"; }
