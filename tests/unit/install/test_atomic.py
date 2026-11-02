@@ -39,7 +39,8 @@ class TestFedoraAtomic(AtomicTest):
         self.assertIn(["toolbox", "--assumeyes", "create", "--distro", "fedora", "--release", "42", self.box], calls)
         sudo = [call[1:] for call in calls if call[0] == "sudo"]
         self.assertEqual(sudo[:3], [["dnf", "install", "--assumeyes", "--quiet", "fedora-repos-archive"], ["dnf", "versionlock", "clear"],
-                                    ["dnf", "versionlock", "add", "kwin-6.7.0-1.fc42", "qt6-qtbase-6.9.1-2.fc42"]])
+                                    ["dnf", "versionlock", "add", "kwin-6.7.0-1.fc42", "qt6-qtbase-6.9.1-2.fc42",
+                                     "kwin-devel-6.7.0-1.fc42", "qt6-qtbase-devel-6.9.1-2.fc42"]])
         self.assertEqual(sudo[3][:3], ["dnf", "install", "--assumeyes"])
         self.assertEqual(sudo[4], ["dnf", "distro-sync", "--assumeyes"])
         self.assertEqual(self.harness.stub_state("podman")["containers"], {"other": "x", self.box: self.image})
@@ -69,6 +70,14 @@ class TestFedoraAtomic(AtomicTest):
         result = self.dependencies()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("kwin (system 6.7.0-1.fc42, toolbox 6.7.1-1.fc42)", result.stderr)
+
+    def test_plasma_libraries_drifting_from_the_system_stop_the_install(self):
+        self.harness.set_stub_state("podman", {"containers": {self.box: self.image}, "images": [self.image]})
+        self.harness.set_stub_state("packages", packages({"libplasma": "6.7.0-1.fc42", "kwin": "6.7.0-1.fc42"},
+                                                         {"libplasma": "6.8.2-1.fc42", "kwin": "6.7.0-1.fc42"}))
+        result = self.dependencies()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("libplasma (system 6.7.0-1.fc42, toolbox 6.8.2-1.fc42)", result.stderr)
 
     def test_an_image_based_system_that_is_not_fedora_is_refused(self):
         self.harness.write(self.harness.system / "etc" / "os-release", "ID=centos\nVERSION_ID=10\n")

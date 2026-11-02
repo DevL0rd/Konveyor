@@ -7,7 +7,7 @@ ARCH_PACKAGES=(base-devel cmake ninja git extra-cmake-modules qt6-base qt6-decla
 FEDORA_PACKAGES=(cmake ninja-build git gcc-c++ extra-cmake-modules qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qt5compat kwin-devel kdecoration-devel kf6-kglobalaccel-devel kf6-kconfig-devel kf6-kcolorscheme-devel kf6-knotifications-devel kf6-kcoreaddons-devel kf6-ki18n-devel kf6-kwindowsystem-devel libplasma-devel libxkbcommon-devel libepoxy-devel libdrm-devel wayland-devel xcb-util-wm-devel python3-dbus kf6-kirigami layer-shell-qt kf6-kcmutils-devel kf6-kirigami-addons kf6-kdeclarative kf6-kiconthemes kf6-kservice-devel kf6-kpackage libkscreen vulkan-headers vulkan-loader-devel glib2 libdnf5-plugin-actions python3 jq curl openssh-clients)
 SUSE_PACKAGES=(cmake ninja git gcc-c++ kf6-extra-cmake-modules qt6-base-devel qt6-base-private-devel qt6-declarative-devel qt6-declarative-imports qt6-qt5compat-imports kwin6-devel kdecoration6-devel kf6-kglobalaccel-devel kf6-kconfig-devel kf6-kcolorscheme-devel kf6-knotifications-devel kf6-kcoreaddons-devel kf6-kcoreaddons-imports kf6-ki18n-devel kf6-kwindowsystem-devel libplasma6-devel libxkbcommon-devel libepoxy-devel libdrm-devel wayland-devel libxcb-devel xcb-util-wm-devel python3-dbus-python kf6-kirigami-imports layer-shell-qt6-imports kf6-kcmutils-devel kf6-kcmutils-imports kirigami-addons6 kf6-kdeclarative-imports kf6-kiconthemes-imports kf6-kservice-devel kf6-kpackage libkscreen6-plugin vulkan-devel glib2-tools python3 jq curl openssh-clients)
 DEBIAN_PACKAGES=(cmake ninja-build git g++ extra-cmake-modules qt6-base-dev qt6-base-private-dev qt6-declarative-dev kwin-dev libkdecorations3-dev libkf6globalaccel-dev libkf6config-dev libkf6config-bin libkf6colorscheme-dev libkf6notifications-dev libkf6coreaddons-dev libkf6i18n-dev libkf6windowsystem-dev libplasma-dev libxkbcommon-dev libepoxy-dev libdrm-dev libwayland-dev libxcb-icccm4-dev libxcb-composite0-dev libxcb-randr0-dev libxcb-res0-dev libxcb-shm0-dev libxcb-sync-dev python3-dbus qml6-module-org-kde-kirigami qml6-module-org-kde-layershell libkf6kcmutils-dev qml6-module-org-kde-kcmutils qml6-module-org-kde-kirigamiaddons-formcard qml6-module-org-kde-kirigamiaddons-components qml6-module-org-kde-kquickcontrols qml6-module-org-kde-iconthemes qml6-module-org-kde-coreaddons qml6-module-qt5compat-graphicaleffects qml6-module-qtquick-shapes qml6-module-qtquick-dialogs qml6-module-qt-labs-folderlistmodel libkf6service-dev libkf6service-bin kpackagetool6 libkscreen-bin libvulkan-dev libglib2.0-bin python3 jq curl openssh-client)
-TOOLBOX_MATCHED_PACKAGES='^(kwin|kdecoration|qt6-|kf6-)'
+TOOLBOX_MATCHED_PACKAGES='^(kwin|kdecoration|qt6-|kf6-|libplasma)'
 
 matched_packages() {
     "$@" rpm -qa --qf '%{NAME} %{VERSION}-%{RELEASE}\n' | tr -d '\r' | awk -v pattern="$TOOLBOX_MATCHED_PACKAGES" '$1 ~ pattern' | sort -u
@@ -34,6 +34,9 @@ prepare_toolbox() {
     fi
     say "Matching the toolbox to this system's KWin, Qt and KDE Frameworks"
     mapfile -t locks < <(matched_packages | tr ' ' '-')
+    # Pin the development packages too: a newer -devel pulls the newer library it
+    # requires, so the build links what this system runs, not what the repos carry.
+    mapfile -t -O "${#locks[@]}" locks < <(matched_packages | awk '{ print $1 "-devel-" $2 }')
     "${KONVEYOR_BUILD_ENV[@]}" sudo dnf install --assumeyes --quiet fedora-repos-archive
     "${KONVEYOR_BUILD_ENV[@]}" sudo dnf versionlock clear >/dev/null
     "${KONVEYOR_BUILD_ENV[@]}" sudo dnf versionlock add "${locks[@]}" >/dev/null
