@@ -219,6 +219,27 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
         self.write_amdgpu("card1", 3, (1 << 29, 1 << 29), (0, 1 << 30))
         self.assertEqual(self.load(SCRIPT, "sysmon_collect", pynvml=fake_nvml()).build()["gpu"]["name"], "Test GPU")
 
+    def write_i915(self, rc6_ms):
+        gt = "/sys/class/drm/card1/gt/gt0/"
+        for name, text in {"rc6_residency_ms": rc6_ms, "rps_act_freq_mhz": 800, "rps_RP0_freq_mhz": 1300}.items():
+            self.fake.write(gt + name, "%s\n" % text)
+        self.fake.write("/sys/class/drm/card1/device/uevent", "DRIVER=i915\nPCI_SLOT_NAME=0000:00:02.0\n")
+        self.fake.write("/run/udev/data/+pci:0000:00:02.0", "E:ID_MODEL_FROM_DATABASE=TigerLake-LP GT2 [Iris Xe Graphics]\n")
+
+    def test_an_intel_gpu_is_reported_when_there_is_no_nvidia_or_amd_gpu(self):
+        self.write_minimal()
+        self.write_i915(1000)
+        gpu = self.load(SCRIPT, "sysmon_collect").build()["gpu"]
+        self.assertEqual(gpu, {"name": "Intel Iris Xe Graphics", "util": 0, "vram_used": 0, "vram_total": 0,
+                               "vram_pct": 0, "temp": 0, "power": 0, "clock_gr": 800, "clock_mem": 0,
+                               "fan": 0, "clock_max": 1300, "power_max": 0, "shared": True})
+
+    def test_amdgpu_takes_precedence_over_i915(self):
+        self.write_minimal()
+        self.write_i915(1000)
+        self.write_amdgpu("card0", 1, (2 << 30, 16 << 30), (0, 1 << 30))
+        self.assertEqual(self.load(SCRIPT, "sysmon_collect").build()["gpu"]["name"], "AMD GPU")
+
     def test_snapshot_before_the_first_write_is_empty(self):
         self.write_minimal()
         module = self.load(SCRIPT, "sysmon_collect")

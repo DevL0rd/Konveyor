@@ -10,7 +10,7 @@ via XHR (no per-poll process spawn).
 Collected: total + per-core CPU% (split into P-cores / E-cores on Intel hybrid),
 per-group average frequency, package power (Intel RAPL), CPU temperature, RAM +
 swap, and the GPU (util, VRAM, temp, power, clocks, fan) from NVML for NVIDIA
-or amdgpu sysfs for AMD.
+or amdgpu and i915 sysfs for AMD and Intel.
 
 Modes: --serve | --snapshot | --once
 """
@@ -21,6 +21,7 @@ sys.path[:0] = [HERE, os.path.join(os.path.dirname(os.path.dirname(HERE)), "shar
 
 import collectors
 from sysmon_amdgpu import amd_gpu
+from sysmon_intelgpu import intel_gpu
 from sysmon_sensors import cpu_fan, cpu_freqs, cpu_temp
 
 APP = "Linux-System-Monitor"
@@ -170,7 +171,7 @@ _nvml = {"init": False, "h": None}
 
 def read_gpu():
     """Overall GPU stats via NVML -- no fork, ~4ms. None if there's no NVIDIA
-    GPU / NVML present (build() then tries amd_gpu)."""
+    GPU / NVML present (build() then tries amd_gpu, then intel_gpu)."""
     try:
         import pynvml as N
     except Exception:
@@ -296,7 +297,7 @@ def build():
     return {
         "ts": now, "host": socket.gethostname(), "cpu_model": CPU_MODEL,
         "uptime": uptime, "load": load, "ncpu": ncpu,
-        "cpu": cpu, "mem": read_mem(), "gpu": read_gpu() or amd_gpu(CPU_MODEL),
+        "cpu": cpu, "mem": read_mem(), "gpu": read_gpu() or amd_gpu(CPU_MODEL) or intel_gpu(),
     }
 
 
