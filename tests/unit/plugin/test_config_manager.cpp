@@ -1,3 +1,4 @@
+#include "configfiles.h"
 #include "plugin/configmanager.h"
 
 #include <QDir>
@@ -11,28 +12,10 @@
 #include <memory>
 
 using Konveyor::ConfigManager;
-
-namespace
-{
-
-QString gapsConfig(int gaps)
-{
-    return QStringLiteral("layout {\n    gaps %1\n}\n").arg(gaps);
-}
-
-bool writeInPlace(const QString &path, const QString &text)
-{
-    QFile file(path);
-    return file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text) && file.write(text.toUtf8()) >= 0;
-}
-
-bool replaceByRename(const QString &path, const QString &text)
-{
-    QSaveFile file(path);
-    return file.open(QIODevice::WriteOnly | QIODevice::Text) && file.write(text.toUtf8()) >= 0 && file.commit();
-}
-
-}
+using Konveyor::Test::gapsConfig;
+using Konveyor::Test::isolate;
+using Konveyor::Test::replaceByRename;
+using Konveyor::Test::writeInPlace;
 
 class TestConfigManager : public QObject
 {
@@ -43,13 +26,6 @@ public:
     {
         qputenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/konveyor-test-bus");
         isolate(QDir::temp().filePath(QStringLiteral("konveyor-config-manager-unset")));
-    }
-
-    static void isolate(const QString &root)
-    {
-        qputenv("XDG_STATE_HOME", QDir(root).filePath(QStringLiteral("state")).toUtf8());
-        qputenv("XDG_DATA_HOME", QDir(root).filePath(QStringLiteral("data")).toUtf8());
-        qputenv("XDG_DATA_DIRS", QDir(root).filePath(QStringLiteral("system")).toUtf8());
     }
 
 private Q_SLOTS:

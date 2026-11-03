@@ -56,6 +56,21 @@ private Q_SLOTS:
             true);
     }
 
+    void incubatesSectionsInTheBackgroundOnce()
+    {
+        QQmlEngine engine;
+        QString error;
+        const std::unique_ptr<QObject> host
+            = m_home.create(engine, "QtObject { function load() { SettingsNavigation.loadSectionsInBackground() } }", &error);
+        QVERIFY2(host, qPrintable(error));
+        QVERIFY(engine.incubationController() == nullptr);
+        QVERIFY(QMetaObject::invokeMethod(host.get(), "load"));
+        QQmlIncubationController *controller = engine.incubationController();
+        QVERIFY(controller != nullptr);
+        QVERIFY(QMetaObject::invokeMethod(host.get(), "load"));
+        QCOMPARE(engine.incubationController(), controller);
+    }
+
 private:
     SettingsHome m_home;
 };

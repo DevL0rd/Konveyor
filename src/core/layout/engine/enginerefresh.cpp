@@ -54,7 +54,6 @@ void Engine::Private::updateFocus()
             const bool isFocused = focused && *focused == window.id();
             window.setFocused(isFocused);
             if (isFocused) {
-                window.setFocusTimestamp(clock.now());
                 focusOrder.insert(window.id(), ++focusCounter);
             }
         }

@@ -142,6 +142,36 @@ private Q_SLOTS:
         QCOMPARE(bus.frame(99).fireCount(Signal::Focus), quint32(0));
     }
 
+    void everywhereClaimsOfEitherClientKeepUnclaimedFrames_data()
+    {
+        QTest::addColumn<SignalClient>("client");
+        QTest::newRow("borders") << SignalClient::Borders;
+        QTest::newRow("events") << SignalClient::Events;
+    }
+
+    void everywhereClaimsOfEitherClientKeepUnclaimedFrames()
+    {
+        QFETCH(SignalClient, client);
+        Render::SignalBus bus;
+        bus.setWantedEverywhere(client, setOf({Signal::Focus}));
+        QVERIFY(bus.wanted(99, Signal::Focus));
+        bus.fire(99, Signal::Focus);
+        bus.setWanted(SignalClient::Borders, 5, setOf({Signal::Click}));
+        QCOMPARE(bus.frame(99).fireCount(Signal::Focus), quint32(1));
+        bus.setWantedEverywhere(client, {});
+        QVERIFY(!bus.wanted(99, Signal::Focus));
+        QCOMPARE(bus.frame(99).fireCount(Signal::Focus), quint32(0));
+    }
+
+    void claimedWindowsKeepTheirFramesWhenOtherClaimsChange()
+    {
+        Render::SignalBus bus;
+        bus.setWanted(SignalClient::Borders, 1, setOf({Signal::Click}));
+        bus.fire(1, Signal::Click);
+        bus.setWanted(SignalClient::Events, 2, setOf({Signal::Keypress}));
+        QCOMPARE(bus.frame(1).fireCount(Signal::Click), quint32(1));
+    }
+
     void clearingAClientKeepsTheOther()
     {
         Render::SignalBus bus;

@@ -67,8 +67,6 @@ public:
     void markHomeUnplugged() { m_homeUnplugged = true; }
     void makeHome(const OutputArea &area);
     void setConfiguredHome(const QString &reference);
-    const QString &outputName() const { return m_area.outputName; }
-    bool hasOutput() const { return !m_area.outputName.isEmpty(); }
     const OutputArea &area() const { return m_area; }
     void setOutput(const OutputArea &area);
     void clearWindowedFullscreenFallbacks();
@@ -77,7 +75,6 @@ public:
     void updateConfig(OptionsPtr globalOptions);
     const OptionsPtr &options() const { return m_options; }
     void setLayoutOverride(std::optional<Config::LayoutPart> layoutOverride);
-    const Anim::Clock &clock() const { return m_clock; }
 
     void tickAnimations();
     bool isAnimating() const;

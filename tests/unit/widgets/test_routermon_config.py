@@ -41,10 +41,11 @@ sys.exit(int(os.environ.get("SSH_CODE", "0")))
 
 class FakeAdGuard(http.server.BaseHTTPRequestHandler):
     login = "Basic " + base64.b64encode(b"admin:pass word").decode()
+    outage = "Basic " + base64.b64encode(b"admin:outage").decode()
 
     def do_GET(self):
         accepted = self.path == "/control/status" and self.headers.get("Authorization") == self.login
-        self.send_response(200 if accepted else 401)
+        self.send_response(500 if self.headers.get("Authorization") == self.outage else 200 if accepted else 401)
         self.end_headers()
         self.wfile.write(b'{"protection_enabled": true}' if accepted else b"")
 
@@ -117,6 +118,20 @@ class TestRoutermonConfig(RouterTest):
     def test_an_unreachable_adguard_is_reported(self):
         result = self.adguard("127.0.0.1:9", "admin", "pass word", code=1)
         self.assertTrue(result.stderr.startswith("Saved, but AdGuard Home is unreachable at http://127.0.0.1:9:"), result.stderr)
+
+    def test_a_failing_adguard_is_reported_with_its_status(self):
+        result = self.adguard(self.adguard_server(), "admin", "outage", code=1)
+        self.assertEqual(result.stderr, "Saved, but AdGuard Home answered with HTTP 500\n")
+
+    def test_adguard_needs_a_username_and_password(self):
+        self.assertEqual(self.config("adguard", "127.0.0.1:9", "admin", code=1).stderr,
+                         "AdGuard Home URL, username and password are required\n")
+
+    def test_installing_needs_the_collector_to_be_present(self):
+        module = load_script(SCRIPT, self.box.environment)
+        missing = self.box.root / "missing.sh"
+        with mock.patch.object(module, "COLLECTOR", missing), self.assertRaisesRegex(RuntimeError, "collector is missing from the installed runtime"):
+            module.install_collector({})
 
     def test_adguard_needs_a_url(self):
         self.assertEqual(self.config("adguard", " ", "admin", "", code=1).stderr, "AdGuard Home URL cannot be empty\n")

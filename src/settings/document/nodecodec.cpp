@@ -16,10 +16,11 @@ QVariant valueToVariant(const Kdl::Value &value)
     return std::visit(
         [](const auto &data) -> QVariant {
             using T = std::decay_t<decltype(data)>;
-            if (std::is_same_v<T, Kdl::Null>) {
+            if constexpr (std::is_same_v<T, Kdl::Null>) {
                 return QVariant::fromValue(nullptr);
+            } else {
+                return QVariant::fromValue(data);
             }
-            return QVariant::fromValue(data);
         },
         value.data);
 }

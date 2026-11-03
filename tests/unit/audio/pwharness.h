@@ -54,6 +54,9 @@ context.modules = [
 context.objects = [
     { factory = spa-node-factory
       args = { factory.name = support.node.driver node.name = Dummy-Driver priority.driver = 8000 } }
+    { factory = adapter
+      args = { factory.name = support.null-audio-sink node.name = konveyor-test-orphan media.class = Stream/Output/Audio
+               object.linger = true audio.position = [ MONO ] } }
 ]
 )";
 

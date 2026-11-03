@@ -130,7 +130,7 @@ std::size_t ColumnStrip::furthestColumnInDirection(std::size_t snapColIndex, dou
 {
     std::size_t result = snapColIndex;
     const std::size_t count = m_columns.size();
-    for (std::size_t step = 1; step <= count; ++step) {
+    for (std::size_t step = 1;; ++step) {
         const bool exhausted = forward ? snapColIndex + step >= count : snapColIndex < step;
         const std::size_t idx = forward ? snapColIndex + step : snapColIndex - step;
         if (exhausted || !columnStaysInView(idx, snapViewPos, forward)) {

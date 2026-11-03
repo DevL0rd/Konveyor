@@ -34,10 +34,8 @@ public:
     double targetIndex() const;
     void offset(int delta);
     bool isAnimating() const;
-    bool isSwiping() const { return m_swipe.has_value(); }
     bool isGesture() const { return m_isGesture; }
     WorkspaceSwipe *swipe() { return m_swipe ? &*m_swipe : nullptr; }
-    const WorkspaceSwipe *swipe() const { return m_swipe ? &*m_swipe : nullptr; }
     Anim::Animation *animation() { return m_animation ? &*m_animation : nullptr; }
 
     static WorkspaceTransition withAnimation(Anim::Animation animation, bool isGesture = false);

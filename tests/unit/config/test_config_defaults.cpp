@@ -22,6 +22,7 @@ private Q_SLOTS:
     void mergedLayoutUnsetsWithFalseFlag();
     void mergedLayoutRestoresEmptyPresets();
     void keysymLookup();
+    void screensaverKeysymsKeepTheirCase();
     void loadErrorFormatting();
 };
 
@@ -233,6 +234,13 @@ void TestConfigDefaults::keysymLookup()
     QVERIFY(keysymFromName(QStringLiteral("Page_Down")) != 0);
     QVERIFY(keysymFromName(QStringLiteral("XF86AudioRaiseVolume")) != 0);
     QCOMPARE(keysymFromName(QStringLiteral("NotAKeyAtAll")), 0u);
+}
+
+void TestConfigDefaults::screensaverKeysymsKeepTheirCase()
+{
+    QCOMPARE(keysymFromName(QStringLiteral("XF86ScreenSaver")), 0x1008ff2du);
+    QCOMPARE(keysymFromName(QStringLiteral("XF86Screensaver")), 0x10081245u);
+    QCOMPARE(keysymFromName(QStringLiteral("xf86screensaver")), 0x1008ff2du);
 }
 
 void TestConfigDefaults::loadErrorFormatting()

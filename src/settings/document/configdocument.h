@@ -7,6 +7,7 @@
 #include <QVariantMap>
 
 #include <expected>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -19,6 +20,8 @@ class ConfigDocument
 {
 public:
     explicit ConfigDocument(const QString &text = QString());
+
+    static void failEditsAfter(std::optional<int> successfulEdits);
 
     QString text() const;
 

@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QSGMaterialShader>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstring>
@@ -65,8 +66,7 @@ public:
         std::memcpy(uniforms.matrix.data(), matrix.constData(), sizeof(uniforms.matrix));
         uniforms.opacity = state.opacity();
         QByteArray *buffer = state.uniformData();
-        Q_ASSERT(static_cast<std::size_t>(buffer->size()) >= sizeof(uniforms));
-        std::memcpy(buffer->data(), &uniforms, sizeof(uniforms));
+        std::memcpy(buffer->data(), &uniforms, std::min(static_cast<std::size_t>(buffer->size()), sizeof(uniforms)));
         return true;
     }
 

@@ -1,6 +1,7 @@
 #include "config/loader.h"
 
 #include "config/sections.h"
+#include "kdl/characters.h"
 
 #include <QDir>
 #include <QFile>
@@ -20,19 +21,7 @@ Paint solidPaint(int red, int green, int blue, int alpha)
 
 QString sourceLineOf(const LoadContext &context, const Kdl::Location &location)
 {
-    const auto text = context.texts.constFind(location.file);
-    if (text == context.texts.constEnd() || location.line <= 0) {
-        return {};
-    }
-    const QStringList lines = text->split(QLatin1Char('\n'));
-    if (location.line > lines.size()) {
-        return {};
-    }
-    QString line = lines.at(location.line - 1);
-    if (line.endsWith(QLatin1Char('\r'))) {
-        line.chop(1);
-    }
-    return line;
+    return Kdl::splitLines(context.texts.value(location.file)).value(location.line - 1);
 }
 
 void warnAboutHiddenWindowSwipes(LoadContext &context)

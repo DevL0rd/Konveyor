@@ -15,6 +15,11 @@ def qdbus(service, path, method, *args):
     return subprocess.run(["qdbus6", service, path, method, *args], capture_output=True, text=True, check=True).stdout.strip()
 
 
+def virtual_keyboard(method, *args):
+    return subprocess.run(["busctl", "--user", method, "org.kde.KWin", "/VirtualKeyboard", "org.kde.kwin.VirtualKeyboard", *args],
+                          capture_output=True, text=True).stdout.strip()
+
+
 def wait_for(condition, timeout=30, interval=0.1):
     deadline = time.monotonic() + timeout
     while True:

@@ -37,6 +37,17 @@ QtObject {
 }
 )";
 
+const QByteArray quittingMain = R"(import QtQuick
+QtObject {
+    required property QtObject service
+    required property var config
+    property Connections hides: Connections {
+        target: service
+        function onHideRequested() { Qt.quit() }
+    }
+}
+)";
+
 const QByteArray pageRecordingOverlay = R"(import QtQuick
 Item {
     Connections {
@@ -112,6 +123,32 @@ private Q_SLOTS:
         QVERIFY2(
             result.err.contains(QStringLiteral("could not register org.devl0rd.KontrolPanel on the session bus; is it already running?")),
             qPrintable(result.err));
+    }
+
+    void exitsWhenThereIsNoSessionBus()
+    {
+        QProcessEnvironment environment = m_session->environment();
+        environment.insert(QStringLiteral("DBUS_SESSION_BUS_ADDRESS"), QStringLiteral("unix:path=/nonexistent/konveyor-test-bus"));
+        const ProgramResult result = m_session->run(QStringLiteral(KONVEYOR_KONTROL_PANEL), {m_directory}, environment);
+        QCOMPARE(result.exitCode, 1);
+        QVERIFY2(
+            result.err.contains(QStringLiteral("could not register org.devl0rd.KontrolPanel on the session bus; is it already running?")),
+            qPrintable(result.err));
+    }
+
+    void exitsCleanlyWhenTheInterfaceQuits()
+    {
+        QVERIFY(writeFile(m_directory + QStringLiteral("/Main.qml"), quittingMain));
+        FakeKGlobalAccel kglobalaccel;
+        QVERIFY(kglobalaccel.start(m_session->address()));
+        start();
+        QDBusInterface panel(busName, QStringLiteral("/KontrolPanel"), busName, QDBusConnection::sessionBus());
+        QCOMPARE(panel.call(QStringLiteral("Hide")).type(), QDBusMessage::ReplyMessage);
+        QVERIFY(m_process->waitForFinished(15000));
+        QCOMPARE(m_process->exitStatus(), QProcess::NormalExit);
+        QCOMPARE(m_process->exitCode(), 0);
+        FakeKGlobalAccel::settle();
+        QVERIFY(!kglobalaccel.calls(QStringLiteral("doRegister")).isEmpty());
     }
 
     void brokenMainQmlExitsWithoutClaimingTheBusName()

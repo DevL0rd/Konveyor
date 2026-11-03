@@ -75,16 +75,21 @@ StreamIdentity withFallback(StreamIdentity stream, const StreamIdentity &fallbac
     return stream;
 }
 
-bool processDescendsFrom(qint64 pid, qint64 ancestor)
+bool processDescendsFrom(qint64 pid, qint64 ancestor, const ParentLookup &parent)
 {
     qint64 current = pid;
     for (int depth = 0; current > 1 && depth < kDeepestProcessTree; ++depth) {
         if (current == ancestor) {
             return true;
         }
-        current = parentOf(current);
+        current = parent(current);
     }
     return false;
+}
+
+bool processDescendsFrom(qint64 pid, qint64 ancestor)
+{
+    return processDescendsFrom(pid, ancestor, parentOf);
 }
 
 QList<WindowKey> windowsPlaying(const StreamIdentity &stream, const QList<WindowKey> &windows)

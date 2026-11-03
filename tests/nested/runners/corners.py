@@ -17,22 +17,26 @@ def windows():
     return json.loads(output)
 
 
-def corner_problems():
+def corner_problems(name, title=None):
     image = capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
     problems = []
     checked = 0
     for window in windows():
+        if title and window.get("title") != title:
+            continue
         layout = window.get("layout") or {}
         position, size = layout.get("tile_pos_in_workspace_view"), layout.get("tile_size")
         if not position or not size or position[0] < 0 or position[0] + size[0] > image.width:
             continue
         x, y, width, height = (round(v) for v in (*position, *size))
-        corner = image.getpixel((x + 1, y + 1))
+        points = {"top-left": (x + 1, y + 1), "top-right": (x + width - 2, y + 1), "bottom-right": (x + width - 2, y + height - 2),
+                  "bottom-left": (x + 1, y + height - 2)}
+        corner = image.getpixel(points[name])
         center = image.getpixel((x + width // 2, y + height // 2))
         checked += 1
         print(f"{window.get('title')}: corner={corner} center={center}")
         if corner[3] >= center[3] // 2:
-            problems.append(f"{window.get('title')}: corner pixel is not clipped")
+            problems.append(f"{window.get('title')}: {name} corner pixel is not clipped")
         if center[3] != 255:
             problems.append(f"{window.get('title')}: window content is missing")
     if checked == 0:
@@ -41,8 +45,11 @@ def corner_problems():
 
 
 def main():
-    wait_for(lambda: not corner_problems(), 60)
-    problems = corner_problems()
+    arguments = sys.argv[1:]
+    name = arguments[0] if arguments else "top-left"
+    title = arguments[1] if len(arguments) > 1 else None
+    wait_for(lambda: not corner_problems(name, title), 60)
+    problems = corner_problems(name, title)
     for problem in problems:
         print("  PROBLEM " + problem)
     print("RESULT:", "FAIL" if problems else "PASS")

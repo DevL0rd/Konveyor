@@ -92,6 +92,13 @@ public:
         return object;
     }
 
+    QObject *openStore(QQmlEngine &engine, const std::optional<QString> &text) const
+    {
+        resetConfig(text);
+        create(engine, "QtObject {}");
+        return store(engine);
+    }
+
     static QObject *store(QQmlEngine &engine)
     {
         return engine.singletonInstance<QObject *>(QStringLiteral("org.kde.konveyor.settings"), QStringLiteral("SettingsStore"));

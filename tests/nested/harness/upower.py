@@ -39,6 +39,10 @@ class FakeUPower(dbus.service.Object):
     def Unrelated(self, on_battery):
         self.PropertiesChanged("org.freedesktop.UPower.Device", {"OnBattery": dbus.Boolean(on_battery)}, [])
 
+    @dbus.service.method(CONTROL, in_signature="b")
+    def OtherProperty(self, value):
+        self.PropertiesChanged(SERVICE, {"LidIsClosed": dbus.Boolean(value)}, [])
+
 
 def main():
     DBusGMainLoop(set_as_default=True)

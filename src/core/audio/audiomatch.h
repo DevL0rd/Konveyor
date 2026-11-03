@@ -5,6 +5,8 @@
 #include <QString>
 #include <QtGlobal>
 
+#include <functional>
+
 namespace Konveyor::Audio
 {
 
@@ -29,6 +31,9 @@ struct StreamIdentity
 };
 
 StreamIdentity withFallback(StreamIdentity stream, const StreamIdentity &fallback);
+using ParentLookup = std::function<qint64(qint64)>;
+
+bool processDescendsFrom(qint64 pid, qint64 ancestor, const ParentLookup &parent);
 bool processDescendsFrom(qint64 pid, qint64 ancestor);
 QList<WindowKey> windowsPlaying(const StreamIdentity &stream, const QList<WindowKey> &windows);
 

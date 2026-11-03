@@ -66,6 +66,16 @@ private Q_SLOTS:
         QVERIFY(!startWidgetTool(QStringLiteral("portal-launcher"), {}));
     }
 
+    void anExecutableThatCannotBeLaunchedReportsTheFailure()
+    {
+        writeTool(QStringLiteral("#!/nonexistent/interpreter\n"), QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+        QVERIFY(widgetToolInstalled(QStringLiteral("portal-launcher")));
+        const auto started = startWidgetTool(QStringLiteral("portal-launcher"), {});
+        QVERIFY(!started);
+        QCOMPARE(
+            started.error(), QStringLiteral("Could not start %1.").arg(m_home->filePath(QStringLiteral(".local/bin/portal-launcher"))));
+    }
+
     void aDirectoryIsNotATool()
     {
         QVERIFY(QDir(m_home->path()).mkpath(QStringLiteral(".local/bin/portal-launcher")));

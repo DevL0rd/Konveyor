@@ -21,12 +21,16 @@ Window {
     }
     function items(root) {
         const found = [];
-        const seen = new Set();
+        const seen = {};
         const visit = item => {
-            if (!item || typeof item !== "object" || seen.has(item)) {
+            if (!item || typeof item !== "object") {
                 return;
             }
-            seen.add(item);
+            const key = String(item);
+            if (seen[key]) {
+                return;
+            }
+            seen[key] = true;
             found.push(item);
             for (const child of (item.children || [])) {
                 visit(child);

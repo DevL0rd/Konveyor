@@ -12,7 +12,7 @@ from kwinsession import CLIENTS, for_window, frame, intersects, konveyor, konvey
 MANAGED_X11 = ["X-Normal", "X-Dialog", "X-Transient", "X-Modal", "X-Sticky"]
 UNMANAGED_X11 = ["X-Utility:UTILITY", "X-Splash:SPLASH", "X-Toolbar:TOOLBAR", "X-Menu:MENU", "X-Dropdown:DROPDOWN_MENU:override",
                  "X-PopupMenu:POPUP_MENU:override", "X-Tooltip:TOOLTIP:override", "X-Notification:NOTIFICATION", "X-Dock:DOCK", "X-Desktop:DESKTOP", "X-OSD:ON_SCREEN_DISPLAY",
-                 "X-Critical:CRITICAL_NOTIFICATION", "X-AppletPopup:APPLET_POPUP", "X-SkipTaskbar:NORMAL:skip-taskbar"]
+                 "X-Critical:CRITICAL_NOTIFICATION", "X-AppletPopup:APPLET_POPUP", "X-SkipTaskbar:NORMAL:skip-taskbar", "X-SkipDialog:DIALOG:skip-taskbar"]
 X11_SPECS = ["X-Normal:NORMAL", "X-Sticky:NORMAL", "X-Dialog:DIALOG", "X-Transient:NORMAL:transient", "X-Modal:DIALOG:transient:modal", *UNMANAGED_X11]
 DESCRIBE = ('print("MARK|" + JSON.stringify({title: w.caption, popup: w.popupWindow, dialog: w.dialog, normal: w.normalWindow, '
             'skip: w.skipTaskbar, sticky: w.onAllDesktops, transient: w.transient, app: w.resourceClass}));')

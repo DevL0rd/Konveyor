@@ -36,6 +36,16 @@ private Q_SLOTS:
         QVERIFY(!settings.defaultValue(QStringLiteral("nothing")).isValid());
     }
 
+    void unknownKeysAreDefaultAndCannotBeReset()
+    {
+        TaskbarSettings settings;
+        QVERIFY(settings.isDefault(QStringLiteral("nothing")));
+        QVERIFY(settings.values()->setProperty("iconSpacing", 7));
+        settings.reset(QStringLiteral("nothing"));
+        QCOMPARE(settings.values()->value(QStringLiteral("iconSpacing")).toInt(), 7);
+        QVERIFY(!settings.isDefault(QStringLiteral("iconSpacing")));
+    }
+
     void aChangeReachesEveryReader()
     {
         TaskbarSettings settingsApp;

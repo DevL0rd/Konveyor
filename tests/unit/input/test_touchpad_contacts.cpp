@@ -93,6 +93,14 @@ private Q_SLOTS:
         QVERIFY(m_events.isEmpty());
     }
 
+    void aSecondTrackingIdOnAnActiveSlotIsTreatedAsMovement()
+    {
+        TouchpadContactDecoder decoder(m_handlers, 0, QPointF(1.0, 1.0));
+        feed(decoder, {event(EV_ABS, ABS_MT_TRACKING_ID, 1), event(EV_ABS, ABS_MT_POSITION_X, 2), report(10)});
+        feed(decoder, {event(EV_ABS, ABS_MT_TRACKING_ID, 2), event(EV_ABS, ABS_MT_POSITION_X, 5), report(20)});
+        QCOMPARE(m_events, (QStringList {QStringLiteral("down 0 2,0 @10"), QStringLiteral("motion 0 5,0")}));
+    }
+
     void reportsPhysicalClicksOnly()
     {
         TouchpadContactDecoder decoder(m_handlers, 0, QPointF(1.0, 1.0));
@@ -143,6 +151,32 @@ private Q_SLOTS:
         gated.up(0, 20);
         gated.down(1, QPointF(3.0, 1.0), 30);
         QCOMPARE(m_events, (QStringList {QStringLiteral("reset"), QStringLiteral("down 1 3,1 @30")}));
+    }
+
+    void passesLiveContactsThroughWhileAccepting()
+    {
+        const TouchpadContactHandlers gated = Konveyor::gatedTouchpadContacts(m_handlers, [] { return true; });
+        gated.motion(5, QPointF(9.0, 9.0));
+        gated.up(5, 5);
+        gated.down(0, QPointF(1.0, 1.0), 10);
+        gated.motion(0, QPointF(2.0, 1.0));
+        gated.press();
+        gated.up(0, 20);
+        gated.up(0, 30);
+        gated.reset();
+        QCOMPARE(m_events,
+            (QStringList {QStringLiteral("down 0 1,1 @10"), QStringLiteral("motion 0 2,1"), QStringLiteral("press"),
+                QStringLiteral("up 0 @20"), QStringLiteral("reset")}));
+    }
+
+    void resettingForgetsLiveContacts()
+    {
+        const TouchpadContactHandlers gated = Konveyor::gatedTouchpadContacts(m_handlers, [] { return true; });
+        gated.down(0, QPointF(1.0, 1.0), 10);
+        gated.reset();
+        gated.motion(0, QPointF(2.0, 1.0));
+        gated.up(0, 20);
+        QCOMPARE(m_events, (QStringList {QStringLiteral("down 0 1,1 @10"), QStringLiteral("reset")}));
     }
 };
 

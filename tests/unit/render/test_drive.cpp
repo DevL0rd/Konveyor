@@ -152,6 +152,15 @@ private Q_SLOTS:
         QCOMPARE(Render::colorMixUniform(nullptr), -1.0F);
     }
 
+    void reactiveShaderLayersNeverRest()
+    {
+        const Config::BorderLayer layer = parsedLayer(QStringLiteral("layer \"gauge\" { colors \"#000000\" \"#ffffff\"; "
+                                                                     "drive \"position\" \"scroll.distance\" amount=0; "
+                                                                     "drive \"color-mix\" \"pointer.speed\" amount=1.0; }"));
+        QCOMPARE(layer.speed, 0.0);
+        QVERIFY(!Render::layerRests(layer, Render::SignalFrame {}));
+    }
+
     void onlyAddLayersKeepTheirHueOverWhatIsBehind()
     {
         QCOMPARE(Render::additiveUniform(parsedLayer(QStringLiteral("layer \"elastic\" { blend \"add\"; }")).blend), 1.0F);

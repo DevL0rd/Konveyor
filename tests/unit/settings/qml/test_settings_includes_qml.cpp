@@ -27,8 +27,12 @@ private Q_SLOTS:
     void newSectionsStayBeforeForceResizableInclude();
     void forceResizableToggleAfterUiEdits();
     void failedSaveGoesBackToTheSavedText();
+    void failedSaveUndoesEveryEditSinceTheLastSave();
+    void aToggleIsReportedOncePerInclude();
 
 private:
+    static constexpr int EditBurstMs = 750;
+
     struct Session
     {
         std::unique_ptr<QQmlEngine> engine = std::make_unique<QQmlEngine>();
@@ -48,6 +52,12 @@ private:
         session.store = SettingsHome::store(*session.engine);
         session.failed = std::make_unique<QSignalSpy>(session.store, SIGNAL(editFailed(QString)));
         return session;
+    }
+
+    void editWhileReadOnly(const Session &session)
+    {
+        QVERIFY(QFile::setPermissions(m_home.configPath(), QFile::ReadOwner));
+        QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {9}, QVariantMap {}));
     }
 
     QString includedPath(const QString &name) const { return QDir(m_home.configDir()).filePath(name); }
@@ -254,8 +264,7 @@ void TestSettingsIncludesQml::failedSaveGoesBackToTheSavedText()
     const QString text = QStringLiteral("layout {\n    gaps 4\n}\n");
     Session session = open(text, {});
     QSignalSpy reverted(session.store, SIGNAL(saveFailed()));
-    QVERIFY(QFile::setPermissions(m_home.configPath(), QFile::ReadOwner));
-    QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {9}, QVariantMap {}));
+    editWhileReadOnly(session);
     QVERIFY(QMetaObject::invokeMethod(session.store, "save"));
     QVERIFY(QFile::setPermissions(m_home.configPath(), QFile::ReadOwner | QFile::WriteOwner));
     QCOMPARE(reverted.count(), 1);
@@ -269,6 +278,31 @@ void TestSettingsIncludesQml::failedSaveGoesBackToTheSavedText()
     QCOMPARE(reverted.count(), 2);
     QVERIFY(session.store->property("configError").toString().isEmpty());
     QCOMPARE(SettingsHome::read(m_home.configPath()), text);
+}
+
+void TestSettingsIncludesQml::failedSaveUndoesEveryEditSinceTheLastSave()
+{
+    const QString text = QStringLiteral("layout {\n    gaps 4\n}\n");
+    Session session = open(text, {});
+    QSignalSpy reverted(session.store, SIGNAL(saveFailed()));
+    editWhileReadOnly(session);
+    QTest::qWait(EditBurstMs);
+    QVERIFY(call<bool>(session.store, "setValue", QStringLiteral("layout/gaps"), QVariantList {10}, QVariantMap {}));
+    QVERIFY(QMetaObject::invokeMethod(session.store, "save"));
+    QVERIFY(QFile::setPermissions(m_home.configPath(), QFile::ReadOwner | QFile::WriteOwner));
+    QCOMPARE(reverted.count(), 1);
+    QCOMPARE(SettingsHome::read(m_home.configPath()), text);
+    QCOMPARE(session.store->property("canUndo").toBool(), false);
+    QCOMPARE(call<QVariantMap>(session.store, "scope", QStringLiteral("layout")).value(QStringLiteral("gaps")).toInt(), 4);
+}
+
+void TestSettingsIncludesQml::aToggleIsReportedOncePerInclude()
+{
+    Session session = open(QStringLiteral("layout {\n    border { on; }\n}\ninclude \"a.kdl\"\n"),
+        {{QStringLiteral("a.kdl"), QStringLiteral("layout { border { on; off; }; }\n")}});
+    QVERIFY(call<bool>(session.store, "setToggle", QStringLiteral("layout/border"), false));
+    QCOMPARE(messages(session),
+        QStringList {QStringLiteral("border is also set in a.kdl, which is included later, so that value is the one Konveyor uses.")});
 }
 
 QTEST_MAIN(TestSettingsIncludesQml)

@@ -33,6 +33,10 @@ private Q_SLOTS:
     void aProcessDescendsFromItself();
     void aChildAndGrandchildDescendFromTheirAncestors();
     void unrelatedAndMissingProcessesDoNot();
+    void theWalkStopsAtAnAncestorCycle();
+    void theWalkStopsAtTheDeepestProcessTree();
+    void theWalkEndsAtTheInitProcess();
+    void aStreamWithoutAUsableProcessFallsBackToNames();
     void theProcessTreeIsPreferredOverNames();
     void portalAppIdMatchesIgnoringCaseAndSuffix();
     void binaryMatchesTheApplicationOrItsLastNameSection();
@@ -72,6 +76,37 @@ void TestAudioMatch::unrelatedAndMissingProcessesDoNot()
     QVERIFY(!processDescendsFrom(0, getpid()));
     QVERIFY(!processDescendsFrom(-5, getpid()));
     QVERIFY(!processDescendsFrom(0x7ffffff0, getpid()));
+}
+
+void TestAudioMatch::theWalkStopsAtAnAncestorCycle()
+{
+    const ParentLookup cycle = [](qint64 pid) { return pid == 10 ? 20 : 10; };
+    QVERIFY(processDescendsFrom(10, 20, cycle));
+    QVERIFY(!processDescendsFrom(10, 30, cycle));
+}
+
+void TestAudioMatch::theWalkStopsAtTheDeepestProcessTree()
+{
+    const ParentLookup chain = [](qint64 pid) { return pid + 1; };
+    QVERIFY(processDescendsFrom(100, 150, chain));
+    QVERIFY(!processDescendsFrom(100, 400, chain));
+}
+
+void TestAudioMatch::theWalkEndsAtTheInitProcess()
+{
+    const ParentLookup toInit = [](qint64 pid) { return pid == 5 ? 1 : 5; };
+    QVERIFY(processDescendsFrom(9, 5, toInit));
+    QVERIFY(!processDescendsFrom(9, 1, toInit));
+}
+
+void TestAudioMatch::aStreamWithoutAUsableProcessFallsBackToNames()
+{
+    const WindowKey namesake {getpid(), QStringLiteral("player.desktop")};
+    const WindowKey stranger {2, QStringLiteral("player.desktop")};
+    const StreamIdentity noProcess {0, QStringLiteral("player"), {}};
+    QCOMPARE(windowsPlaying(noProcess, {namesake}), (QList<WindowKey> {namesake}));
+    const StreamIdentity unrelated {getpid(), QStringLiteral("player"), {}};
+    QCOMPARE(windowsPlaying(unrelated, {stranger}), (QList<WindowKey> {stranger}));
 }
 
 void TestAudioMatch::theProcessTreeIsPreferredOverNames()

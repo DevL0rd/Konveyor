@@ -77,6 +77,7 @@ void TestConfigSignals::groupsSignalsBySource()
     for (const Signal signal : {Signal::ViewSpeed, Signal::ViewDistance, Signal::ViewDirection, Signal::ViewStep}) {
         QVERIFY(isViewSignal(signal));
     }
+    QVERIFY(!isViewSignal(Signal::AudioLevel));
     QVERIFY(!isViewSignal(Signal::ScrollStep));
     QVERIFY(!isViewSignal(Signal::Time));
 }

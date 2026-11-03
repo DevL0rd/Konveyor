@@ -12,7 +12,8 @@ import dbus
 from checks import Checks
 from fakepointer import binary, click, keys, move, tap
 from keycodes import KEY_CODES, MODIFIER_CODES
-from kwinsession import active_title, client_app_id, for_window, kwin_titles, marked_lines, open_client, qdbus, run_script, wait_for, window_minimized
+from kwinsession import (active_title, client_app_id, for_window, kwin_titles, marked_lines, open_client, qdbus, run_script, virtual_keyboard, wait_for,
+                         window_minimized)
 from nested import build_dir
 from sessionguard import popen
 
@@ -123,6 +124,22 @@ def meta_and_alt_f1_open_and_close_it(checks):
     checks.expect(closed(), "Escape closes it")
 
 
+def stacking_roles():
+    printed = run_script('for (const w of workspace.stackingOrder) { print("MARK|" + (w.resourceClass == "konveyor-kontrol-panel" && w.wantsInput ? "card" : w.inputMethod ? "keyboard" : "other")); }')
+    return printed
+
+
+def keyboard_stays_above_the_card(checks):
+    press(META)
+    checks.expect(opened_and_focused(), "Meta opens the Kontrol Panel")
+    virtual_keyboard("call", "forceActivate")
+    checks.expect(wait_for(lambda: "keyboard" in stacking_roles(), 30), "the on-screen keyboard appeared")
+    checks.expect(wait_for(lambda: stacking_roles().index("keyboard") > stacking_roles().index("card"), 30), "the on-screen keyboard is raised above the card")
+    virtual_keyboard("set-property", "active", "b", "false")
+    press(KEY_CODES["Escape"])
+    checks.expect(closed(), "Escape closes the panel")
+
+
 def clicking_beside_the_card_closes_it(checks):
     move(960, 540)
     press(META)
@@ -170,7 +187,7 @@ def main():
     process = popen([str(build_dir() / "bin" / "konveyor-kontrol-panel"), os.environ["KONVEYOR_KONTROL_PANEL_DIR"]],
                                stdout=log, stderr=subprocess.STDOUT)
     if checks.expect(wait_for(lambda: dbus.SessionBus().name_has_owner(SERVICE[0]), 60), "the Kontrol Panel takes its bus name"):
-        checks.run(it_opens_on_the_output_under_the_pointer_and_fits_it, meta_and_alt_f1_open_and_close_it, clicking_beside_the_card_closes_it,
+        checks.run(it_opens_on_the_output_under_the_pointer_and_fits_it, meta_and_alt_f1_open_and_close_it, keyboard_stays_above_the_card, clicking_beside_the_card_closes_it,
                    asking_for_a_page_while_open_switches_or_closes, search_switches_to_a_minimized_window)
     else:
         checks.run()

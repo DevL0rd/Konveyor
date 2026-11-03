@@ -33,6 +33,9 @@ private Q_SLOTS:
     void eventModeDefaults();
     void parsesReduceMotionAndBeatThreshold();
     void warnsAboutUnknownStyles();
+    void warnsAboutUnknownStylesInPerOutputEventEffects();
+    void rejectsBadStyleNames_data();
+    void rejectsBadStyleNames();
     void rejectsBadLayerValues_data();
     void rejectsBadLayerValues();
     void rejectsBadEventEffects_data();
@@ -225,6 +228,38 @@ void TestConfigBorderStyles::warnsAboutUnknownStyles()
 {
     const LoadResult result = mustLoad(QStringLiteral("layout { focus-ring { active-style \"Missing\"; }; }"));
     QVERIFY(result.warnings.contains(QStringLiteral("unknown border style: Missing")));
+}
+
+void TestConfigBorderStyles::warnsAboutUnknownStylesInPerOutputEventEffects()
+{
+    const LoadResult result = mustLoad(QStringLiteral(R"(
+        output "eDP-1" {
+            layout {
+                event-effects {
+                    on "click" "Ghost"
+                }
+            }
+        }
+    )"));
+    QVERIFY(result.warnings.contains(QStringLiteral("unknown border style: Ghost")));
+}
+
+void TestConfigBorderStyles::rejectsBadStyleNames_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<QString>("message");
+
+    QTest::newRow("empty") << QStringLiteral("border-style »\"\" { }") << QStringLiteral("other than `none`");
+    QTest::newRow("none") << QStringLiteral("border-style »\"none\" { }") << QStringLiteral("other than `none`");
+    QTest::newRow("duplicate") << QStringLiteral("border-style \"A\" { }\nborder-style »\"A\" { }")
+                               << QStringLiteral("duplicate border style: A");
+}
+
+void TestConfigBorderStyles::rejectsBadStyleNames()
+{
+    QFETCH(QString, text);
+    QFETCH(QString, message);
+    verifyRejectedAtMarker(text, message);
 }
 
 void TestConfigBorderStyles::rejectsBadLayerValues_data()

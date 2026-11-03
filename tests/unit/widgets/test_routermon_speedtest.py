@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import runpy
 import subprocess
 import types
 import unittest
@@ -44,7 +45,7 @@ class TestRoutermonSpeedtest(RouterTest):
         self.box.environment.update(PING_OUTPUT=PING, CURL_DOWN="50000000", CURL_UP="25000000")
         self.module = load_script(SCRIPT, self.box.environment)
         self.live = []
-        write_live = self.module.write_live
+        write_live = self.live_writer = self.module.write_live
 
         def recorded(data):
             write_live(data)
@@ -121,6 +122,19 @@ class TestRoutermonSpeedtest(RouterTest):
         self.assertEqual(result, {"ok": False, "server": "Cloudflare", "ts": 1700000000, "time": "13:37",
                                   "error": "Command 'ping' timed out after 30 seconds"})
         self.assertEqual(self.live[-1], dict(result, phase="done", mbps=0))
+
+    def test_the_live_file_is_best_effort(self):
+        self.module.write_live = self.live_writer
+        with mock.patch.object(self.module.os, "makedirs", side_effect=PermissionError):
+            self.module.write_live({"phase": "ping"})
+        self.assertFalse((self.runtime / "speedtest_live.json").exists())
+
+    def test_the_script_measures_when_run_directly(self):
+        output = io.StringIO()
+        with mock.patch.dict(os.environ, self.box.environment, clear=True), mock.patch("time.monotonic", Clock(2)), \
+                contextlib.redirect_stdout(output):
+            runpy.run_path(str(SCRIPT), run_name="__main__")
+        self.assertEqual(json.loads(output.getvalue())["down_mbps"], 100.0)
 
     def test_live_file_location(self):
         self.assertEqual(self.module.LIVE, str(self.runtime / "speedtest_live.json"))

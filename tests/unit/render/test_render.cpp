@@ -186,6 +186,18 @@ private Q_SLOTS:
         QVERIFY2(qRed(image.pixel(bright)) > 235, qPrintable(QString::number(qRed(image.pixel(bright)))));
     }
 
+    void gradientOverAnEmptyRectStaysOnTheFromColor()
+    {
+        Render::BorderSpec spec;
+        spec.size = {20, 20};
+        spec.borderWidth = 5;
+        spec.gradient = Config::Gradient {Qt::black, Qt::white, 90};
+        const QImage image = Render::renderBorder(spec);
+        QCOMPARE(qRed(image.pixel(2, 10)), 0);
+        QCOMPARE(qRed(image.pixel(17, 10)), 0);
+        QCOMPARE(qAlpha(image.pixel(2, 10)), 255);
+    }
+
     void gradientRelativeToTheWorkspaceViewShowsTheWindowsSlice()
     {
         Render::BorderSpec spec;

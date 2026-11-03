@@ -57,6 +57,20 @@ private Q_SLOTS:
         QVERIFY(motion.read(60.0).settled);
     }
 
+    void pointerMovementAloneKeepsItFromSettling()
+    {
+        InputMotion motion;
+        motion.pointer(100.0, 0.0);
+        QVERIFY(!motion.read(0.01).settled);
+    }
+
+    void typingAloneKeepsItFromSettling()
+    {
+        InputMotion motion;
+        motion.key(0.0);
+        QVERIFY(!motion.read(0.01).settled);
+    }
+
     void decayDependsOnElapsedTimeNotOnHowOftenItIsRead()
     {
         InputMotion once;

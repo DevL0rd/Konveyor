@@ -14,6 +14,35 @@ namespace
 constexpr int kSettleMs = 20000;
 constexpr float kAudible = 0.05F;
 
+class EnvironmentOverride
+{
+public:
+    EnvironmentOverride(const char *name, const char *value)
+        : m_name(name)
+        , m_previous(qgetenv(name))
+        , m_wasSet(qEnvironmentVariableIsSet(name))
+    {
+        qputenv(name, value);
+    }
+
+    ~EnvironmentOverride()
+    {
+        if (m_wasSet) {
+            qputenv(m_name, m_previous);
+        } else {
+            qunsetenv(m_name);
+        }
+    }
+
+    EnvironmentOverride(const EnvironmentOverride &) = delete;
+    EnvironmentOverride &operator=(const EnvironmentOverride &) = delete;
+
+private:
+    const char *m_name;
+    QByteArray m_previous;
+    bool m_wasSet;
+};
+
 WindowKey processWindow()
 {
     return {getpid(), {}};
@@ -48,6 +77,11 @@ private Q_SLOTS:
     void matchesStreamsByPortalAppIdAndBinary();
     void aStoppedStreamFadesToSilence();
     void followsTheWantedWindowsAsTheyChange();
+    void streamsNobodyWantsAreNotCaptured();
+    void aCaptureEndsWhenItsWindowStopsPlaying();
+    void streamsThatVanishWhileBeingWatchedAreSurvived();
+    void wantedWindowsStaySilentWithoutADaemon();
+    void wantedWindowsStaySilentWhenPipeWireHasNoConfiguration();
     void reconnectsWhenTheDaemonStartsLate();
     void reconnectsAfterTheDaemonRestarts();
     void theBeatThresholdAppliesWhileCapturing();
@@ -148,6 +182,77 @@ void TestAudioCapture::followsTheWantedWindowsAsTheyChange()
     QTRY_VERIFY_WITH_TIMEOUT(heard(audio, processWindow()), kSettleMs);
     audio.setWanted({});
     audio.setWanted({});
+}
+
+void TestAudioCapture::streamsNobodyWantsAreNotCaptured()
+{
+    QVERIFY(startDaemon());
+    QVERIFY(m_player.start(Player::Mode::Tone));
+    WindowAudio audio;
+    audio.setWanted({strangerWindow()});
+    QTest::qWait(1500);
+    QVERIFY(portStartingWith(QStringLiteral("-i"), QLatin1String(kCaptureNode) + QLatin1Char(':')).isEmpty());
+    QCOMPARE(audio.frame(strangerWindow()).level, 0.0F);
+
+    audio.setWanted({processWindow()});
+    QTRY_VERIFY_WITH_TIMEOUT(heard(audio, processWindow()), kSettleMs);
+    QCOMPARE(audio.frame(strangerWindow()).level, 0.0F);
+}
+
+void TestAudioCapture::aCaptureEndsWhenItsWindowStopsPlaying()
+{
+    QVERIFY(startDaemon());
+    QVERIFY(m_player.start(Player::Mode::Tone));
+    WindowAudio audio;
+    audio.setWanted({processWindow()});
+    QTRY_VERIFY_WITH_TIMEOUT(heard(audio, processWindow()), kSettleMs);
+    QVERIFY(!portStartingWith(QStringLiteral("-i"), QLatin1String(kCaptureNode) + QLatin1Char(':')).isEmpty());
+
+    audio.setWanted({strangerWindow()});
+    QTRY_VERIFY_WITH_TIMEOUT(portStartingWith(QStringLiteral("-i"), QLatin1String(kCaptureNode) + QLatin1Char(':')).isEmpty(), kSettleMs);
+    QCOMPARE(audio.frame(processWindow()).level, 0.0F);
+}
+
+void TestAudioCapture::streamsThatVanishWhileBeingWatchedAreSurvived()
+{
+    QVERIFY(startDaemon());
+    WindowAudio audio;
+    audio.setWanted({processWindow()});
+    for (int round = 0; round < 15; ++round) {
+        QVERIFY(m_player.start(Player::Mode::Tone));
+        m_player.stop();
+    }
+    QVERIFY(m_player.start(Player::Mode::Tone));
+    QTRY_VERIFY_WITH_TIMEOUT(heard(audio, processWindow()), kSettleMs);
+}
+
+void TestAudioCapture::wantedWindowsStaySilentWithoutADaemon()
+{
+    {
+        WindowAudio audio;
+        audio.setWanted({processWindow(), portalWindow()});
+        QTest::qWait(300);
+        QCOMPARE(audio.frame(processWindow()).level, 0.0F);
+        QCOMPARE(audio.frame(portalWindow()).level, 0.0F);
+        audio.setWanted({});
+    }
+    WindowAudio again;
+    again.setBeatThreshold(2.0F);
+    again.setWanted({binaryWindow()});
+    QTest::qWait(100);
+    QCOMPARE(again.frame(binaryWindow()).beat, 0.0F);
+}
+
+void TestAudioCapture::wantedWindowsStaySilentWhenPipeWireHasNoConfiguration()
+{
+    QVERIFY(startDaemon());
+    QVERIFY(m_player.start(Player::Mode::Tone));
+    const EnvironmentOverride configuration("PIPEWIRE_CONFIG_DIR", "/nonexistent/konveyor-pipewire");
+    WindowAudio audio;
+    audio.setWanted({processWindow()});
+    QTest::qWait(1500);
+    QCOMPARE(audio.frame(processWindow()).level, 0.0F);
+    QVERIFY(portStartingWith(QStringLiteral("-i"), QLatin1String(kCaptureNode) + QLatin1Char(':')).isEmpty());
 }
 
 void TestAudioCapture::reconnectsWhenTheDaemonStartsLate()

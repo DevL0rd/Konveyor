@@ -1,4 +1,4 @@
-#include "settingsqmlharness.h"
+#include "stylescene.h"
 
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -137,32 +137,14 @@ private Q_SLOTS:
     }
 
 private:
-    struct Scene
-    {
-        std::unique_ptr<QQuickWindow> window;
-        QQuickItem *item = nullptr;
-    };
+    using Scene = StyleScene;
 
     Scene open(const char *properties)
     {
-        Scene scene;
-        QString error;
-        const QByteArray body
-            = QByteArray("import QtQuick.Window\n"
-                         "Window { width: 300; height: 220; visible: true; BorderStyleItem { objectName: \"style\"; x: 40; y: 40; "
-                         "width: 200; height: 120; ")
-            + properties + " } }";
-        std::unique_ptr<QObject> created = m_home.create(m_engine, body, &error);
-        if (!created) {
-            QTest::qFail(qPrintable(error), __FILE__, __LINE__);
-            return scene;
-        }
-        scene.window.reset(qobject_cast<QQuickWindow *>(created.release()));
-        scene.item = scene.window->findChild<QQuickItem *>("style");
-        if (!QTest::qWaitForWindowExposed(scene.window.get())) {
-            QTest::qFail("the window was not exposed", __FILE__, __LINE__);
-        }
-        return scene;
+        return openStyleScene(m_home, m_engine,
+            QByteArray("Window { width: 300; height: 220; visible: true; BorderStyleItem { objectName: \"style\"; x: 40; y: 40; "
+                       "width: 200; height: 120; ")
+                + properties + " } }");
     }
 
     static double duration(QObject *item)

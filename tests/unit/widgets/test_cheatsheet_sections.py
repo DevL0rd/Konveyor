@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+import json
 import tempfile
 import unittest
+from unittest import mock
 
 from cheatsheet_module import load_module
 
@@ -26,6 +28,18 @@ class TestCheatsheetSections(unittest.TestCase):
         self.module.konveyor_gestures = lambda: list(gestures)
         self.module.KGLOBALSHORTCUTS.write_text(kde)
         return self.module.build_sections()
+
+    def test_binds_and_gestures_are_read_from_the_konveyor_service(self):
+        interface = mock.Mock()
+        interface.Binds.return_value = json.dumps([bind("Mod+T", "spawn")])
+        interface.Gestures.return_value = json.dumps([gesture("swipe-left", "focus-column-right")])
+        with mock.patch.object(self.module.dbus, "SessionBus") as session, \
+                mock.patch.object(self.module.dbus, "Interface", return_value=interface) as make_interface:
+            binds = self.module.konveyor_binds()
+            gestures = self.module.konveyor_gestures()
+        self.assertEqual((binds, gestures), ([bind("Mod+T", "spawn")], [gesture("swipe-left", "focus-column-right")]))
+        session.return_value.get_object.assert_called_with("org.kde.Konveyor", "/Konveyor")
+        make_interface.assert_called_with(session.return_value.get_object.return_value, "org.kde.Konveyor")
 
     def test_describes_a_bind_by_its_title(self):
         self.assertEqual(self.module.describe_konveyor_bind(bind("Mod+T", "spawn", ["konsole"], title="Terminal")), "Terminal")

@@ -158,10 +158,8 @@ bool SettingsStore::isDefault(const QString &path) const
 {
     const Kdl::Node *current = m_document.find(path);
     const Kdl::Node *shipped = m_defaults.find(path);
-    if (!current || !shipped) {
-        return !current && !shipped;
-    }
-    return writeNode(nodeToVariant(*current), QString()) == writeNode(nodeToVariant(*shipped), QString());
+    return current && shipped ? writeNode(nodeToVariant(*current), QString()) == writeNode(nodeToVariant(*shipped), QString())
+                              : !current && !shipped;
 }
 
 bool SettingsStore::resetToDefault(const QString &path)
@@ -223,12 +221,16 @@ bool SettingsStore::setFlag(const QString &path, bool enabled)
 bool SettingsStore::setToggle(const QString &path, bool enabled)
 {
     const QString before = m_document.text();
-    const bool removed
-        = apply(m_document.remove(path + QStringLiteral("/on")), before) && apply(m_document.remove(path + QStringLiteral("/off")), before);
-    if (!removed || !apply(m_document.append(path, leaf(enabled ? QStringLiteral("on") : QStringLiteral("off"), {}, {})), before)) {
+    const QString on = path + QStringLiteral("/on");
+    const QString off = path + QStringLiteral("/off");
+    const EditResult result
+        = m_document.remove(on).and_then([&](const QString &) { return m_document.remove(off); }).and_then([&](const QString &) {
+              return m_document.append(path, leaf(enabled ? on : off, {}, {}));
+          });
+    if (!apply(result, before)) {
         return false;
     }
-    warnIfOverridden(nodeName(path), {path + QStringLiteral("/on"), path + QStringLiteral("/off")});
+    warnIfOverridden(nodeName(path), {on, off});
     return true;
 }
 
@@ -385,12 +387,9 @@ void SettingsStore::warnIfOverridden(const QString &name, const QStringList &pat
 {
     QStringList files;
     for (const QString &path : paths) {
-        for (const QString &file : includesOverriding(m_document.text(), configPath(), path)) {
-            if (!files.contains(file)) {
-                files.append(file);
-            }
-        }
+        files += includesOverriding(m_document.text(), configPath(), path);
     }
+    files.removeDuplicates();
     if (!files.isEmpty()) {
         Q_EMIT editFailed(QStringLiteral("%1 is also set in %2, which is included later, so that value is the one Konveyor uses.")
                 .arg(name, files.join(QStringLiteral(", "))));
