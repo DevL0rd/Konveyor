@@ -8,11 +8,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from borderprobe import MAGENTA, TITLES, painted_titles, probe_config, screenshot, settle_to, solid
 from checks import Checks, load_config
-from kwinsession import konveyor_action, qdbus, wait_for
+from kwinsession import frame, konveyor_action, qdbus, wait_for
 
 PROBE = 'border-style "Probe" {\n    layer "gradient" {\n        colors "#ff00ff"\n        speed 0\n        width 6\n        drive "width" "%s"\n    }\n}\n'
 RING = 'width 4\n        active-style "Probe"\n        inactive-style "Probe"'
 STEP = 'border-style "Probe" {\n    layer "particles" { colors "#ff00ff"; fire-on "view.step"; count 8; width 6; }\n}\n'
+SLOW_ROW = 'horizontal-view-movement { duration-ms 6000; curve "linear"; }'
+PAST_THE_HOLD = 1.5
 
 
 def windows():
@@ -83,24 +85,38 @@ def view_steps_fire_per_column(checks):
     checks.expect(wait_for(lambda: sample(0.1)[-1]["fired.view.step"] > count, 10), "and the next column another")
 
 
+def row_at_rest():
+    x = frame("A")[0]
+    time.sleep(0.3)
+    return frame("A")[0] == x
+
+
+def nothing_painted():
+    return not painted_titles(screenshot(), TITLES, MAGENTA)
+
+
 def view_effect_plays_while_the_row_moves(checks):
-    events = '        on "view" "Mark" reach="all" duration=4'
-    checks.expect(load_config(probe_config(events, solid("Mark", "#ff00ff"))), "a view effect loads")
+    events = '        on "view" "Mark" reach="all"'
+    mark = solid("Mark", "#ff00ff")
+    checks.expect(load_config(probe_config(events, mark)), "a view effect loads")
     settle_to("A")
-    time.sleep(1.0)
+    checks.expect(wait_for(row_at_rest, 20), "the row comes to rest")
+    checks.expect(wait_for(nothing_painted, 15, 0.3), "and a resting row plays nothing")
+    checks.expect(load_config(probe_config(events, mark, animations=SLOW_ROW)), "a slow row loads")
     konveyor_action("focus-column-right")
-    seen = set()
+    started = time.monotonic()
 
-    def painted_somewhere():
-        seen.update(painted_titles(screenshot(), TITLES, MAGENTA))
-        return bool(seen)
+    def painted_while_moving_past_the_hold():
+        x = frame("A")[0]
+        painted_now = not nothing_painted()
+        return painted_now and time.monotonic() - started > PAST_THE_HOLD and frame("A")[0] != x
 
-    checks.expect(wait_for(painted_somewhere, 10, 0.02), "scrolling the row plays the view effect")
-    checks.expect(wait_for(lambda: not painted_titles(screenshot(), TITLES, MAGENTA), 15, 0.3), "and it ends after the row stops")
-    checks.expect(load_config(probe_config("", solid("Mark", "#ff00ff"))), "the config without it loads")
+    if checks.expect(wait_for(painted_while_moving_past_the_hold, 10, 0.02), "scrolling the row keeps the view effect playing"):
+        checks.expect(wait_for(lambda: row_at_rest() and nothing_painted(), 20, 0.3), "and it ends after the row stops")
+    checks.expect(load_config(probe_config("", mark, animations=SLOW_ROW)), "the config without it loads")
     settle_to("A")
-    konveyor_action("focus-column-right")
-    checks.expect(not wait_for(lambda: painted_titles(screenshot(), TITLES, MAGENTA), 3, 0.2), "without a view effect nothing plays")
+    checks.expect(not wait_for(lambda: not nothing_painted(), 3, 0.2), "without a view effect nothing plays")
+    checks.expect(wait_for(row_at_rest, 20), "and the row comes to rest")
 
 
 def the_tracker_follows_the_row_across_workspaces(checks):
