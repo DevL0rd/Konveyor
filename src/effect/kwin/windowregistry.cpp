@@ -52,7 +52,7 @@ WindowRegistry::WindowRegistry(QObject *parent)
 
 bool WindowRegistry::event(xcb_generic_event_t *genericEvent)
 {
-    if ((genericEvent->response_type & 0x7f) == XCB_CONFIGURE_REQUEST) {
+    if ((genericEvent->response_type & 0x7FU) == XCB_CONFIGURE_REQUEST) {
         announceRequestedSize(*reinterpret_cast<xcb_configure_request_event_t *>(genericEvent));
         return false;
     }
@@ -77,7 +77,7 @@ bool WindowRegistry::event(xcb_generic_event_t *genericEvent)
 
 void WindowRegistry::announceRequestedSize(const xcb_configure_request_event_t &request)
 {
-    constexpr int sizeMask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    constexpr uint32_t sizeMask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     KWin::X11Window *window = KWin::workspace()->findClient(request.window);
     const auto id = window ? idOf(window) : std::nullopt;
     if (!id || !(request.value_mask & sizeMask)) {
