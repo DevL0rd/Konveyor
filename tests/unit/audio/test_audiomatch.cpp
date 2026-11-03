@@ -43,6 +43,8 @@ private Q_SLOTS:
     void aHostProcessBinaryNeverMatchesByName();
     void emptyNamesMatchNothing();
     void aStreamFallsBackToItsClientForWhatItLacks();
+    void theParentComesFromTheFieldAfterTheState_data();
+    void theParentComesFromTheFieldAfterTheState();
 };
 
 void TestAudioMatch::aProcessDescendsFromItself()
@@ -174,6 +176,25 @@ void TestAudioMatch::aStreamFallsBackToItsClientForWhatItLacks()
     QCOMPARE(partial.pid, 42);
     QCOMPARE(partial.binary, QStringLiteral("own-binary"));
     QCOMPARE(partial.portalAppId, client.portalAppId);
+}
+
+void TestAudioMatch::theParentComesFromTheFieldAfterTheState_data()
+{
+    QTest::addColumn<QByteArray>("stat");
+    QTest::addColumn<qint64>("parent");
+    QTest::newRow("plain") << QByteArray("42 (sleep) S 7 42 42 0 -1") << qint64(7);
+    QTest::newRow("a name with parentheses and spaces") << QByteArray("42 (a) b (c d)) R 9 42") << qint64(9);
+    QTest::newRow("no name") << QByteArray("42 sleep S 7") << qint64(0);
+    QTest::newRow("cut after the name") << QByteArray("42 (sleep)") << qint64(0);
+    QTest::newRow("cut after the state") << QByteArray("42 (sleep) S") << qint64(0);
+    QTest::newRow("empty") << QByteArray() << qint64(0);
+}
+
+void TestAudioMatch::theParentComesFromTheFieldAfterTheState()
+{
+    QFETCH(QByteArray, stat);
+    QFETCH(qint64, parent);
+    QCOMPARE(parentPidFromStat(stat), parent);
 }
 
 QTEST_GUILESS_MAIN(TestAudioMatch)

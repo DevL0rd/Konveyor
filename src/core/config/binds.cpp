@@ -244,8 +244,8 @@ void checkArguments(const Kdl::Node &node, const ActionSpec &spec)
     for (const Kdl::Value &value : node.arguments) {
         checkArgument(spec.argument, value);
     }
-    if (spec.argument == ArgumentKind::Text && !node.arguments.isEmpty() && node.arguments.first().toString().isEmpty()) {
-        failAt(node.arguments.first().location, QStringLiteral("expected a non-empty string"));
+    if (spec.argument == ArgumentKind::Text && node.arguments.value(0).toString().isEmpty()) {
+        failAt(node.arguments.value(0).location, QStringLiteral("expected a non-empty string"));
     }
 }
 

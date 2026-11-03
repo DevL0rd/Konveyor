@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QHash>
 #include <QList>
 #include <QString>
@@ -31,6 +32,7 @@ struct StreamIdentity
 };
 
 StreamIdentity withFallback(StreamIdentity stream, const StreamIdentity &fallback);
+qint64 parentPidFromStat(const QByteArray &stat);
 using ParentLookup = std::function<qint64(qint64)>;
 
 bool processDescendsFrom(qint64 pid, qint64 ancestor, const ParentLookup &parent);

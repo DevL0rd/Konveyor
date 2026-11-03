@@ -28,6 +28,7 @@ public:
 
     explicit KontrolPanelService(QObject *parent = nullptr);
 
+    static bool serviceRegistered(const QDBusConnection &bus, const QString &name);
     bool registerOn(QDBusConnection bus);
     bool isOpen() const { return m_open; }
 

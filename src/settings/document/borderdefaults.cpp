@@ -9,6 +9,7 @@
 #include <QVariantList>
 
 #include <cmath>
+#include <functional>
 #include <optional>
 
 namespace Konveyor::Settings
@@ -106,22 +107,33 @@ QVariantMap fireOnFocus()
     return {{QStringLiteral("name"), QStringLiteral("fire-on")}, {QStringLiteral("args"), QVariantList {QStringLiteral("focus")}}};
 }
 
-QStringList heatLayerPaths(const ConfigDocument &document)
+QStringList layerPaths(const ConfigDocument &document, const std::function<bool(const Kdl::Node &style)> &styleWanted,
+    const std::function<bool(const Kdl::Node &layer)> &layerWanted)
 {
     QStringList paths;
     for (int index = 0; const Kdl::Node *style = document.find(QStringLiteral("border-style#") + QString::number(index)); ++index) {
+        if (!styleWanted(*style)) {
+            continue;
+        }
         qsizetype position = 0;
         for (const Kdl::Node &child : style->children) {
             if (child.name != QLatin1String("layer")) {
                 continue;
             }
-            if (stringArgument(&child) == QStringLiteral("heat")) {
+            if (layerWanted(child)) {
                 paths.append(QStringLiteral("border-style#%1/layer#%2").arg(index).arg(position));
             }
             ++position;
         }
     }
     return paths;
+}
+
+QStringList heatLayerPaths(const ConfigDocument &document)
+{
+    return layerPaths(
+        document, [](const Kdl::Node &) { return true; },
+        [](const Kdl::Node &layer) { return stringArgument(&layer) == QStringLiteral("heat"); });
 }
 
 bool rewriteHeatChildren(ConfigDocument &document, const QString &path)
@@ -151,23 +163,11 @@ bool rewriteHeatChildren(ConfigDocument &document, const QString &path)
 
 QStringList idleRipplePaths(const ConfigDocument &document, const QString &name)
 {
-    QStringList paths;
-    for (int index = 0; const Kdl::Node *style = document.find(QStringLiteral("border-style#") + QString::number(index)); ++index) {
-        if (stringArgument(style) != name) {
-            continue;
-        }
-        qsizetype position = 0;
-        for (const Kdl::Node &child : style->children) {
-            if (child.name != QLatin1String("layer")) {
-                continue;
-            }
-            if (stringArgument(&child) == QStringLiteral("ripple") && !child.child(QStringLiteral("fire-on"))) {
-                paths.append(QStringLiteral("border-style#%1/layer#%2").arg(index).arg(position));
-            }
-            ++position;
-        }
-    }
-    return paths;
+    return layerPaths(
+        document, [&name](const Kdl::Node &style) { return stringArgument(&style) == name; },
+        [](const Kdl::Node &layer) {
+            return stringArgument(&layer) == QStringLiteral("ripple") && !layer.child(QStringLiteral("fire-on"));
+        });
 }
 
 }

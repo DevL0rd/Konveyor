@@ -36,8 +36,7 @@ private Q_SLOTS:
         fixture.advance(1000);
         QCOMPARE(fixture.engine().movingWindow(), std::optional(dragged));
 
-        fixture.engine().endWindowDrag();
-        fixture.settle();
+        fixture.endDragAndSettle();
         QVERIFY(fixture.engine().hasWindow(dragged));
         QVERIFY(fixture.engine().hasWindow(kept));
         VERIFY_INVARIANTS(fixture);

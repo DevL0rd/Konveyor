@@ -89,6 +89,11 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
                 mock.patch.object(module.time, "monotonic", return_value=50.0 + interval):
             return module.build()
 
+    def test_cpu_lines_that_are_not_a_core_number_are_skipped(self):
+        module = self.serving_module()
+        self.fake.write("/proc/stat", stat((0, 200), [(0, 100)]).replace("intr", "cpufreq 9 9 9 9 9 9 9\nintr"))
+        self.assertEqual(sorted(module.read_stat()), ["cpu", "cpu0"])
+
     def test_splits_a_hybrid_cpu_into_performance_and_efficiency_cores(self):
         self.write_hybrid()
         module = self.load(SCRIPT, "sysmon_collect")

@@ -187,6 +187,17 @@ private Q_SLOTS:
         QCOMPARE(shortcuts->findChildren<QAction *>().size(), 1);
     }
 
+    void aKeyTakenByTwoDifferentActionsRegistersOnlyTheFirst()
+    {
+        auto shortcuts = manager();
+        const auto list = binds(QStringLiteral("Mod+H { focus-column-left; }")) + binds(QStringLiteral("Mod+H { focus-column-right; }"));
+        QCOMPARE(list.size(), 2);
+        shortcuts->setBinds(list);
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 1);
+        shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+H"))->trigger();
+        QCOMPARE(m_fired, QStringList {QStringLiteral("Super+H focus-column-left")});
+    }
+
     void leavesIsoLevelBindsOutOfKde()
     {
         auto shortcuts = manager();

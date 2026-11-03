@@ -57,6 +57,23 @@ def per_output_override(checks):
     checks.expect(wait_for(lambda: not overview_open()), "close-overview closes it")
 
 
+def corner_of_one_output_only(checks):
+    original = config_path().read_text()
+    text = original.replace("top-left\n        top-right", "off").replace(
+        'output "Virtual-1" {\n    hot-corners {\n        off', 'output "Virtual-1" {\n    hot-corners {\n        top-right'
+    )
+    config_path().write_text(text)
+    checks.equal(konveyor("LoadConfigFile", ""), "", "a config that turns a corner on for one output only loads")
+    push(TOP_LEFT)
+    checks.equal(overview_open(), False, "the top-left corner stays off everywhere")
+    push(TOP_RIGHT)
+    checks.equal(overview_open(), True, "the top-right corner of Virtual-1 opens the overview")
+    push(TOP_RIGHT)
+    checks.equal(overview_open(), False, "and closes it again")
+    config_path().write_text(original)
+    checks.equal(konveyor("LoadConfigFile", ""), "", "the previous config is back")
+
+
 def switched_off(checks):
     text = config_path().read_text().replace("top-left\n        top-right", "off")
     config_path().write_text(text)
@@ -70,7 +87,7 @@ def switched_off(checks):
 
 
 def main():
-    Checks().run(reserved_corner, per_output_override, switched_off)
+    Checks().run(reserved_corner, per_output_override, corner_of_one_output_only, switched_off)
 
 
 if __name__ == "__main__":

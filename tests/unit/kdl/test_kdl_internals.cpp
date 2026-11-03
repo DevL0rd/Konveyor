@@ -18,6 +18,8 @@ private Q_SLOTS:
     void everyUnicodeSpaceIsRecognised();
     void nonSpacesAreNotSpaces();
     void codePointsAboveTheRangeAreDescribedByNumber();
+    void rawStringsUseEnoughHashesToStayClosed_data();
+    void rawStringsUseEnoughHashesToStayClosed();
     void splitLinesFollowsTheKdlNewlines_data();
     void splitLinesFollowsTheKdlNewlines();
 };
@@ -77,6 +79,24 @@ void TestKdlInternals::codePointsAboveTheRangeAreDescribedByNumber()
 {
     QCOMPARE(describeCharacter(0x110000), QStringLiteral("U+110000"));
     QCOMPARE(describeCharacter(0x1), QStringLiteral("U+0001"));
+}
+
+void TestKdlInternals::rawStringsUseEnoughHashesToStayClosed_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<QString>("literal");
+    QTest::newRow("plain") << QStringLiteral("abc") << QStringLiteral("r#\"abc\"#");
+    QTest::newRow("backslash") << QStringLiteral("a\\b") << QStringLiteral("r#\"a\\b\"#");
+    QTest::newRow("quote") << QStringLiteral("a\"b") << QStringLiteral("r#\"a\"b\"#");
+    QTest::newRow("quote and hash") << QStringLiteral("a\"#b") << QStringLiteral("r##\"a\"#b\"##");
+    QTest::newRow("quote and two hashes") << QStringLiteral("a\"##b\"#") << QStringLiteral("r###\"a\"##b\"#\"###");
+}
+
+void TestKdlInternals::rawStringsUseEnoughHashesToStayClosed()
+{
+    QFETCH(QString, text);
+    QFETCH(QString, literal);
+    QCOMPARE(rawString(text), literal);
 }
 
 void TestKdlInternals::splitLinesFollowsTheKdlNewlines_data()

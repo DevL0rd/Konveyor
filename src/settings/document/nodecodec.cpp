@@ -40,11 +40,7 @@ bool isBareIdentifier(const QString &name)
 QString writeString(const QString &text)
 {
     if (text.contains(QLatin1Char('\\')) || text.contains(QLatin1Char('"'))) {
-        QString hashes = QStringLiteral("#");
-        while (text.contains(QLatin1Char('"') + hashes)) {
-            hashes += QLatin1Char('#');
-        }
-        return QLatin1Char('r') + hashes + QLatin1Char('"') + text + QLatin1Char('"') + hashes;
+        return Kdl::rawString(text);
     }
     QString escaped = text;
     escaped.replace(QLatin1Char('\n'), QLatin1String("\\n")).replace(QLatin1Char('\t'), QLatin1String("\\t"));

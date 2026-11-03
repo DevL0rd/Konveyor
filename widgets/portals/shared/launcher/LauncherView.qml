@@ -56,6 +56,7 @@ LauncherNavigation {
         root.requestedPage = ""
         page = shownPage(wantedPage)
         markVisited(page)
+        markVisited("search")
         openFolder = ""
         field.text = ""
         hadFocus = false
@@ -317,14 +318,16 @@ LauncherNavigation {
                             visible: !launcher.searching && launcher.page === modelData.key
                             source: Qt.resolvedUrl("pages/" + modelData.key.charAt(0).toUpperCase() + modelData.key.substring(1) + "Page.qml")
                             onLoaded: if (visible) Qt.callLater(launcher.resetSelection)
+                            Component.onDestruction: asynchronous = false
                         }
                     }
 
                     Loader {
                         id: searchLoader
                         anchors.fill: parent
-                        active: launcher.shown || item !== null
+                        active: launcher.visited.search === true
                         asynchronous: true
+                        Component.onDestruction: asynchronous = false
                         visible: launcher.searching
                         source: Qt.resolvedUrl("pages/SearchPage.qml")
                     }

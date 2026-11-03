@@ -20,6 +20,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQmlExpression>
+#include <QQmlIncubationController>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
@@ -30,23 +31,6 @@
 
 namespace LauncherTest
 {
-
-class UrlRecorder : public QObject
-{
-    Q_OBJECT
-
-public:
-    QList<QUrl> opened;
-
-public Q_SLOTS:
-    void open(const QUrl &url) { opened.append(url); }
-};
-
-inline UrlRecorder &urls()
-{
-    static UrlRecorder recorder;
-    return recorder;
-}
 
 class Harness
 {
@@ -170,6 +154,7 @@ public:
         }
         if (auto *item = qobject_cast<QQuickItem *>(object.get())) {
             m_window = std::make_unique<QQuickWindow>();
+            engine().setIncubationController(m_window->incubationController());
             m_window->resize(qRound(item->width()), qRound(item->height()));
             item->setParentItem(m_window->contentItem());
             m_window->show();
@@ -297,6 +282,18 @@ public:
     }
 
     KConfigPropertyMap *config() const { return m_config.get(); }
+
+    bool finishIncubating()
+    {
+        QQmlIncubationController *controller = m_engine ? m_engine->incubationController() : nullptr;
+        return !controller
+            || QTest::qWaitFor(
+                [controller] {
+                    controller->incubateFor(50);
+                    return controller->incubatingObjectCount() == 0;
+                },
+                30000);
+    }
 
     void reset()
     {

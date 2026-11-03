@@ -4,11 +4,31 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QList>
+#include <QObject>
 #include <QStringList>
+#include <QUrl>
 #include <QVariantMap>
 
 namespace LauncherTest
 {
+
+class UrlRecorder : public QObject
+{
+    Q_OBJECT
+
+public:
+    QList<QUrl> opened;
+
+public Q_SLOTS:
+    void open(const QUrl &url) { opened.append(url); }
+};
+
+inline UrlRecorder &urls()
+{
+    static UrlRecorder recorder;
+    return recorder;
+}
 
 inline QStringList &warnings()
 {

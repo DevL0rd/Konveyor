@@ -8,6 +8,7 @@ QQC2.StackView {
     id: stack
 
     required property var page
+    property bool active: true
     property string reveal
     property string section
     signal revealed()
@@ -79,14 +80,22 @@ QQC2.StackView {
     }
     Component.onCompleted: {
         SettingsNavigation.loadSectionsInBackground()
-        open(page.file)
+        if (active)
+            open(page.file)
     }
-    onPageChanged: open(page.file)
+    onPageChanged: if (active) open(page.file)
+    onActiveChanged: {
+        if (active)
+            open(page.file)
+        else
+            clear(QQC2.StackView.Immediate)
+    }
 
     Binding {
         target: SettingsNavigation
         property: "depth"
         value: stack.depth
+        when: stack.depth > 0
     }
     Connections {
         target: SettingsNavigation

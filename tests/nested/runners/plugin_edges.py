@@ -278,6 +278,14 @@ def fixed_size_window_cycling(checks):
     )
 
 
+def fixed_window_cycled_by_id(checks):
+    subprocess.Popen(["qml6", str(CLIENTS / "fixed-client.qml"), "--", "ById"])
+    checks.expect(wait_for(lambda: "ById" in managed_titles(), 60), "the fixed-size client opened")
+    checks.equal(action_for("switch-preset-column-width", window_id("ById")), "", "cycling the width of a window by its id")
+    run_script(for_window("ById", "w.closeWindow();"))
+    checks.expect(wait_for(lambda: "ById" not in managed_titles()), "the window closed")
+
+
 def cycling_without_a_focused_window(checks):
     checks.equal(
         konveyor_action("focus-workspace", "2"), "", "go to an empty workspace"
@@ -350,6 +358,7 @@ def main():
         windows_on_every_workspace,
         cycling_without_a_focused_window,
         fixed_size_window_cycling,
+        fixed_window_cycled_by_id,
         overview_unavailable,
     )
 

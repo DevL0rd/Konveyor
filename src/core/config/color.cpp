@@ -125,7 +125,7 @@ std::optional<QColor> buildHsl(const QStringList &tokens, double alpha)
 std::optional<QColor> parseFunctionColor(const QString &text)
 {
     const qsizetype open = text.indexOf(QLatin1Char('('));
-    if (open < 0 || !text.endsWith(QLatin1Char(')'))) {
+    if (!text.endsWith(QLatin1Char(')'))) {
         return std::nullopt;
     }
     const QString name = text.left(open).trimmed();

@@ -1,5 +1,7 @@
+#include "audio/audiocapture.h"
 #include "audio/windowaudio.h"
 #include "pwharness.h"
+#include "render/audioanalyzer.h"
 
 #include <QTest>
 
@@ -85,6 +87,8 @@ private Q_SLOTS:
     void reconnectsWhenTheDaemonStartsLate();
     void reconnectsAfterTheDaemonRestarts();
     void theBeatThresholdAppliesWhileCapturing();
+    void aCaptureNobodyAsksForStaysIdleUntilStopped();
+    void aCaptureStoppedAtOnceNeverRunsItsLoop();
 
 private:
     bool heard(const WindowAudio &audio, const WindowKey &key, bool relink = true);
@@ -311,6 +315,25 @@ void TestAudioCapture::theBeatThresholdAppliesWhileCapturing()
     audio.setBeatThreshold(1.4F);
     QTest::qWait(500);
     QVERIFY(countBeats(4000) >= 4);
+}
+
+void TestAudioCapture::aCaptureNobodyAsksForStaysIdleUntilStopped()
+{
+    QVERIFY(startDaemon());
+    AudioCapture capture(Konveyor::Render::AudioAnalyzer::kDefaultBeatThreshold);
+    const QString binary = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
+    QTRY_VERIFY_WITH_TIMEOUT(clientConnected(binary), kSettleMs);
+    QVERIFY(!capture.hasFinished());
+    QVERIFY(portStartingWith(QStringLiteral("-i"), QLatin1String(kCaptureNode) + QLatin1Char(':')).isEmpty());
+    capture.requestStop();
+    QTRY_VERIFY_WITH_TIMEOUT(capture.hasFinished(), kSettleMs);
+}
+
+void TestAudioCapture::aCaptureStoppedAtOnceNeverRunsItsLoop()
+{
+    AudioCapture capture(Konveyor::Render::AudioAnalyzer::kDefaultBeatThreshold);
+    capture.requestStop();
+    QTRY_VERIFY_WITH_TIMEOUT(capture.hasFinished(), kSettleMs);
 }
 
 QTEST_GUILESS_MAIN(TestAudioCapture)

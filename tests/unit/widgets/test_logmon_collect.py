@@ -116,19 +116,43 @@ class TestLogmonServe(CollectorTest):
         server.terminate()
         self.assertEqual(server.wait(timeout=5), 0)
 
+    def wait_for_lines(self):
+        cache = self.runtime / "Linux-Log-Monitor" / "log.json"
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline and not (cache.exists() and self.cache()["lines"]):
+            time.sleep(0.05)
+
     def test_a_live_journal_is_mirrored_until_the_collector_is_stopped(self):
         self.journal.write_text(record(MESSAGE="live", __REALTIME_TIMESTAMP="1"))
         server = subprocess.Popen([sys.executable, str(SCRIPT), "--serve"], env={**self.environment, "JOURNAL_HANG": "1"},
                                   stderr=subprocess.PIPE, text=True)
         self.addCleanup(server.kill)
-        cache = self.runtime / "Linux-Log-Monitor" / "log.json"
-        deadline = time.monotonic() + 15
-        while time.monotonic() < deadline and not (cache.exists() and self.cache()["lines"]):
-            time.sleep(0.05)
+        self.wait_for_lines()
         self.assertEqual([line["m"] for line in self.cache()["lines"]], ["live"])
         self.assertTrue(self.cache()["alive"])
         server.terminate()
         self.assertEqual(server.wait(timeout=10), 0)
+
+    def test_the_collector_stops_even_when_the_journal_process_cannot_be_terminated(self):
+        self.journal.write_text(record(MESSAGE="live", __REALTIME_TIMESTAMP="1"))
+        marker = self.home / "terminate-refused"
+        runner = (
+            "import runpy, subprocess, sys\n"
+            "original = subprocess.Popen.terminate\n"
+            "def refuse(self):\n"
+            "    original(self)\n"
+            f"    open({str(marker)!r}, 'w').close()\n"
+            "    raise PermissionError('refused')\n"
+            "subprocess.Popen.terminate = refuse\n"
+            f"sys.argv = [{str(SCRIPT)!r}, '--serve']\n"
+            f"runpy.run_path({str(SCRIPT)!r}, run_name='__main__')\n")
+        server = subprocess.Popen([sys.executable, "-c", runner], env={**self.environment, "JOURNAL_HANG": "1"}, stderr=subprocess.PIPE,
+                                  text=True)
+        self.addCleanup(server.kill)
+        self.wait_for_lines()
+        server.terminate()
+        self.assertEqual(server.wait(timeout=10), 0)
+        self.assertTrue(marker.exists())
 
     def test_a_second_server_leaves_the_first_alone(self):
         import fcntl

@@ -115,4 +115,13 @@ QStringList splitLines(const QString &text)
     return lines;
 }
 
+QString rawString(const QString &text)
+{
+    QString hashes = QStringLiteral("#");
+    while (text.contains(QLatin1Char('"') + hashes)) {
+        hashes += QLatin1Char('#');
+    }
+    return QLatin1Char('r') + hashes + QLatin1Char('"') + text + QLatin1Char('"') + hashes;
+}
+
 }

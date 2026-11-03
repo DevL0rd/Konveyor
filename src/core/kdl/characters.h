@@ -22,5 +22,6 @@ void appendCodePoint(QString &target, char32_t c);
 QString fromCodePoints(std::u32string_view codePoints);
 QString describeCharacter(char32_t c);
 QStringList splitLines(const QString &text);
+QString rawString(const QString &text);
 
 }

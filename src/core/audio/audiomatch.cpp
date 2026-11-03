@@ -17,18 +17,12 @@ qint64 parentOf(qint64 pid)
     if (!stat.open(QIODevice::ReadOnly)) {
         return 0;
     }
-    const QByteArray content = stat.readAll();
-    const qsizetype nameEnd = content.lastIndexOf(')');
-    if (nameEnd < 0) {
-        return 0;
-    }
-    const QList<QByteArray> fields = content.mid(nameEnd + 2).split(' ');
-    return fields.size() > 1 ? fields.at(1).toLongLong() : 0;
+    return parentPidFromStat(stat.readAll());
 }
 
 bool isHostProcessOf(qint64 pid, const QString &binary)
 {
-    if (pid <= 0 || binary.isEmpty()) {
+    if (pid <= 0) {
         return false;
     }
     return QFileInfo(QStringLiteral("/proc/%1/exe").arg(pid)).symLinkTarget().endsWith(QLatin1Char('/') + binary);
@@ -59,6 +53,16 @@ bool namesMatch(const StreamIdentity &stream, const QString &desktopFile)
     return binary == application || binary == application.section(QLatin1Char('.'), -1);
 }
 
+}
+
+qint64 parentPidFromStat(const QByteArray &stat)
+{
+    const qsizetype nameEnd = stat.lastIndexOf(')');
+    if (nameEnd < 0) {
+        return 0;
+    }
+    const QList<QByteArray> fields = stat.mid(nameEnd + 2).split(' ');
+    return fields.size() > 1 ? fields.at(1).toLongLong() : 0;
 }
 
 StreamIdentity withFallback(StreamIdentity stream, const StreamIdentity &fallback)

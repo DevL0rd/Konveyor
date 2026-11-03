@@ -153,9 +153,9 @@ void Engine::updateWindowDrag(const QPointF &pointer, const QString &output)
         if (move.isFloating || squared >= DragDetachDistanceSq) {
             d->beginInteractiveMoving(output);
         }
-    } else if (move.output != output && d->monitorByName(output)) {
-        move.output = output;
+    } else if (move.output != output) {
         if (const auto idx = d->monitorIndexByName(output)) {
+            move.output = output;
             d->activeMonitorIndex = *idx;
         }
     }
@@ -246,9 +246,7 @@ void Engine::Private::dropInteractiveTile(Monitor &monitor, const Monitor::Inser
         workspaceIndex = monitor.indexOfWorkspace(insertTarget.workspace.id).value_or(monitor.activeWorkspaceIndex());
     } else {
         const std::size_t requested = insertTarget.workspace.newAt;
-        if (monitor.options()->layout.fixedWorkspaceCount > 0) {
-            workspaceIndex = std::min(requested, monitor.workspaces().size() - 1);
-        } else if (monitor.options()->layout.emptyWorkspaceAboveFirst && requested == 0) {
+        if (monitor.options()->layout.emptyWorkspaceAboveFirst && requested == 0) {
             workspaceIndex = 0;
         } else if (monitor.workspaces().size() - 1 <= requested) {
             workspaceIndex = monitor.workspaces().size() - 1;

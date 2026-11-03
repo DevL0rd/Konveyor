@@ -284,13 +284,14 @@ void AudioAnalyzer::updateBeat()
 
 void AudioAnalyzer::snapToZero()
 {
-    bool quiet = m_frame.level < kZeroEpsilon && m_frame.beat < kZeroEpsilon;
+    float loudest = std::max(m_frame.level, m_frame.beat);
     for (const float band : m_frame.bands) {
-        quiet = quiet && band < kZeroEpsilon;
+        loudest = std::max(loudest, band);
     }
     for (const float point : m_frame.wave) {
-        quiet = quiet && std::abs(point) < kZeroEpsilon;
+        loudest = std::max(loudest, std::abs(point));
     }
+    const bool quiet = loudest < kZeroEpsilon;
     m_zero = quiet;
     if (quiet) {
         m_frame = AudioFrame {};

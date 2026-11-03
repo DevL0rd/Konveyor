@@ -67,6 +67,15 @@ private Q_SLOTS:
         m_connection.unregisterObject(QLatin1String(KontrolPanelService::objectPath));
     }
 
+    void reportsRegisteredServicesOnlyOnAConnectedBus()
+    {
+        FakeService other(panelName, QStringLiteral("/Other"), acknowledge());
+        QVERIFY(other.start(m_session->address()));
+        QVERIFY(KontrolPanelService::serviceRegistered(m_connection, panelName));
+        QVERIFY(!KontrolPanelService::serviceRegistered(m_connection, QStringLiteral("org.devl0rd.NobodyHome")));
+        QVERIFY(!KontrolPanelService::serviceRegistered(QDBusConnection(QStringLiteral("konveyor-no-such-connection")), panelName));
+    }
+
     void followsKonveyorOnTheSessionBus()
     {
         const KontrolPanelService service;
