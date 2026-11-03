@@ -13,9 +13,15 @@
 #include <window.h>
 #include <workspace.h>
 
+#ifdef KONVEYOR_KWIN_CONFINES_COMMITS
+#include <wayland_server.h>
+#include <xdgshellwindow.h>
+#endif
+
 #include <QScopedValueRollback>
 
 #include <algorithm>
+#include <utility>
 
 namespace Konveyor
 {
@@ -34,11 +40,41 @@ bool isUserManipulated(KWin::Window *window)
     return window->isInteractiveMove() || window->isInteractiveResize();
 }
 
+#ifdef KONVEYOR_KWIN_CONFINES_COMMITS
+using UnrestrictedFlag = bool KWin::XdgToplevelWindow::*;
+
+template<UnrestrictedFlag Flag> struct UnrestrictedFlagAccess
+{
+    friend UnrestrictedFlag unrestrictedFlag() { return Flag; }
+};
+
+UnrestrictedFlag unrestrictedFlag();
+template struct UnrestrictedFlagAccess<&KWin::XdgToplevelWindow::m_isUnrestricted>;
+
+void setExemptFromConfinement(KWin::Window *window, bool exempt)
+{
+    if (KWin::XdgToplevelWindow *toplevel = KWin::waylandServer()->findXdgToplevelWindow(window->surface())) {
+        toplevel->*unrestrictedFlag() = exempt;
+    }
+}
+#else
+void setExemptFromConfinement(KWin::Window *, bool) { }
+#endif
+
 }
 
 WindowApplier::WindowApplier(const WindowRegistry &windows)
     : m_windows(windows)
 { }
+
+WindowApplier::~WindowApplier()
+{
+    for (const QPointer<KWin::Window> &window : std::as_const(m_parked)) {
+        if (window) {
+            setExemptFromConfinement(window, false);
+        }
+    }
+}
 
 void WindowApplier::apply(const QList<Layout::WindowState> &states)
 {
@@ -54,6 +90,7 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             continue;
         }
         const QRectF frame = placedFrame(state);
+        setParked(state.id, window, frame != frameFor(state));
         const auto previous = m_appliedFrames.constFind(state.id);
         const std::optional<QSizeF> requestedSize = previous != m_appliedFrames.constEnd() ? std::optional(previous->size()) : std::nullopt;
         if (!frame.isEmpty()) {
@@ -110,6 +147,22 @@ void WindowApplier::forget(Layout::WindowId id)
     m_overriddenOpacity.remove(id);
     m_appliedFrames.remove(id);
     m_loggedTargets.remove(id);
+    if (const QPointer<KWin::Window> window = m_parked.take(id)) {
+        setExemptFromConfinement(window, false);
+    }
+}
+
+void WindowApplier::setParked(Layout::WindowId id, KWin::Window *window, bool parked)
+{
+    if (parked == m_parked.contains(id)) {
+        return;
+    }
+    if (parked) {
+        m_parked.insert(id, window);
+    } else {
+        m_parked.remove(id);
+    }
+    setExemptFromConfinement(window, parked);
 }
 
 void WindowApplier::logTargetChange(KWin::Window *window, const Layout::WindowState &state)

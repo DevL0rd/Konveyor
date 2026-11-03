@@ -113,8 +113,8 @@ PlasmoidItem {
             i18n("CPU %1% · %2 · %3 GHz · %4 W", Math.round(cpu.total || 0), Fmt.temp(cpu.temp), (cpu.freq || 0).toFixed(1), Math.round(cpu.watts || 0))
         ]
         if (gpu)
-            lines.push(i18n("GPU %1% · %2 · %3 W · VRAM %4 / %5", Math.round(gpu.util || 0), Fmt.temp(gpu.temp), Math.round(gpu.power || 0),
-                            Style.bytes(gpu.vram_used), Style.bytes(gpu.vram_total)))
+            lines.push(i18n("GPU %1% · %2 · %3 W · %4 %5 / %6", Math.round(gpu.util || 0), Fmt.temp(gpu.temp), Math.round(gpu.power || 0),
+                            gpu.shared ? i18n("Memory") : i18n("VRAM"), Style.bytes(gpu.vram_used), Style.bytes(gpu.vram_total)))
         lines.push(i18n("RAM %1 / %2", Style.bytes(mem.used), Style.bytes(mem.total))
                    + ((mem.swap_total || 0) > 0 ? i18n(" · Swap %1 / %2", Style.bytes(mem.swap_used), Style.bytes(mem.swap_total)) : ""))
         return lines.filter(line => line !== "").join("\n")

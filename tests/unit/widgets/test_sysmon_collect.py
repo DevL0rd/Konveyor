@@ -175,6 +175,50 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
         module = self.load(SCRIPT, "sysmon_collect", pynvml=fake_nvml(fail_init=True))
         self.assertIsNone(module.build()["gpu"])
 
+    def write_amdgpu(self, card, revision, vram, gtt):
+        dev = "/sys/class/drm/%s/device/" % card
+        files = {"gpu_busy_percent": "37", "mem_info_vram_used": vram[0], "mem_info_vram_total": vram[1],
+                 "mem_info_gtt_used": gtt[0], "mem_info_gtt_total": gtt[1], "power/runtime_status": "active",
+                 "pp_dpm_sclk": "0: 600Mhz \n1: 806Mhz *\n2: 2900Mhz ", "hwmon/hwmon5/temp1_input": "55000",
+                 "hwmon/hwmon5/power1_average": "12345678", "hwmon/hwmon5/freq1_input": "1800000000"}
+        for name, text in files.items():
+            self.fake.write(dev + name, "%s\n" % text)
+        (self.home / ("root" + dev + "gpu_metrics")).write_bytes(bytes([0x08, 0x01, revision, 0]))
+        return dev
+
+    def test_an_amd_apu_reports_vram_and_gtt_as_gpu_memory(self):
+        self.write_minimal()
+        self.fake.write("/proc/cpuinfo", "model name : AMD Ryzen AI 7 350 w/ Radeon 860M\n")
+        self.write_amdgpu("card1", 3, (1 << 29, 1 << 29), (1 << 30, 3 << 30))
+        gpu = self.load(SCRIPT, "sysmon_collect").build()["gpu"]
+        self.assertEqual(gpu, {"name": "AMD Radeon 860M", "util": 37, "vram_used": 3 << 29, "vram_total": 7 << 29,
+                               "vram_pct": 3 / 7 * 100, "temp": 55.0, "power": 12.3, "clock_gr": 1800, "clock_mem": 0,
+                               "fan": 0, "clock_max": 2900, "power_max": 0, "shared": True})
+
+    def test_a_discrete_amd_gpu_wins_over_the_apu_and_counts_only_vram(self):
+        self.write_minimal()
+        self.fake.write("/proc/cpuinfo", "model name : AMD Ryzen AI 7 350 w/ Radeon 860M\n")
+        self.write_amdgpu("card1", 3, (1 << 29, 1 << 29), (0, 1 << 30))
+        dev = self.write_amdgpu("card0", 1, (2 << 30, 16 << 30), (1 << 30, 32 << 30))
+        self.fake.write(dev + "uevent", "DRIVER=amdgpu\nPCI_SLOT_NAME=0000:03:00.0\n")
+        self.fake.write("/run/udev/data/+pci:0000:03:00.0", "E:ID_MODEL_FROM_DATABASE=Navi 32 [Radeon RX 7700 XT / 7800 XT]\n")
+        self.fake.write(dev + "hwmon/hwmon5/pwm1", "64\n")
+        self.fake.write(dev + "hwmon/hwmon5/pwm1_max", "255\n")
+        self.fake.write(dev + "hwmon/hwmon5/power1_cap", "263000000\n")
+        module = self.load(SCRIPT, "sysmon_collect")
+        gpu = module.build()["gpu"]
+        self.assertEqual((gpu["name"], gpu["vram_used"], gpu["vram_total"], gpu["shared"]),
+                         ("AMD Radeon RX 7700 XT / 7800 XT", 2 << 30, 16 << 30, False))
+        self.assertEqual((gpu["fan"], gpu["power_max"]), (25, 263))
+        self.fake.write(dev + "power/runtime_status", "suspended\n")
+        gpu = module.build()["gpu"]
+        self.assertEqual((gpu["util"], gpu["temp"], gpu["power"], gpu["vram_used"], gpu["vram_total"]), (0, 0, 0, 0, 16 << 30))
+
+    def test_nvml_takes_precedence_over_amdgpu(self):
+        self.write_minimal()
+        self.write_amdgpu("card1", 3, (1 << 29, 1 << 29), (0, 1 << 30))
+        self.assertEqual(self.load(SCRIPT, "sysmon_collect", pynvml=fake_nvml()).build()["gpu"]["name"], "Test GPU")
+
     def test_snapshot_before_the_first_write_is_empty(self):
         self.write_minimal()
         module = self.load(SCRIPT, "sysmon_collect")

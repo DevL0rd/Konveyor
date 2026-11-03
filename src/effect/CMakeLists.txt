@@ -27,6 +27,9 @@ string(FIND "${KONVEYOR_KWIN_WINDOW}" "takesAsyncFocus" KONVEYOR_KWIN_ASYNC_FOCU
 if(NOT KONVEYOR_KWIN_ASYNC_FOCUS_AT EQUAL -1)
     target_compile_definitions(konveyor_effect PRIVATE KONVEYOR_KWIN_ASYNC_FOCUS)
 endif()
+if(KWin_VERSION VERSION_GREATER_EQUAL 6.8)
+    target_compile_definitions(konveyor_effect PRIVATE KONVEYOR_KWIN_CONFINES_COMMITS)
+endif()
 target_compile_options(konveyor_effect PRIVATE -Wall -Wextra)
 target_link_options(konveyor_effect PRIVATE LINKER:--no-undefined)
 
