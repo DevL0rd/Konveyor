@@ -157,6 +157,21 @@ add_custom_command(OUTPUT ${XDG_SHELL_HEADER}
 add_custom_command(OUTPUT ${XDG_SHELL_CODE}
     COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_CODE}
     DEPENDS ${XDG_SHELL_XML})
+set(FRACTIONAL_SCALE_XML ${WAYLAND_PROTOCOLS_DATA}/staging/fractional-scale/fractional-scale-v1.xml)
+set(FRACTIONAL_SCALE_HEADER ${CMAKE_CURRENT_BINARY_DIR}/fractional-scale-v1-client-protocol.h)
+set(FRACTIONAL_SCALE_CODE ${CMAKE_CURRENT_BINARY_DIR}/fractional-scale-v1-protocol.c)
+add_custom_command(OUTPUT ${FRACTIONAL_SCALE_HEADER}
+    COMMAND ${WAYLAND_SCANNER} client-header ${FRACTIONAL_SCALE_XML} ${FRACTIONAL_SCALE_HEADER}
+    DEPENDS ${FRACTIONAL_SCALE_XML})
+add_custom_command(OUTPUT ${FRACTIONAL_SCALE_CODE}
+    COMMAND ${WAYLAND_SCANNER} private-code ${FRACTIONAL_SCALE_XML} ${FRACTIONAL_SCALE_CODE}
+    DEPENDS ${FRACTIONAL_SCALE_XML})
+add_executable(scale_tracking_client nested/clients/scale_tracking_client.cpp ${XDG_SHELL_HEADER} ${XDG_SHELL_CODE}
+    ${FRACTIONAL_SCALE_HEADER} ${FRACTIONAL_SCALE_CODE})
+target_include_directories(scale_tracking_client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(scale_tracking_client PRIVATE PkgConfig::WAYLAND_CLIENT)
+target_compile_options(scale_tracking_client PRIVATE -Wall -Wextra -Werror)
+
 add_executable(fullscreen_guard_client nested/clients/fullscreen_guard_client.cpp ${XDG_SHELL_HEADER} ${XDG_SHELL_CODE})
 target_include_directories(fullscreen_guard_client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(fullscreen_guard_client PRIVATE PkgConfig::WAYLAND_CLIENT)

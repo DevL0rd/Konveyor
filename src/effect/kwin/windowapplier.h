@@ -4,6 +4,7 @@
 
 #include <QHash>
 #include <QList>
+#include <QPointer>
 #include <QRectF>
 
 #include <optional>
@@ -22,6 +23,7 @@ class WindowApplier
 {
 public:
     explicit WindowApplier(const WindowRegistry &windows);
+    ~WindowApplier();
 
     void apply(const QList<Layout::WindowState> &states);
     bool isApplying() const;
@@ -39,6 +41,7 @@ private:
     void applySizingMode(KWin::Window *window, const Layout::WindowState &state) const;
     void applyStacking(const QList<Layout::WindowState> &states);
     void logTargetChange(KWin::Window *window, const Layout::WindowState &state);
+    void setParked(Layout::WindowId id, KWin::Window *window, bool parked);
 
     struct LoggedTarget
     {
@@ -58,6 +61,7 @@ private:
     QHash<Layout::WindowId, QRectF> m_appliedFrames;
     QHash<Layout::WindowId, double> m_overriddenOpacity;
     QHash<Layout::WindowId, LoggedTarget> m_loggedTargets;
+    QHash<Layout::WindowId, QPointer<KWin::Window>> m_parked;
     bool m_applying = false;
 };
 
