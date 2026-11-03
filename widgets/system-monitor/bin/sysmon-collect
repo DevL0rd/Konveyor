@@ -20,7 +20,8 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path[:0] = [HERE, os.path.join(os.path.dirname(os.path.dirname(HERE)), "shared")]
 
 import collectors
-from sysmon_sensors import amd_gpu, cpu_fan, cpu_freqs, cpu_temp
+from sysmon_amdgpu import amd_gpu
+from sysmon_sensors import cpu_fan, cpu_freqs, cpu_temp
 
 APP = "Linux-System-Monitor"
 RUNDIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), APP)

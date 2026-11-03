@@ -313,8 +313,10 @@ Item {
                     }
                     RowLayout {
                         Layout.fillWidth: true
+                        visible: gpuStats.count > 0
                         spacing: 0
                         Repeater {
+                            id: gpuStats
                             model: root.gpu ? [
                                 { label: i18n("Memory clock"), value: Math.round(root.gpu.clock_mem || 0), unit: "MHz" },
                                 { label: i18n("Power limit"), value: Math.round(root.gpu.power_max || 0), unit: "W" },
@@ -325,8 +327,8 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 1
                                 label: modelData.label
-                                value: modelData.value > 0 ? modelData.value + "" : "—"
-                                unit: modelData.value > 0 ? modelData.unit : ""
+                                value: modelData.value + ""
+                                unit: modelData.unit
                                 scale: 1.0
                             }
                         }
