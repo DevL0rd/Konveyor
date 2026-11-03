@@ -84,7 +84,7 @@ def view_steps_fire_per_column(checks):
 
 
 def view_effect_plays_while_the_row_moves(checks):
-    events = '        on "view" "Mark" reach="all"'
+    events = '        on "view" "Mark" reach="all" duration=4'
     checks.expect(load_config(probe_config(events, solid("Mark", "#ff00ff"))), "a view effect loads")
     settle_to("A")
     time.sleep(1.0)
