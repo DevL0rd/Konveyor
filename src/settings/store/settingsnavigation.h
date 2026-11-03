@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <QQmlIncubationController>
+#include <QTimer>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
@@ -22,6 +24,7 @@ public:
 
     Q_INVOKABLE void push(const QString &page, const QVariantMap &properties = {});
     Q_INVOKABLE void pop();
+    Q_INVOKABLE void loadSectionsInBackground();
 
 Q_SIGNALS:
     void depthChanged();
@@ -29,7 +32,20 @@ Q_SIGNALS:
     void popRequested();
 
 private:
+    class SectionIncubator : public QQmlIncubationController
+    {
+    public:
+        SectionIncubator();
+
+    protected:
+        void incubatingObjectCountChanged(int count) override;
+
+    private:
+        QTimer m_slice;
+    };
+
     int m_depth = 1;
+    SectionIncubator m_incubator;
 };
 
 }

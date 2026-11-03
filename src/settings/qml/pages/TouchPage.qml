@@ -11,8 +11,9 @@ SettingsPage {
 
     readonly property var touchpad: SettingsStore.values["gestures/touchpad"] || ({})
     readonly property var touchscreen: SettingsStore.values["gestures/touchscreen"] || ({})
-    readonly property string hoveredDevice: touchscreenSection.emphasis !== "" ? "touchscreen" : (touchpadSection.emphasis !== "" ? "touchpad" : "")
-    readonly property string hoveredGesture: touchscreenSection.emphasis || touchpadSection.emphasis
+    readonly property string touchscreenEmphasis: touchscreenSection.item ? touchscreenSection.item.emphasis : ""
+    readonly property string hoveredDevice: touchscreenEmphasis !== "" ? "touchscreen" : (touchpadSection.emphasis !== "" ? "touchpad" : "")
+    readonly property string hoveredGesture: touchscreenEmphasis || touchpadSection.emphasis
     readonly property var tour: [
         { device: "touchpad", gesture: "horizontal" },
         { device: "touchpad", gesture: "vertical" },
@@ -85,12 +86,13 @@ SettingsPage {
         kdeGestures: "3 and 4 finger swipes switch desktops, 4 fingers up opens Overview"
     }
 
-    TouchDeviceSection {
+    LaterSection {
         id: touchscreenSection
-        Layout.fillWidth: true
         Layout.topMargin: Kirigami.Units.largeSpacing * 2
-        device: "touchscreen"
-        title: "Touchscreen"
-        kdeGestures: "3 finger swipes switch desktops and open Overview"
+        sourceComponent: TouchDeviceSection {
+            device: "touchscreen"
+            title: "Touchscreen"
+            kdeGestures: "3 finger swipes switch desktops and open Overview"
+        }
     }
 }

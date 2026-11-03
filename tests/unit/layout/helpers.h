@@ -182,6 +182,12 @@ public:
         m_engine.windowSizeCommitted(id, size);
     }
 
+    void endDragAndSettle()
+    {
+        m_engine.endWindowDrag();
+        settle();
+    }
+
     void settle()
     {
         if (m_holdCommits) {

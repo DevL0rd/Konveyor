@@ -40,7 +40,6 @@ public:
     void setAnimation(Anim::Animation anim);
     void setSwipe(StripSwipe gesture);
     StripSwipe *swipe() { return m_swipe ? &*m_swipe : nullptr; }
-    const StripSwipe *swipe() const { return m_swipe ? &*m_swipe : nullptr; }
     const Anim::Animation *animation() const { return m_animation ? &*m_animation : nullptr; }
 
 private:

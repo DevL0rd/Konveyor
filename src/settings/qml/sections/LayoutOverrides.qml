@@ -62,6 +62,13 @@ ColumnLayout {
         iconName: "window"
     }
 
+    EventEffectsSection {
+        Layout.fillWidth: true
+        scopePath: root.scopePath
+        overrideMode: true
+        excluded: root.excluded
+    }
+
     TabIndicatorSection {
         Layout.fillWidth: true
         scopePath: root.scopePath

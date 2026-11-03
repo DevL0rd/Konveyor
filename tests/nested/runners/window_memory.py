@@ -41,8 +41,9 @@ def corrupt(checks):
     Path(sys.argv[2]).write_text(client_app_id("A"))
     opens_at(checks, "A", "50%")
     checks.equal(konveyor_action("set-column-width", "75%"), "", "set-column-width 75%")
-    checks.expect(wait_for(remembered), "the new width is saved over the unreadable file")
-    checks.equal(remembered(), {"proportion": True, "value": 0.75}, "the saved width")
+    saved = {"proportion": True, "value": 0.75}
+    wait_for(lambda: remembered() == saved)
+    checks.equal(remembered(), saved, "the new width is saved over the unreadable file")
     open_client("B")
     opens_at(checks, "B", "75%")
 

@@ -278,7 +278,7 @@ void TestConfigNodes::tabIndicatorMergesFieldByField()
     QCOMPARE(scoped.active->color, QColor(255, 0, 0));
     QVERIFY(scoped.active->gradient.has_value());
     QVERIFY(!global.active->gradient.has_value());
-    QCOMPARE(scoped.inactive->color, QColor(0, 255, 0));
+    QCOMPARE(scoped.inactive.color, QColor(0, 255, 0));
     QCOMPARE(scoped.urgent->source, ColorSource::SystemHover);
     QCOMPARE(global.urgent, std::nullopt);
 }

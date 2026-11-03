@@ -2,12 +2,23 @@ find_package(KWin 6.7 REQUIRED COMPONENTS kwineffects)
 find_package(KDecoration3 REQUIRED)
 find_package(KF6 REQUIRED COMPONENTS CoreAddons GlobalAccel Config ColorScheme Notifications I18n)
 find_package(XCB REQUIRED COMPONENTS XCB ICCCM)
-
 kcoreaddons_add_plugin(konveyor_effect INSTALL_NAMESPACE "kwin/effects/plugins")
 
 file(GLOB_RECURSE KONVEYOR_EFFECT_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 target_sources(konveyor_effect PRIVATE ${KONVEYOR_EFFECT_SOURCES})
-target_include_directories(konveyor_effect PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+set(preludes "${CMAKE_CURRENT_SOURCE_DIR}/decorations/shaders")
+konveyor_compose_shader(vertex_source "${preludes}/vertex.prelude.glsl" "${KONVEYOR_BORDER_SHADERS}/border.vert.glsl")
+konveyor_compose_shader(band_source "${preludes}/fragment.prelude.glsl" "${KONVEYOR_BORDER_SHADERS}/frame.glsl" "${KONVEYOR_BORDER_SHADERS}/perimeter.glsl" "${KONVEYOR_BORDER_SHADERS}/band.frag.glsl")
+konveyor_compose_shader(reactive_source "${preludes}/fragment.prelude.glsl" "${preludes}/reactive.uniforms.glsl" "${KONVEYOR_BORDER_SHADERS}/frame.glsl" "${KONVEYOR_BORDER_SHADERS}/perimeter.glsl" "${KONVEYOR_BORDER_SHADERS}/reactive.frag.glsl")
+konveyor_compose_shader(particle_source "${preludes}/fragment.prelude.glsl" "${KONVEYOR_BORDER_SHADERS}/frame.glsl" "${KONVEYOR_BORDER_SHADERS}/particle.frag.glsl")
+file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/bordershadersources.h" @ONLY CONTENT "#pragma once
+
+inline constexpr const char *kVertexSource = R\"glsl(${vertex_source})glsl\";
+inline constexpr const char *kBandFragmentSource = R\"glsl(${band_source})glsl\";
+inline constexpr const char *kReactiveFragmentSource = R\"glsl(${reactive_source})glsl\";
+inline constexpr const char *kParticleFragmentSource = R\"glsl(${particle_source})glsl\";
+")
+target_include_directories(konveyor_effect PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_compile_definitions(konveyor_effect PRIVATE KONVEYOR_VERSION="${PROJECT_VERSION}" KONVEYOR_BINDIR="${KDE_INSTALL_FULL_BINDIR}")
 get_target_property(KONVEYOR_KWIN_INCLUDES KWin::kwin INTERFACE_INCLUDE_DIRECTORIES)
 find_file(KONVEYOR_KWIN_WINDOW_HEADER window.h PATHS ${KONVEYOR_KWIN_INCLUDES} NO_DEFAULT_PATH NO_CACHE REQUIRED)

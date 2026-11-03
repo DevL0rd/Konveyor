@@ -22,7 +22,7 @@ void VelocityTracker::push(double delta, Anim::Duration timestamp)
     }
     m_history.push_back({delta, timestamp});
     m_pos += delta;
-    while (!m_history.empty() && timestamp > m_history.front().timestamp + SampleWindow) {
+    while (timestamp > m_history.front().timestamp + SampleWindow) {
         m_history.pop_front();
     }
 }

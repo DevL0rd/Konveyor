@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import contextlib
 import io
-import shutil
+import os
+import runpy
 import subprocess
 import sys
 import unittest
@@ -25,14 +26,18 @@ class TestSupervisor(CollectorTest):
         super().setUp()
         self.tree = self.home / "widgets"
         (self.tree / "service").mkdir(parents=True)
-        shutil.copy(SUPERVISOR, self.tree / "service" / "konveyor-widgets")
+
+    def supervisor(self):
+        module = self.load(SUPERVISOR, "konveyor_widgets")
+        module.ROOT = str(self.tree)
+        return module
 
     def collector(self, widget):
         (self.tree / widget / "bin").mkdir(parents=True, exist_ok=True)
         write_stub(self.tree / widget / "bin", COLLECTORS[widget], EXITING)
 
     def run_supervisor(self, starts):
-        module = self.load(self.tree / "service" / "konveyor-widgets", "konveyor_widgets")
+        module = self.supervisor()
         module.RESTART_DELAY = 0.05
         real_start = module.start
         launched = []
@@ -72,7 +77,7 @@ class TestSupervisor(CollectorTest):
 
     def test_passes_the_router_collector_its_interpreter_flag(self):
         self.collector("router-monitor")
-        module = self.load(self.tree / "service" / "konveyor-widgets", "konveyor_widgets")
+        module = self.supervisor()
         with mock.patch.object(module.subprocess, "Popen") as popen:
             module.start("router-monitor", ["bin/routermon-collect", "--serve"], ["-S"])
         self.assertEqual(popen.call_args.args[0], [sys.executable, "-S", str(self.tree / "router-monitor/bin/routermon-collect"), "--serve"])
@@ -84,6 +89,24 @@ class TestSupervisor(CollectorTest):
         self.assertEqual(launched, ["system-log"] * 3)
         self.assertEqual(errors.count("system-log: collector exited with status 3, restarting"), 3)
         self.assertEqual(len(self.calls()), 3)
+
+    def test_ignores_an_unrelated_child_that_exits(self):
+        self.collector("system-log")
+        real_wait = os.wait
+        strangers = [(999999, 0)]
+        with mock.patch("os.wait", lambda: strangers.pop() if strangers else real_wait()):
+            code, launched, errors = self.run_supervisor(starts=2)
+        self.assertEqual(launched, ["system-log"] * 2)
+        self.assertEqual(errors.count("collector exited"), 2)
+        self.assertNotIn("999999", errors)
+
+    def test_the_script_exits_with_the_status_of_main(self):
+        self.start(mock.patch.dict("os.environ", self.environment, clear=True))
+        with mock.patch("os.path.isfile", return_value=False), contextlib.redirect_stderr(io.StringIO()) as errors, \
+                self.assertRaises(SystemExit) as raised:
+            runpy.run_path(str(SUPERVISOR), run_name="__main__")
+        self.assertEqual(raised.exception.code, 1)
+        self.assertIn("no collectors found", errors.getvalue())
 
 
 class TestEcores(CollectorTest):
@@ -118,6 +141,16 @@ class TestEcores(CollectorTest):
         self.assertEqual(self.detect(), "")
         self.fake.write("/sys/devices/system/cpu/cpu1/cpufreq/cpuinfo_max_freq", "garbage\n")
         self.assertEqual(self.detect(), "")
+
+    def test_the_script_prints_the_cores_when_run_directly(self):
+        self.clocks(5000000, 3000000)
+        self.start(mock.patch.dict("os.environ", self.environment, clear=True))
+        for patch in self.fake.patches():
+            self.start(patch)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            runpy.run_path(str(ECORES), run_name="__main__")
+        self.assertEqual(output.getvalue().strip(), "1")
 
     def test_runs_under_the_installer_interpreter_flags(self):
         result = subprocess.run([sys.executable, "-S", str(ECORES)], capture_output=True, text=True, env=self.environment)

@@ -13,6 +13,8 @@ import shutil
 import subprocess
 import sys
 
+SEARCH_TIMEOUT = 20
+
 
 def run_json(args, timeout):
     try:
@@ -59,9 +61,9 @@ def main():
     standard = subprocess.Popen(["shelly", "search", "standard", query, "-v", "-t", "40", "-j"],
                                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
                                 start_new_session=True)
-    aur = run_json(["shelly", "search", "aur", query, "-j"], 20) or []
+    aur = run_json(["shelly", "search", "aur", query, "-j"], SEARCH_TIMEOUT) or []
     try:
-        out, _ = standard.communicate(timeout=20)
+        out, _ = standard.communicate(timeout=SEARCH_TIMEOUT)
     except subprocess.TimeoutExpired:
         standard.kill()
         out = ""

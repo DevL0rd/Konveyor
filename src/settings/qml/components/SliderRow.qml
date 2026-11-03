@@ -14,6 +14,7 @@ SettingRow {
     property string unit
     property string lowLabel
     property string highLabel
+    default property alias trailing: trailingSlot.data
     signal edited(real value)
 
     function format(number) {
@@ -22,14 +23,14 @@ SettingRow {
 
     Timer {
         id: commit
-        interval: 120
+        interval: 30
         property real pending
         onTriggered: row.edited(pending)
     }
 
     function schedule(number) {
         commit.pending = number;
-        commit.restart();
+        commit.start();
     }
 
     RowLayout {
@@ -73,6 +74,11 @@ SettingRow {
             valueFromText: (text, locale) => Math.round(parseFloat(text) * factor)
             onValueModified: row.schedule(value / factor)
             Layout.preferredWidth: Kirigami.Units.gridUnit * 6
+        }
+
+        RowLayout {
+            id: trailingSlot
+            spacing: 0
         }
     }
 }

@@ -9,6 +9,18 @@
 namespace Konveyor::Settings
 {
 
+namespace
+{
+
+std::optional<int> editsBeforeFailure;
+
+}
+
+void ConfigDocument::failEditsAfter(std::optional<int> successfulEdits)
+{
+    editsBeforeFailure = successfulEdits;
+}
+
 ConfigDocument::ConfigDocument(const QString &text)
     : m_text(toCodePoints(text))
 {
@@ -305,6 +317,12 @@ EditResult ConfigDocument::insertTopLevel(const QVariantMap &node, const QString
 
 EditResult ConfigDocument::commit(std::u32string text, const QString &resultPath)
 {
+    if (editsBeforeFailure) {
+        if (*editsBeforeFailure == 0) {
+            return std::unexpected(QStringLiteral("the edit could not be written"));
+        }
+        --*editsBeforeFailure;
+    }
     const QString candidate = QString::fromUcs4(text.data(), static_cast<qsizetype>(text.size()));
     auto parsed = Kdl::parse(candidate, QStringLiteral("config.kdl"));
     if (!parsed) {

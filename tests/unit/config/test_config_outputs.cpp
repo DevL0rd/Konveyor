@@ -46,7 +46,7 @@ void TestConfigOutputs::parsesOutput()
     QCOMPARE(primary.layout->focusRing, std::nullopt);
     const Layout primaryLayout = mergedLayout(result.config.layout, *primary.layout);
     QCOMPARE(primaryLayout.border.enabled, true);
-    QCOMPARE(primaryLayout.focusRing.width, 4.0);
+    QCOMPARE(primaryLayout.focusRing.width, 2.0);
     QVERIFY(primary.hotCorners.has_value());
     QCOMPARE(primary.hotCorners->enabled, false);
     QCOMPARE(result.config.layout.gaps, 16.0);

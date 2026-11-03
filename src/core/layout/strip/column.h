@@ -99,7 +99,6 @@ public:
     bool isTabbed() const { return displayStyle == Config::ColumnDisplay::Tabbed; }
     const OptionsPtr &options() const { return m_options; }
     const AreaInfo &area() const { return m_area; }
-    const Anim::Clock &clock() const { return m_clock; }
 
     std::vector<Tile> tiles;
     std::vector<TileSizing> data;

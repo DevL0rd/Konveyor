@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Load the Process Monitor frame telemetry effect next to Konveyor, check Frames, Watch and its Frame signal, and reload it with a window open."""
+"""Load the Process Monitor frame telemetry effect next to Konveyor, check Frames, Watch and its Frame signal, keep it from owning the name another process holds, skip windows without a process id, and reload it with a window open."""
 import sys
 from pathlib import Path
 
@@ -10,7 +10,7 @@ sys.path.insert(0, str(HERE / "harness"))
 def main():
     from nested import run_runner
 
-    return run_runner(HERE / "runners" / "process_monitor.py", clients=(), timeout=180,
+    return run_runner(HERE / "runners" / "process_monitor.py", clients=(), timeout=240,
                       extra_kwinrc="process_monitor_telemetryEnabled=true")
 
 

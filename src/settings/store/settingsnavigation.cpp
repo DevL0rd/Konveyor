@@ -1,7 +1,36 @@
 #include "store/settingsnavigation.h"
 
+#include <QQmlEngine>
+
 namespace Konveyor::Settings
 {
+
+namespace
+{
+constexpr int IncubationSliceMs = 5;
+}
+
+SettingsNavigation::SectionIncubator::SectionIncubator()
+{
+    QObject::connect(&m_slice, &QTimer::timeout, [this] { incubateFor(IncubationSliceMs); });
+}
+
+void SettingsNavigation::SectionIncubator::incubatingObjectCountChanged(int count)
+{
+    if (count > 0) {
+        m_slice.start();
+    } else {
+        m_slice.stop();
+    }
+}
+
+void SettingsNavigation::loadSectionsInBackground()
+{
+    QQmlEngine *engine = qmlEngine(this);
+    if (engine && !engine->incubationController()) {
+        engine->setIncubationController(&m_incubator);
+    }
+}
 
 int SettingsNavigation::depth() const
 {

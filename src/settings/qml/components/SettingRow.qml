@@ -15,8 +15,9 @@ FormCard.AbstractFormDelegate {
     default property alias control: controlSlot.data
     property bool wideControl: false
     property var taskbarKeys: []
+    readonly property real resetSlotWidth: Kirigami.Units.gridUnit * 1.5
     readonly property bool stacked: wideControl
-        || controlSlot.implicitWidth + Kirigami.Units.gridUnit * 12 + 2 * Kirigami.Units.largeSpacing > availableWidth
+        || controlSlot.implicitWidth + resetSlotWidth + Kirigami.Units.gridUnit * 12 + 2 * Kirigami.Units.largeSpacing > availableWidth
     readonly property bool modified: (SettingsStore.revision >= 0 && resetPaths.some(path => !SettingsStore.isDefault(path)))
         || taskbarKeys.some(key => TaskbarSettings.values[key] !== undefined && !TaskbarSettings.isDefault(key))
 
@@ -62,7 +63,7 @@ FormCard.AbstractFormDelegate {
                     }
 
                     ModifiedBadge {
-                        visible: row.modified
+                        visible: row.modified && row.wideControl
                         onResetRequested: row.reset()
                     }
                 }
@@ -83,12 +84,29 @@ FormCard.AbstractFormDelegate {
             Layout.preferredWidth: 0
         }
 
-        Item {
-            id: controlSlot
-            implicitWidth: childrenRect.width
-            implicitHeight: childrenRect.height
+        RowLayout {
+            spacing: 0
             Layout.alignment: row.stacked ? Qt.AlignLeft : (Qt.AlignRight | Qt.AlignVCenter)
             Layout.fillWidth: row.wideControl
+
+            Item {
+                id: controlSlot
+                implicitWidth: row.wideControl ? 0 : childrenRect.width
+                implicitHeight: childrenRect.height
+                Layout.fillWidth: row.wideControl
+            }
+
+            Item {
+                visible: !row.wideControl
+                Layout.preferredWidth: row.resetSlotWidth
+                Layout.preferredHeight: row.resetSlotWidth
+
+                ModifiedBadge {
+                    anchors.fill: parent
+                    visible: row.modified
+                    onResetRequested: row.reset()
+                }
+            }
         }
     }
 }

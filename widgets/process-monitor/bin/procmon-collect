@@ -248,8 +248,6 @@ def aggregate(procs, kids, totals):
     stack = [pid for pid, p in procs.items() if p[1] not in procs]
     while stack:
         pid = stack.pop()
-        if pid in seen:
-            continue
         seen.add(pid)
         order.append(pid)
         children = kids.get(pid)

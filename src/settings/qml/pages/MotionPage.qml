@@ -65,18 +65,17 @@ SettingsPage {
     Repeater {
         model: page.animations
 
-        ColumnLayout {
+        LaterSection {
+            id: later
             required property var modelData
-            Layout.fillWidth: true
             Layout.bottomMargin: Kirigami.Units.largeSpacing * 2
-            spacing: 0
             enabled: page.animationsOn
 
-            AnimationCard {
-                name: modelData.name
-                title: modelData.title
-                description: modelData.description
-                iconName: modelData.icon
+            sourceComponent: AnimationCard {
+                name: later.modelData.name
+                title: later.modelData.title
+                description: later.modelData.description
+                iconName: later.modelData.icon
             }
         }
     }

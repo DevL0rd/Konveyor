@@ -172,7 +172,7 @@ private Q_SLOTS:
         QCOMPARE(fixture.state(tabs[1]).tabBar.tabPaints[1].color, QColor(Qt::cyan));
     }
 
-    void tabsFallBackToTheFocusRingPaintAndKeepGradients()
+    void tabsKeepTheirOwnHiddenPaintFallBackToTheFocusRingAndKeepGradients()
     {
         Config::Config config = thickTabs();
         Config::Gradient gradient;
@@ -180,11 +180,12 @@ private Q_SLOTS:
         gradient.to = Qt::blue;
         config.layout.focusRing.active = Config::Paint {Config::ColorSource::SystemAccent, QColor(), std::nullopt};
         config.layout.focusRing.inactive = Config::Paint {Config::ColorSource::Explicit, QColor(Qt::gray), std::nullopt};
+        config.layout.tabIndicator.inactive = Config::Paint {Config::ColorSource::Explicit, QColor(80, 80, 80), std::nullopt};
         config.layout.tabIndicator.active = Config::Paint {Config::ColorSource::Explicit, QColor(), gradient};
         Fixture fixture(config);
         const QList<Layout::WindowId> tabs = addTabs(fixture, 2);
         const QList<Layout::ResolvedPaint> paints = fixture.state(tabs[1]).tabBar.tabPaints;
-        QCOMPARE(paints[0].color, QColor(Qt::gray));
+        QCOMPARE(paints[0].color, QColor(80, 80, 80));
         QCOMPARE(paints[1].gradient, std::optional(gradient));
         config.layout.tabIndicator.active.reset();
         fixture.setConfig(config);

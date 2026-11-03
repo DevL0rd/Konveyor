@@ -10,6 +10,7 @@ GridLayout {
     property var currentValue
     property real cardHeight: Kirigami.Units.gridUnit * 7
     signal chosen(var value)
+    signal tried(var value, bool on)
 
     columns: Math.max(1, Math.min(options.length, Math.floor(width / (Kirigami.Units.gridUnit * 7))))
     columnSpacing: Kirigami.Units.largeSpacing
@@ -23,12 +24,14 @@ GridLayout {
 
             required property var modelData
             readonly property bool selected: root.currentValue === modelData.value
+            readonly property bool trying: hovered || visualFocus
 
             Layout.fillWidth: true
             Layout.preferredWidth: 1
             Layout.preferredHeight: root.cardHeight
             hoverEnabled: true
             onClicked: root.chosen(modelData.value)
+            onTryingChanged: root.tried(modelData.value, trying)
 
             Accessible.role: Accessible.RadioButton
             Accessible.name: modelData.title
@@ -52,6 +55,7 @@ GridLayout {
                 spacing: Kirigami.Units.smallSpacing
 
                 Loader {
+                    asynchronous: true
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.margins: Kirigami.Units.smallSpacing

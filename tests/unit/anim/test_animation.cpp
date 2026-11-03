@@ -244,6 +244,38 @@ private Q_SLOTS:
         QCOMPARE_LE(std::abs(animation.value() - (before + 50.0)), 1e-9);
     }
 
+    void offsetShiftsEasingWithoutSpringState()
+    {
+        Clock clock = Clock::frozenAt(Duration::zero());
+        Animation animation = Animation::ease(clock, 2, 4, 0, 100ms, Curve(EasingCurve::Linear));
+        animation.offset(10);
+        QCOMPARE(animation.from(), 12.0);
+        QCOMPARE(animation.to(), 14.0);
+        QCOMPARE(animation.valueAt(50ms), 13.0);
+    }
+
+    void descendingSpringStaysBetweenItsEndpoints()
+    {
+        Clock clock = Clock::frozenAt(Duration::zero());
+        Animation animation(clock, 100, 0, 0, springConfig(0.2, 800, 0.0001));
+        clock.setRawNow(30ms);
+        const double value = animation.value();
+        QVERIFY(value < 100.0);
+        QVERIFY(value > -1000.0);
+        clock.setRawNow(Duration::zero());
+        QCOMPARE(animation.value(), 100.0);
+    }
+
+    void valueWithoutOvershootFollowsTheSpringUntilTheTarget()
+    {
+        Clock clock = Clock::frozenAt(Duration::zero());
+        Animation animation(clock, 0, 1, 0, defaultSpring());
+        clock.setRawNow(5ms);
+        QCOMPARE(animation.valueWithoutOvershoot(), animation.value());
+        clock.setRawNow(2s);
+        QCOMPARE(animation.valueWithoutOvershoot(), 1.0);
+    }
+
     void easeFactoryIgnoresVelocity()
     {
         Clock clock = Clock::frozenAt(Duration::zero());

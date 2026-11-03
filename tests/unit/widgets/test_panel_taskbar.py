@@ -197,6 +197,32 @@ class TestPanelTaskbar(AppletsrcCase):
         self.run_script("uninstall")
         self.assertEqual(self.path.read_text(), before)
 
+    def test_uninstall_removes_the_settings_of_an_added_taskbar_too(self):
+        self.path.write_text(FIXTURE.replace("org.kde.plasma.icontasks", "org.kde.plasma.digitalclock")
+                             + "\n[Containments][1][Applets][7]\nimmutability=1\nplugin=org.devl0rd.taskbar\nkonveyorAdded=true\n"
+                             "\n[Containments][1][Applets][7][Configuration][General]\nlaunchers=applications:kate.desktop\n")
+        self.run_script("uninstall")
+        text = self.path.read_text()
+        self.assertNotIn("[Applets][7]", text)
+        self.assertNotIn("kate.desktop", text)
+
+    def test_install_without_a_stored_order_remembers_the_applets_in_id_order(self):
+        self.path.write_text(FIXTURE.replace("[Containments][1][General]\nAppletOrder=2;3;4;5\n\n", ""))
+        self.run_script("install")
+        text = self.path.read_text()
+        self.assertEqual(self.applet(text, 4), "immutability=1\nplugin=org.devl0rd.taskbar\nkonveyorReplaced=org.kde.plasma.icontasks\n"
+                         "konveyorOriginalOrder=2;3;4;5\nkonveyorInstalledOrder=2;4;3;5\n")
+
+    def test_uninstall_keeps_the_order_when_the_task_manager_had_no_neighbors_left(self):
+        self.path.write_text("[Containments][1]\nplugin=org.kde.panel\n\n[Containments][1][Applets][4]\nplugin=org.devl0rd.taskbar\n"
+                             "konveyorReplaced=org.kde.plasma.icontasks\nkonveyorOriginalOrder=4\nkonveyorInstalledOrder=4\n\n"
+                             "[Containments][1][Applets][9]\nplugin=org.kde.plasma.pager\n\n[Containments][1][General]\nAppletOrder=4;9\n")
+        self.run_script("uninstall")
+        text = self.path.read_text()
+        self.assertIn("AppletOrder=4;9", text)
+        self.assertIn("plugin=org.kde.plasma.icontasks", text)
+        self.assertNotIn("konveyorOriginalOrder", text)
+
     def test_uninstall_without_a_taskbar_changes_nothing(self):
         self.assertEqual(self.run_script("uninstall").stdout, "")
         self.assertEqual(self.path.read_text(), FIXTURE)

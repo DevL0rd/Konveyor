@@ -218,7 +218,7 @@ class TestRoutermonBuild(CollectorTest):
         self.assertIn("AGH /control/stats failed", (self.home / ".local/state/Linux-Router-Monitor/monitor.log").read_text())
 
 
-class TestRoutermonOffline(CollectorTest):
+class RouterOfflineBase(CollectorTest):
     def setUp(self):
         super().setUp()
         write_stub(self.stubs, "ping", PING)
@@ -240,6 +240,8 @@ class TestRoutermonOffline(CollectorTest):
             self.module.main()
         return json.loads(output.getvalue())
 
+
+class TestRoutermonOffline(RouterOfflineBase):
     def test_without_a_router_it_measures_the_local_link(self):
         self.configure(host="", ping_target="9.9.9.9")
         snapshot = self.run_main()
@@ -280,7 +282,7 @@ class TestRoutermonOffline(CollectorTest):
             self.run_main()
 
 
-class TestRoutermonServe(CollectorTest):
+class RouterServeBase(CollectorTest):
     def setUp(self):
         super().setUp()
         write_stub(self.stubs, "ping", PING)
@@ -317,6 +319,8 @@ class TestRoutermonServe(CollectorTest):
             self.module.serve()
         return caches
 
+
+class TestRoutermonServe(RouterServeBase):
     def test_the_router_identity_is_fetched_again_after_the_router_comes_back(self):
         self.configure(json.dumps({"host": "router", "poll_interval": 1}))
         self.reachable = [True, True, False, True, False, True]

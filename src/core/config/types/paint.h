@@ -60,8 +60,11 @@ struct Paint
     ColorSource source = ColorSource::Explicit;
     QColor color;
     std::optional<Gradient> gradient;
+    bool isSet() const { return source != ColorSource::Explicit || color.isValid() || gradient.has_value(); }
     bool operator==(const Paint &) const = default;
 };
+
+inline constexpr QLatin1StringView kBorderStyleNone {"none"};
 
 struct Border
 {
@@ -70,6 +73,9 @@ struct Border
     Paint active;
     Paint inactive;
     Paint urgent;
+    QString activeStyle;
+    QString inactiveStyle;
+    QString urgentStyle;
     bool operator==(const Border &) const = default;
 };
 
@@ -80,8 +86,18 @@ struct BorderRule
     std::optional<Paint> active;
     std::optional<Paint> inactive;
     std::optional<Paint> urgent;
+    QString activeStyle;
+    QString inactiveStyle;
+    QString urgentStyle;
     bool operator==(const BorderRule &) const = default;
 };
+
+inline void mergeStyleNames(Border &base, const BorderRule &part)
+{
+    base.activeStyle = part.activeStyle.isEmpty() ? base.activeStyle : part.activeStyle;
+    base.inactiveStyle = part.inactiveStyle.isEmpty() ? base.inactiveStyle : part.inactiveStyle;
+    base.urgentStyle = part.urgentStyle.isEmpty() ? base.urgentStyle : part.urgentStyle;
+}
 
 enum class TabIndicatorPosition
 {
@@ -111,7 +127,7 @@ struct TabIndicator
     double gapsBetweenTabs = 0;
     double cornerRadius = 0;
     std::optional<Paint> active;
-    std::optional<Paint> inactive;
+    Paint inactive;
     std::optional<Paint> urgent;
     bool operator==(const TabIndicator &) const = default;
 };

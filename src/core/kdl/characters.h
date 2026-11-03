@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 
 #include <optional>
 #include <string_view>
@@ -20,5 +21,7 @@ std::optional<int> digitValue(char32_t c, int radix);
 void appendCodePoint(QString &target, char32_t c);
 QString fromCodePoints(std::u32string_view codePoints);
 QString describeCharacter(char32_t c);
+QStringList splitLines(const QString &text);
+QString rawString(const QString &text);
 
 }

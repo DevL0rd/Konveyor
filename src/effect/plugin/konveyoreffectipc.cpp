@@ -61,6 +61,7 @@ void KonveyorEffect::startDBusService()
         [this] { return QJsonDocument(Ipc::gesturesToJson(d->gestures.config())); },
         [this](const QString &json) { return appRulesJson(json); },
         [this](const QString &json) { return setAppRuleJson(json); },
+        [this] { return signalsJson(); },
     });
     d->dbus->registerService();
 }
@@ -200,6 +201,35 @@ Layout::ActionResult KonveyorEffect::cycleNonResizableWidth(const Config::Action
     Config::Action presetAction = action;
     presetAction.properties.append({QStringLiteral("from-native"), QStringLiteral("true")});
     return changeEngine().perform(presetAction, target);
+}
+
+QJsonDocument KonveyorEffect::signalsJson() const
+{
+    QJsonArray windows;
+    for (const Layout::WindowState &state : readEngine().windowStates()) {
+        const Render::SignalFrame &frame = d->decorations.signalBus().frame(state.id);
+        QJsonObject values;
+        QJsonObject fired;
+        for (std::size_t index = 0; index < Config::kSignalCount; ++index) {
+            const auto signal = static_cast<Config::Signal>(index);
+            values[Config::signalName(signal)] = frame.value(signal);
+            fired[Config::signalName(signal)] = static_cast<double>(frame.fireCount(signal));
+        }
+        const KWin::Window *window = d->windows.windowOf(state.id);
+        QJsonObject entry;
+        entry[QStringLiteral("title")] = window ? window->caption() : QString();
+        entry[QStringLiteral("values")] = values;
+        entry[QStringLiteral("fired")] = fired;
+        entry[QStringLiteral("x")] = frame.point.position.x();
+        entry[QStringLiteral("y")] = frame.point.position.y();
+        entry[QStringLiteral("directionX")] = frame.point.direction.x();
+        entry[QStringLiteral("directionY")] = frame.point.direction.y();
+        windows.append(entry);
+    }
+    QJsonObject object;
+    object[QStringLiteral("observing")] = d->inputSignals->observing();
+    object[QStringLiteral("windows")] = windows;
+    return QJsonDocument(object);
 }
 
 QJsonDocument KonveyorEffect::lastBindJson() const

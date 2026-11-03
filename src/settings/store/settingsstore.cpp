@@ -8,6 +8,7 @@
 #include "values/configvalues.h"
 #include "values/livematching.h"
 
+#include <QDebug>
 #include <QDesktopServices>
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -39,35 +40,17 @@ SettingsStore::SettingsStore(QObject *parent)
 {
     m_saveTimer.setSingleShot(true);
     m_saveTimer.setInterval(SaveDelayMs);
+    connect(
+        this, &SettingsStore::editFailed, this, [](const QString &message) { qWarning().noquote() << "Konveyor settings:" << message; });
     connect(&m_saveTimer, &QTimer::timeout, this, &SettingsStore::save);
     connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &SettingsStore::fileChanged);
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, &SettingsStore::fileChanged);
     load();
 }
 
-int SettingsStore::revision() const
-{
-    return m_revision;
-}
-
-QString SettingsStore::configError() const
-{
-    return m_configError;
-}
-
 QString SettingsStore::configPath() const
 {
     return Config::configPath();
-}
-
-QVariantMap SettingsStore::values() const
-{
-    return m_values;
-}
-
-LiveSession *SettingsStore::live() const
-{
-    return m_live;
 }
 
 bool SettingsStore::needsSave() const
@@ -78,16 +61,6 @@ bool SettingsStore::needsSave() const
 bool SettingsStore::representsDefaults() const
 {
     return !m_defaultText.isEmpty() && m_document.text() == m_defaultText;
-}
-
-bool SettingsStore::canUndo() const
-{
-    return m_history.canUndo();
-}
-
-bool SettingsStore::autoSave() const
-{
-    return m_autoSave;
 }
 
 void SettingsStore::setAutoSave(bool autoSave)
@@ -122,18 +95,35 @@ void SettingsStore::save()
     }
     const QString error = m_readError.isEmpty() ? m_configError : m_readError;
     if (!error.isEmpty()) {
-        Q_EMIT editFailed(QStringLiteral("Not saved, the config has an error: ") + error);
+        const QString message = QStringLiteral("Not saved, the config has an error: ") + error;
+        if (Config::loadString(m_savedText, configPath())) {
+            revertFailedSave(message);
+        } else {
+            Q_EMIT editFailed(message);
+        }
         return;
     }
     const QString text = m_document.text();
     if (auto written = writeConfigText(configPath(), text); !written) {
-        Q_EMIT editFailed(written.error());
+        revertFailedSave(written.error());
         return;
     }
     m_savedText = text;
     watch();
-    refresh();
+    Q_EMIT needsSaveChanged();
     Q_EMIT saved();
+}
+
+void SettingsStore::revertFailedSave(const QString &message)
+{
+    while (const std::optional<QString> previous = m_history.undo()) {
+        if (*previous == m_savedText) {
+            break;
+        }
+    }
+    replaceText(m_savedText);
+    Q_EMIT saveFailed();
+    Q_EMIT editFailed(message);
 }
 
 void SettingsStore::defaults()
@@ -168,10 +158,8 @@ bool SettingsStore::isDefault(const QString &path) const
 {
     const Kdl::Node *current = m_document.find(path);
     const Kdl::Node *shipped = m_defaults.find(path);
-    if (!current || !shipped) {
-        return !current && !shipped;
-    }
-    return writeNode(nodeToVariant(*current), QString()) == writeNode(nodeToVariant(*shipped), QString());
+    return current && shipped ? writeNode(nodeToVariant(*current), QString()) == writeNode(nodeToVariant(*shipped), QString())
+                              : !current && !shipped;
 }
 
 bool SettingsStore::resetToDefault(const QString &path)
@@ -233,12 +221,16 @@ bool SettingsStore::setFlag(const QString &path, bool enabled)
 bool SettingsStore::setToggle(const QString &path, bool enabled)
 {
     const QString before = m_document.text();
-    const bool removed
-        = apply(m_document.remove(path + QStringLiteral("/on")), before) && apply(m_document.remove(path + QStringLiteral("/off")), before);
-    if (!removed || !apply(m_document.append(path, leaf(enabled ? QStringLiteral("on") : QStringLiteral("off"), {}, {})), before)) {
+    const QString on = path + QStringLiteral("/on");
+    const QString off = path + QStringLiteral("/off");
+    const EditResult result
+        = m_document.remove(on).and_then([&](const QString &) { return m_document.remove(off); }).and_then([&](const QString &) {
+              return m_document.append(path, leaf(enabled ? on : off, {}, {}));
+          });
+    if (!apply(result, before)) {
         return false;
     }
-    warnIfOverridden(nodeName(path), {path + QStringLiteral("/on"), path + QStringLiteral("/off")});
+    warnIfOverridden(nodeName(path), {on, off});
     return true;
 }
 
@@ -334,14 +326,20 @@ void SettingsStore::refresh()
     if (loaded) {
         m_config = loaded->config;
     }
-    for (const QString &file : loaded ? loaded->files : loaded.error().files) {
+    watchFiles(loaded ? loaded->files : loaded.error().files);
+    m_values = globalValues(m_config);
+    ++m_revision;
+    Q_EMIT documentChanged();
+    Q_EMIT needsSaveChanged();
+}
+
+void SettingsStore::watchFiles(const QStringList &files)
+{
+    for (const QString &file : files) {
         if (!m_watcher.files().contains(file) && QFileInfo::exists(file)) {
             m_watcher.addPath(file);
         }
     }
-    m_values = globalValues(m_config);
-    ++m_revision;
-    Q_EMIT documentChanged();
 }
 
 void SettingsStore::watch()
@@ -360,11 +358,16 @@ void SettingsStore::fileChanged()
 {
     watch();
     const std::optional<QString> disk = readSaved();
-    if (!disk || *disk == m_savedText) {
-        refresh();
+    if (disk && *disk != m_savedText) {
+        adoptDisk(*disk);
         return;
     }
-    adoptDisk(*disk);
+    const auto loaded = Config::loadString(m_document.text(), configPath());
+    if (disk && loaded && m_configError.isEmpty() && loaded->config == m_config) {
+        watchFiles(loaded->files);
+        return;
+    }
+    refresh();
 }
 
 void SettingsStore::adoptDisk(const QString &disk)
@@ -384,12 +387,9 @@ void SettingsStore::warnIfOverridden(const QString &name, const QStringList &pat
 {
     QStringList files;
     for (const QString &path : paths) {
-        for (const QString &file : includesOverriding(m_document.text(), configPath(), path)) {
-            if (!files.contains(file)) {
-                files.append(file);
-            }
-        }
+        files += includesOverriding(m_document.text(), configPath(), path);
     }
+    files.removeDuplicates();
     if (!files.isEmpty()) {
         Q_EMIT editFailed(QStringLiteral("%1 is also set in %2, which is included later, so that value is the one Konveyor uses.")
                 .arg(name, files.join(QStringLiteral(", "))));

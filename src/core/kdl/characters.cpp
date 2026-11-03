@@ -1,5 +1,7 @@
 #include "kdl/characters.h"
 
+#include <utility>
+
 namespace Konveyor::Kdl
 {
 
@@ -91,6 +93,35 @@ QString describeCharacter(char32_t c)
     QString text;
     appendCodePoint(text, c);
     return QStringLiteral("'%1'").arg(text);
+}
+
+QStringList splitLines(const QString &text)
+{
+    QStringList lines;
+    QString current;
+    const QList<uint> codePoints = text.toUcs4();
+    for (qsizetype index = 0; index < codePoints.size(); ++index) {
+        const auto c = static_cast<char32_t>(codePoints.at(index));
+        if (!isNewline(c)) {
+            appendCodePoint(current, c);
+            continue;
+        }
+        if (c == U'\r' && index + 1 < codePoints.size() && codePoints.at(index + 1) == U'\n') {
+            ++index;
+        }
+        lines.append(std::exchange(current, QString()));
+    }
+    lines.append(current);
+    return lines;
+}
+
+QString rawString(const QString &text)
+{
+    QString hashes = QStringLiteral("#");
+    while (text.contains(QLatin1Char('"') + hashes)) {
+        hashes += QLatin1Char('#');
+    }
+    return QLatin1Char('r') + hashes + QLatin1Char('"') + text + QLatin1Char('"') + hashes;
 }
 
 }

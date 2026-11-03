@@ -45,10 +45,15 @@ void KontrolPanelService::applyBackgroundEffects(QWindow *window, const QRegion 
         m_theme.backgroundIntensity(), m_theme.backgroundSaturation(), region);
 }
 
+bool KontrolPanelService::serviceRegistered(const QDBusConnection &bus, const QString &name)
+{
+    const QDBusConnectionInterface *interface = bus.interface();
+    return interface && interface->isServiceRegistered(name);
+}
+
 bool KontrolPanelService::konveyorRunning() const
 {
-    const QDBusConnectionInterface *bus = QDBusConnection::sessionBus().interface();
-    return bus && bus->isServiceRegistered(QStringLiteral("org.kde.Konveyor"));
+    return serviceRegistered(QDBusConnection::sessionBus(), QStringLiteral("org.kde.Konveyor"));
 }
 
 QQuickItem *KontrolPanelService::createForm(const QUrl &url, const QVariantMap &values, QQuickItem *parent) const

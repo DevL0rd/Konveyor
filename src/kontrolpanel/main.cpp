@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
     Konveyor::KontrolPanelService service;
     const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (bus.interface() && bus.interface()->isServiceRegistered(QLatin1String(Konveyor::KontrolPanelService::serviceName))) {
+    if (Konveyor::KontrolPanelService::serviceRegistered(bus, QLatin1String(Konveyor::KontrolPanelService::serviceName))) {
         return alreadyRunning();
     }
 

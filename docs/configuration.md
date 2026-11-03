@@ -1,6 +1,6 @@
 # Configuration
 
-Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the Kontrol Panel's sidebar, or press the gear (<kbd>Ctrl</kbd> + <kbd>,</kbd>). Every option has a page there: layout, look, motion, mouse, touch and gestures, shortcuts, window rules, monitors, workspaces, Plasma integration and experiments. Changes apply instantly, and Undo (<kbd>Ctrl</kbd> + <kbd>Z</kbd>) takes them back. `portal-launcher settings` opens the page directly. The same pages are in System Settings under Window Management → Konveyor, behind Configure next to Konveyor under Desktop Effects, and `kcmshell6 kcm_konveyor` opens them on their own (add `--args rules` to start on a page), so they work without the widgets too.
+Press <kbd>Meta</kbd> + <kbd>K</kbd> and open **Settings** at the bottom of the Kontrol Panel's sidebar, or press the gear (<kbd>Ctrl</kbd> + <kbd>,</kbd>). Every option has a page there: layout, appearance, motion, mouse, touch and gestures, shortcuts, window rules, monitors, workspaces, Plasma integration and experiments. Changes apply instantly, and Undo (<kbd>Ctrl</kbd> + <kbd>Z</kbd>) takes them back. `portal-launcher settings` opens the page directly. The same pages are in System Settings under Window Management → Konveyor, behind Configure next to Konveyor under Desktop Effects, and `kcmshell6 kcm_konveyor` opens them on their own (add `--args rules` to start on a page), so they work without the widgets too.
 
 The settings page edits `~/.config/konveyor/config.kdl` in place and keeps your comments and formatting, so you can use both.
 
@@ -13,7 +13,7 @@ layout {
     default-column-width { proportion 0.5; }
 
     focus-ring {
-        width 4
+        width 2
         active-color "accent"
     }
 }
@@ -39,6 +39,153 @@ output "DP-2" {
     layout { gaps 8; }
 }
 ```
+
+## Animated borders
+
+`focus-ring` and `border` can use a named `border-style` instead of a flat color. A style is a stack of layers drawn bottom to top, so you can mix any of them and add or remove them freely. The file's top level holds the styles.
+
+The default config ships two: `Default-Style` for the focused window's ring and `Default-Attention-Style` for windows that want attention, on a 2 pixel wide `focus-ring`. Existing configs that still have the old default ring (width 4, accent color, no style) get the same setup once; anything you changed is kept.
+
+Settings → Appearance edits all of this without touching the file by hand: styles, their layers and colors, ready-made starting points, and which style the focus ring and border use for each state, including per-monitor and profile overrides. Window rule styles are set in the file.
+
+```kdl
+border-style "embers" {
+    layer "gradient" { colors "#ff5a1f" "#ffb347"; angle 90; speed 0.5; }
+    layer "particles" { colors "#ffd27a" "#ff5a1f"; count 64; rate 40; lifetime 1.4; direction "up"; blend "add"; }
+}
+
+border-style "alert" {
+    layer "pulse" { colors "#ff3b30"; }
+}
+
+layout {
+    focus-ring {
+        active-style "embers"
+        urgent-style "alert"
+    }
+}
+
+window-rule {
+    match app-id="firefox"
+    border { active-style "none"; }
+}
+```
+
+`active-style`, `inactive-style` and `urgent-style` choose the style for each state. They follow the same levels as every other border setting: `layout`, `monitor-profile`, `output`, `workspace` and window rules. A state without a style keeps its color or gradient. `"none"` clears a style set at an earlier level. An unknown name logs a warning and keeps the color. The focus ring draws nothing on inactive windows until you give it an `inactive-color`, `inactive-gradient` or `inactive-style`.
+
+Layer types:
+
+- `gradient`: a linear gradient across the frame. `angle` in degrees. It rotates once every 8 seconds at `speed 1`; `speed 0` holds it still, which with one color is a plain solid border.
+- `sweep`: a rotating conic gradient, one turn every 4 seconds.
+- `comet`: a bright head with a fading tail running around the frame, one lap every 4 seconds. `count` is the number of comets, `tail` the tail length as a share of the frame from 0 to 1. The first color is the head.
+- `glow`: a breathing glow outside the frame, one breath every 3 seconds. Give it a large `width`, such as 18.
+- `ripple`: a wave that runs around the frame from the top, 0.8 seconds at `speed 1`. Played by an event effect it runs once; in a style on its own it repeats with a rest.
+- `pulse-front`: a front of light spreading from the window or from the event's point, lighting each border as it crosses.
+- `wave`: a band travelling from one window to another across the borders between them. Played on focus it runs from the old window to the new one.
+- `draw-in`: the border traces itself around from the top-left corner.
+- `fade-out`: the border fades away.
+- `dashes`: marching ants. `dash` and `gap` are lengths in logical pixels. They are adjusted slightly so the pattern closes without a seam.
+- `pulse`: a pulsing band with a soft halo, 1.5 seconds per pulse. Good for `urgent-style`.
+- `particles`: sparks from the frame. `count` is the pool size from 1 to 256, `rate` the new sparks per second, `size` the radius, `lifetime` their life in seconds and `direction` one of `"out"`, `"up"`, `"down"`, `"along"` or `"random"`. `speed 1` is about 40 logical pixels per second. Colors run from birth to death.
+
+Reactive layer types read a signal or the window's sound:
+
+- `equalizer`: bars rising outward from the frame by frequency band, lows at the bottom. `count` is the number of bars, `gap` the space between them in logical pixels.
+- `waveform`: the sound wave as a line around the frame. `thickness` is the line width.
+- `spectrum`: the frame colored and brightened by band, lows at the bottom round to highs at the top.
+- `shimmer`: a fine sparkle along the edge, by default following `audio.treble`.
+- `bass-thump`: width and brightness jump, by default with `audio.bass`.
+- `speed-lines`: streaks along the edges. `count` and `tail` set how many and how long. By default they follow `scroll.speed` and `scroll.direction`.
+- `scroll-trail`: a light on the frame placed by `position`, by default following `scroll.distance` and `scroll.direction`.
+- `bulge`: the border swells out in round bumps that travel along the edges. `width` is the largest swell, `thickness` the border between bumps, `count` the bumps per side and `tail` how long each is. By default the size follows `scroll.speed` and they move with `scroll.direction`.
+- `wavy`: the border line itself undulates along the edges. `width` is the largest swing, `thickness` the line, `count` the crests per side. By default the swing follows `scroll.speed` and the crests move with `scroll.direction`.
+- `elastic`: the edge the scroll points at stretches outward by up to `width` and springs back with a small overshoot. By default it follows `scroll.speed` and `scroll.direction`.
+- `chevrons`: arrows run along the left and right edges. `count` is the arrows per side, `thickness` their line. By default they follow `scroll.speed` and `scroll.direction`.
+- `edge-flash`: the top or bottom edge lights up, by direction. `tail` is how far the light runs down the sides. By default it follows `scroll.speed` and `scroll.direction`.
+- `gauge`: a marker slides along the right edge, placed by `position`, by default following `scroll.distance`. `tail` is its length, `width` its thickness.
+
+The first three also take `sensitivity` (a multiplier, 1 by default) and `smoothing` (seconds, 0.3 by default). These types and the next take `baseline`, how much shows with no signal, from 0 to 1. `scroll-trail` and `gauge` also take `position`.
+
+A layer driven by the sound, the wheel, the pointer or Konveyor's own scrolling shows nothing until that source moves, appears at once, and fades out when it stops: after a second for input, after two for sound. Nothing repaints while it is faded out.
+
+Any layer's number can follow a signal:
+
+```kdl
+border-style "club" {
+    layer "glow" {
+        colors "accent"
+        width 6
+        drive "width" "audio.bass" amount=18 smooth=0.05 curve="square"
+        drive "opacity" "audio.level" amount=0.5
+    }
+    layer "particles" {
+        colors "#ffffff" "accent"
+        count 96
+        burst 24
+        fire-on "audio.beat" "click"
+    }
+}
+```
+
+- `drive "<setting>" "<signal>"`: the value each frame is the setting plus `amount` times the signal. `amount` defaults to 1, `smooth` is a time in seconds and defaults to 0, `curve` is `"linear"`, `"square"`, `"sqrt"` or `"invert"`. The settings are `speed`, `width`, `opacity`, `angle`, `count`, `tail`, `dash`, `gap`, `rate`, `size`, `lifetime`, `burst`, `thickness`, `baseline` and `position`, plus `direction`, which flips which way the layer runs, and `color-mix`, which blends the whole layer from its first color to its last by the value, on any layer type. A `color-mix` drive never hides its layer: with no signal the layer stays on its first color, and it does not repaint then. For example, `drive "color-mix" "pointer.speed" amount=1.0 smooth=0.1` on a `gradient` with two colors. A `drive` for a setting replaces the type's default drive for that setting, and `amount=0` turns one off.
+- `fire-on`: impulse signals that start a `particles` burst or a one-shot layer such as `ripple`. `burst` is the number of sparks per firing. `count` still caps how many are alive at once.
+- Signals that hold a value: `audio.level`, `audio.bass`, `audio.mid`, `audio.treble`, `scroll.speed`, `scroll.distance`, `scroll.direction`, `pointer.speed`, `typing.rate`, `view.speed`, `view.distance`, `view.direction`, `time`.
+- Impulses, which jump to 1 and fade: `audio.beat`, `click`, `scroll.step`, `keypress`, `view.step`, `focus`, `unfocus`, `urgent`.
+
+Audio signals come from the sound of that window alone. Konveyor finds the PipeWire streams that belong to the window by process and desktop file name and measures them. Nothing is recorded or stored, and a window with no sound reads as silent. This needs PipeWire. Nothing is captured unless a visible window's style uses an audio signal. Keypress signals only say that a key was pressed and how often, never which key.
+
+Every layer also takes:
+
+- `colors`: up to 8 colors as `"#rrggbb"`, CSS colors or `"accent"`. Without it, the layer uses the KDE accent color.
+- `speed`: how fast it runs; 1 by default, negative reverses it, 0 holds it still.
+- `width`: thickness in logical pixels; by default the `width` of the `focus-ring` or `border` using the style.
+- `opacity`: from 0 to 1.
+- `blend`: `"normal"`, `"add"`, `"screen"` or `"multiply"`. `"add"` adds light without clipping, so a layer stacked on others or on something bright keeps its color instead of going white.
+
+`animations { reduce-motion; }` or `animations { off; }` draws every style still and skips ripples, pulse fronts, waves, draw-ins and fade-outs. Animated styles also hold a still frame while the machine runs on battery. Fullscreen windows have no border, so nothing runs for them, and a border that is completely hidden stops redrawing until it shows again. Without a style in use, none of this code runs. Animated borders need OpenGL compositing; without it, a window keeps its plain color. They are not drawn inside the Overview's window thumbnails.
+
+## Event effects
+
+The simple way to react to an event is a layer in the style itself: `fire-on "focus"` on a `ripple` layer plays it once each time the window gains focus. This is how the default style does it.
+
+```kdl
+border-style "Mine" {
+    layer "ripple" { colors "accent"; opacity 0.8; blend "add"; speed 1; fire-on "focus"; }
+}
+```
+
+`event-effects` is for reaching across windows and for windows with no border. An event can play any border style on window borders, even on windows with no border or focus ring of their own, and on the windows around it. The style then goes away. Any layer kind can be played this way. `event-effects` follows the same levels as the focus ring: `layout`, `monitor-profile`, `output` and `workspace`.
+
+```kdl
+border-style "Focus-Ripple" {
+    layer "ripple" { colors "accent"; opacity 0.8; blend "add"; speed 1; }
+}
+
+border-style "Light-Trail" {
+    layer "wave" { colors "accent"; opacity 0.9; blend "add"; }
+}
+
+border-style "Pulse-Out" {
+    layer "pulse-front" { colors "#ffffff" "accent"; blend "add"; }
+}
+
+layout {
+    event-effects {
+        on "focus" "Focus-Ripple" reach="neighbors"
+        on "unfocus" "none"
+        on "click" "Pulse-Out" reach="neighbors"
+        on "view" "Light-Trail" reach="all" mode="while"
+    }
+}
+```
+
+- Events: `focus`, `unfocus`, `click`, `scroll`, `keypress`, `urgent`, `beat` and `view`, which is Konveyor's own scrolling of the columns.
+- The second value is a border style name, or `"none"` to play nothing.
+- `reach`: `"self"` by default, `"neighbors"` for windows touching it or next to it in the column layout, or `"all"` for every visible window on that monitor. A `wave` also lights the windows it crosses.
+- `mode`: `"once"` plays the style once. `"while"` keeps it going while the event keeps happening, then fades it out. `scroll` and `view` default to `"while"`, the rest to `"once"`.
+- `duration`: seconds. By default the longest one-shot layer in the style, or one second if there is none. Other layers fade in and out around it.
+
+Nothing is redrawn between plays. Event effects do not play with `reduce-motion`, with animations off, on battery, or on a monitor showing a fullscreen window. Coming back to the same window does not play `focus` again. A new focus change replaces the focus and unfocus effects still running; other events stack.
 
 ## Fixed workspaces
 

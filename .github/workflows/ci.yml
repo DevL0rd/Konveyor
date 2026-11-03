@@ -12,7 +12,7 @@ on:
         default: all
         options: [all, checks, install, sanitizers, distros]
       tests:
-        description: Run only the ctest tests matching this regex in the checks job (skips lint, coverage and xunused)
+        description: Run only the ctest tests matching this regex instead of the lint, tidy, xunused, unit, nested and coverage jobs
         type: string
         default: ""
 
@@ -21,39 +21,144 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'checks'
-    name: Build, test and lint
+  changes:
+    name: Find out whether code changed
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Treat documentation-only changes as no code change
+        id: scope
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          code=true
+          if [[ -n $BASE && $BASE != 0000000000000000000000000000000000000000 ]] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            if ! git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qvE '^(docs/|LICENSE$)|\.md$'; then
+              code=false
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+  lint:
+    if: github.event_name != 'workflow_dispatch' || ((inputs.job == 'all' || inputs.job == 'checks') && inputs.tests == '')
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Restore the compiler cache
-        id: compiler-cache
-        uses: actions/cache/restore@v6
+      - name: Check the file lengths, shell, Python, formatting, spelling and duplicate code
+        run: docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh lint
+
+  tidy:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name != 'workflow_dispatch' || ((inputs.job == 'all' || inputs.job == 'checks') && inputs.tests == ''))
+    name: clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
         with:
-          path: .ccache
-          key: ccache-${{ github.sha }}
-          restore-keys: ccache-
+          submodules: recursive
 
-      - name: Give KWin /dev/udmabuf, so it composites with OpenGL on Mesa's llvmpipe
-        run: tests/nested/ci/udmabuf.sh
-
-      - name: Lint, build, run the unit and nested KWin tests with coverage and check it against tests/coverage/thresholds.json
-        env:
-          KONVEYOR_CI_TESTS: ${{ inputs.tests }}
-        run: >-
-          docker run --rm -e KONVEYOR_CI_TESTS --device /dev/udmabuf --shm-size 2g --security-opt seccomp=unconfined
-          -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh
-
-      - name: Save the compiler cache
-        if: ${{ !cancelled() && steps.compiler-cache.outcome == 'success' && steps.compiler-cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v6
+      - uses: ./.github/actions/container
         with:
-          path: .ccache
-          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
+          mode: tidy
+          save-cache: "true"
+
+  xunused:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name != 'workflow_dispatch' || ((inputs.job == 'all' || inputs.job == 'checks') && inputs.tests == ''))
+    name: Unused functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/container
+        with:
+          mode: xunused
+
+  unit:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name != 'workflow_dispatch' || ((inputs.job == 'all' || inputs.job == 'checks') && inputs.tests == ''))
+    name: Unit tests ${{ matrix.index }}/2
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        index: [1, 2]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/container
+        with:
+          mode: unit
+          shard: ${{ matrix.index }}/2
+
+      - name: Upload the coverage profiles
+        uses: actions/upload-artifact@v7
+        with:
+          name: profiles-unit-${{ matrix.index }}
+          path: |
+            build-coverage/coverage/profiles
+            build-coverage/coverage/python
+          if-no-files-found: error
+
+  nested:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name != 'workflow_dispatch' || ((inputs.job == 'all' || inputs.job == 'checks') && inputs.tests == ''))
+    name: Nested KWin tests ${{ matrix.index }}/4
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        index: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/container
+        with:
+          mode: nested
+          shard: ${{ matrix.index }}/4
+
+      - name: Upload the coverage profiles
+        uses: actions/upload-artifact@v7
+        with:
+          name: profiles-nested-${{ matrix.index }}
+          path: |
+            build-coverage/coverage/profiles
+            build-coverage/coverage/python
+          if-no-files-found: error
+
+  coverage:
+    needs: [unit, nested]
+    name: Merge the coverage and check it against tests/coverage/thresholds.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Download the coverage profiles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: profiles-*
+          path: coverage-in
+
+      - uses: ./.github/actions/container
+        with:
+          mode: report
 
       - name: Publish the coverage summary
         if: always() && hashFiles('build-coverage/coverage/summary.md') != ''
@@ -70,8 +175,23 @@ jobs:
             build-coverage/coverage/cpp.json
             build-coverage/coverage/python.json
 
+  selected-tests:
+    if: github.event_name == 'workflow_dispatch' && (inputs.job == 'all' || inputs.job == 'checks') && inputs.tests != ''
+    name: Selected tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/container
+        with:
+          mode: tests
+          tests: ${{ inputs.tests }}
+
   sanitizers:
-    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'sanitizers'
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'sanitizers')
     name: Layout tests under sanitizers
     runs-on: ubuntu-latest
     container:
@@ -94,7 +214,8 @@ jobs:
         run: ./tools/sanitize.sh layout
 
   distros:
-    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'distros'
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'distros')
     name: Install dependencies and build on ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:
@@ -149,7 +270,8 @@ jobs:
           find staging -path '*/plasma/kcms/systemsettings/kcm_konveyor.so' | grep .
 
   install:
-    if: github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'install'
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name != 'workflow_dispatch' || inputs.job == 'all' || inputs.job == 'install')
     name: Install, check and uninstall on Arch Linux
     runs-on: ubuntu-latest
     steps:
@@ -165,7 +287,7 @@ jobs:
 
   release:
     name: Release
-    needs: checks
+    needs: [lint, tidy, xunused, coverage]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:

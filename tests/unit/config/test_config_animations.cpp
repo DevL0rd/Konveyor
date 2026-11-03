@@ -94,6 +94,10 @@ void TestConfigAnimations::rejectsBadCurveAndSpring()
             .message.contains(QStringLiteral("expected one of")));
     QVERIFY(mustFail(QStringLiteral("animations {\n window-open { spring stiffness=800 epsilon=0.001; }\n}\n"))
             .message.contains(QStringLiteral("`damping-ratio` is required")));
+    QVERIFY(mustFail(QStringLiteral("animations {\n window-open { spring damping-ratio=1 epsilon=0.001; }\n}\n"))
+            .message.contains(QStringLiteral("`stiffness` is required")));
+    QVERIFY(mustFail(QStringLiteral("animations {\n window-open { spring damping-ratio=1 stiffness=800; }\n}\n"))
+            .message.contains(QStringLiteral("`epsilon` is required")));
     QVERIFY(mustFail(QStringLiteral("animations {\n window-open { spring damping-ratio=0.01 stiffness=800 epsilon=0.001; }\n}\n"))
             .message.contains(QStringLiteral("damping-ratio must be between")));
     QVERIFY(mustFail(QStringLiteral("animations {\n window-open { spring damping-ratio=1 stiffness=800 epsilon=5; }\n}\n"))

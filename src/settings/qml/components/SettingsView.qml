@@ -40,6 +40,7 @@ Item {
         ColumnLayout {
             Layout.preferredWidth: Kirigami.Units.gridUnit * 12
             Layout.maximumWidth: Layout.preferredWidth
+            Layout.minimumWidth: Layout.preferredWidth
             Layout.fillHeight: true
             spacing: Kirigami.Units.largeSpacing
 
@@ -108,12 +109,12 @@ Item {
                     Kirigami.Heading {
                         Layout.fillWidth: true
                         level: 3
-                        text: stackLoader.item && stackLoader.item.currentItem && stackLoader.item.currentItem.title ? stackLoader.item.currentItem.title : view.current.title
+                        text: stack.currentItem && stack.currentItem.title ? stack.currentItem.title : view.current.title
                         elide: Text.ElideRight
                     }
                     QQC2.Label {
                         Layout.fillWidth: true
-                        text: view.current.description
+                        text: stack.currentItem && stack.currentItem.subtitle ? stack.currentItem.subtitle : view.current.description
                         opacity: 0.55
                         elide: Text.ElideRight
                     }
@@ -152,17 +153,15 @@ Item {
                 border.color: Qt.alpha(view.ink, 0.09)
                 clip: true
 
-                Loader {
-                    id: stackLoader
+                SettingsStack {
+                    id: stack
                     anchors.fill: parent
                     anchors.margins: 1
                     active: view.active
-                    sourceComponent: SettingsStack {
-                        page: view.current
-                        reveal: view.reveal
-                        section: view.section
-                        onRevealed: view.revealed()
-                    }
+                    page: view.current
+                    reveal: view.reveal
+                    section: view.section
+                    onRevealed: view.revealed()
                 }
             }
         }

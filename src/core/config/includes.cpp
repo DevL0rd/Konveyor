@@ -17,7 +17,7 @@ constexpr int kRecursionLimit = 10;
 const QSet<QString> &multipartSections()
 {
     static const QSet<QString> names {QStringLiteral("output"), QStringLiteral("window-rule"), QStringLiteral("workspace"),
-        QStringLiteral("include"), QStringLiteral("monitor-profile")};
+        QStringLiteral("include"), QStringLiteral("monitor-profile"), QStringLiteral("border-style")};
     return names;
 }
 
@@ -65,6 +65,8 @@ void addSimpleHandlers(NodeTable &table, LoadContext &context)
     table.insert(
         QStringLiteral("fill-panels-on-maximize"), [&config](const Kdl::Node &node) { config.fillPanelsOnMaximize = flagArgument(node); });
     table.insert(QStringLiteral("disable-minimize"), [&config](const Kdl::Node &node) { config.disableMinimize = flagArgument(node); });
+    table.insert(QStringLiteral("audio-beat-threshold"),
+        [&config](const Kdl::Node &node) { config.audioBeatThreshold = numberArgument(node, Range {1, 4}); });
     table.insert(QStringLiteral("experiments"), [&config](const Kdl::Node &node) {
         expectOnlyChildren(node);
         NodeTable inner;
@@ -84,6 +86,7 @@ void addSimpleHandlers(NodeTable &table, LoadContext &context)
     table.insert(QStringLiteral("output"), [&context](const Kdl::Node &node) { decodeOutput(context, node); });
     table.insert(QStringLiteral("monitor-profile"), [&context](const Kdl::Node &node) { decodeMonitorProfile(context, node); });
     table.insert(QStringLiteral("workspace"), [&context](const Kdl::Node &node) { decodeWorkspace(context, node); });
+    table.insert(QStringLiteral("border-style"), [&context](const Kdl::Node &node) { decodeBorderStyle(context, node); });
     table.insert(QStringLiteral("window-rule"), [&config](const Kdl::Node &node) { config.windowRules.append(decodeWindowRule(node)); });
     table.insert(QStringLiteral("binds"), [&context](const Kdl::Node &node) { decodeBinds(context, node); });
 }

@@ -6,11 +6,18 @@ import tempfile
 import time
 from pathlib import Path
 
+from sessionguard import require_harness_session
+
 CLIENTS = Path(__file__).resolve().parent.parent / "clients"
 
 
 def qdbus(service, path, method, *args):
     return subprocess.run(["qdbus6", service, path, method, *args], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def virtual_keyboard(method, *args):
+    return subprocess.run(["busctl", "--user", method, "org.kde.KWin", "/VirtualKeyboard", "org.kde.kwin.VirtualKeyboard", *args],
+                          capture_output=True, text=True).stdout.strip()
 
 
 def wait_for(condition, timeout=30, interval=0.1):
@@ -28,6 +35,7 @@ def marked_lines(marker):
 
 
 def run_script(body, seconds=None):
+    require_harness_session("a KWin script")
     marker = f"PROBE{time.monotonic_ns()}"
     end = f"{marker}|__end__"
     with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as script:

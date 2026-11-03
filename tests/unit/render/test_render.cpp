@@ -22,6 +22,23 @@ void compareRgba(const Render::Rgba &actual, const Render::Rgba &expected, doubl
     QVERIFY2(std::abs(actual.a - expected.a) < tolerance, qPrintable(QStringLiteral("a %1 vs %2").arg(actual.a).arg(expected.a)));
 }
 
+enum HueResult
+{
+    Magenta,
+    Green,
+    Orange,
+    Blue
+};
+
+void addSpaceRows()
+{
+    QTest::addColumn<int>("space");
+    QTest::newRow("srgb") << static_cast<int>(Config::GradientInterpolation::Srgb);
+    QTest::newRow("srgb-linear") << static_cast<int>(Config::GradientInterpolation::SrgbLinear);
+    QTest::newRow("oklab") << static_cast<int>(Config::GradientInterpolation::Oklab);
+    QTest::newRow("oklch") << static_cast<int>(Config::GradientInterpolation::Oklch);
+}
+
 QColor pixel(const QImage &image, int x, int y)
 {
     return QColor::fromRgba(qUnpremultiply(image.pixel(x, y)));
@@ -39,14 +56,7 @@ private Q_SLOTS:
         compareRgba(mix(Qt::red, Qt::blue, 0.5, Config::GradientInterpolation::Srgb), {0.5, 0, 0.5, 1}, 1e-9);
     }
 
-    void allSpacesKeepEndpoints_data()
-    {
-        QTest::addColumn<int>("space");
-        QTest::newRow("srgb") << static_cast<int>(Config::GradientInterpolation::Srgb);
-        QTest::newRow("srgb-linear") << static_cast<int>(Config::GradientInterpolation::SrgbLinear);
-        QTest::newRow("oklab") << static_cast<int>(Config::GradientInterpolation::Oklab);
-        QTest::newRow("oklch") << static_cast<int>(Config::GradientInterpolation::Oklch);
-    }
+    void allSpacesKeepEndpoints_data() { addSpaceRows(); }
 
     void allSpacesKeepEndpoints()
     {
@@ -176,6 +186,18 @@ private Q_SLOTS:
         QVERIFY2(qRed(image.pixel(bright)) > 235, qPrintable(QString::number(qRed(image.pixel(bright)))));
     }
 
+    void gradientOverAnEmptyRectStaysOnTheFromColor()
+    {
+        Render::BorderSpec spec;
+        spec.size = {20, 20};
+        spec.borderWidth = 5;
+        spec.gradient = Config::Gradient {Qt::black, Qt::white, 90};
+        const QImage image = Render::renderBorder(spec);
+        QCOMPARE(qRed(image.pixel(2, 10)), 0);
+        QCOMPARE(qRed(image.pixel(17, 10)), 0);
+        QCOMPARE(qAlpha(image.pixel(2, 10)), 255);
+    }
+
     void gradientRelativeToTheWorkspaceViewShowsTheWindowsSlice()
     {
         Render::BorderSpec spec;
@@ -186,6 +208,89 @@ private Q_SLOTS:
         const QImage image = Render::renderBorder(spec);
         QVERIFY(std::abs(qRed(image.pixel(0, 10)) - 128) < 6);
         QVERIFY(qRed(image.pixel(99, 10)) > 250);
+    }
+
+    void hueModesChooseTheirDirection_data()
+    {
+        QTest::addColumn<QColor>("from");
+        QTest::addColumn<QColor>("to");
+        QTest::addColumn<int>("mode");
+        QTest::addColumn<int>("expected");
+        const QColor red(255, 0, 0);
+        const QColor blue(0, 0, 255);
+        const QColor yellow(255, 255, 0);
+        const auto row = [](const char *name, QColor from, QColor to, Config::HueInterpolation mode, int expected) {
+            QTest::newRow(name) << from << to << static_cast<int>(mode) << expected;
+        };
+        using Hue = Config::HueInterpolation;
+        row("red to blue shorter", red, blue, Hue::Shorter, Magenta);
+        row("red to blue longer", red, blue, Hue::Longer, Green);
+        row("red to blue increasing", red, blue, Hue::Increasing, Green);
+        row("red to blue decreasing", red, blue, Hue::Decreasing, Magenta);
+        row("blue to red shorter", blue, red, Hue::Shorter, Magenta);
+        row("blue to red longer", blue, red, Hue::Longer, Green);
+        row("blue to red increasing", blue, red, Hue::Increasing, Magenta);
+        row("blue to red decreasing", blue, red, Hue::Decreasing, Green);
+        row("red to yellow shorter", red, yellow, Hue::Shorter, Orange);
+        row("red to yellow longer", red, yellow, Hue::Longer, Blue);
+        row("red to yellow increasing", red, yellow, Hue::Increasing, Orange);
+        row("red to yellow decreasing", red, yellow, Hue::Decreasing, Blue);
+        row("yellow to red shorter", yellow, red, Hue::Shorter, Orange);
+        row("yellow to red longer", yellow, red, Hue::Longer, Blue);
+        row("yellow to red increasing", yellow, red, Hue::Increasing, Blue);
+        row("yellow to red decreasing", yellow, red, Hue::Decreasing, Orange);
+    }
+
+    void hueModesChooseTheirDirection()
+    {
+        QFETCH(QColor, from);
+        QFETCH(QColor, to);
+        QFETCH(int, mode);
+        QFETCH(int, expected);
+        const Render::Rgba mixed = mix(from, to, 0.5, Config::GradientInterpolation::Oklch, static_cast<Config::HueInterpolation>(mode));
+        switch (expected) {
+        case Magenta:
+            QVERIFY(mixed.g < mixed.r && mixed.g < mixed.b);
+            break;
+        case Green:
+            QVERIFY(mixed.g > mixed.r && mixed.g > mixed.b);
+            break;
+        case Orange:
+            QVERIFY(mixed.r > mixed.g && mixed.g > mixed.b);
+            break;
+        default:
+            QVERIFY(mixed.b > mixed.r && mixed.b > mixed.g);
+            break;
+        }
+    }
+
+    void oklabMixesBetweenTheEndpoints()
+    {
+        const Render::Rgba mixed = mix(Qt::red, Qt::blue, 0.5, Config::GradientInterpolation::Oklab);
+        QVERIFY(mixed.r > 0.1 && mixed.b > 0.1);
+        QVERIFY(mixed.g < mixed.r);
+        QCOMPARE(mixed.a, 1.0);
+    }
+
+    void fullyTransparentMixesStayTransparent_data() { addSpaceRows(); }
+
+    void fullyTransparentMixesStayTransparent()
+    {
+        QFETCH(int, space);
+        const Render::Rgba mixed = mix(QColor(255, 0, 0, 0), QColor(0, 0, 255, 0), 0.5, static_cast<Config::GradientInterpolation>(space));
+        compareRgba(mixed, {0, 0, 0, 0}, 1e-9);
+    }
+
+    void pixelsClampAndRound()
+    {
+        QCOMPARE(Render::toPremultipliedPixel({2.0, -1.0, 0.5, 1.0}), qRgba(255, 0, 128, 255));
+        QCOMPARE(Render::toPremultipliedPixel({0.0, 0.0, 0.0, 0.0}), qRgba(0, 0, 0, 0));
+    }
+
+    void premultiplyingScalesTheColorByItsAlpha()
+    {
+        compareRgba(Render::premultiplied({1.0, 0.5, 0.25, 0.5}), {0.5, 0.25, 0.125, 0.5}, 1e-12);
+        compareRgba(Render::fromQColor(QColor(255, 0, 51, 255)), {1.0, 0.0, 0.2, 1.0}, 1e-4);
     }
 };
 

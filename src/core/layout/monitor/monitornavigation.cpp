@@ -264,7 +264,7 @@ void Monitor::moveWorkspaceToIndex(std::size_t oldIndex, std::size_t newIndex)
         m_activeWorkspaceIndex = newIndex;
     } else if (newIndex <= m_activeWorkspaceIndex && oldIndex > m_activeWorkspaceIndex) {
         m_activeWorkspaceIndex += 1;
-    } else if (newIndex >= m_activeWorkspaceIndex && oldIndex < m_activeWorkspaceIndex && m_activeWorkspaceIndex > 0) {
+    } else if (newIndex >= m_activeWorkspaceIndex && oldIndex < m_activeWorkspaceIndex) {
         m_activeWorkspaceIndex -= 1;
     }
 

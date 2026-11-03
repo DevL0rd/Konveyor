@@ -27,7 +27,13 @@ DecorationState decorationFor(const Config::Border &border, bool enabled, bool u
     state.enabled = enabled && border.enabled;
     state.width = border.width;
     state.paint = paintFor(border, urgent, active);
+    state.style = urgent ? border.urgentStyle : (active ? border.activeStyle : border.inactiveStyle);
     return state;
+}
+
+bool drawsOnInactiveWindows(const Config::Border &ring)
+{
+    return ring.inactive.isSet() || (!ring.inactiveStyle.isEmpty() && ring.inactiveStyle != Config::kBorderStyleNone);
 }
 
 struct TileIndex
@@ -41,7 +47,7 @@ Config::Border tabIndicatorBorder(const Config::TabIndicator &config, const Conf
 {
     Config::Border border = focusRing;
     border.active = config.active.value_or(focusRing.active);
-    border.inactive = config.inactive.value_or(focusRing.inactive);
+    border.inactive = config.inactive;
     border.urgent = config.urgent.value_or(focusRing.urgent);
     return border;
 }
@@ -145,9 +151,11 @@ WindowState buildWindowState(
     state.requestedMinSize = nonZeroSize(window.minSize());
     state.requestedMaxSize = nonZeroSize(window.maxSize());
     const bool coversOutput = state.sizingMode == WindowMode::Fullscreen || state.requestedSizingMode == WindowMode::Fullscreen;
-    state.focusRing = decorationFor(tile.focusRingConfig(), window.isActivated() && !coversOutput, window.isUrgent(), true);
+    const bool ringShown = window.isActivated() || window.isUrgent() || drawsOnInactiveWindows(tile.focusRingConfig());
+    state.focusRing = decorationFor(tile.focusRingConfig(), ringShown && !coversOutput, window.isUrgent(), window.isActivated());
     state.border
         = decorationFor(tile.borderConfig(), tile.borderThickness().has_value() && !coversOutput, window.isUrgent(), window.isActivated());
+    state.eventEffects = workspace.options()->layout.eventEffects;
     state.cornerRadius = coversOutput ? Config::CornerRadius() : window.rules().geometryCornerRadius.value_or(Config::CornerRadius());
     state.clipToGeometry = !coversOutput && window.rules().clipToGeometry.value_or(false);
     return state;

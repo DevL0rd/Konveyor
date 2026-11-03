@@ -69,6 +69,7 @@ private:
     QJsonDocument focusedOutputJson() const;
     QJsonDocument bindsJson() const;
     QJsonDocument lastBindJson() const;
+    QJsonDocument signalsJson() const;
     std::optional<Settings::AppPlace> appPlace(Layout::WindowId id) const;
     QJsonDocument appRulesJson(const QString &json) const;
     QString setAppRuleJson(const QString &json);

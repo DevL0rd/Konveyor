@@ -88,6 +88,7 @@ struct ResolvedPaint
     Config::ColorSource source = Config::ColorSource::Explicit;
     QColor color;
     std::optional<Config::Gradient> gradient;
+    bool isSet() const { return source != Config::ColorSource::Explicit || color.isValid() || gradient.has_value(); }
     bool operator==(const ResolvedPaint &) const = default;
 };
 
@@ -96,6 +97,7 @@ struct DecorationState
     bool enabled = false;
     double width = 0;
     ResolvedPaint paint;
+    QString style;
     bool operator==(const DecorationState &) const = default;
 };
 
@@ -138,6 +140,7 @@ struct WindowState
     std::optional<QSizeF> requestedMaxSize;
     DecorationState focusRing;
     DecorationState border;
+    Config::EventEffects eventEffects;
     Config::CornerRadius cornerRadius;
     bool clipToGeometry = false;
     TabBarState tabBar;
@@ -164,6 +167,15 @@ struct RestorePlacement
     bool fillsWidth = false;
     std::optional<Config::ColumnDisplay> columnDisplay;
     QRectF floatingFrame;
+};
+
+struct OutputViewState
+{
+    QString output;
+    WorkspaceId workspace = 0;
+    double offset = 0.0;
+    double width = 0.0;
+    std::size_t activeColumn = 0;
 };
 
 struct WorkspaceState
@@ -271,6 +283,7 @@ public:
     QList<WindowState> windowStates() const;
     std::optional<WindowState> windowState(WindowId id) const;
     QList<WorkspaceState> workspaceStates() const;
+    QList<OutputViewState> outputViewStates() const;
     QList<OutputState> outputStates() const;
     std::optional<WindowId> focusedWindow() const;
     std::optional<WindowId> movingWindow() const;

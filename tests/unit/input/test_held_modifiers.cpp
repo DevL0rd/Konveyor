@@ -29,6 +29,15 @@ private Q_SLOTS:
         QCOMPARE(m_changes, (QStringList {QStringLiteral("1 0"), QStringLiteral("1 1"), QStringLiteral("1 0"), QStringLiteral("0 0")}));
     }
 
+    void eitherSuperKeyCountsAsMeta()
+    {
+        m_held.key(Qt::Key_Super_L, true, Qt::NoModifier);
+        m_held.key(Qt::Key_Super_L, false, Qt::MetaModifier);
+        m_held.key(Qt::Key_Super_R, true, Qt::NoModifier);
+        m_held.key(Qt::Key_Super_R, false, Qt::MetaModifier);
+        QCOMPARE(m_changes, (QStringList {QStringLiteral("1 0"), QStringLiteral("0 0"), QStringLiteral("1 0"), QStringLiteral("0 0")}));
+    }
+
     void aMissedMetaReleaseIsCorrectedByTheNextKey()
     {
         m_held.key(Qt::Key_Meta, true, Qt::NoModifier);

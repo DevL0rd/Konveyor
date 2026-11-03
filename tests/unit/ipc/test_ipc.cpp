@@ -1,3 +1,4 @@
+#include "config/loader.h"
 #include "ipc/model.h"
 
 #include <QTest>
@@ -121,16 +122,20 @@ private Q_SLOTS:
 
     void gesturesJsonLeavesOutWindowSwipesTheRowSwipesTakeOver_data()
     {
-        QTest::addColumn<bool>("rowSwipes");
+        QTest::addColumn<bool>("horizontalOff");
+        QTest::addColumn<bool>("verticalOff");
         QTest::addColumn<QStringList>("motions");
-        QTest::newRow("row swipes on") << true << QStringList {QStringLiteral("swipe-horizontal"), QStringLiteral("swipe-vertical")};
-        QTest::newRow("row swipes off") << false
+        QTest::newRow("row swipes on") << false << false
+                                       << QStringList {QStringLiteral("swipe-horizontal"), QStringLiteral("swipe-vertical")};
+        QTest::newRow("row swipes off") << true << true
                                         << QStringList {QStringLiteral("window-swipe-horizontal"), QStringLiteral("window-swipe-vertical")};
+        QTest::newRow("only the vertical row swipe") << true << false << QStringList {QStringLiteral("swipe-vertical")};
     }
 
     void gesturesJsonLeavesOutWindowSwipesTheRowSwipesTakeOver()
     {
-        QFETCH(bool, rowSwipes);
+        QFETCH(bool, horizontalOff);
+        QFETCH(bool, verticalOff);
         QFETCH(QStringList, motions);
         Config::Gestures gestures;
         gestures.touchscreen.enabled = false;
@@ -138,8 +143,10 @@ private Q_SLOTS:
         gestures.touchpad.pinch = Config::PinchAction::Off;
         gestures.touchpad.threeFingerTap = Config::TapAction::Off;
         gestures.touchpad.fourFingerTap = Config::TapAction::Off;
-        if (!rowSwipes) {
+        if (horizontalOff) {
             gestures.touchpad.horizontalSwipe = Config::HorizontalSwipe::Off;
+        }
+        if (verticalOff) {
             gestures.touchpad.verticalSwipe = Config::VerticalSwipe::Off;
         }
         QStringList listed;
@@ -147,6 +154,96 @@ private Q_SLOTS:
             listed.append(gesture.toObject()[QStringLiteral("motion")].toString());
         }
         QCOMPARE(listed, motions);
+    }
+
+    void longPressIsListedOnlyWhenTheTouchscreenMovesWindowsThatWay()
+    {
+        Config::Gestures gestures;
+        gestures.touchpad.enabled = false;
+        gestures.touchscreen.horizontalSwipe = Config::HorizontalSwipe::Off;
+        gestures.touchscreen.verticalSwipe = Config::VerticalSwipe::Off;
+        gestures.touchscreen.windowHorizontalSwipe = Config::WindowHorizontalSwipe::Off;
+        gestures.touchscreen.windowVerticalSwipe = Config::WindowVerticalSwipe::Off;
+        gestures.touchscreen.pinch = Config::PinchAction::Off;
+        gestures.touchscreen.threeFingerTap = Config::TapAction::Off;
+        gestures.touchscreen.fourFingerTap = Config::TapAction::Off;
+        gestures.touchscreen.fiveFingerTap = Config::TapAction::Off;
+        gestures.touchscreen.longPressToMove = true;
+        QCOMPARE(Ipc::gesturesToJson(gestures).size(), 1);
+        gestures.touchscreen.longPressToMove = false;
+        QVERIFY(Ipc::gesturesToJson(gestures).isEmpty());
+    }
+
+    void outputJsonDescribesTheLogicalGeometry()
+    {
+        Layout::OutputInfo info;
+        info.name = QStringLiteral("DP-1");
+        info.makeModelSerial = QStringLiteral("Acme Panel 42");
+        info.geometry = QRectF(10, 20, 1920, 1080);
+        info.scale = 1.5;
+        const QJsonObject json = Ipc::outputToJson(info);
+        QCOMPARE(json.value(QStringLiteral("name")).toString(), QStringLiteral("DP-1"));
+        QCOMPARE(json.value(QStringLiteral("description")).toString(), QStringLiteral("Acme Panel 42"));
+        const QJsonObject logical = json.value(QStringLiteral("logical")).toObject();
+        QCOMPARE(logical.value(QStringLiteral("x")).toDouble(), 10.0);
+        QCOMPARE(logical.value(QStringLiteral("y")).toDouble(), 20.0);
+        QCOMPARE(logical.value(QStringLiteral("width")).toDouble(), 1920.0);
+        QCOMPARE(logical.value(QStringLiteral("height")).toDouble(), 1080.0);
+        QCOMPARE(logical.value(QStringLiteral("scale")).toDouble(), 1.5);
+    }
+
+    void bindJsonCarriesTheKeyActionAndOverlayTitle()
+    {
+        const auto loaded = Config::loadString(QStringLiteral(R"(
+            binds {
+                Mod+Q hotkey-overlay-title="Quit it" { close-window; }
+                Mod+W hotkey-overlay-title=null { close-window; }
+                Mod+E { close-window; }
+            }
+        )"),
+            QStringLiteral("config.kdl"));
+        QVERIFY(loaded.has_value());
+        const QList<Config::Bind> &binds = loaded->config.binds;
+        QCOMPARE(binds.size(), 3);
+        const QJsonObject titled = Ipc::bindToJson(binds.at(0));
+        QCOMPARE(titled.value(QStringLiteral("key")).toString(), Config::bindKeyLabel(binds.at(0)));
+        QCOMPARE(
+            titled.value(QStringLiteral("action")).toObject().value(QStringLiteral("name")).toString(), QStringLiteral("close-window"));
+        QCOMPARE(titled.value(QStringLiteral("title")).toString(), QStringLiteral("Quit it"));
+        QCOMPARE(titled.value(QStringLiteral("hidden")).toBool(), false);
+        const QJsonObject hidden = Ipc::bindToJson(binds.at(1));
+        QVERIFY(hidden.value(QStringLiteral("title")).isNull());
+        QCOMPARE(hidden.value(QStringLiteral("hidden")).toBool(), true);
+        QVERIFY(Ipc::bindToJson(binds.at(2)).value(QStringLiteral("title")).isNull());
+    }
+
+    void workspaceJsonCarriesAName()
+    {
+        Layout::WorkspaceState state;
+        state.name = QStringLiteral("chat");
+        QCOMPARE(Ipc::workspaceToJson(state).value(QStringLiteral("name")).toString(), QStringLiteral("chat"));
+    }
+
+    void actionFromJsonAcceptsNumbersAndBooleansAndMissingIds()
+    {
+        const QJsonObject object {{QStringLiteral("name"), QStringLiteral("focus-workspace")},
+            {QStringLiteral("arguments"), QJsonArray {2, QStringLiteral("up")}},
+            {QStringLiteral("properties"), QJsonObject {{QStringLiteral("focus"), true}, {QStringLiteral("label"), QStringLiteral("x")}}}};
+        const auto request = Ipc::actionFromJson(object);
+        QVERIFY(request.has_value());
+        QCOMPARE(request->action.arguments, (QStringList {QStringLiteral("2"), QStringLiteral("up")}));
+        QCOMPARE(request->action.properties.size(), 2);
+        QCOMPARE(request->action.properties.at(0).first, QStringLiteral("focus"));
+        QCOMPARE(request->action.properties.at(0).second, QStringLiteral("true"));
+        QCOMPARE(request->action.properties.at(1).second, QStringLiteral("x"));
+        QVERIFY(!request->target.has_value());
+    }
+
+    void windowIdFlagHasAnAlias()
+    {
+        const auto request = Ipc::actionFromArguments({QStringLiteral("close-window"), QStringLiteral("--window-id"), QStringLiteral("9")});
+        QVERIFY(request.has_value());
+        QCOMPARE(request->target.value(), Layout::WindowId {9});
     }
 
     void workspaceJsonHasNullNameWhenUnnamed()

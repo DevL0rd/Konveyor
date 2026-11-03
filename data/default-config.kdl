@@ -23,12 +23,7 @@ layout {
     // Apps that can't be resized keep their own size.
     always-expand-single-column true
 
-    preset-column-widths {
-        proportion 0.25
-        proportion 0.5
-        proportion 0.75
-        proportion 1.0
-    }
+    preset-column-widths { proportion 0.25; proportion 0.5; proportion 0.75; proportion 1.0; }
 
     default-column-width { proportion 0.5; }
     remember-window-sizes false
@@ -52,10 +47,14 @@ layout {
     float-child-windows false
 
     focus-ring {
-        width 4
+        width 2
         // "accent" follows the KDE accent color.
         active-color "accent"
-        inactive-color "#505050"
+        // A border style defined further down replaces the color for that state.
+        // Remove every inactive line for no ring on unfocused windows.
+        active-style "Default-Style"
+        inactive-style "Default-Style-Inactive"
+        urgent-style "Default-Attention-Style"
     }
 
     border {
@@ -65,6 +64,13 @@ layout {
         inactive-color "#505050"
         urgent-color "#9b0000"
     }
+
+    // Play a border style when something happens. Events: focus, unfocus, click,
+    // scroll, keypress, urgent, beat and view (Konveyor's own scrolling). The
+    // value is any border-style name, or "none". reach is "self", "neighbors"
+    // or "all". mode "once" plays it once; "while" plays as long as the event
+    // keeps happening, the default for scroll and view.
+    // event-effects { on "unfocus" "Focus-Fade" reach="self"; on "view" "Scroll-Flare" reach="all" mode="while"; }
 
     struts {
     }
@@ -128,6 +134,38 @@ gestures {
 }
 
 animations {
+    // Draw animated border styles still, without moving parts.
+    // reduce-motion
+}
+
+// Animated border styles: a stack of layers drawn bottom to top. Point focus-ring
+// or border at one with active-style, inactive-style or urgent-style. Layer kinds
+// and more examples are in docs/configuration.md.
+border-style "Default-Style" {
+    layer "elastic" { colors "accent" "#ffffff"; width 8; blend "add"; count 1; drive "color-mix" "scroll.speed" amount=0.5 curve="square" smooth=0.1; thickness 5; }
+    layer "bass-thump" { colors "accent"; width 3; blend "add"; baseline 0; }
+    layer "gradient" { colors "accent"; speed 0; }
+    layer "glow" { blend "add"; colors "accent"; opacity 0.7; speed 1; width 18; }
+    layer "particles" { colors "accent"; blend "add"; direction "up"; width 20; }
+    layer "shimmer" { colors "#ffffff" "accent"; width 6; blend "add"; }
+    layer "waveform" { colors "#2fffb0" "#2f7bff"; width 14; blend "add"; }
+    layer "particles" { blend "add"; count 129; fire-on "audio.beat"; colors "accent"; }
+    layer "ripple" { colors "accent"; opacity 0.8; blend "add"; speed 1; fire-on "focus"; }
+    layer "particles" { blend "add"; colors "#ffffff" "accent"; fire-on "scroll.step"; drive "direction" "scroll.direction" amount=0.5 curve="linear" smooth=0.1; count 80; rate 106; }
+    layer "particles" { blend "add"; colors "#ffffff" "accent"; fire-on "click" "keypress"; count 104; rate 176; }
+}
+
+border-style "Default-Style-Inactive" {
+    layer "shimmer" { width 6; blend "add"; colors "#141414" "#ffffff"; }
+    layer "bass-thump" { width 3; blend "add"; baseline 0; colors "#ffffff"; }
+    layer "waveform" { width 14; blend "add"; colors "#141414" "#ffffff"; }
+    layer "particles" { blend "add"; count 129; fire-on "audio.beat"; colors "#ffffff" "#141414"; }
+}
+
+border-style "Default-Attention-Style" {
+    layer "gradient" { angle 90; colors "#ff5a1f" "#ffb347"; speed 0.5; }
+    layer "particles" { blend "add"; colors "#ffd27a" "#ff5a1f"; count 64; direction "up"; lifetime 1.4; rate 40; size 2.5; speed 0.8; width 25; }
+    layer "pulse" { colors "#ff1f1f" "#ff8a1f"; speed 1.5; }
 }
 
 // Screens taller than they are wide: every column fills the width and holds
@@ -137,10 +175,7 @@ monitor-profile "portrait" {
     match aspect-ratio-below=1.0
     layout {
         default-column-width { proportion 1.0; }
-        preset-column-widths {
-            proportion 0.5
-            proportion 1.0
-        }
+        preset-column-widths { proportion 0.5; proportion 1.0; }
         new-window-placement "stack"
         max-rows-per-column 2
     }
@@ -149,12 +184,7 @@ monitor-profile "portrait" {
 monitor-profile "ultrawide" {
     match aspect-ratio-above=2.0
     layout {
-        preset-column-widths {
-            proportion 0.25
-            proportion 0.5
-            proportion 0.75
-            proportion 1.0
-        }
+        preset-column-widths { proportion 0.25; proportion 0.5; proportion 0.75; proportion 1.0; }
     }
 }
 
@@ -351,6 +381,11 @@ binds {
 // the active workspace of that monitor. Needs a desktop containment that reads
 // the hideDesktopWidgets key; without one this does nothing.
 hide-desktop-widgets
+
+// Konveyor extension: how far a sound must rise above its recent average to count
+// as a beat for effects that react to a window's audio, from 1 to 4. Lower fires
+// more often.
+audio-beat-threshold 1.4
 
 // Konveyor extension: stretch Plasma panels to the full screen width while a
 // window on that monitor is maximized to the edges, and put them back after.

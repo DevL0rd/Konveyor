@@ -36,11 +36,19 @@ SettingsPage {
         }
     }
 
-    TaskbarLookSection {}
+    LaterSection {
+        sourceComponent: TaskbarLookSection {}
+    }
 
-    TaskbarWorkspacesSection {}
+    LaterSection {
+        sourceComponent: TaskbarWorkspacesSection {}
+    }
 
-    TaskbarWindowsSection {}
+    LaterSection {
+        sourceComponent: TaskbarWindowsSection {}
+    }
 
-    TaskbarPinsSection {}
+    LaterSection {
+        sourceComponent: TaskbarPinsSection {}
+    }
 }

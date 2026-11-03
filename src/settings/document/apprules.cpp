@@ -181,7 +181,7 @@ QJsonObject appRules(const ConfigDocument &document, const QString &appId, const
     const std::optional<QString> sized = output.isEmpty() ? std::nullopt : rulePath(document, matchProps(appId, output));
     const QJsonValue width = sized ? fixedSize(document, *sized, Width) : QJsonValue();
     rules.insert(QStringLiteral("size"),
-        width.isUndefined() || width.isNull()
+        width.isNull()
             ? QJsonValue()
             : QJsonValue(QJsonObject {{QStringLiteral("width"), width}, {QStringLiteral("height"), fixedSize(document, *sized, Height)}}));
     return rules;

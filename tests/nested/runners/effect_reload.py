@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, default_config, load_config
-from kwinsession import (CLIENTS, activate, active_title, for_window, frame, konveyor, konveyor_action, konveyor_windows, managed_now, open_client,
+from kwinsession import (CLIENTS, activate, active_title, for_window, frame, konveyor, konveyor_action, konveyor_windows, kwin_titles, managed_now, open_client,
                          qdbus, reload_konveyor, run_script, wait_for, window_state)
 
 def reload_effect(checks, titles):
@@ -59,10 +59,31 @@ def minimized_window_survives(checks):
     before = layout()
     minimized("A", True)
     checks.expect(wait_for(lambda: "A" not in layout()), "minimizing A takes it out of the layout")
+    menu = subprocess.Popen(["python3", str(CLIENTS / "x11-types.py"), "X-Popup:MENU"])
+    checks.expect(wait_for(lambda: "X-Popup" in kwin_titles(), 30), "a menu the layout does not manage is open")
     reload_effect(checks, [title for title in before if title != "A"])
+    menu.terminate()
     minimized("A", False)
     checks.expect(wait_for(lambda: layout().get("A") == before["A"], 10),
                   f"A comes back where it was after a reload while minimized ({before['A']} -> {layout().get('A')})")
+
+
+def minimized_window_alone_on_its_workspace(checks):
+    before = layout()
+    checks.equal(before["E"][0], 2, "E is alone on the second workspace")
+    minimized("E", True)
+    checks.expect(wait_for(lambda: "E" not in layout()), "minimizing E takes it out of the layout")
+    reload_effect(checks, [title for title in before if title != "E"])
+    minimized("E", False)
+    checks.expect(wait_for(lambda: "E" in layout(), 10), f"E returns after a reload that found its workspace gone ({layout().get('E')})")
+
+
+def windows_leave_and_return_together(checks):
+    rule = '\nwindow-rule {\n    match title="^(D|E)$"\n    manage false\n}\n'
+    checks.expect(load_config(default_config() + rule), "a config that leaves D and E to KWin loads")
+    checks.expect(wait_for(lambda: "D" not in layout() and "E" not in layout()), "D and E leave the layout")
+    checks.expect(load_config(default_config()), "the default config loads again")
+    checks.expect(wait_for(lambda: "D" in layout() and "E" in layout()), f"D and E come back together ({sorted(layout())})")
 
 
 def floating_expansion_survives(checks):
@@ -104,10 +125,15 @@ def first_load_keeps_desktops(checks):
     for title, desktop in (("OnChat", 2), ("OnMusic", 3)):
         open_client(title, managed=False)
         run_script(for_window(title, f"w.desktops = [workspace.desktops[{desktop}]];"))
-    checks.expect(reload_konveyor(["OnChat", "OnMusic"]), "the effect loads with windows already open on other KDE desktops")
+    open_client("OnEvery", managed=False)
+    run_script(for_window("OnEvery", "w.onAllDesktops = true;"))
+    open_client("OnTwo", managed=False)
+    run_script(for_window("OnTwo", "w.desktops = [workspace.desktops[1], workspace.desktops[2]];"))
+    checks.expect(reload_konveyor(["OnChat", "OnMusic", "OnEvery", "OnTwo"]), "the effect loads with windows already open on other KDE desktops")
     checks.expect(wait_for(lambda: layout()["OnChat"][0] == 3 and layout()["OnMusic"][0] == 4, 10),
                   f"windows the effect meets for the first time keep the workspace of their KDE desktop ({layout()})")
     checks.equal((desktop_of("OnChat"), desktop_of("OnMusic")), ("2", "3"), "and stay on their KDE desktops")
+    checks.equal(run_script(for_window("OnEvery", 'print("MARK|" + w.onAllDesktops);')), ["true"], "a window on every desktop stays on every desktop")
 
 
 def fullscreen(title):
@@ -138,7 +164,7 @@ def unload_gives_back_desktops(checks):
 
 
 def main():
-    Checks().run(layout_survives, minimized_window_survives, floating_expansion_survives, rules_apply_on_load, first_load_keeps_desktops,
+    Checks().run(layout_survives, minimized_window_survives, minimized_window_alone_on_its_workspace, windows_leave_and_return_together, floating_expansion_survives, rules_apply_on_load, first_load_keeps_desktops,
                  fullscreen_survives, unload_gives_back_desktops)
 
 

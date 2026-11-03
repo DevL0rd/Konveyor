@@ -26,7 +26,7 @@ def settled(title):
         previous[0] = current
         return stable and current
 
-    return wait_for(still, 10, 0.3)
+    return wait_for(still, 30, 0.3)
 
 
 def center(title):

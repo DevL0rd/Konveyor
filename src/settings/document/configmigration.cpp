@@ -1,6 +1,7 @@
 #include "document/configmigration.h"
 
 #include "config/loader.h"
+#include "document/borderdefaults.h"
 #include "document/configdocument.h"
 #include "document/nodecodec.h"
 
@@ -21,22 +22,48 @@ QStringList numbered(const QString &prefix)
     return keys;
 }
 
+QStringList bindPaths(const QStringList &keys)
+{
+    QStringList paths;
+    for (const QString &key : keys) {
+        paths.append(QStringLiteral("binds/") + key);
+    }
+    return paths;
+}
+
+ConfigMigration addBinds(const QString &id, const QStringList &keys)
+{
+    return {id, bindPaths(keys), [keys](const QString &text, const QString &fileName, const QString &defaults) {
+                return addDefaultBinds(text, fileName, defaults, keys);
+            }};
+}
+
+ConfigMigration replaceBinds(const QString &id, const QStringList &keys, const QString &action)
+{
+    return {id, bindPaths(keys), [keys, action](const QString &text, const QString &fileName, const QString &defaults) {
+                return replaceBindAction(text, fileName, defaults, keys, action);
+            }};
+}
+
 }
 
 const QList<ConfigMigration> &configMigrations()
 {
     static const QList<ConfigMigration> migrations {
-        {QStringLiteral("focus-column-binds"), numbered(QStringLiteral("Super+Alt+")), {}},
-        {QStringLiteral("taskbar-item-binds"), numbered(QStringLiteral("Super+Alt+")), QStringLiteral("focus-column")},
-        {QStringLiteral("fullscreen-window-bind"), {QStringLiteral("Mod+F")}, QStringLiteral("cycle-window-expansion")},
+        {QStringLiteral("heat-layers"), {QStringLiteral("border-style")}, migrateHeatLayers},
+        addBinds(QStringLiteral("focus-column-binds"), numbered(QStringLiteral("Super+Alt+"))),
+        replaceBinds(QStringLiteral("taskbar-item-binds"), numbered(QStringLiteral("Super+Alt+")), QStringLiteral("focus-column")),
+        replaceBinds(QStringLiteral("fullscreen-window-bind"), {QStringLiteral("Mod+F")}, QStringLiteral("cycle-window-expansion")),
+        {QStringLiteral("animated-border-defaults"), {QStringLiteral("border-style")}, migrateBorderDefaults},
+        {QStringLiteral("focus-effects"), {QStringLiteral("border-style")}, migrateFocusEffects},
     };
     return migrations;
 }
 
-bool shipsAnyBind(const QString &defaults, const QStringList &keys)
+bool shipsAny(const QString &defaults, const QStringList &paths)
 {
     const ConfigDocument shipped(defaults);
-    return std::ranges::any_of(keys, [&shipped](const QString &key) { return shipped.find(QStringLiteral("binds/") + key) != nullptr; });
+    return std::ranges::any_of(paths, [&shipped](const QString &path) { return shipped.find(path) != nullptr; });
 }
 
 std::expected<QString, QString> addDefaultBinds(
@@ -93,10 +120,7 @@ std::expected<QString, QString> replaceBindAction(
 std::expected<QString, QString> applyMigration(
     const ConfigMigration &migration, const QString &text, const QString &fileName, const QString &defaults)
 {
-    if (migration.replacesAction.isEmpty()) {
-        return addDefaultBinds(text, fileName, defaults, migration.defaultBinds);
-    }
-    return replaceBindAction(text, fileName, defaults, migration.defaultBinds, migration.replacesAction);
+    return migration.edit(text, fileName, defaults);
 }
 
 }

@@ -23,6 +23,12 @@ struct LoadContext
 };
 
 BorderRule decodeBorderRule(const Kdl::Node &node);
+void decodeBorderStyle(LoadContext &context, const Kdl::Node &node);
+LayerDrive decodeLayerDrive(const Kdl::Node &node);
+QList<Signal> decodeFireOn(const Kdl::Node &node);
+EventEffects decodeEventEffects(const Kdl::Node &node);
+void mergeEventEffects(EventEffects &base, const EventEffects &part);
+void warnAboutUnknownBorderStyles(LoadContext &context);
 TabIndicatorPart decodeTabIndicatorPart(const Kdl::Node &node);
 InsertHintPart decodeInsertHintPart(const Kdl::Node &node);
 Struts decodeStruts(const Kdl::Node &node);

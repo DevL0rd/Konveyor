@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
+import contextlib
+import io
 import json
+import os
+import sys
 import unittest
+from unittest import mock
 
-from portal_harness import PORTAL_BIN, Sandbox
+from portal_harness import PORTAL_BIN, Sandbox, load_script
 
 
 SCRIPT = PORTAL_BIN / "portal-packages"
@@ -90,6 +95,24 @@ class TestPortalPackages(unittest.TestCase):
         for standard, found_in_aur in (("error: database locked", "not json"), ("[{", "{\"Name\": 1"), ('{"Name": "x"}', "[1, null, {}]")):
             with self.subTest(standard=standard):
                 self.assertEqual(self.search("x", standard=standard, found_in_aur=found_in_aur)["packages"], [])
+
+    def hung_search(self):
+        (self.box.stubs / "shelly").write_text(f"#!{sys.executable}\nimport time\ntime.sleep(60)\n")
+        module = load_script(SCRIPT, self.box.environment)
+        module.SEARCH_TIMEOUT = 0.3
+        return module
+
+    def test_searches_that_hang_give_no_results(self):
+        module = self.hung_search()
+        output = io.StringIO()
+        with mock.patch.dict(os.environ, self.box.environment, clear=True), mock.patch.object(sys, "argv", ["portal-packages", "gimp"]), \
+                contextlib.redirect_stdout(output):
+            module.main()
+        self.assertEqual(json.loads(output.getvalue()), {"query": "gimp", "packages": []})
+
+    def test_a_search_that_cannot_start_gives_nothing(self):
+        module = load_script(SCRIPT, self.box.environment)
+        self.assertIsNone(module.run_json([str(self.box.root / "missing")], 1))
 
     def test_a_failing_aur_search_keeps_the_repository_results(self):
         self.box.stub("shelly", stderr="network unreachable", code=1, when="aur")

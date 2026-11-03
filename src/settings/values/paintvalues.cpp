@@ -42,7 +42,7 @@ QVariant colorValue(const QColor &color)
 
 QVariant paintValue(const std::optional<Config::Paint> &paint)
 {
-    if (!paint) {
+    if (!paint || !paint->isSet()) {
         return QVariant();
     }
     QVariantMap value {

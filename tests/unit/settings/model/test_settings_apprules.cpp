@@ -130,6 +130,28 @@ private Q_SLOTS:
         QCOMPARE(applied(resized, place, {{QStringLiteral("size"), false}}), QString());
     }
 
+    void rulesWithSeveralMatchesAreNotTheAppsRule()
+    {
+        const QString two = QStringLiteral(
+            "window-rule {\n    match app-id=\"^org\\\\.kde\\\\.dolphin$\"\n    match title=\"x\"\n    open-floating true\n}\n");
+        QCOMPARE(rulesOf(two).value(QStringLiteral("float")).toBool(), false);
+        const QString none = QStringLiteral("window-rule {\n    open-floating true\n}\n");
+        QCOMPARE(rulesOf(none).value(QStringLiteral("float")).toBool(), false);
+        QCOMPARE(applied(two, dolphin(), {{QStringLiteral("float"), true}}).count(QStringLiteral("window-rule")), 2);
+    }
+
+    void sizeNeedsAWindowSizeAndOnlyTheMonitorIsOptional()
+    {
+        AppPlace empty = dolphin();
+        empty.width = 0;
+        QVERIFY(applied(QString(), empty, {{QStringLiteral("size"), true}}).startsWith(QStringLiteral("<error: ")));
+        QCOMPARE(applied(QStringLiteral("layout {\n}\n"), dolphin(), {{QStringLiteral("size"), false}}), QStringLiteral("layout {\n}\n"));
+        AppPlace unplaced = dolphin();
+        unplaced.output.clear();
+        QVERIFY(applied(QString(), unplaced, {{QStringLiteral("monitor"), true}}).startsWith(QStringLiteral("<error: ")));
+        QVERIFY(rulesOf(QStringLiteral("window-rule {\n}\n"), QString()).value(QStringLiteral("size")).isNull());
+    }
+
     void refusesWhatCannotBeRemembered()
     {
         AppPlace floating = dolphin();

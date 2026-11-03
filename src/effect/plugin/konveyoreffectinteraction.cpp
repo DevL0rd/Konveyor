@@ -232,10 +232,15 @@ void KonveyorEffect::handleWindowResize(Layout::WindowId id, KWin::Window *windo
     }
     if (phase == interactivePhaseStart) {
         d->resizeOrigin = interactionPoint();
+        d->resizeByTouch = d->gestures.touchPointCount() > 0;
         changeEngine().beginResize(id, resizeEdgesFor(window->interactiveMoveResizeGravity()));
     } else if (phase == interactivePhaseStep) {
+        d->resizeByTouch = d->gestures.touchPointCount() > 0;
         changeEngine().updateResize(interactionPoint() - d->resizeOrigin);
     } else {
+        if (!d->resizeByTouch) {
+            changeEngine().updateResize(interactionPoint() - d->resizeOrigin);
+        }
         changeEngine().endResize();
     }
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import sqlite3
 import unittest
 
@@ -174,6 +175,25 @@ class TestPortalGames(unittest.TestCase):
         self.assertEqual((resolved[2]["icon"], resolved[2]["folder"]), ("folder-music", True))
         self.assertEqual((resolved[3]["icon"], resolved[3]["missing"]), ("text-plain", False))
 
+    def test_a_folder_pin_without_user_directories_gets_the_plain_folder_icon(self):
+        pins = [{"kind": "path", "id": str(self.box.home), "name": "Home"}, {"kind": "path", "id": str(self.box.root)}]
+        self.run_games("--sidebar-set", json.dumps(pins))
+        self.assertEqual([pin["icon"] for pin in self.box.run_json(SCRIPT, "--sidebar")], ["user-home", "folder"])
+
+    def test_setting_the_same_sidebar_again_does_not_rewrite_it(self):
+        pins = json.dumps([{"kind": "app", "id": "org.kde.konsole"}])
+        self.run_games("--sidebar-set", pins)
+        saved = self.state / "sidebar.json"
+        self.assertTrue(saved.exists())
+        os.utime(saved, ns=(5, 5))
+        self.assertEqual(self.run_games("--sidebar-set", pins).returncode, 0)
+        self.assertEqual(saved.stat().st_mtime_ns, 5)
+
+    def test_a_desktop_entry_that_cannot_be_read_is_not_a_game(self):
+        self.box.desktop(self.box.data, "test-locked.desktop", Name="Locked", Categories="Game;").chmod(0)
+        self.box.desktop(self.box.data, "test-open.desktop", Name="Open", Categories="Game;")
+        self.assertEqual(sorted(self.games()), ["test-open"])
+
     def test_sidebar_rejects_bad_input(self):
         for text, message in (("{", "invalid JSON"), ('{"kind": "app"}', "expected a list")):
             result = self.run_games("--sidebar-set", text)
@@ -199,6 +219,51 @@ class TestPortalGames(unittest.TestCase):
         self.assertEqual([(entry["id"], entry["launch"]) for entry in favorites],
                          [("firefox.desktop", ""), ("org.kde.konsole.desktop", "konsole")])
         self.assertIn(["xdg-settings", "get", "default-web-browser"], self.box.calls())
+
+    def test_a_favorite_stored_as_a_plain_desktop_id_is_listed(self):
+        self.box.desktop(self.box.data, "org.kde.konsole.desktop", Name="Konsole", Exec="konsole")
+        self.favorite("org.kde.konsole.desktop", "unknown-resource")
+        favorites = self.box.run_json(SCRIPT, "--favorites")["favorites"]
+        self.assertEqual([(entry["resource"], entry["id"]) for entry in favorites], [("org.kde.konsole.desktop", "org.kde.konsole.desktop")])
+
+    def test_the_default_browser_favorite_needs_xdg_settings(self):
+        self.box.desktop(self.box.data, "firefox.desktop", Name="Firefox")
+        self.favorite("preferred://browser")
+        (self.box.stubs / "xdg-settings").unlink()
+        self.assertEqual(self.box.run_json(SCRIPT, "--favorites"), {"favorites": []})
+
+    def test_an_unreadable_favorites_database_means_no_favorites(self):
+        self.box.write(self.box.data / "kactivitymanagerd" / "resources" / "database", "this is not a database")
+        self.assertEqual(self.box.run_json(SCRIPT, "--favorites"), {"favorites": []})
+
+    def test_favoriting_without_gdbus_is_reported(self):
+        (self.box.stubs / "gdbus").unlink()
+        result = self.run_games("--fav-add", "org.kde.konsole.desktop")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("dbus call failed", result.stderr)
+
+    def test_an_unreadable_steam_art_folder_leaves_the_game_without_art(self):
+        self.box.desktop(self.box.data, "test-portal.desktop", Name="Portal", Categories="Game;", Exec="steam steam://rungameid/400")
+        cache = self.steam_cache("400", "library_600x900.jpg")
+        cache.chmod(0)
+        try:
+            game = self.games()["test-portal"]
+        finally:
+            cache.chmod(0o700)
+        self.assertEqual((game["appid"], game["has_art"]), ("400", False))
+
+    def test_resetting_art_that_cannot_be_deleted_still_forgets_it(self):
+        self.box.desktop(self.box.data, "test-portal.desktop", Name="Portal", Categories="Game;")
+        picture = self.box.write(self.box.root / "cover.png", "png")
+        self.run_games("--set-art", "test-portal", str(picture))
+        art = self.state / "art"
+        art.chmod(0o500)
+        try:
+            self.assertEqual(self.run_games("--reset-art", "test-portal").returncode, 0)
+        finally:
+            art.chmod(0o700)
+        self.assertTrue((art / "test-portal.png").exists())
+        self.assertEqual(json.loads((self.state / "overrides.json").read_text()), {})
 
     def test_no_favorites_database_means_no_favorites(self):
         self.assertEqual(self.box.run_json(SCRIPT, "--favorites"), {"favorites": []})

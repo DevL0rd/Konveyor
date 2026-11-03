@@ -2,11 +2,13 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.konveyor.settings
+import "HeaderLookup.js" as HeaderLookup
 
 QQC2.StackView {
     id: stack
 
     required property var page
+    property bool active: true
     property string reveal
     property string section
     signal revealed()
@@ -15,25 +17,19 @@ QQC2.StackView {
         if (item && item.background !== undefined)
             item.background = null
     }
-    function collect(item, text, found) {
-        if (!item || !item.visible)
-            return found
-        if (item.title === text || item.label === text || item.text === text)
-            found.push(item)
-        const children = item.children || []
-        for (let i = 0; i < children.length; ++i)
-            collect(children[i], text, found)
-        return found
-    }
     function revealTarget() {
         const item = stack.currentItem
         if (!item || stack.reveal === "" || !item.flickable)
             return
         const flick = item.flickable
+        if (HeaderLookup.pending(flick.contentItem)) {
+            revealTimer.restart()
+            return
+        }
         const top = entry => entry.mapToItem(flick.contentItem, 0, 0).y
-        const headers = collect(flick.contentItem, stack.section, [])
+        const headers = HeaderLookup.collect(flick.contentItem, stack.section, [])
         const floor = headers.length > 0 ? top(headers[0]) : 0
-        const target = collect(flick.contentItem, stack.reveal, []).find(entry => top(entry) >= floor)
+        const target = HeaderLookup.collect(flick.contentItem, stack.reveal, []).find(entry => top(entry) >= floor) || headers[0]
         stack.revealed()
         if (!target)
             return
@@ -82,13 +78,24 @@ QQC2.StackView {
         interval: 120
         onTriggered: stack.revealTarget()
     }
-    Component.onCompleted: open(page.file)
-    onPageChanged: open(page.file)
+    Component.onCompleted: {
+        SettingsNavigation.loadSectionsInBackground()
+        if (active)
+            open(page.file)
+    }
+    onPageChanged: if (active) open(page.file)
+    onActiveChanged: {
+        if (active)
+            open(page.file)
+        else
+            clear(QQC2.StackView.Immediate)
+    }
 
     Binding {
         target: SettingsNavigation
         property: "depth"
         value: stack.depth
+        when: stack.depth > 0
     }
     Connections {
         target: SettingsNavigation

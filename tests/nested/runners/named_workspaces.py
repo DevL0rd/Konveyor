@@ -68,9 +68,17 @@ def both_monitors(checks):
     checks.equal(desktop_names()[0], "chat", "the focused output names the shared virtual desktop")
 
 
+def reports(checks):
+    focused = json.loads(konveyor("FocusedOutput"))
+    checks.equal(len(focused), 1, "the focused output is reported alone although there are two outputs")
+    window = next(window for window in konveyor_windows() if window["title"] == "B")
+    rules = json.loads(konveyor("AppRules", json.dumps({"id": window["id"]})))
+    checks.expect(rules["workspace_name"] in ("web", "chat"), f"an app on a named workspace reports its name ({rules['workspace_name']})")
+
+
 def main():
     wait_for(lambda: len({workspace["output"] for workspace in workspaces()}) == 2, 60)
-    Checks().run(any_monitor, both_monitors)
+    Checks().run(any_monitor, both_monitors, reports)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from portal_harness import COVERAGE_VARIABLES
 
 SCRIPT = Path(__file__).resolve().parents[3] / "widgets" / "portals" / "bin" / "portal-friends"
 
@@ -28,6 +29,7 @@ class TestPortalFriendsModes(unittest.TestCase):
             "XDG_CONFIG_HOME": str(root / "config"),
             "XDG_CACHE_HOME": str(root / "cache"),
             "XDG_RUNTIME_DIR": str(root / "runtime"),
+            **{name: os.environ[name] for name in COVERAGE_VARIABLES if name in os.environ},
         }
         self.config = root / "config" / "Plasma-App-Portal" / "config.json"
         self.snapshot = root / "runtime" / "Plasma-App-Portal" / "friends.json"
@@ -94,6 +96,18 @@ class TestPortalFriendsModes(unittest.TestCase):
                 sleep.assert_called_once_with(expected)
                 api.assert_not_called()
                 self.assertTrue(json.loads(self.snapshot.read_text())["needs_api_key"])
+
+    def test_serve_survives_a_failed_poll_even_when_the_snapshot_cannot_be_written(self):
+        self.configure('{"poll_interval": 30}')
+        module = self.load()
+        with mock.patch.object(module, "build_snapshot", side_effect=RuntimeError("steam is down")), \
+                mock.patch.object(module, "write_snapshot", side_effect=OSError("disk full")), \
+                mock.patch.object(module.time, "sleep", side_effect=StopServing) as sleep, \
+                mock.patch.object(module.sys, "stderr") as errors:
+            with self.assertRaises(StopServing):
+                module.cmd_serve()
+        sleep.assert_called_once_with(30.0)
+        self.assertIn("portal-friends: steam is down", "".join(call.args[0] for call in errors.write.call_args_list))
 
     def test_serve_picks_up_a_changed_interval(self):
         self.configure('{"poll_interval": 30}')

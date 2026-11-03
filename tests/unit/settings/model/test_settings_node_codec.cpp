@@ -27,6 +27,7 @@ private Q_SLOTS:
     void quotesIdentifiers();
     void writesProperties();
     void keepsExistingPropertyOrder();
+    void nodesWithoutPropertiesKeepTheirPropertiesOnUpdate();
     void writesNodes();
     void readsNodes();
     void roundTripsThroughDocument();
@@ -137,6 +138,10 @@ void TestSettingsNodeCodec::writesScalars()
     QCOMPARE(writeValue(QVariant(false)), QStringLiteral("false"));
     QCOMPARE(writeValue(QVariant::fromValue(nullptr)), QStringLiteral("null"));
     QCOMPARE(writeValue(QVariant()), QStringLiteral("null"));
+    QCOMPARE(writeValue(QVariant(3u)), QStringLiteral("3"));
+    QCOMPARE(writeValue(QVariant(qulonglong(7))), QStringLiteral("7"));
+    QCOMPARE(writeValue(QVariant(qlonglong(-7))), QStringLiteral("-7"));
+    QCOMPARE(writeValue(QVariant(1.5f)), QStringLiteral("1.5"));
 }
 
 void TestSettingsNodeCodec::writesStrings_data()
@@ -217,6 +222,13 @@ void TestSettingsNodeCodec::keepsExistingPropertyOrder()
     const QVariantMap fewer = leaf(QStringLiteral("match"), {}, {{QStringLiteral("app-id"), QStringLiteral("y")}});
     QCOMPARE(
         edited(text, [&](ConfigDocument &d) { return d.setNode(QStringLiteral("match"), fewer); }), QStringLiteral("match app-id=\"y\"\n"));
+}
+
+void TestSettingsNodeCodec::nodesWithoutPropertiesKeepTheirPropertiesOnUpdate()
+{
+    const QVariantMap bare {{QStringLiteral("name"), QStringLiteral("match")}, {QStringLiteral("args"), QVariantList()}};
+    QCOMPARE(edited(QStringLiteral("match title=\"x\"\n"), [&](ConfigDocument &d) { return d.setNode(QStringLiteral("match"), bare); }),
+        QStringLiteral("match\n"));
 }
 
 void TestSettingsNodeCodec::writesNodes()

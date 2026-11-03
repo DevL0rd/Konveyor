@@ -24,6 +24,16 @@ void runMonitorOverlay(const QStringList &arguments)
 
 void KonveyorEffect::installInputFilter()
 {
+    d->inputSignals = std::make_unique<InputSignals>(d->decorations.signalBus(),
+        InputSignals::Handlers {
+            [this](KWin::Window *window) -> std::optional<quint64> { return d->windows.idOf(window); },
+            [this](Config::EventTrigger trigger, quint64 window, const Render::SignalPoint &at) {
+                d->decorations.fireEvent(trigger, window, at.position, at.direction);
+            },
+            [this] { d->decorations.scheduleBorderFrames(); },
+        });
+    connect(&d->decorations.battery(), &BatteryMonitor::onBatteryChanged, d->inputSignals.get(),
+        [this](bool onBattery) { d->inputSignals->setOnBattery(onBattery); });
     d->spillInput = std::make_unique<SpillInputFilter>([this](KWin::Window *window, const QPointF &position) {
         const std::optional<Layout::WindowId> id = d->windows.idOf(window);
         const auto home = id ? d->homeOutputs.constFind(*id) : d->homeOutputs.constEnd();
@@ -124,6 +134,7 @@ void KonveyorEffect::connectWindowLifecycle()
         }
         changeEngine().removeWindow(id);
         followActiveWindowAfterClose();
+        d->inputSignals->forget(id);
         d->decorations.remove(id);
         d->fullscreenShade.remove(id);
         d->applier.forget(id);
