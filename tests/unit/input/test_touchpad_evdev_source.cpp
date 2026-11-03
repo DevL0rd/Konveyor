@@ -9,6 +9,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <linux/input.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -102,6 +103,15 @@ private Q_SLOTS:
             close(m_writer);
             m_writer = -1;
         }
+    }
+
+    void theKernelQueryIsReplaced()
+    {
+        input_absinfo info {};
+        QCOMPARE(ioctl(-1, EVIOCGABS(ABS_MT_POSITION_X), &info), 0);
+        QCOMPARE(info.resolution, 10);
+        fakeAxes.failing = true;
+        QCOMPARE(ioctl(-1, EVIOCGABS(ABS_MT_POSITION_X), &info), -1);
     }
 
     void reportsAMissingNode()

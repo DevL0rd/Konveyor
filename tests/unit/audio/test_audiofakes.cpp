@@ -1,5 +1,6 @@
 #include "audio/capturestream.h"
 #include "audio/streamgraph.h"
+#include "audiofakestream.h"
 
 #include <pipewire/pipewire.h>
 
@@ -16,23 +17,6 @@ using namespace Konveyor::Audio;
 
 namespace
 {
-
-struct FakeStream
-{
-    const pw_stream_events *events = nullptr;
-    void *data = nullptr;
-    bool failNew = false;
-    int connectResult = 0;
-    pw_buffer *nextBuffer = nullptr;
-    int created = 0;
-    int connected = 0;
-    int destroyed = 0;
-    int queued = 0;
-};
-
-FakeStream g_stream;
-int g_proxiesDestroyed = 0;
-char g_streamHandle = 0;
 
 struct FakeNode
 {
@@ -179,6 +163,7 @@ class TestAudioFakes : public QObject
 
 private Q_SLOTS:
     void init();
+    void theFakesStandInForPipeWire();
     void aGraphIgnoresGlobalsWithoutProperties();
     void aGraphSurvivesObjectsThatCannotBeBound();
     void aGraphWaitsForNodeAndClientProperties();
@@ -194,6 +179,27 @@ void TestAudioFakes::init()
 {
     g_stream = FakeStream {};
     g_proxiesDestroyed = 0;
+}
+
+void TestAudioFakes::theFakesStandInForPipeWire()
+{
+    pw_stream *stream = pw_stream_new(nullptr, "fake", nullptr);
+    QVERIFY(stream != nullptr);
+    spa_hook hook {};
+    pw_stream_events events {};
+    pw_stream_add_listener(stream, &hook, &events, &g_stream);
+    QCOMPARE(g_stream.events, &events);
+    QCOMPARE(pw_stream_connect(stream, PW_DIRECTION_INPUT, PW_ID_ANY, PW_STREAM_FLAG_NONE, nullptr, 0), 0);
+    pw_buffer buffer {};
+    g_stream.nextBuffer = &buffer;
+    QCOMPARE(pw_stream_dequeue_buffer(stream), &buffer);
+    QCOMPARE(pw_stream_queue_buffer(stream, &buffer), 1);
+    pw_stream_destroy(stream);
+    pw_proxy_destroy(nullptr);
+    QCOMPARE(g_stream.created, 1);
+    QCOMPARE(g_stream.connected, 1);
+    QCOMPARE(g_stream.destroyed, 1);
+    QCOMPARE(g_proxiesDestroyed, 1);
 }
 
 void TestAudioFakes::aGraphIgnoresGlobalsWithoutProperties()

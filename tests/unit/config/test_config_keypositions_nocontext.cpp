@@ -16,6 +16,8 @@ class TestConfigKeyPositionsNoContext : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void theContextFactoryIsReplaced() { QVERIFY(xkb_context_new(XKB_CONTEXT_NO_FLAGS) == nullptr); }
+
     void withoutAKeymapContextNoKeyHasAPosition()
     {
         QVERIFY(!usKeycode(XKB_KEY_a).has_value());

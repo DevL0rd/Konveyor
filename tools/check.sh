@@ -123,9 +123,11 @@ run-clang-tidy -quiet -p "$CLANG_BUILD_DIR" "${tidy_files[@]}"
 step "unused functions (xunused)"
 command -v xunused >/dev/null || { echo "xunused is not installed: https://github.com/mgehre/xunused"; exit 1; }
 mapfile -t all_sources < <(git ls-files --cached --others --exclude-standard -- 'src/*.cpp' 'tests/*.cpp')
-unused=$(xunused -p "$CLANG_BUILD_DIR" --extra-arg=-resource-dir="$(clang -print-resource-dir)" "${all_sources[@]}" 2>&1 | grep -E "warning: Function|Failed to run" || true)
-if [[ -n $unused ]]; then
-    echo "$unused"
+xunused_status=0
+xunused_output=$(xunused -p "$CLANG_BUILD_DIR" --extra-arg=-resource-dir="$(clang -print-resource-dir)" "${all_sources[@]}" 2>&1) || xunused_status=$?
+unused=$(grep -E "warning: Function|Failed to run" <<<"$xunused_output" || true)
+if [[ -n $unused || $xunused_status -ne 0 ]]; then
+    echo "${unused:-$xunused_output}"
     exit 1
 fi
 

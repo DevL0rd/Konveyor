@@ -15,6 +15,8 @@ class TestConfigIncludesNoHome : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void theHomeDirectoryIsReplacedByNothing() { QVERIFY(QDir::homePath().isEmpty()); }
+
     void aTildeIncludeNeedsAHomeDirectory()
     {
         const auto loaded = loadString(QStringLiteral("include \"~/extra.kdl\"\n"), QStringLiteral("/tmp/konveyor-nohome/config.kdl"));
