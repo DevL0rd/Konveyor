@@ -17,7 +17,7 @@ from unittest import mock
 sys.dont_write_bytecode = True
 REPO = Path(__file__).resolve().parents[3]
 WIDGETS = REPO / "widgets"
-FAKED = ("/proc", "/sys")
+FAKED = ("/proc", "/sys", "/run/udev")
 RECORDING_STUB = """#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["STUB_LOG"], "a") as log:
@@ -122,6 +122,7 @@ class CollectorTest(unittest.TestCase):
     def load(self, path, name, pynvml=None):
         self.start(mock.patch.dict(os.environ, self.environment, clear=True))
         self.start(mock.patch.dict(sys.modules, {"pynvml": pynvml}))
+        sys.modules.pop("sysmon_amdgpu", None)
         for patch in self.fake.patches():
             self.start(patch)
         return load_script(path, name)
