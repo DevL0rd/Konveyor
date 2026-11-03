@@ -124,9 +124,6 @@ void EventEffects::start(Config::EventTrigger trigger, const Known &subject, con
         play.scene.to = frameOf(pair.to->window, QRectF());
     }
     addTargets(play, subject, *effect);
-    if (play.targets.empty()) {
-        return;
-    }
     play.startedAt = seconds();
     play.lastFired = play.startedAt;
     play.duration = Render::styleSeconds(play.style, play.scene, effect->duration);

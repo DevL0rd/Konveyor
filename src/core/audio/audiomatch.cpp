@@ -61,6 +61,20 @@ bool namesMatch(const StreamIdentity &stream, const QString &desktopFile)
 
 }
 
+StreamIdentity withFallback(StreamIdentity stream, const StreamIdentity &fallback)
+{
+    if (stream.pid <= 0) {
+        stream.pid = fallback.pid;
+    }
+    if (stream.binary.isEmpty()) {
+        stream.binary = fallback.binary;
+    }
+    if (stream.portalAppId.isEmpty()) {
+        stream.portalAppId = fallback.portalAppId;
+    }
+    return stream;
+}
+
 bool processDescendsFrom(qint64 pid, qint64 ancestor)
 {
     qint64 current = pid;

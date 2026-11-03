@@ -196,11 +196,7 @@ void BorderLayerPainter::drawReactive(
     const KWin::ShaderBinder binder(m_reactive.get());
     KWin::GLShader &shader = *m_reactive;
     setCommonUniforms(shader, layer, target, shape);
-    Render::LayerMotion silent;
-    if (!layer.motion) {
-        silent.resolved = *layer.config;
-    }
-    setReactiveUniforms(shader, layer.motion ? *layer.motion : silent);
+    setReactiveUniforms(shader, *layer.motion);
     shader.setUniform("inset", static_cast<float>(shape.inset));
     shader.setUniform("bandWidth", static_cast<float>(shape.width));
     shader.setUniform("phase", static_cast<float>(layer.phase));

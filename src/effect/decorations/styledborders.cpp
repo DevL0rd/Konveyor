@@ -119,9 +119,6 @@ void StyledBorders::setStyles(const QList<Config::BorderStyle> &styles, bool red
 
 void StyledBorders::setOnBattery(bool onBattery)
 {
-    if (m_onBattery == onBattery) {
-        return;
-    }
     m_onBattery = onBattery;
     for (auto &[id, parts] : m_windows) {
         for (std::optional<ShownBorder> &shown : parts.parts) {

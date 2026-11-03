@@ -8,21 +8,23 @@
 
 #include <functional>
 #include <map>
-
-namespace KWin
-{
-class Window;
-}
+#include <optional>
 
 namespace Konveyor::Audio
 {
+
+struct CapturedWindow
+{
+    WindowKey key;
+    bool fullScreen = false;
+};
 
 class AudioSignals : public QObject
 {
     Q_OBJECT
 
 public:
-    using WindowLookup = std::function<KWin::Window *(quint64)>;
+    using WindowLookup = std::function<std::optional<CapturedWindow>(quint64)>;
 
     explicit AudioSignals(Render::SignalBus &bus, QObject *parent = nullptr);
 

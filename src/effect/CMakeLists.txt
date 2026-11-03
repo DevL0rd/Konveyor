@@ -2,11 +2,6 @@ find_package(KWin 6.7 REQUIRED COMPONENTS kwineffects)
 find_package(KDecoration3 REQUIRED)
 find_package(KF6 REQUIRED COMPONENTS CoreAddons GlobalAccel Config ColorScheme Notifications I18n)
 find_package(XCB REQUIRED COMPONENTS XCB ICCCM)
-pkg_check_modules(PIPEWIRE IMPORTED_TARGET libpipewire-0.3)
-if(NOT PIPEWIRE_FOUND)
-    message(FATAL_ERROR "PipeWire development files (libpipewire-0.3) are missing. Audio reactive window effects need them: run extras/packaging/dependencies.sh or install libpipewire (Arch), pipewire-devel (Fedora, openSUSE) or libpipewire-0.3-dev (Debian, Ubuntu).")
-endif()
-
 kcoreaddons_add_plugin(konveyor_effect INSTALL_NAMESPACE "kwin/effects/plugins")
 
 file(GLOB_RECURSE KONVEYOR_EFFECT_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
@@ -50,5 +45,4 @@ target_link_libraries(konveyor_effect PRIVATE
     Qt6::DBus
     XCB::XCB
     XCB::ICCCM
-    PkgConfig::PIPEWIRE
 )

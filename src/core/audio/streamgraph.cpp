@@ -64,21 +64,8 @@ std::vector<PlayingStream> StreamGraph::streams() const
 
 StreamIdentity StreamGraph::identityOf(const Watched &node) const
 {
-    StreamIdentity identity = node.identity;
     const auto client = m_clients.find(node.clientId);
-    if (client == m_clients.end()) {
-        return identity;
-    }
-    if (identity.pid <= 0) {
-        identity.pid = client->second->identity.pid;
-    }
-    if (identity.binary.isEmpty()) {
-        identity.binary = client->second->identity.binary;
-    }
-    if (identity.portalAppId.isEmpty()) {
-        identity.portalAppId = client->second->identity.portalAppId;
-    }
-    return identity;
+    return client == m_clients.end() ? node.identity : withFallback(node.identity, client->second->identity);
 }
 
 void StreamGraph::onGlobal(void *data, std::uint32_t id, std::uint32_t, const char *type, std::uint32_t, const spa_dict *props)

@@ -116,10 +116,9 @@ QPointF particleHeading(Config::ParticleDirection direction, const PerimeterPoin
         return rotated({0, 1}, jitter);
     case Config::ParticleDirection::Along:
         return rotated(origin.tangent, jitter * 0.3);
-    case Config::ParticleDirection::Random:
-        break;
+    default:
+        return rotated({1, 0}, jitter * 2.0 * M_PI);
     }
-    return rotated({1, 0}, jitter * 2.0 * M_PI);
 }
 
 BorderParticle particleOf(const Config::BorderLayer &layer, const BorderLayerShape &shape, quint64 seed, double age)

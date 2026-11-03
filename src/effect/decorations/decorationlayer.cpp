@@ -130,7 +130,13 @@ void DecorationLayer::syncEventEffects(
         }
     }
     m_events.sync(windows);
-    m_audioSignals.setWindowLookup(windowOf);
+    m_audioSignals.setWindowLookup([windowOf](quint64 id) -> std::optional<Audio::CapturedWindow> {
+        const KWin::Window *window = windowOf(id);
+        if (!window) {
+            return std::nullopt;
+        }
+        return Audio::CapturedWindow {{window->pid(), window->desktopFileName()}, window->isFullScreen()};
+    });
     m_audioSignals.refresh();
 }
 

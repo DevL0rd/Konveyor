@@ -125,10 +125,9 @@ double interpolateHue(double fromHue, double toHue, double ratio, Config::HueInt
         return directIsLonger ? pathDirect : pathMod;
     case Config::HueInterpolation::Increasing:
         return fromHue > toHue ? pathMod : pathDirect;
-    case Config::HueInterpolation::Decreasing:
+    default:
         return fromHue <= toHue ? pathMod : pathDirect;
     }
-    return pathDirect;
 }
 
 Rgba mixOklch(const Rgba &fromLinear, const Rgba &toLinear, double ratio, Config::HueInterpolation hue)

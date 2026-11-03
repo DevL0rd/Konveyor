@@ -64,7 +64,6 @@ public:
     bool wantsViewStates() const { return m_viewSignals.isWanted(); }
     void updateViewSignals(const QList<Layout::OutputViewState> &views, const QList<Layout::WindowState> &states);
     void fireEvent(Config::EventTrigger trigger, Layout::WindowId id, std::optional<QPointF> point = std::nullopt, QPointF direction = {});
-    bool isEventBound(Config::EventTrigger trigger) const { return m_events.isBound(trigger); }
 
 private:
     struct Slot

@@ -46,6 +46,11 @@ for _ in $(seq 200); do [ -e "{log}.ready" ] && break; sleep 0.05; done
 """
 
 
+SYSTEM_BUS_PRELUDE = """
+dbus-daemon --config-file="{config}" --address="unix:path={path}" --nofork &
+for _ in $(seq 200); do [ -S "{path}" ] && break; sleep 0.05; done
+"""
+
 PLASMASHELL = """
 /usr/lib/kactivitymanagerd > "$KONVEYOR_TEST_ROOT/kactivitymanagerd.log" 2>&1 &
 for _ in $(seq 600); do qdbus6 org.kde.ActivityManager > /dev/null 2>&1 && break; sleep 0.1; done
@@ -72,7 +77,7 @@ def run_in_plasmashell(runner, **options):
 class NestedSession:
     def __init__(self, width=1920, height=1080, config_kdl=None, extra_kwinrc="", global_shortcuts=False, xwayland=False, output_count=1,
                  input_method=None, files=None, notifications=False, hidden_data=(), effect_copies=(), permission_checks=False, lockscreen=False,
-                 force_animations=False):
+                 force_animations=False, system_bus=False):
         self.output_count = output_count
         self.width = width
         self.height = height
@@ -116,6 +121,7 @@ class NestedSession:
         self.notifications_log = self.root / "notifications.jsonl"
         self.permission_checks = permission_checks
         self.lockscreen = lockscreen
+        self.system_bus = system_bus
         self.force_animations = force_animations
         self.proc = None
         self.log_path = self.root / "kwin.log"
@@ -153,7 +159,7 @@ class NestedSession:
         env["QT_LOGGING_RULES"] = "kwin_*.debug=false"
         env["QT_FORCE_STDERR_LOGGING"] = "1"
         env["KSCREEN_BACKEND_INPROCESS"] = "1"
-        if self.lockscreen:
+        if self.lockscreen or self.system_bus:
             env["DBUS_SYSTEM_BUS_ADDRESS"] = f"unix:path={self.runtime / 'system-bus'}"
         if self.force_animations:
             env["KWIN_EFFECTS_FORCE_ANIMATIONS"] = "1"
@@ -175,6 +181,8 @@ class NestedSession:
         script.write_text("#!/bin/sh\n" + session_script)
         script.chmod(0o755)
         prelude = NOTIFICATIONS_PRELUDE.format(server=HARNESS / "notifications.py", log=self.notifications_log) if self.notifications else ""
+        if self.system_bus:
+            prelude += SYSTEM_BUS_PRELUDE.format(config=self.root / "bus.conf", path=self.runtime / "system-bus")
         log = open(self.log_path, "w")
         command = ["dbus-run-session", f"--config-file={self.root / 'bus.conf'}", "--", "sh", "-c", prelude + 'exec kwin_wayland "$@"', "kwin",
                    *self.kwin_arguments(script)]
@@ -193,6 +201,11 @@ class NestedSession:
         return self.log_path.read_text(errors="replace")
 
     def cleanup(self):
+        if self.system_bus:
+            try:
+                os.killpg(self.proc.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
         shutil.rmtree(self.root, ignore_errors=True)
 
 

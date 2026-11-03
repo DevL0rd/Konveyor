@@ -31,10 +31,9 @@ float curved(Config::DriveCurve curve, float value)
         return std::sqrt(std::abs(value)) * sign;
     case Config::DriveCurve::Invert:
         return 1.0F - value;
-    case Config::DriveCurve::Linear:
-        break;
+    default:
+        return value;
     }
-    return value;
 }
 
 float following(float current, float target, double step, double seconds)

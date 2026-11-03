@@ -28,6 +28,7 @@ struct StreamIdentity
     QString portalAppId;
 };
 
+StreamIdentity withFallback(StreamIdentity stream, const StreamIdentity &fallback);
 bool processDescendsFrom(qint64 pid, qint64 ancestor);
 QList<WindowKey> windowsPlaying(const StreamIdentity &stream, const QList<WindowKey> &windows);
 

@@ -220,7 +220,7 @@ void AudioAnalyzer::updateFrame(float rms)
         totals[group] += m_frame.bands[band];
         ++counts[group];
     }
-    m_frame.bass = counts[0] > 0 ? totals[0] / static_cast<float>(counts[0]) : 0.0F;
+    m_frame.bass = totals[0] / static_cast<float>(counts[0]);
     m_frame.mid = counts[1] > 0 ? totals[1] / static_cast<float>(counts[1]) : 0.0F;
     m_frame.treble = counts[2] > 0 ? totals[2] / static_cast<float>(counts[2]) : 0.0F;
 

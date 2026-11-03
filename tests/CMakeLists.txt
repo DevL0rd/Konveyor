@@ -10,7 +10,7 @@ function(konveyor_add_unit_test source module)
     set_tests_properties(${name} PROPERTIES LABELS "unit;${module}" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endfunction()
 
-foreach(module kdl anim config render layout ipc tools)
+foreach(module kdl anim config render audio layout ipc tools)
     file(GLOB_RECURSE module_tests CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/unit/${module}/test_*.cpp)
     foreach(test_source ${module_tests})
         konveyor_add_unit_test(${test_source} ${module})
@@ -179,6 +179,11 @@ add_executable(drag_source_client nested/clients/drag_source_client.cpp ${XDG_SH
 target_include_directories(drag_source_client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(drag_source_client PRIVATE PkgConfig::WAYLAND_CLIENT)
 target_compile_options(drag_source_client PRIVATE -Wall -Wextra -Werror)
+
+add_executable(border_style_render nested/clients/border_style_render.cpp)
+target_link_libraries(border_style_render PRIVATE Qt6::Qml Qt6::Quick Qt6::Test)
+target_compile_options(border_style_render PRIVATE -Wall -Wextra -Werror)
+add_dependencies(border_style_render konveyor_settings)
 
 file(GLOB KONVEYOR_NESTED_TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/nested/test_*.py)
 foreach(test_script ${KONVEYOR_NESTED_TESTS})

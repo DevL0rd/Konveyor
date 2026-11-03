@@ -1,7 +1,5 @@
 #include "audio/audiosignals.h"
 
-#include <window.h>
-
 #include <chrono>
 
 namespace Konveyor::Audio
@@ -57,9 +55,8 @@ std::map<quint64, WindowKey> AudioSignals::windowsToCapture() const
             continue;
         }
         for (const quint64 id : m_bus.windowsWanting(signal)) {
-            const KWin::Window *window = m_windowOf(id);
-            if (window && !window->isFullScreen()) {
-                windows.insert_or_assign(id, WindowKey {window->pid(), window->desktopFileName()});
+            if (const std::optional<CapturedWindow> window = m_windowOf(id); window && !window->fullScreen) {
+                windows.insert_or_assign(id, window->key);
             }
         }
     }

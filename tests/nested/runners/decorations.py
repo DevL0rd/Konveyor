@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
@@ -15,6 +16,7 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 MAGENTA = (255, 0, 255)
+YELLOW = (255, 255, 0)
 CYAN = (0, 255, 255)
 RING = 8
 TAB_GAP = 4
@@ -80,6 +82,26 @@ def accent_change(checks):
                   f"changing the KDE accent recolours the ring live ({ring_pixel(screenshot(), focused)}, kdeglobals {kdeglobals!r})")
 
 
+def announce(groups):
+    notify = ["gdbus", "emit", "--session", "--object-path", "/kdeglobals", "--signal", "org.kde.kconfig.notify.ConfigChanged", groups]
+    subprocess.run(notify, check=True)
+
+
+def theme_colors(checks):
+    config = config_path().read_text()
+    focused = active_title()
+    other = neighbour(focused)
+    checks.expect(load_config(config.replace('inactive-color "#00ff00"', 'inactive-color "window-text"')), "an inactive ring in the window text colour loads")
+    subprocess.run(["kwriteconfig6", "--file", "kdeglobals", "--group", "Colors:Window", "--key", "ForegroundNormal", "255,255,0"], check=True)
+    announce("{'Colors:Window': [b'ForegroundNormal']}")
+    checks.expect(wait_for(lambda: ring_is(other, YELLOW), 30, 0.5), f"changing a KDE window colour recolours the rings that use it ({ring_pixel(screenshot(), other)})")
+    announce("{'General': [b'ColorScheme']}")
+    announce("{'KDE': [b'SingleClick']}")
+    time.sleep(1.0)
+    checks.expect(ring_is(other, YELLOW) and ring_is(focused, BLUE), "a general settings change that leaves the colours alone changes nothing, and unrelated groups are ignored")
+    load_config(config)
+
+
 def tab_pixels(title):
     image = screenshot()
     x, y, width, height = rounded_frame(title)
@@ -140,7 +162,7 @@ def border_gradients(checks):
 
 
 def main():
-    Checks().run(focus_ring, accent_change, tab_bar, border_gradients)
+    Checks().run(focus_ring, accent_change, theme_colors, tab_bar, border_gradients)
 
 
 if __name__ == "__main__":
