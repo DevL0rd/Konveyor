@@ -23,11 +23,13 @@ SizeLimits appSizeLimits(const WindowProperties &properties, QSize current, std:
         return limits;
     }
     const QSize fallback = nativeSize.value_or(current);
-    if (limits.min.width() == 0 && limits.max.width() == 0) {
+    const bool fixedWidth = limits.min.width() == limits.max.width() && (nativeSize || limits.min.width() == 0);
+    const bool fixedHeight = limits.min.height() == limits.max.height() && (nativeSize || limits.min.height() == 0);
+    if (fixedWidth) {
         limits.min.setWidth(fallback.width());
         limits.max.setWidth(fallback.width());
     }
-    if (limits.min.height() == 0 && limits.max.height() == 0) {
+    if (fixedHeight) {
         limits.min.setHeight(fallback.height());
         limits.max.setHeight(fallback.height());
     }
@@ -56,8 +58,12 @@ LayoutWindow::LayoutWindow(WindowId id, const WindowProperties &properties, std:
 void LayoutWindow::setProperties(const WindowProperties &properties)
 {
     m_properties = properties;
-    if (!properties.isResizable && !isForceResizable() && !properties.frameSize.isEmpty()) {
-        m_nativeSize = roundedSize(properties.frameSize);
+}
+
+void LayoutWindow::setNativeSize(QSize size)
+{
+    if (!size.isEmpty()) {
+        m_nativeSize = size;
     }
 }
 

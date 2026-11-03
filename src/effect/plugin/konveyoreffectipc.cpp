@@ -186,9 +186,6 @@ Layout::ActionResult KonveyorEffect::cycleNonResizableWidth(const Config::Action
     if (state->isForceResizableByRule && !isAtNativeWidthEdge(*state, forwards)) {
         return changeEngine().perform(action, target);
     }
-    if (!state->isForceResizableByRule) {
-        changeEngine().updateWindowProperties(*id, properties);
-    }
     const bool enabled = !state->isForceResizableByRule;
     const auto saved = d->config.setForceResizable(properties.appId, enabled);
     if (!saved) {

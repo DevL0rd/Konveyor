@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import time
+from itertools import count
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
@@ -12,81 +13,151 @@ from kwinsession import CLIENTS, activate, frame, konveyor_action, konveyor_wind
 from nested import build_dir
 
 ROOT = Path(os.environ["KONVEYOR_TEST_ROOT"])
-FORCED = "konveyor-strict-forced"
-PLAIN = "konveyor-strict-plain"
+OVERRIDE = ROOT / "config" / "konveyor" / "force-resizable.kdl"
+DECLARED = (500.0, 400.0)
+ids = count()
 
 
-def start(title, app_id):
-    log = open(ROOT / f"{title}.log", "w")
-    process = subprocess.Popen([str(build_dir() / "bin" / "strict_size_client"), title, app_id], stdout=log, stderr=subprocess.STDOUT)
-    if not wait_for(lambda: any(window["title"] == title for window in konveyor_windows()), 30):
-        raise RuntimeError(f"{title} never appeared")
-    return process
+class Client:
+    def __init__(self, rule, mode="", x11=False):
+        self.title = f"Strict{next(ids)}"
+        self.app_id = f"konveyor-strict-{'forced' if rule else 'plain'}-{self.title}"
+        self.log = ROOT / f"{self.title}.log"
+        command = ["python3", str(CLIENTS / "x11-fixed-client.py")] if x11 else [str(build_dir() / "bin" / "strict_size_client")]
+        self.process = subprocess.Popen([*command, self.title, self.app_id, mode], stdin=subprocess.PIPE, stdout=open(self.log, "w"),
+                                        stderr=subprocess.STDOUT, text=True)
+        if not wait_for(lambda: self.window() is not None, 30):
+            raise RuntimeError(f"{self.title} never appeared")
+        activate(self.title)
+
+    def window(self):
+        return next((window for window in konveyor_windows() if window["title"] == self.title), None)
+
+    def size(self):
+        values = frame(self.title)
+        return values[2:4] if values else None
+
+    def layout(self):
+        return tuple(float(value) for value in self.window()["layout"]["window_size"])
+
+    def follows_layout(self):
+        return wait_for(lambda: self.size() == self.layout() and self.size() != DECLARED, 10)
+
+    def resize(self, width, height):
+        self.process.stdin.write(f"resize {width}x{height}\n")
+        self.process.stdin.flush()
+
+    def saw_strict_state(self):
+        return "strict=1" in self.log.read_text()
+
+    def forced_off(self):
+        if not OVERRIDE.exists():
+            return False
+        rules = [block for block in OVERRIDE.read_text().split("window-rule") if self.app_id.replace("-", "\\-") in block]
+        return bool(rules) and "force-resizable false" in rules[-1]
+
+    def force_off(self):
+        activate(self.title)
+        for _ in range(10):
+            if self.forced_off():
+                break
+            konveyor_action("switch-preset-column-width-back")
+            time.sleep(1)
+
+    def force_on(self):
+        activate(self.title)
+        konveyor_action("switch-preset-column-width")
+
+    def stop(self):
+        self.process.terminate()
+        self.process.wait(timeout=10)
+        wait_for(lambda: self.window() is None, 10)
 
 
-def layout_size(title):
-    window = next(window for window in konveyor_windows() if window["title"] == title)
-    return tuple(float(value) for value in window["layout"]["window_size"])
+def forced_window_takes_the_layout_size(checks, x11):
+    client = Client(True, x11=x11)
+    checks.expect(client.follows_layout(), f"a force-resizable fixed window that ignores plain sizes follows the layout ({client.size()} vs {client.layout()})")
+    checks.expect(x11 or client.saw_strict_state(), "it was given a state it obeys")
+    client.stop()
 
 
-def size_of(title):
-    values = frame(title)
-    return values[2:4] if values else None
+def force_off_returns_to_declared_size(checks, x11):
+    client = Client(True, x11=x11)
+    client.follows_layout()
+    for round_ in range(3):
+        client.force_off()
+        checks.expect(wait_for(lambda: client.size() == DECLARED, 10), f"round {round_}: force off returns to the size declared at open ({client.size()})")
+        checks.equal(client.layout(), DECLARED, f"round {round_}: and the layout agrees")
+        client.force_on()
+        checks.expect(client.follows_layout(), f"round {round_}: force on follows the layout again ({client.size()} vs {client.layout()})")
+    client.stop()
 
 
-def sizes_settle_on_layout(title):
-    return wait_for(lambda: size_of(title) == layout_size(title), 10)
+def self_resize_while_forced_becomes_native(checks, x11):
+    client = Client(True, x11=x11)
+    client.follows_layout()
+    client.resize(640, 480)
+    time.sleep(1)
+    checks.expect(client.follows_layout(), f"a forced window that resized itself is put back on the layout size ({client.size()} vs {client.layout()})")
+    client.force_off()
+    checks.expect(wait_for(lambda: client.size() == (640.0, 480.0), 10), f"force off returns to the size the client chose ({client.size()})")
+    client.stop()
 
 
-def saw_strict_state(title):
-    return "strict=1" in (ROOT / f"{title}.log").read_text()
+def rapid_cycling_with_a_slow_client(checks, x11):
+    client = Client(True, "slow", x11=x11)
+    client.follows_layout()
+    for _ in range(4):
+        client.force_on()
+        time.sleep(0.05)
+    time.sleep(3)
+    client.force_off()
+    checks.expect(wait_for(lambda: client.size() == DECLARED, 15), f"late answers to old sizes do not change the native size ({client.size()})")
+    client.stop()
 
 
-def stop(process, title):
-    process.terminate()
-    process.wait(timeout=10)
-    wait_for(lambda: all(window["title"] != title for window in konveyor_windows()), 10)
-
-
-def forced_window_takes_the_layout_size(checks):
-    process = start("Forced", FORCED)
-    activate("Forced")
-    checks.expect(sizes_settle_on_layout("Forced"), f"a force-resizable fixed window that ignores plain sizes follows the layout ({size_of('Forced')} vs {layout_size('Forced')})")
-    checks.expect(size_of("Forced") != (500.0, 400.0), "and it really changed from its own size")
-    checks.expect(saw_strict_state("Forced"), "it was given a state it obeys")
-    stop(process, "Forced")
-
-
-def unforced_window_keeps_its_size(checks):
-    process = start("Plain", PLAIN)
-    activate("Plain")
+def unforced_window_keeps_its_size_and_follows_its_own_choice(checks, x11):
+    client = Client(False, x11=x11)
     time.sleep(2)
-    checks.equal(size_of("Plain"), (500.0, 400.0), "a fixed window without the rule keeps its own size")
-    checks.expect(not saw_strict_state("Plain"), "and is never given the strict state")
-    stop(process, "Plain")
+    checks.equal(client.size(), DECLARED, "a fixed window without the rule keeps its own size")
+    checks.expect(x11 or not client.saw_strict_state(), "and is never given the strict state")
+    client.resize(640, 480)
+    checks.expect(wait_for(lambda: client.size() == (640.0, 480.0) and client.layout() == (640.0, 480.0), 10),
+                  f"a fixed window that resizes itself while unforced is followed ({client.size()} vs {client.layout()})")
+    client.stop()
 
 
 def ordinary_client_is_untouched(checks):
     process = subprocess.Popen(["qml6", str(CLIENTS / "fixed-client.qml"), "--", "Ordinary"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     wait_for(lambda: any(window["title"] == "Ordinary" for window in konveyor_windows()), 60)
     time.sleep(2)
-    checks.equal(size_of("Ordinary"), (500.0, 400.0), "an ordinary fixed Wayland client keeps its size")
+    checks.equal(frame("Ordinary")[2:4], DECLARED, "an ordinary fixed Wayland client keeps its size")
     process.terminate()
     process.wait(timeout=10)
 
 
-def fullscreen_still_works(checks):
-    process = start("Forced", FORCED)
-    activate("Forced")
-    sizes_settle_on_layout("Forced")
+def fullscreen_still_works(checks, x11):
+    client = Client(True, x11=x11)
+    client.follows_layout()
     konveyor_action("fullscreen-window")
-    checks.expect(wait_for(lambda: (window_state("Forced") or "").startswith("true|"), 10), "a forced window can go fullscreen")
-    checks.expect(wait_for(lambda: size_of("Forced") == (1920.0, 1080.0), 10), f"and covers the output ({size_of('Forced')})")
+    checks.expect(wait_for(lambda: (window_state(client.title) or "").startswith("true|"), 10), "a forced window can go fullscreen")
+    checks.expect(wait_for(lambda: client.size() == (1920.0, 1080.0), 10), f"and covers the output ({client.size()})")
     konveyor_action("fullscreen-window")
-    checks.expect(wait_for(lambda: (window_state("Forced") or "").startswith("false|"), 10), "and leave fullscreen")
-    checks.expect(sizes_settle_on_layout("Forced"), f"back on the layout size ({size_of('Forced')} vs {layout_size('Forced')})")
-    stop(process, "Forced")
+    checks.expect(wait_for(lambda: (window_state(client.title) or "").startswith("false|"), 10), "and leave fullscreen")
+    checks.expect(client.follows_layout(), f"back on the layout size ({client.size()} vs {client.layout()})")
+    client.stop()
+
+
+def scenario(function, x11):
+    def step(checks):
+        function(checks, x11)
+
+    step.__name__ = function.__name__ + ("_x11" if x11 else "")
+    return step
 
 
 if __name__ == "__main__":
-    Checks().run(forced_window_takes_the_layout_size, unforced_window_keeps_its_size, ordinary_client_is_untouched, fullscreen_still_works)
+    wayland_only = (ordinary_client_is_untouched,)
+    shared = (forced_window_takes_the_layout_size, force_off_returns_to_declared_size, self_resize_while_forced_becomes_native,
+              rapid_cycling_with_a_slow_client, unforced_window_keeps_its_size_and_follows_its_own_choice, fullscreen_still_works)
+    Checks().run(*wayland_only, *(scenario(function, x11) for x11 in (False, True) for function in shared))

@@ -187,6 +187,7 @@ private Q_SLOTS:
         const auto a = fixture.addWith(fixedSize(QStringLiteral("fixed"), QSizeF(400, 300)));
         const auto b = fixture.add(QStringLiteral("b"));
         Layout::WindowProperties grown = fixedSize(QStringLiteral("fixed"), QSizeF(640, 480));
+        fixture.engine().setWindowNativeSize(a, QSizeF(640, 480));
         fixture.engine().updateWindowProperties(a, grown);
         fixture.commitAs(a, QSizeF(640, 480));
         fixture.settle();

@@ -9,6 +9,7 @@ void shrinkTo(Fixture &fixture, Layout::WindowId id, QSizeF size)
 {
     const Layout::WindowProperties smaller = lockedWindow(size);
     fixture.setClient(id, LayoutTest::Client::honoring(smaller));
+    fixture.engine().setWindowNativeSize(id, size);
     fixture.engine().updateWindowProperties(id, smaller);
 }
 

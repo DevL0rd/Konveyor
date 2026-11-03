@@ -185,23 +185,23 @@ void KonveyorEffect::handleWindowSizeCommitted(Layout::WindowId id, const QSizeF
 {
     KWin::Window *window = d->windows.windowOf(id);
     if (window && adoptFloatingGeometry(id, window)) {
-        changeEngine().windowSizeCommitted(id, size);
         scheduleFlush();
         return;
     }
-    const bool acknowledgesRequest = d->applier.isEchoOfAppliedSize(id, size);
+    const bool inFlight = d->applier.consumeInFlightSize(id, size);
+    const bool acknowledgesRequest = inFlight || d->applier.isEchoOfAppliedSize(id, size);
     const bool resizedByUser = !d->applier.isApplying() && window && window->isInteractiveResize();
     const std::optional<Layout::WindowState> state = readEngine().windowState(id);
-    const bool resizedByApp = !d->applier.isApplying() && window && !window->isResizable() && state && !state->isForceResizable;
-    if (!acknowledgesRequest && !resizedByUser && !d->applier.isApplying()) {
-        qCInfo(lcKonveyor) << "konveyor: window" << id << (window ? window->resourceClass() : QString()) << "committed unrequested size"
-                           << size << "resizable =" << (window && window->isResizable()) << "taken as app resize =" << resizedByApp
+    const bool chosenByClient = !acknowledgesRequest && !resizedByUser && !d->applier.isApplying() && window && !window->isResizable();
+    if (chosenByClient) {
+        qCInfo(lcKonveyor) << "konveyor: window" << id << window->resourceClass() << "chose its own size" << size
                            << "target =" << (state ? state->targetFrame : QRectF());
+        changeEngine().setWindowNativeSize(id, size);
+        if (state && !state->isForceResizable) {
+            changeEngine().updateWindowProperties(id, d->windows.propertiesOf(window));
+        }
     }
-    if (resizedByApp) {
-        changeEngine().updateWindowProperties(id, d->windows.propertiesOf(window));
-    }
-    if (acknowledgesRequest || resizedByUser || resizedByApp) {
+    if (acknowledgesRequest || resizedByUser || (chosenByClient && state && !state->isForceResizable)) {
         changeEngine().windowSizeCommitted(id, size);
     }
     scheduleFlush();

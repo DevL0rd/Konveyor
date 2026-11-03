@@ -7,7 +7,7 @@ sys.path.insert(0, str(HERE / "harness"))
 
 RULE = """
 window-rule {
-    match app-id=r#"^konveyor-strict-forced$"#
+    match app-id=r#"^konveyor-strict-forced"#
     force-resizable true
 }
 """
@@ -16,7 +16,7 @@ window-rule {
 def main():
     from nested import run_runner
 
-    return run_runner(HERE / "runners" / "strict_size.py", timeout=200, clients=("A",), extra_config=RULE)
+    return run_runner(HERE / "runners" / "strict_size.py", timeout=400, clients=("A",), extra_config=RULE, xwayland=True)
 
 
 if __name__ == "__main__":

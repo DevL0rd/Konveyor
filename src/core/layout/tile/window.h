@@ -27,6 +27,7 @@ public:
     WindowId id() const { return m_id; }
     const WindowProperties &properties() const { return m_properties; }
     void setProperties(const WindowProperties &properties);
+    void setNativeSize(QSize size);
     const EffectiveWindowRules &rules() const { return m_rules; }
     bool setRules(const EffectiveWindowRules &rules);
 

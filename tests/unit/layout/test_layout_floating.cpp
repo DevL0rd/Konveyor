@@ -117,7 +117,7 @@ private Q_SLOTS:
         verifyTiledWindowKeepsSize(properties);
     }
 
-    void disablingForceResizeUsesCurrentAppLimits()
+    void disablingForceResizeReturnsToTheSizeTheClientChose()
     {
         Fixture fixture(forceResizableConfig());
         Layout::WindowProperties properties = nonResizableGame();
@@ -127,6 +127,7 @@ private Q_SLOTS:
         properties.minSize = QSizeF(420, 270);
         properties.maxSize = QSizeF(420, 270);
         properties.frameSize = fixture.frame(id).size();
+        fixture.engine().setWindowNativeSize(id, QSizeF(420, 270));
         fixture.engine().updateWindowProperties(id, properties);
         fixture.setConfig(instantConfig());
         fixture.settle();

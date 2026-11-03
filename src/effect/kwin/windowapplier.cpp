@@ -33,6 +33,11 @@ bool nearlyEqual(const QRectF &a, const QRectF &b)
     return close(a.x(), b.x()) && close(a.y(), b.y()) && close(a.width(), b.width()) && close(a.height(), b.height());
 }
 
+bool isSameSize(const QSizeF &a, const QSizeF &b)
+{
+    return std::abs(a.width() - b.width()) < 1.0 && std::abs(a.height() - b.height()) < 1.0;
+}
+
 bool isUserManipulated(KWin::Window *window)
 {
     return window->isInteractiveMove() || window->isInteractiveResize();
@@ -129,20 +134,48 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
         const std::optional<QSizeF> requestedSize = previous != m_appliedFrames.constEnd() ? std::optional(previous->size()) : std::nullopt;
         if (!frame.isEmpty()) {
             m_appliedFrames.insert(state.id, frame);
+            QList<QSizeF> &inFlight = m_inFlightSizes[state.id];
+            if (!requestedSize || *requestedSize != frame.size()) {
+                inFlight.removeAll(frame.size());
+                inFlight.append(frame.size());
+            }
         }
         applySizingMode(window, state);
-        setStrictSize(window, requiresStrictSize(window, state));
-        applyGeometry(window, frame, requestedSize, !state.isFloating, state.isForceResizable || window->isResizable(),
+        setStrictSize(window, keepsStrictSize(window, state, frame));
+        applyGeometry(window, frame, requestedSize, !state.isFloating,
+            state.isForceResizable || window->isResizable() || m_strictUntilSettled.contains(state.id),
             state.requestedSizingMode == Layout::WindowMode::Fullscreen);
         applyBorderRadius(window, state);
     }
     applyStacking(states);
 }
 
-bool WindowApplier::requiresStrictSize(KWin::Window *window, const Layout::WindowState &state)
+bool WindowApplier::keepsStrictSize(KWin::Window *window, const Layout::WindowState &state, const QRectF &frame)
 {
-    return state.isForceResizable && !state.isFloating && !window->isResizable()
-        && state.requestedSizingMode != Layout::WindowMode::Fullscreen && !window->isRequestedFullScreen();
+    const bool tiled = !state.isFloating && state.requestedSizingMode != Layout::WindowMode::Fullscreen && !window->isRequestedFullScreen();
+    if (tiled && state.isForceResizable && !window->isResizable()) {
+        m_strictUntilSettled.insert(state.id);
+        return true;
+    }
+    if (!m_strictUntilSettled.contains(state.id)) {
+        return false;
+    }
+    if (!tiled || isSameSize(window->frameGeometry().size(), frame.size())) {
+        m_strictUntilSettled.remove(state.id);
+        return false;
+    }
+    return true;
+}
+
+bool WindowApplier::consumeInFlightSize(Layout::WindowId id, const QSizeF &size)
+{
+    QList<QSizeF> &inFlight = m_inFlightSizes[id];
+    const auto match = std::ranges::find_if(inFlight, [&size](const QSizeF &requested) { return isSameSize(requested, size); });
+    if (match == inFlight.end()) {
+        return false;
+    }
+    inFlight.erase(inFlight.begin(), match + 1);
+    return true;
 }
 
 bool WindowApplier::isApplying() const
@@ -156,7 +189,7 @@ bool WindowApplier::isEchoOfAppliedSize(Layout::WindowId id, const QSizeF &size)
     if (applied == m_appliedFrames.constEnd()) {
         return false;
     }
-    return std::abs(applied->width() - size.width()) < 1.0 && std::abs(applied->height() - size.height()) < 1.0;
+    return isSameSize(applied->size(), size);
 }
 
 bool WindowApplier::isEchoOfAppliedFrame(Layout::WindowId id, const QRectF &frame) const
@@ -187,6 +220,8 @@ void WindowApplier::forget(Layout::WindowId id)
 {
     m_overriddenOpacity.remove(id);
     m_appliedFrames.remove(id);
+    m_inFlightSizes.remove(id);
+    m_strictUntilSettled.remove(id);
     m_loggedTargets.remove(id);
     if (const QPointer<KWin::Window> window = m_parked.take(id)) {
         setExemptFromConfinement(window, false);

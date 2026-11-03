@@ -297,6 +297,21 @@ void Engine::windowSizeCommitted(WindowId id, const QSizeF &frameSize)
     d->refresh();
 }
 
+void Engine::setWindowNativeSize(WindowId id, const QSizeF &frameSize)
+{
+    Tile *tile = d->tileOf(id);
+    if (!tile) {
+        return;
+    }
+    tile->window().setNativeSize(roundedSize(frameSize));
+    if (Workspace *workspace = d->workspaceOf(id)) {
+        workspace->updateWindow(id);
+    } else {
+        tile->updateWindow();
+    }
+    d->refresh();
+}
+
 void Engine::setFloatingFrame(WindowId id, const QRectF &frame)
 {
     Monitor *monitor = d->monitorOf(id);

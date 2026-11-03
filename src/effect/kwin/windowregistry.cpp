@@ -7,6 +7,7 @@
 #include <x11window.h>
 
 #include <algorithm>
+#include <climits>
 #include <memory>
 #include <ranges>
 #include <utility>
@@ -16,6 +17,13 @@ namespace Konveyor
 
 namespace
 {
+
+QSizeF frameLimit(KWin::Window *window, const QSizeF &clientLimit)
+{
+    const QSizeF frame = window->clientSizeToFrameSize(clientLimit);
+    return QSizeF(clientLimit.width() >= INT_MAX ? clientLimit.width() : frame.width(),
+        clientLimit.height() >= INT_MAX ? clientLimit.height() : frame.height());
+}
 
 QString appIdOf(KWin::Window *window)
 {
@@ -98,8 +106,8 @@ Layout::WindowProperties WindowRegistry::propertiesOf(KWin::Window *window) cons
     Layout::WindowProperties properties;
     properties.appId = appIdOf(window);
     properties.title = window->caption();
-    properties.minSize = window->minSize();
-    properties.maxSize = window->maxSize();
+    properties.minSize = frameLimit(window, window->minSize());
+    properties.maxSize = frameLimit(window, window->maxSize());
     properties.parent = window->transientFor() ? idOf(window->transientFor()) : std::nullopt;
     properties.isUrgent = window->isDemandingAttention();
     properties.isDialog = window->isDialog() || window->isModal();
