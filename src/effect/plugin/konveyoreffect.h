@@ -60,6 +60,7 @@ private:
     void connectWindowLifecycle();
     void connectWindowState();
     void handleWindowSizeCommitted(Layout::WindowId id, const QSizeF &size);
+    void handleClientRequestedSize(Layout::WindowId id, const QSizeF &size);
     void connectOutputs();
     void connectDragAndDrop();
     QJsonDocument windowsJson() const;

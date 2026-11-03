@@ -1,4 +1,4 @@
-#include "helpers.h"
+#include "forcehelpers.h"
 
 using namespace LayoutTest;
 
@@ -20,22 +20,6 @@ void verifyTiledWindowKeepsSize(const Layout::WindowProperties &properties)
     QVERIFY(fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("600")}).ok);
     QCOMPARE(fixture.frame(id).width(), expected.width());
     VERIFY_INVARIANTS(fixture);
-}
-
-Config::Config forceResizableConfig()
-{
-    Config::Config config = instantConfig();
-    Config::WindowRule rule = ruleFor(QStringLiteral("game"));
-    rule.forceResizable = true;
-    config.windowRules.append(rule);
-    return config;
-}
-
-Layout::WindowProperties nonResizableGame()
-{
-    Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(300, 200));
-    properties.isResizable = false;
-    return properties;
 }
 
 }

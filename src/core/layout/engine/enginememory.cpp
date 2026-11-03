@@ -89,7 +89,9 @@ void Engine::Private::applyRememberedSize(NewWindowPlan &plan, const QString &ap
     if (remembered == windowMemory.constEnd()) {
         return;
     }
-    plan.nativeSize = remembered->nativeSize;
+    if (plan.rules.forceResizable.value_or(false)) {
+        plan.nativeSize = remembered->nativeSize;
+    }
     if (!layout.rememberWindowSizes) {
         return;
     }

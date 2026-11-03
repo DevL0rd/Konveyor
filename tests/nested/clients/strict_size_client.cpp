@@ -111,7 +111,7 @@ void runCommand(Client &client, const std::string &line)
 {
     int width = 0;
     int height = 0;
-    if (std::sscanf(line.c_str(), "resize %dx%d", &width, &height) == 2) {
+    if (std::sscanf(line.c_str(), "%*[a-z] %dx%d", &width, &height) == 2) {
         client.width = width;
         client.height = height;
         present(client);
@@ -160,6 +160,9 @@ int main(int argc, char **argv)
     }
     Client client;
     client.slow = argc > 3 && std::string(argv[3]) == "slow";
+    if (argc > 4) {
+        std::sscanf(argv[4], "%dx%d", &client.width, &client.height);
+    }
     client.display = wl_display_connect(nullptr);
     if (!client.display || !bindGlobals(client.display, client.globals)) {
         return 3;

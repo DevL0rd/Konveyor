@@ -45,6 +45,7 @@ Q_SIGNALS:
     void windowHiding(Layout::WindowId id, KWin::Window *window);
     void propertiesChanged(Layout::WindowId id);
     void sizeCommitted(Layout::WindowId id, const QSizeF &size);
+    void clientRequestedSize(Layout::WindowId id, const QSizeF &frameSize);
     void fullscreenRequested(Layout::WindowId id, bool fullscreen);
     void maximizeRequested(Layout::WindowId id, bool maximized);
     void urgencyChanged(Layout::WindowId id, bool urgent);
@@ -59,6 +60,7 @@ private:
 
     using QObject::event;
     bool event(xcb_generic_event_t *event) override;
+    void announceRequestedSize(const xcb_configure_request_event_t &request);
     void observe(KWin::Window *window);
     void forget(KWin::Window *window);
     void refresh(KWin::Window *window);

@@ -19,12 +19,13 @@ ids = count()
 
 
 class Client:
-    def __init__(self, rule, mode="", x11=False):
+    def __init__(self, rule, mode="", x11=False, app="", size=DECLARED):
         self.title = f"Strict{next(ids)}"
-        self.app_id = f"konveyor-strict-{'forced' if rule else 'plain'}-{self.title}"
+        self.app_id = f"konveyor-strict-{'forced' if rule else 'plain'}-{app or self.title}"
+        self.declared = size
         self.log = ROOT / f"{self.title}.log"
         command = ["python3", str(CLIENTS / "x11-fixed-client.py")] if x11 else [str(build_dir() / "bin" / "strict_size_client")]
-        self.process = subprocess.Popen([*command, self.title, self.app_id, mode], stdin=subprocess.PIPE, stdout=open(self.log, "w"),
+        self.process = subprocess.Popen([*command, self.title, self.app_id, mode or "-", f"{int(size[0])}x{int(size[1])}"], stdin=subprocess.PIPE, stdout=open(self.log, "w"),
                                         stderr=subprocess.STDOUT, text=True)
         if not wait_for(lambda: self.window() is not None, 30):
             raise RuntimeError(f"{self.title} never appeared")
@@ -41,10 +42,10 @@ class Client:
         return tuple(float(value) for value in self.window()["layout"]["window_size"])
 
     def follows_layout(self):
-        return wait_for(lambda: self.size() == self.layout() and self.size() != DECLARED, 10)
+        return wait_for(lambda: self.size() == self.layout() and self.size() != self.declared, 10)
 
-    def resize(self, width, height):
-        self.process.stdin.write(f"resize {width}x{height}\n")
+    def resize(self, width, height, declare=True):
+        self.process.stdin.write(f"{'resize' if declare else 'request'} {width}x{height}\n")
         self.process.stdin.flush()
 
     def saw_strict_state(self):
@@ -96,7 +97,7 @@ def force_off_returns_to_declared_size(checks, x11):
 def self_resize_while_forced_becomes_native(checks, x11):
     client = Client(True, x11=x11)
     client.follows_layout()
-    client.resize(640, 480)
+    client.resize(640, 480, declare=False)
     time.sleep(1)
     checks.expect(client.follows_layout(), f"a forced window that resized itself is put back on the layout size ({client.size()} vs {client.layout()})")
     client.force_off()
@@ -148,6 +149,57 @@ def fullscreen_still_works(checks, x11):
     client.stop()
 
 
+def reopen(rule, x11, app, size):
+    client = Client(rule, x11=x11, app=app, size=size)
+    client.follows_layout() if rule else time.sleep(2)
+    return client
+
+
+def native_size_is_remembered_per_app(checks, x11):
+    suffix = "x" if x11 else "w"
+    first = Client(True, x11=x11, app=f"memory-a-{suffix}")
+    first.follows_layout()
+    first.stop()
+    other = Client(True, x11=x11, app=f"memory-b-{suffix}", size=(700.0, 500.0))
+    other.follows_layout()
+    other.stop()
+
+    reopened = reopen(True, x11, f"memory-a-{suffix}", (800.0, 600.0))
+    reopened.force_off()
+    checks.expect(wait_for(lambda: reopened.size() == DECLARED, 10), f"reopened forced at a saved forced size, force off returns to the stored size ({reopened.size()})")
+    reopened.stop()
+
+    second = reopen(True, x11, f"memory-b-{suffix}", (1000.0, 800.0))
+    second.force_off()
+    checks.expect(wait_for(lambda: second.size() == (700.0, 500.0), 10), f"a second app keeps its own stored size ({second.size()})")
+    second.stop()
+
+
+def own_choice_updates_the_stored_size(checks, x11):
+    app = f"memory-c-{'x' if x11 else 'w'}"
+    first = Client(True, x11=x11, app=app)
+    first.follows_layout()
+    first.resize(640, 480, declare=False)
+    first.force_off()
+    checks.expect(wait_for(lambda: first.size() == (640.0, 480.0), 10), f"the choice made while forced is taken ({first.size()})")
+    first.force_on()
+    first.follows_layout()
+    first.stop()
+    reopened = reopen(True, x11, app, (900.0, 700.0))
+    reopened.force_off()
+    checks.expect(wait_for(lambda: reopened.size() == (640.0, 480.0), 10), f"the updated size is what a reopen returns to ({reopened.size()})")
+    reopened.stop()
+
+
+def unforced_reopen_takes_the_declared_size(checks, x11):
+    app = f"memory-d-{'x' if x11 else 'w'}"
+    first = reopen(False, x11, app, DECLARED)
+    first.stop()
+    reopened = reopen(False, x11, app, (640.0, 480.0))
+    checks.equal(reopened.size(), (640.0, 480.0), "without force resizing a reopened app keeps the size it declares now")
+    reopened.stop()
+
+
 def scenario(function, x11):
     def step(checks):
         function(checks, x11)
@@ -159,5 +211,6 @@ def scenario(function, x11):
 if __name__ == "__main__":
     wayland_only = (ordinary_client_is_untouched,)
     shared = (forced_window_takes_the_layout_size, force_off_returns_to_declared_size, self_resize_while_forced_becomes_native,
-              rapid_cycling_with_a_slow_client, unforced_window_keeps_its_size_and_follows_its_own_choice, fullscreen_still_works)
+              rapid_cycling_with_a_slow_client, unforced_window_keeps_its_size_and_follows_its_own_choice, fullscreen_still_works,
+              native_size_is_remembered_per_app, own_choice_updates_the_stored_size, unforced_reopen_takes_the_declared_size)
     Checks().run(*wayland_only, *(scenario(function, x11) for x11 in (False, True) for function in shared))

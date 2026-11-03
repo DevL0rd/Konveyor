@@ -1,6 +1,7 @@
 #include "layout/engine/engineprivate.h"
 
 #include "config/log.h"
+#include "layout/common/geometry.h"
 
 #include <cmath>
 
@@ -37,6 +38,21 @@ void Engine::Private::presentOverOutput(WindowId id)
     Tile *tile = workspace->tileFor(id);
     tile->coversLockedOutput = true;
     tile->window().requestWindowedFullscreen(true);
+}
+
+void Engine::setWindowNativeSize(WindowId id, const QSizeF &frameSize)
+{
+    Tile *tile = d->tileOf(id);
+    if (!tile) {
+        return;
+    }
+    tile->window().setNativeSize(roundedSize(frameSize));
+    if (Workspace *workspace = d->workspaceOf(id)) {
+        workspace->updateWindow(id);
+    } else {
+        tile->updateWindow();
+    }
+    d->refresh();
 }
 
 }

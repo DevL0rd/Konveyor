@@ -156,6 +156,7 @@ void KonveyorEffect::connectWindowLifecycle()
 void KonveyorEffect::connectWindowState()
 {
     connect(&d->windows, &WindowRegistry::sizeCommitted, this, &KonveyorEffect::handleWindowSizeCommitted);
+    connect(&d->windows, &WindowRegistry::clientRequestedSize, this, &KonveyorEffect::handleClientRequestedSize);
     connect(&d->windows, &WindowRegistry::fullscreenRequested, this, [this](Layout::WindowId id, bool fullscreen) {
         if (d->applier.isApplying()) {
             qCInfo(lcKonveyor) << "konveyor: fullscreen change for window" << id << "=" << fullscreen << "came from Konveyor itself";
@@ -205,6 +206,15 @@ void KonveyorEffect::handleWindowSizeCommitted(Layout::WindowId id, const QSizeF
         changeEngine().windowSizeCommitted(id, size);
     }
     scheduleFlush();
+}
+
+void KonveyorEffect::handleClientRequestedSize(Layout::WindowId id, const QSizeF &size)
+{
+    KWin::Window *window = d->windows.windowOf(id);
+    if (window && !window->isResizable() && !d->applier.isApplying() && !d->applier.isEchoOfAppliedSize(id, size)) {
+        changeEngine().setWindowNativeSize(id, size);
+        scheduleFlush();
+    }
 }
 
 void KonveyorEffect::connectDragAndDrop()

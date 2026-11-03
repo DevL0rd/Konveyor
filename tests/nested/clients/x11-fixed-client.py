@@ -5,6 +5,7 @@ import sys
 from Xlib import X, Xutil, display
 
 TITLE, APP_ID = sys.argv[1], sys.argv[2]
+WIDTH, HEIGHT = (int(value) for value in (sys.argv[4] if len(sys.argv) > 4 else "500x400").split("x"))
 
 
 def declare(window, width, height):
@@ -14,26 +15,26 @@ def declare(window, width, height):
 def main():
     conn = display.Display()
     screen = conn.screen()
-    window = screen.root.create_window(0, 0, 500, 400, 0, screen.root_depth, X.InputOutput, X.CopyFromParent,
+    window = screen.root.create_window(0, 0, WIDTH, HEIGHT, 0, screen.root_depth, X.InputOutput, X.CopyFromParent,
                                        background_pixel=screen.white_pixel, event_mask=X.StructureNotifyMask)
     window.set_wm_name(TITLE)
     window.set_wm_class(APP_ID, APP_ID)
-    declare(window, 500, 400)
+    declare(window, WIDTH, HEIGHT)
     window.map()
     conn.flush()
-    size = (500, 400)
-    commands = ""
+    size = (WIDTH, HEIGHT)
     while True:
         ready, _, _ = select.select([conn.fileno(), sys.stdin], [], [])
         if sys.stdin in ready:
             line = sys.stdin.readline()
             if not line:
                 return
-            width, height = (int(value) for value in line.split()[1].split("x"))
-            declare(window, width, height)
+            command, dimensions = line.split()
+            width, height = (int(value) for value in dimensions.split("x"))
+            if command == "resize":
+                declare(window, width, height)
             window.configure(width=width, height=height)
             conn.flush()
-            size = (width, height)
             print(f"CHOSE {width}x{height}", flush=True)
         while conn.pending_events():
             event = conn.next_event()

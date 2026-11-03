@@ -47,11 +47,15 @@ struct WindowRegistry::WindowSignalState
 
 WindowRegistry::WindowRegistry(QObject *parent)
     : QObject(parent)
-    , KWin::X11EventFilter(QList<int> {XCB_PROPERTY_NOTIFY})
+    , KWin::X11EventFilter(QList<int> {XCB_PROPERTY_NOTIFY, XCB_CONFIGURE_REQUEST})
 { }
 
 bool WindowRegistry::event(xcb_generic_event_t *genericEvent)
 {
+    if ((genericEvent->response_type & 0x7f) == XCB_CONFIGURE_REQUEST) {
+        announceRequestedSize(*reinterpret_cast<xcb_configure_request_event_t *>(genericEvent));
+        return false;
+    }
     const auto *event = reinterpret_cast<xcb_property_notify_event_t *>(genericEvent);
     if (event->atom != XCB_ATOM_WM_NORMAL_HINTS) {
         return false;
@@ -69,6 +73,20 @@ bool WindowRegistry::event(xcb_generic_event_t *genericEvent)
         },
         Qt::QueuedConnection);
     return false;
+}
+
+void WindowRegistry::announceRequestedSize(const xcb_configure_request_event_t &request)
+{
+    constexpr int sizeMask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    KWin::X11Window *window = KWin::workspace()->findClient(request.window);
+    const auto id = window ? idOf(window) : std::nullopt;
+    if (!id || !(request.value_mask & sizeMask)) {
+        return;
+    }
+    const QSizeF current = window->clientSize();
+    const QSizeF client((request.value_mask & XCB_CONFIG_WINDOW_WIDTH) ? request.width : current.width(),
+        (request.value_mask & XCB_CONFIG_WINDOW_HEIGHT) ? request.height : current.height());
+    Q_EMIT clientRequestedSize(*id, window->clientSizeToFrameSize(client));
 }
 
 void WindowRegistry::start(const std::function<bool(KWin::Window *, KWin::Window *)> &adoptionOrder)

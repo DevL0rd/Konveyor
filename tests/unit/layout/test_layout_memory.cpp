@@ -74,7 +74,7 @@ private Q_SLOTS:
         QCOMPARE(fixture.engine().windowMemory(), memory);
     }
 
-    void nativeSizeIsAlwaysRememberedAndRestored()
+    void nativeSizeIsAlwaysRememberedAndTheDeclaredSizeWinsWithoutForceResizing()
     {
         int changes = 0;
         Layout::Hooks hooks;
@@ -91,7 +91,7 @@ private Q_SLOTS:
 
         properties.frameSize = QSizeF(800, 600);
         const auto reopened = fixture.addWith(properties);
-        QCOMPARE(fixture.frame(reopened).size(), QSizeF(300, 200));
+        QCOMPARE(fixture.frame(reopened).size(), QSizeF(800, 600));
     }
 
     void reopensFloatingAtRememberedSizeAndPosition()
