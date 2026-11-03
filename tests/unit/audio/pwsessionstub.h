@@ -14,16 +14,29 @@
 namespace PwHarness
 {
 
+inline pw_thread_loop *startRunningThreadLoop(const char *name)
+{
+    const spa_dict_item item = SPA_DICT_ITEM_INIT("thread-loop.start-signal", "true");
+    const spa_dict properties = SPA_DICT_INIT(&item, 1);
+    pw_thread_loop *loop = pw_thread_loop_new(name, &properties);
+    if (loop) {
+        pw_thread_loop_lock(loop);
+        pw_thread_loop_start(loop);
+        pw_thread_loop_wait(loop);
+        pw_thread_loop_unlock(loop);
+    }
+    return loop;
+}
+
 class SessionStub
 {
 public:
     bool start()
     {
-        m_loop = pw_thread_loop_new("konveyor-test-session", nullptr);
+        m_loop = startRunningThreadLoop("konveyor-test-session");
         if (!m_loop) {
             return false;
         }
-        pw_thread_loop_start(m_loop);
         pw_thread_loop_lock(m_loop);
         m_context = pw_context_new(pw_thread_loop_get_loop(m_loop), nullptr, 0);
         m_core = m_context ? pw_context_connect(m_context, nullptr, 0) : nullptr;

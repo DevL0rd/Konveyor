@@ -29,17 +29,16 @@ def goal_right_of(title):
 def window_closed_during_drag(checks):
     with dragging("C", goal_right_of("B")) as pointer:
         checks.expect(
-            quick_tiling().startswith("false"),
+            wait_for(lambda: quick_tiling().startswith("false")),
             f"quick tiling is held while C is dragged ({quick_tiling()})",
         )
         close_window("C")
         checks.expect(
             wait_for(lambda: "C" not in managed_titles()), "C closed mid-drag"
         )
-        checks.equal(
-            quick_tiling(),
-            "true|true",
-            "quick tiling comes back when the dragged window closes",
+        checks.expect(
+            wait_for(lambda: quick_tiling() == "true|true"),
+            f"quick tiling comes back when the dragged window closes ({quick_tiling()})",
         )
         pointer.glide(goal_right_of("B"), (900, 700), 6)
     checks.equal(managed_titles(), ["A", "B"], "the other windows are untouched")

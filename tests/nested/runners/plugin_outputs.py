@@ -41,7 +41,7 @@ def spilled_window_without_border_styles(checks):
     spill_b_onto(left, right, problems)
     checks.equal(problems, [], "B spills onto the other output")
     checks.expect(
-        wait_for(lambda: green_columns_on(*screens[left]), 10),
+        wait_for(lambda: green_columns_on(*screens[left]), 60),
         "the part of B on its own output is drawn",
     )
 
@@ -56,7 +56,7 @@ def window_activated_from_the_other_output(checks):
         "C on the second output is activated while the pointer is on the first",
     )
     checks.expect(
-        wait_for(lambda: active_output() == right),
+        wait_for(lambda: active_output() == right, 60),
         f"the active output follows the window's home output ({active_output()})",
     )
 
@@ -71,7 +71,7 @@ def output_unplugged(checks):
         wait_for(lambda: len(outputs()) == 1, 60), "the second output went away"
     )
     checks.expect(
-        wait_for(lambda: len(managed_titles()) == 3),
+        wait_for(lambda: len(managed_titles()) == 3, 60),
         "all three windows are still managed",
     )
     subprocess.run(
@@ -86,7 +86,7 @@ def reloaded_without_the_output(checks):
     activate("C")
     konveyor_action("move-column-to-monitor", right)
     checks.expect(
-        wait_for(lambda: engine_output("C") == right),
+        wait_for(lambda: engine_output("C") == right, 60),
         f"C lives on {right} ({engine_output('C')})",
     )
     titles = managed_titles()

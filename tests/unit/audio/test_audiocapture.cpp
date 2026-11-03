@@ -3,9 +3,12 @@
 #include "pwharness.h"
 #include "render/audioanalyzer.h"
 
+#include <QElapsedTimer>
 #include <QTest>
 
 #include <unistd.h>
+
+#include <memory>
 
 using namespace Konveyor::Audio;
 using namespace PwHarness;
@@ -15,6 +18,7 @@ namespace
 
 constexpr int kSettleMs = 20000;
 constexpr float kAudible = 0.05F;
+constexpr qint64 kStuckDaemonBudgetMs = 2000;
 
 class EnvironmentOverride
 {
@@ -65,6 +69,21 @@ WindowKey strangerWindow()
     return {0, QStringLiteral("stranger.desktop")};
 }
 
+qint64 slowestCall(WindowAudio &audio, const QList<QList<WindowKey>> &wantedInTurn, int rounds)
+{
+    qint64 slowest = 0;
+    QElapsedTimer timer;
+    for (int round = 0; round < rounds; ++round) {
+        timer.start();
+        audio.setWanted(wantedInTurn.at(round % wantedInTurn.size()));
+        audio.setBeatThreshold(1.4F);
+        audio.frame(processWindow());
+        slowest = std::max(slowest, timer.elapsed());
+        QTest::qWait(2);
+    }
+    return slowest;
+}
+
 }
 
 class TestAudioCapture : public QObject
@@ -89,6 +108,8 @@ private Q_SLOTS:
     void theBeatThresholdAppliesWhileCapturing();
     void aCaptureNobodyAsksForStaysIdleUntilStopped();
     void aCaptureStoppedAtOnceNeverRunsItsLoop();
+    void aDaemonThatFreezesWhileCapturingNeverHoldsUpTheCaller();
+    void aDaemonFrozenFromTheStartNeverHoldsUpTheCaller();
 
 private:
     bool heard(const WindowAudio &audio, const WindowKey &key, bool relink = true);
@@ -334,6 +355,39 @@ void TestAudioCapture::aCaptureStoppedAtOnceNeverRunsItsLoop()
     AudioCapture capture(Konveyor::Render::AudioAnalyzer::kDefaultBeatThreshold);
     capture.requestStop();
     QTRY_VERIFY_WITH_TIMEOUT(capture.hasFinished(), kSettleMs);
+}
+
+void TestAudioCapture::aDaemonThatFreezesWhileCapturingNeverHoldsUpTheCaller()
+{
+    QVERIFY(startDaemon());
+    QVERIFY(m_player.start(Player::Mode::Tone));
+    auto audio = std::make_unique<WindowAudio>();
+    audio->setWanted({processWindow()});
+    QTRY_VERIFY_WITH_TIMEOUT(heard(*audio, processWindow()), kSettleMs);
+
+    m_daemon.setFrozen(true);
+    QTest::qWait(200);
+    QVERIFY(slowestCall(*audio, {{strangerWindow()}, {processWindow()}}, 500) < kStuckDaemonBudgetMs);
+    QElapsedTimer timer;
+    timer.start();
+    audio->setWanted({});
+    audio->setWanted({processWindow()});
+    audio.reset();
+    QVERIFY(timer.elapsed() < kStuckDaemonBudgetMs);
+}
+
+void TestAudioCapture::aDaemonFrozenFromTheStartNeverHoldsUpTheCaller()
+{
+    QVERIFY(startDaemon());
+    m_daemon.setFrozen(true);
+    auto audio = std::make_unique<WindowAudio>();
+    QVERIFY(slowestCall(*audio, {{processWindow()}, {}}, 100) < kStuckDaemonBudgetMs);
+    audio->setWanted({processWindow()});
+    QTest::qWait(300);
+    QElapsedTimer timer;
+    timer.start();
+    audio.reset();
+    QVERIFY(timer.elapsed() < kStuckDaemonBudgetMs);
 }
 
 QTEST_GUILESS_MAIN(TestAudioCapture)

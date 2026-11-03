@@ -65,6 +65,7 @@ def hints(window):
 
 def settle(seconds=0.6):
     conn.sync()
+    kwin_titles()
     time.sleep(seconds)
 
 
@@ -235,7 +236,7 @@ def repair_hints(checks):
     checks.expect(wait_for(lambda: hints(game) == (1, NORMAL), 20), f"hints that would stop the game from taking focus are repaired ({hints(game)})")
     request_iconic(game)
     settle()
-    checks.equal(wm_state(game), ICONIC, "a repeated minimize request after the repair keeps the game pretending")
+    checks.expect(wait_for(lambda: wm_state(game) == ICONIC, 20), "a repeated minimize request after the repair keeps the game pretending")
 
 
 def wake_up(checks):

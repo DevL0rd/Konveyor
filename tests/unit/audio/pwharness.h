@@ -16,6 +16,8 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <signal.h>
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -88,9 +90,17 @@ public:
         return QFile::exists(directory + QLatin1Char('/') + QLatin1String(kRemote));
     }
 
+    void setFrozen(bool frozen)
+    {
+        if (m_process.state() != QProcess::NotRunning) {
+            ::kill(static_cast<pid_t>(m_process.processId()), frozen ? SIGSTOP : SIGCONT);
+        }
+    }
+
     void stop()
     {
         if (m_process.state() != QProcess::NotRunning) {
+            setFrozen(false);
             m_process.terminate();
             if (!m_process.waitForFinished(5000)) {
                 m_process.kill();
@@ -181,11 +191,10 @@ public:
     bool start(Mode mode)
     {
         m_mode = static_cast<int>(mode);
-        m_loop = pw_thread_loop_new("konveyor-test-player", nullptr);
+        m_loop = startRunningThreadLoop("konveyor-test-player");
         if (!m_loop) {
             return false;
         }
-        pw_thread_loop_start(m_loop);
         pw_thread_loop_lock(m_loop);
         m_context = pw_context_new(pw_thread_loop_get_loop(m_loop), nullptr, 0);
         m_core = m_context ? pw_context_connect(m_context, nullptr, 0) : nullptr;

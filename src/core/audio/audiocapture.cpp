@@ -42,7 +42,7 @@ public:
         , m_mainLoop(mainLoop)
         , m_loop(pw_main_loop_get_loop(mainLoop))
     {
-        m_context = pw_context_new(m_loop, pw_properties_new("module.rt", "false", nullptr), 0);
+        m_context = pw_context_new(m_loop, pw_properties_new("module.rt", "false", "context.num-data-loops", "0", nullptr), 0);
         m_tick = pw_loop_add_timer(m_loop, &Session::onTick, this);
         timespec first = asTimespec(kTick);
         timespec every = first;

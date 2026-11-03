@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks, default_config, load_config
-from fakepointer import Held
+from fakepointer import Held, binary
 from kwinsession import (
     active_title,
     for_window,
@@ -17,15 +17,47 @@ from kwinsession import (
 )
 
 
-def title_bar_point(title):
+def title_bar_geometry(title):
     printed = run_script(
         for_window(
             title,
-            'print("MARK|" + (w.frameGeometry.y + w.clientGeometry.y) / 2 + "|" + w.frameGeometry.x + "|" + w.frameGeometry.width);',
+            'print("MARK|" + w.frameGeometry.y + "|" + w.clientGeometry.y + "|" + w.frameGeometry.x + "|" + w.frameGeometry.width);',
         )
     )
-    y, x, width = (float(value) for value in printed[0].split("|"))
-    return x + width / 3, y
+    if not printed:
+        return None
+    frame_y, client_y, x, width = (float(value) for value in printed[0].split("|"))
+    return frame_y, client_y, x, width
+
+
+def laid_out(title, x, width):
+    window = next((w for w in konveyor_windows() if w["title"] == title), None)
+    if not window or not window["layout"]:
+        return False
+    target = window["layout"]["tile_pos_in_workspace_view"][0]
+    size = window["layout"]["tile_size"][0]
+    return abs(x - target) <= 1 and abs(width - size) <= 1
+
+
+def title_bar_point(title):
+    previous = [None]
+
+    def still():
+        current = title_bar_geometry(title)
+        stable = (
+            current is not None
+            and current == previous[0]
+            and current[1] > current[0]
+            and laid_out(title, current[2], current[3])
+        )
+        previous[0] = current
+        return current if stable else None
+
+    found = wait_for(still, 60, 0.3)
+    if not found:
+        raise RuntimeError(f"the title bar of {title} never settled")
+    frame_y, client_y, x, width = found
+    return x + width / 3, (frame_y + client_y) / 2
 
 
 def columns():
@@ -147,6 +179,7 @@ def second_finger_joins_a_title_bar_drag(checks):
 
 
 def main():
+    binary()
     Checks().run(
         tap_without_moving,
         jitter_then_drag,

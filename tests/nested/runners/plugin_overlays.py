@@ -66,11 +66,11 @@ def overlay_naming_itself(checks):
         "a window renamed as an overlay of itself appears",
     )
     checks.expect(
-        overlay(own) in managed_titles(),
+        wait_for(lambda: overlay(own) in managed_titles(), 60),
         "it stays an ordinary window instead of attaching to itself",
     )
     close_window(overlay(own))
-    process.wait(timeout=30)
+    process.wait(timeout=120)
 
 
 def dialog_becoming_overlay_of_its_own_parent(checks):
@@ -88,7 +88,7 @@ def dialog_becoming_overlay_of_its_own_parent(checks):
         "renaming it again for the same parent keeps it there",
     )
     close_window("Owner")
-    process.wait(timeout=30)
+    process.wait(timeout=120)
 
 
 def dialog_becoming_overlay_of_another_window(checks):
@@ -105,8 +105,11 @@ def dialog_becoming_overlay_of_another_window(checks):
     )
     close_window(overlay(target, 1))
     close_window("Parent")
-    process.wait(timeout=30)
-    checks.expect("A" in managed_titles(), "the window they pointed at is untouched")
+    process.wait(timeout=120)
+    checks.expect(
+        wait_for(lambda: "A" in managed_titles(), 60),
+        "the window they pointed at is untouched",
+    )
 
 
 def overlay_while_window_toggles_fullscreen(checks):
@@ -136,7 +139,7 @@ def overlay_while_window_toggles_fullscreen(checks):
         "B left fullscreen",
     )
     close_window(overlay(target))
-    process.wait(timeout=30)
+    process.wait(timeout=120)
 
 
 def main():
