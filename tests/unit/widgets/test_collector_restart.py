@@ -10,7 +10,7 @@ from collectorharness import RECORDING_STUB, WIDGETS, CollectorTest, load_script
 
 COLLECTORS = {"procmon-collect": (WIDGETS / "process-monitor" / "bin" / "procmon-collect", "Linux-Process-Mon"),
               "routermon-collect": (WIDGETS / "router-monitor" / "bin" / "routermon-collect", "Linux-Router-Monitor")}
-SLEEPER = "#!/usr/bin/env python3\nimport time\ntime.sleep(120)\n"
+SLEEPER = "#!" + sys.executable + "\nimport time\ntime.sleep(120)\n"
 
 
 class Stop(Exception):

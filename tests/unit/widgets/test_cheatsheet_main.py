@@ -13,7 +13,7 @@ from unittest import mock
 from cheatsheet_module import SCRIPT, load_module
 
 
-RECORDER = """#!/usr/bin/env python3
+RECORDER = "#!" + sys.executable + """
 import json, os, sys
 with open(os.environ["STUB_LOG"], "a") as log:
     log.write(json.dumps({"argv": sys.argv[1:], "shell": os.environ.get("QT_WAYLAND_SHELL_INTEGRATION")}) + "\\n")

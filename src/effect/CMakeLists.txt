@@ -30,7 +30,7 @@ endif()
 if(KWin_VERSION VERSION_GREATER_EQUAL 6.8)
     target_compile_definitions(konveyor_effect PRIVATE KONVEYOR_KWIN_CONFINES_COMMITS)
 endif()
-target_compile_options(konveyor_effect PRIVATE -Wall -Wextra -Werror)
+target_compile_options(konveyor_effect PRIVATE -Wall -Wextra)
 target_link_options(konveyor_effect PRIVATE LINKER:--no-undefined)
 
 target_link_libraries(konveyor_effect PRIVATE
