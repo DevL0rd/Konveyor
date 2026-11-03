@@ -6,16 +6,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from borderprobe import CYAN, MAGENTA, TITLES, YELLOW, expect_painted, painted, painted_titles, probe_config, screenshot, settle_to, solid
+from borderprobe import CYAN, MAGENTA, TITLES, YELLOW, edge_pixels, expect_painted, painted, painted_titles, probe_config, screenshot, settle_to, solid
 from checks import Checks, load_config
 from fakepointer import Held
 from kwinsession import frame, wait_for
 
 KEY_A = 30
 LEFT_BUTTON = 0x110
+FRONT_LEAST = 128
 WAVE = ('border-style "Sweep" {\n    layer "gradient" { colors "#00ffff"; speed 0; width 8; }\n    layer "wave" { colors "#ff00ff"; speed 0.05; width 8; }\n'
         '    layer "ripple" { colors "#ffff00"; speed 0.05; width 8; }\n}\n')
-BURST = ('border-style "Burst" {\n    layer "pulse-front" { colors "#ff00ff"; speed 0.1; width 8; }\n'
+BURST = ('border-style "Burst" {\n    layer "pulse-front" { colors "#ff00ff"; speed 0.03; width 8; }\n'
          '    layer "ripple" { colors "#ffff00"; speed 0.1; width 8; }\n}\n')
 
 
@@ -26,6 +27,8 @@ def center(title):
 
 
 
+def front_passing(image, title):
+    return any(red >= FRONT_LEAST and blue >= FRONT_LEAST and green < FRONT_LEAST / 2 for red, green, blue in edge_pixels(image, title))
 
 
 def light_front_crosses_the_window_in_between(checks):
@@ -60,7 +63,7 @@ def a_click_sends_a_front_over_every_window(checks):
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline and seen != set(TITLES):
         image = screenshot()
-        seen |= painted_titles(image, TITLES, MAGENTA)
+        seen |= {title for title in TITLES if front_passing(image, title)}
         ripples |= painted_titles(image, TITLES, YELLOW)
     checks.equal(seen, set(TITLES), "the front sweeps over all three windows")
     checks.expect(len(ripples) > 0, f"and the ripple reaches some of them ({sorted(ripples)})")

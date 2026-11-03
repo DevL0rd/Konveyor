@@ -10,6 +10,7 @@ sys.path.insert(0, str(HERE / "harness"))
 
 SCRIPT = """
 export QT_QPA_PLATFORM=wayland
+export QT_QUICK_BACKEND=rhi
 export QML_IMPORT_PATH="{imports}"
 if "{binary}" > "$KONVEYOR_REPORT" 2>&1; then echo "RESULT: PASS" >> "$KONVEYOR_REPORT"; fi
 """

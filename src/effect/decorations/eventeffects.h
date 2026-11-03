@@ -104,6 +104,7 @@ private:
     void syncFocus(const std::optional<Layout::WindowId> &focused);
     void syncUrgent();
     void updateWanted();
+    void dropOutdatedPlays();
     void cancelPlays(Config::EventTrigger trigger);
     void start(Config::EventTrigger trigger, const Known &subject, const Pair &pair);
     struct LayerPass

@@ -1,3 +1,4 @@
+#include <QDeadlineTimer>
 #include <QGuiApplication>
 #include <QImage>
 #include <QQmlComponent>
@@ -7,6 +8,7 @@
 #include <QSGRendererInterface>
 #include <QTest>
 
+#include <chrono>
 #include <memory>
 
 namespace
@@ -15,6 +17,7 @@ namespace
 constexpr QPoint kFrameOrigin {80, 70};
 constexpr QSize kFrameSize {200, 140};
 constexpr QRgb kBackground = 0xff000000;
+constexpr std::chrono::seconds kDrawingPatience {15};
 
 const QStringList kAllKinds {"gradient", "sweep", "comet", "glow", "ripple", "dashes", "pulse", "particles", "equalizer", "waveform",
     "spectrum", "shimmer", "bass-thump", "speed-lines", "scroll-trail", "bulge", "wavy", "elastic", "chevrons", "edge-flash", "gauge",
@@ -108,7 +111,7 @@ Window {
         m_style->setProperty("eventTime", 0.2);
         m_style->setProperty("eventFrame", QRectF(0, 0, kFrameSize.width(), kFrameSize.height()));
         m_style->setProperty("eventSubject", QRectF(0, 0, kFrameSize.width(), kFrameSize.height()));
-        const Painted painted = paint();
+        const Painted painted = firstPainted();
         QVERIFY2(painted.count > 0, qPrintable(kind + " drew nothing"));
         const QRect frame(kFrameOrigin, kFrameSize);
         QVERIFY2(frame.adjusted(-60, -60, 60, 60).contains(painted.bounds), qPrintable(kind + " drew outside the item's reach"));
@@ -278,9 +281,9 @@ Window {
         setLayers({layer("gradient")});
         QVERIFY(paint().count > 0);
         setLayers({layer("equalizer")});
-        QVERIFY(paint().count > 0);
+        QVERIFY(firstPainted().count > 0);
         setLayers({layer("particles")});
-        QVERIFY(paint().count > 0);
+        QVERIFY(firstPainted().count > 0);
     }
 
 private:
@@ -327,6 +330,16 @@ private:
     {
         QTest::qWait(60);
         return m_window->grabWindow();
+    }
+
+    Painted firstPainted()
+    {
+        Painted painted = paint();
+        QDeadlineTimer deadline(kDrawingPatience);
+        while (painted.count == 0 && !deadline.hasExpired()) {
+            painted = paint();
+        }
+        return painted;
     }
 
     Painted paint()

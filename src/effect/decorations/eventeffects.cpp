@@ -91,10 +91,27 @@ void EventEffects::sync(const QList<Window> &windows)
         }
     }
     updateWanted();
+    dropOutdatedPlays();
     refreshTargets();
     syncFocus(focused);
     syncUrgent();
     m_seeded = true;
+}
+
+void EventEffects::dropOutdatedPlays()
+{
+    const auto outdated = [this](const Play &play) {
+        const Known *subject = known(play.subject);
+        if (!subject) {
+            return false;
+        }
+        const std::optional<Config::EventEffect> &effect = subject->effects.of(play.trigger);
+        const Config::BorderStyle *style = effect ? m_styles.styleNamed(effect->style) : nullptr;
+        return !style || *style != play.style;
+    };
+    if (std::erase_if(m_plays, outdated) > 0) {
+        updateClaims();
+    }
 }
 
 void EventEffects::start(Config::EventTrigger trigger, const Known &subject, const Pair &pair)
