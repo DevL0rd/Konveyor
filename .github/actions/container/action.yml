@@ -1,0 +1,46 @@
+name: Run a CI mode in the Arch container
+description: Restores the compiler cache, gives KWin /dev/udmabuf and runs tests/nested/ci/run.sh in an Arch Linux container
+inputs:
+  mode:
+    description: The run.sh mode
+    required: true
+  shard:
+    description: INDEX/COUNT for the unit and nested modes
+    default: ""
+  tests:
+    description: ctest regex for the tests mode
+    default: ""
+  save-cache:
+    description: Save the compiler cache when this commit has none
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Restore the compiler cache
+      id: compiler-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: .ccache
+        key: ccache-${{ github.sha }}
+        restore-keys: ccache-
+
+    - name: Give KWin /dev/udmabuf, so it composites with OpenGL on Mesa's llvmpipe
+      shell: bash
+      run: tests/nested/ci/udmabuf.sh
+
+    - name: Run ${{ inputs.mode }} ${{ inputs.shard }}
+      shell: bash
+      env:
+        KONVEYOR_CI_TESTS: ${{ inputs.tests }}
+        MODE: ${{ inputs.mode }}
+        SHARD: ${{ inputs.shard }}
+      run: >-
+        docker run --rm -e KONVEYOR_CI_TESTS --device /dev/udmabuf --shm-size 2g --security-opt seccomp=unconfined
+        -v "$GITHUB_WORKSPACE:/src" -w /src archlinux:base-devel tests/nested/ci/run.sh "$MODE" "$SHARD"
+
+    - name: Save the compiler cache
+      if: ${{ !cancelled() && inputs.save-cache == 'true' && steps.compiler-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v6
+      with:
+        path: .ccache
+        key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
