@@ -64,6 +64,28 @@ private Q_SLOTS:
         QVERIFY(qAbs(*second - 16.666666) < 0.0001);
     }
 
+    void forgetsFramesOlderThanTheHistory()
+    {
+        FrameRateTracker tracker;
+        constexpr qint64 interval = 1000000000 / 10;
+        for (int frame = 0; frame <= 400; ++frame) {
+            tracker.addFrame(frame * interval);
+        }
+        const auto rate = tracker.rateAt(400 * interval);
+        QVERIFY(rate.has_value());
+        QCOMPARE(rate->fps, 10);
+        QCOMPARE(rate->fpsLow, 10);
+    }
+
+    void needsTwoFramesInTheLastSecond()
+    {
+        FrameRateTracker tracker;
+        tracker.addFrame(0);
+        tracker.addFrame(16666666);
+        QVERIFY(!tracker.rateAt(1016666666).has_value());
+        QVERIFY(tracker.rateAt(1000000000).has_value());
+    }
+
     void omitsFrametimeAfterResetGap()
     {
         FrameRateTracker tracker;

@@ -131,8 +131,9 @@ void TestSettingsStoreQml::resetToDefaultWritesShippedNode()
     QVERIFY(call<bool>(session.store, "resetToDefault", QStringLiteral("layout/focus-ring")));
     QVERIFY(call<bool>(session.store, "resetToDefault", QStringLiteral("layout/float-child-windows")));
     QCOMPARE(saved(session.store),
-        QStringLiteral("layout {\n    gaps 16\n    focus-ring {\n        width 4\n        active-color \"accent\"\n        inactive-color "
-                       "\"#505050\"\n    }\n"
+        QStringLiteral("layout {\n    gaps 16\n    focus-ring {\n        width 2\n        active-color \"accent\"\n"
+                       "        active-style \"Default-Style\"\n        inactive-style \"Default-Style-Inactive\"\n"
+                       "        urgent-style \"Default-Attention-Style\"\n    }\n"
                        "    float-child-windows false\n}\n"));
     for (const QString &path : {QStringLiteral("layout/gaps"), QStringLiteral("layout/always-center-single-column"),
              QStringLiteral("layout/focus-ring"), QStringLiteral("layout/float-child-windows")}) {

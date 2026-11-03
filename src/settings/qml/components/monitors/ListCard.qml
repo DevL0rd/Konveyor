@@ -14,6 +14,7 @@ QQC2.ItemDelegate {
     property bool showOrder: true
     property bool canMoveUp
     property bool canMoveDown
+    default property alias actions: extraActions.data
     signal opened
     signal movedUp
     signal movedDown
@@ -72,6 +73,12 @@ QQC2.ItemDelegate {
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
+        }
+
+        RowLayout {
+            id: extraActions
+            visible: children.length > 0
+            spacing: 0
         }
 
         QQC2.ToolButton {

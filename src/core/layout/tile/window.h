@@ -45,7 +45,6 @@ public:
 
     WindowMode sizingMode() const { return m_sizingMode; }
     WindowMode requestedMode() const { return m_requestedMode; }
-    bool isWindowedFullscreen() const { return m_windowedFullscreen; }
     bool windowedFullscreenRequested() const { return m_windowedFullscreenRequested; }
     void requestWindowedFullscreen(bool value);
 
@@ -71,9 +70,6 @@ public:
 
     bool isIgnoringOpacityRule() const { return m_ignoreOpacityRule; }
     void toggleIgnoreOpacityRule() { m_ignoreOpacityRule = !m_ignoreOpacityRule; }
-
-    std::optional<Anim::Duration> focusTimestamp() const { return m_focusTimestamp; }
-    void setFocusTimestamp(Anim::Duration timestamp) { m_focusTimestamp = timestamp; }
 
     std::optional<quint8> interactiveResizeEdges() const { return m_resizeEdges; }
     void setInteractiveResize(std::optional<quint8> edges);
@@ -103,7 +99,6 @@ private:
     bool m_needsRuleRecompute = false;
     bool m_ignoreOpacityRule = false;
     bool m_expansionForceResizable = false;
-    std::optional<Anim::Duration> m_focusTimestamp;
     std::optional<quint8> m_resizeEdges;
 };
 

@@ -8,6 +8,7 @@
 #include "decorations/fullscreenshade.h"
 #include "input/gesturefilter.h"
 #include "input/inputfilter.h"
+#include "input/inputsignals.h"
 #include "input/shortcutmanager.h"
 #include "input/spillinputfilter.h"
 #include "input/touchpadcontactreader.h"
@@ -120,6 +121,7 @@ struct KonveyorEffect::Private
     KontrolPanelStacking kontrolPanelStacking;
     std::unique_ptr<SpillInputFilter> spillInput;
     std::unique_ptr<InputFilter> input;
+    std::unique_ptr<InputSignals> inputSignals;
     std::unique_ptr<AxisFilter> axisInput;
     std::unique_ptr<DragMotionFilter> dragMotion;
     std::unique_ptr<GestureFilter> gestureInput;
@@ -138,6 +140,7 @@ struct KonveyorEffect::Private
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;
     QPointF resizeOrigin;
+    bool resizeByTouch = false;
     quint64 bindCount = 0;
     QString lastBindKey;
     QString lastBindAction;

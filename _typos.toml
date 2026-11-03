@@ -5,5 +5,7 @@ extend-exclude = ["build/", "build-*/", "*.svg"]
 INVOKABLE = "INVOKABLE"
 asai = "asai"
 calculat = "calculat"
+countr = "countr"
+datas = "datas"
 conver = "conver"
 targetted = "targetted"

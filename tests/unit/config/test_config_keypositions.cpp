@@ -92,6 +92,12 @@ private Q_SLOTS:
         QCOMPARE(keycodeOnLayout(nullptr, 0, keysym), std::nullopt);
     }
 
+    void assumesWithoutAKeymapThatEverythingIsTyped()
+    {
+        QVERIFY(layoutTypesKeysym(nullptr, 0, XKB_KEY_grave));
+        QVERIFY(layoutTypesKeysym(nullptr, 3, XKB_KEY_q));
+    }
+
     void readsTheActiveLayoutOfAMultiLayoutKeymap()
     {
         xkb_keymap *compiled = keymap("us,de");

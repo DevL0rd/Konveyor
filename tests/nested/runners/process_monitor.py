@@ -2,14 +2,16 @@
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import dbus
+import dbus.bus
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from checks import Checks
-from kwinsession import CLIENTS, konveyor_windows, managed_titles, wait_for, watch_signals
+from kwinsession import CLIENTS, konveyor_windows, managed_titles, run_script, wait_for, watch_signals
 
 SERVICE = "org.devl0rd.ProcessMonitor.FrameTelemetry"
 
@@ -81,8 +83,56 @@ def reload_keeps_reporting(checks):
                   f"the reloaded effect reports a window that was already open ({frames()})")
 
 
+def effect_loaded():
+    result = subprocess.run(["qdbus6", "org.kde.KWin", "/Effects", "org.kde.kwin.Effects.isEffectLoaded", "process_monitor_telemetry"],
+                            capture_output=True, text=True)
+    return result.stdout.strip() == "true"
+
+
+def effect_call(method):
+    subprocess.run(["qdbus6", "org.kde.KWin", "/Effects", f"org.kde.kwin.Effects.{method}", "process_monitor_telemetry"], check=True)
+
+
+def name_held_elsewhere(checks):
+    effect_call("unloadEffect")
+    checks.expect(wait_for(lambda: not service_registered()), "unloading the telemetry effect releases its D-Bus name")
+    other = dbus.SessionBus(private=True)
+    try:
+        reply = other.request_name(SERVICE, dbus.bus.NAME_FLAG_DO_NOT_QUEUE)
+        checks.equal(reply, dbus.bus.REQUEST_NAME_REPLY_PRIMARY_OWNER, "another process takes the telemetry name")
+        effect_call("loadEffect")
+        checks.expect(wait_for(effect_loaded), "the effect still loads when its name is taken")
+        checks.equal(str(other.get_name_owner(SERVICE)), other.get_unique_name(), "the effect leaves the name with its owner")
+        try:
+            telemetry().Frames()
+            answered = True
+        except dbus.DBusException:
+            answered = False
+        checks.expect(not answered, "the effect does not answer on the object path it could not claim")
+        effect_call("unloadEffect")
+        checks.expect(wait_for(lambda: not effect_loaded()), "the effect that never held the name unloads")
+        checks.equal(str(other.get_name_owner(SERVICE)), other.get_unique_name(), "unloading it leaves the name with its owner")
+    finally:
+        other.close()
+    checks.expect(wait_for(lambda: not service_registered()), "the name is free once its owner is gone")
+    effect_call("loadEffect")
+    checks.expect(wait_for(service_registered), "the effect takes the name once it is free")
+    checks.expect(isinstance(frames(), list), "and answers Frames")
+
+
+def windows_without_a_process_id(checks):
+    reported = []
+    for step in range(12):
+        offset = 40 * (step % 2)
+        run_script(f"workspace.showOutline(100 + {offset}, 100, 300 + {offset}, 200);")
+        reported.extend(frames())
+        time.sleep(0.1)
+    run_script("workspace.hideOutline();")
+    checks.expect(all(frame["pid"] > 0 for frame in reported), f"Frames leaves out windows without a process id ({reported})")
+
+
 def main():
-    Checks().run(frame_rates, bad_requests, unwatch_stops_signals, reload_keeps_reporting)
+    Checks().run(frame_rates, bad_requests, unwatch_stops_signals, windows_without_a_process_id, reload_keeps_reporting, name_held_elsewhere)
 
 
 if __name__ == "__main__":

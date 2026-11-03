@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config/types/eventeffects.h"
 #include "config/types/paint.h"
 
 #include <QList>
@@ -33,6 +34,7 @@ struct Layout
     Struts struts;
     Border focusRing;
     Border border;
+    EventEffects eventEffects;
     TabIndicator tabIndicator;
     InsertHint insertHint;
     QColor backgroundColor {0x40, 0x40, 0x40};
@@ -62,6 +64,7 @@ struct LayoutPart
     std::optional<Struts> struts;
     std::optional<BorderRule> focusRing;
     std::optional<BorderRule> border;
+    std::optional<EventEffects> eventEffects;
     std::optional<TabIndicatorPart> tabIndicator;
     std::optional<InsertHintPart> insertHint;
     std::optional<QColor> backgroundColor;

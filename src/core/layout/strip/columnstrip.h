@@ -51,11 +51,7 @@ public:
     const Tile *tileFor(WindowId id) const;
     bool activeTileWantsFullscreen() const;
     bool centersActiveColumn() const;
-    const AreaInfo &area() const { return m_area; }
-    const OptionsPtr &options() const { return m_options; }
     const StripScroll &viewOffset() const { return m_scroll; }
-    const std::optional<ResizeSession> &interactiveResize() const { return m_resize; }
-    std::optional<double> scrollToRestore() const { return m_scrollToRestore; }
 
     DropSlot dropSlotAt(QPointF pos, std::optional<Config::ColumnPosition> movingPin) const;
     QSize initialWindowSize(const std::optional<Config::PresetSize> &width, const std::optional<Config::PresetSize> &height,

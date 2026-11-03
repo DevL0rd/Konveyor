@@ -15,6 +15,7 @@ std::optional<QColor> parseCssColor(const QString &text);
 
 QColor decodeColorNode(const Kdl::Node &node);
 Paint decodePaintNode(const Kdl::Node &node);
+Paint decodePaintValue(const Kdl::Value &value);
 Gradient decodeGradientNode(const Kdl::Node &node);
 
 void applyPaintColor(std::optional<Paint> &paint, const Paint &value);

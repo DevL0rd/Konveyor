@@ -131,7 +131,7 @@ double ColumnStrip::overflowScrollForColumn(std::optional<double> targetX, std::
     if (prevIndex == idx) {
         return fitScrollForColumn(targetX, idx);
     }
-    const std::size_t sourceIndex = prevIndex > idx ? std::min(idx + 1, m_columns.size() - 1) : (idx > 0 ? idx - 1 : 0);
+    const std::size_t sourceIndex = prevIndex > idx ? std::min(idx + 1, m_columns.size() - 1) : idx - 1;
     const double sourceX = columnOffset(sourceIndex);
     const double sourceWidth = m_columns[sourceIndex].width();
     const double targetColX = columnOffset(idx);

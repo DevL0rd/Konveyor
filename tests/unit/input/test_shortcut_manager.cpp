@@ -158,6 +158,46 @@ private Q_SLOTS:
         QCOMPARE(m_fired, QStringList {QStringLiteral("Super+Ctrl+1 move-column-to-workspace")});
     }
 
+    void bindsDifferingInCooldownOrTitleStaySeparate()
+    {
+        auto shortcuts = manager();
+        shortcuts->setBinds(binds(QStringLiteral("Mod+H cooldown-ms=5 { focus-column-left; }\n"
+                                                 "Mod+Left cooldown-ms=9 { focus-column-left; }\n"
+                                                 "Mod+J hotkey-overlay-title=\"One\" { focus-window-down; }\n"
+                                                 "Mod+Down hotkey-overlay-title=\"Two\" { focus-window-down; }")));
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 4);
+    }
+
+    void keysWithoutAQtKeyStayOutOfKde()
+    {
+        auto shortcuts = manager();
+        shortcuts->setBinds(binds(QStringLiteral("Mod+Pointer_Left { focus-column-left; }\nMod+H { focus-column-right; }")));
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 1);
+        QVERIFY(!shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+Pointer_Left")));
+    }
+
+    void settingTheSameBindsAgainKeepsTheRegisteredActions()
+    {
+        auto shortcuts = manager();
+        const auto list = binds(QStringLiteral("Mod+H { focus-column-left; }"));
+        shortcuts->setBinds(list);
+        const auto *before = shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+H"));
+        shortcuts->setBinds(list);
+        QCOMPARE(shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+H")), before);
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 1);
+    }
+
+    void aKeyTakenByTwoDifferentActionsRegistersOnlyTheFirst()
+    {
+        auto shortcuts = manager();
+        const auto list = binds(QStringLiteral("Mod+H { focus-column-left; }")) + binds(QStringLiteral("Mod+H { focus-column-right; }"));
+        QCOMPARE(list.size(), 2);
+        shortcuts->setBinds(list);
+        QCOMPARE(shortcuts->findChildren<QAction *>().size(), 1);
+        shortcuts->findChild<QAction *>(QStringLiteral("konveyor-Super+H"))->trigger();
+        QCOMPARE(m_fired, QStringList {QStringLiteral("Super+H focus-column-left")});
+    }
+
     void leavesIsoLevelBindsOutOfKde()
     {
         auto shortcuts = manager();

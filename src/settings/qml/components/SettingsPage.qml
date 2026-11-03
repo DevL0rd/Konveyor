@@ -9,7 +9,9 @@ KCM.SimpleKCM {
 
     default property alias content: column.data
     property Component preview: null
-    property bool previewPinned: true
+    property bool previewBackdrop: false
+    property var jumpSections: []
+    readonly property bool previewPinned: page.height >= Kirigami.Units.gridUnit * 26
 
     topPadding: 0
     leftPadding: 0
@@ -26,13 +28,33 @@ KCM.SimpleKCM {
         PreviewStage {
             Layout.fillWidth: true
             visible: page.preview !== null && page.previewPinned
-            sourceComponent: page.preview
+            sourceComponent: page.previewPinned ? page.preview : null
+            backdrop: page.previewBackdrop
+        }
+
+        SectionJumpBar {
+            Layout.fillWidth: true
+            visible: page.jumpSections.length > 0
+            sections: page.jumpSections
+            flickable: page.flickable
         }
     }
 
     ColumnLayout {
-        id: column
         width: page.width
         spacing: 0
+
+        PreviewStage {
+            Layout.fillWidth: true
+            visible: page.preview !== null && !page.previewPinned
+            sourceComponent: page.previewPinned ? null : page.preview
+            backdrop: page.previewBackdrop
+        }
+
+        ColumnLayout {
+            id: column
+            Layout.fillWidth: true
+            spacing: 0
+        }
     }
 }

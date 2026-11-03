@@ -3,11 +3,12 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
-from checks import Checks, default_config, load_config
+from checks import Checks, config_path, default_config, load_config
 from kwinsession import activate, active_title, frame, konveyor_action, wait_for, watch_signals
 from screenshot import capture_workspace, close
 
@@ -15,6 +16,7 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 MAGENTA = (255, 0, 255)
+YELLOW = (255, 255, 0)
 CYAN = (0, 255, 255)
 RING = 8
 TAB_GAP = 4
@@ -57,9 +59,14 @@ def focus_ring(checks):
     activate("B")
     checks.expect(wait_for(lambda: ring_is("B", RED), 30, 0.5), f"the focused window has the red accent ring ({ring_pixel(screenshot(), 'B')})")
     other = neighbour("B")
-    checks.expect(not ring_is(other, RED) and not ring_is(other, GREEN), f"an unfocused window has no ring ({ring_pixel(screenshot(), other)})")
+    checks.expect(wait_for(lambda: ring_is(other, GREEN), 30, 0.5), f"an unfocused window has the inactive ring ({ring_pixel(screenshot(), other)})")
     activate(other)
-    checks.expect(wait_for(lambda: ring_is(other, RED) and not ring_is("B", RED), 30, 0.5), "the ring follows focus")
+    checks.expect(wait_for(lambda: ring_is(other, RED) and ring_is("B", GREEN), 30, 0.5), "the rings follow focus")
+    config = config_path().read_text()
+    load_config(config.replace('        inactive-color "#00ff00"\n', ""))
+    checks.expect(wait_for(lambda: not ring_is("B", GREEN), 30, 0.5), f"without an inactive paint an unfocused window has no ring ({ring_pixel(screenshot(), 'B')})")
+    load_config(config)
+    checks.expect(wait_for(lambda: ring_is("B", GREEN), 30, 0.5), "the inactive ring comes back")
 
 
 def accent_change(checks):
@@ -73,6 +80,26 @@ def accent_change(checks):
     kdeglobals = (Path(os.environ["XDG_CONFIG_HOME"]) / "kdeglobals").read_text()
     checks.expect(wait_for(lambda: ring_is(focused, BLUE), 30, 0.5),
                   f"changing the KDE accent recolours the ring live ({ring_pixel(screenshot(), focused)}, kdeglobals {kdeglobals!r})")
+
+
+def announce(groups):
+    notify = ["gdbus", "emit", "--session", "--object-path", "/kdeglobals", "--signal", "org.kde.kconfig.notify.ConfigChanged", groups]
+    subprocess.run(notify, check=True)
+
+
+def theme_colors(checks):
+    config = config_path().read_text()
+    focused = active_title()
+    other = neighbour(focused)
+    checks.expect(load_config(config.replace('inactive-color "#00ff00"', 'inactive-color "window-text"')), "an inactive ring in the window text colour loads")
+    subprocess.run(["kwriteconfig6", "--file", "kdeglobals", "--group", "Colors:Window", "--key", "ForegroundNormal", "255,255,0"], check=True)
+    announce("{'Colors:Window': [b'ForegroundNormal']}")
+    checks.expect(wait_for(lambda: ring_is(other, YELLOW), 30, 0.5), f"changing a KDE window colour recolours the rings that use it ({ring_pixel(screenshot(), other)})")
+    announce("{'General': [b'ColorScheme']}")
+    announce("{'KDE': [b'SingleClick']}")
+    time.sleep(1.0)
+    checks.expect(ring_is(other, YELLOW) and ring_is(focused, BLUE), "a general settings change that leaves the colours alone changes nothing, and unrelated groups are ignored")
+    load_config(config)
 
 
 def tab_pixels(title):
@@ -135,7 +162,7 @@ def border_gradients(checks):
 
 
 def main():
-    Checks().run(focus_ring, accent_change, tab_bar, border_gradients)
+    Checks().run(focus_ring, accent_change, theme_colors, tab_bar, border_gradients)
 
 
 if __name__ == "__main__":

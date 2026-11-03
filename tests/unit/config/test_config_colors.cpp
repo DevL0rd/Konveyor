@@ -42,6 +42,8 @@ private Q_SLOTS:
     void colorClearsGradient();
     void gradientKeepsEarlierColor();
     void windowRuleColorOverridesLayoutGradient();
+    void themeColorWithGradientOverridesExplicitColor();
+    void paintIsSetWhenAnyPartIsDefined();
 };
 
 void TestConfigColors::parsesColorForms_data()
@@ -64,6 +66,8 @@ void TestConfigColors::parsesColorForms_data()
     QTest::newRow("hsl") << QStringLiteral("hsl(0, 100%, 50%)") << QColor(255, 0, 0);
     QTest::newRow("hsl deg") << QStringLiteral("hsl(120deg, 100%, 50%)") << QColor(0, 255, 0);
     QTest::newRow("hsla") << QStringLiteral("hsla(240, 100%, 50%, 0.5)") << QColor(0, 0, 255, 128);
+    QTest::newRow("hsl negative hue") << QStringLiteral("hsl(-120, 100%, 50%)") << QColor(0, 0, 255);
+    QTest::newRow("hsl turn") << QStringLiteral("hsl(0.5turn, 100%, 50%)") << QColor(0, 255, 255);
 }
 
 void TestConfigColors::parsesColorForms()
@@ -105,6 +109,16 @@ void TestConfigColors::rejectsInvalidColors_data()
     QTest::newRow("bad hex digit") << QStringLiteral("#gg0000");
     QTest::newRow("bad function") << QStringLiteral("cmyk(1,2,3,4)");
     QTest::newRow("too few components") << QStringLiteral("rgb(1, 2)");
+    QTest::newRow("too many components") << QStringLiteral("rgb(1 2 3 4 5)");
+    QTest::newRow("missing close") << QStringLiteral("rgb(1, 2, 3");
+    QTest::newRow("bad percent channel") << QStringLiteral("rgb(x%, 2, 3)");
+    QTest::newRow("bad channel") << QStringLiteral("rgb(1, x, 3)");
+    QTest::newRow("bad alpha") << QStringLiteral("rgb(1, 2, 3, x)");
+    QTest::newRow("bad hue unit") << QStringLiteral("hsl(xdeg, 50%, 50%)");
+    QTest::newRow("bad hue") << QStringLiteral("hsl(x, 50%, 50%)");
+    QTest::newRow("bad saturation") << QStringLiteral("hsl(10, x, 50%)");
+    QTest::newRow("bad lightness") << QStringLiteral("hsl(10, 50%, x)");
+    QTest::newRow("blank") << QStringLiteral("  ");
 }
 
 void TestConfigColors::rejectsInvalidColors()
@@ -230,6 +244,42 @@ void TestConfigColors::windowRuleColorOverridesLayoutGradient()
     mergeBorder(merged, rule);
     QVERIFY(!merged.active.gradient.has_value());
     QCOMPARE(merged.active.color, QColor(0xab, 0xcd, 0xef));
+}
+
+void TestConfigColors::themeColorWithGradientOverridesExplicitColor()
+{
+    const Config config = parsed(QStringLiteral(R"(
+        layout {
+            border {
+                on
+                active-color "#123456"
+            }
+        }
+        window-rule {
+            border {
+                active-color "accent"
+                active-gradient from="#101010" to="#202020"
+            }
+        }
+    )"));
+    Border merged = config.layout.border;
+    mergeBorder(merged, config.windowRules.first().border);
+    QCOMPARE(merged.active.source, ColorSource::SystemAccent);
+    QVERIFY(merged.active.gradient.has_value());
+}
+
+void TestConfigColors::paintIsSetWhenAnyPartIsDefined()
+{
+    Paint paint;
+    QVERIFY(!paint.isSet());
+    paint.color = QColor(1, 2, 3);
+    QVERIFY(paint.isSet());
+    paint.color = QColor();
+    paint.source = ColorSource::SystemAccent;
+    QVERIFY(paint.isSet());
+    paint.source = ColorSource::Explicit;
+    paint.gradient = Gradient {};
+    QVERIFY(paint.isSet());
 }
 
 QTEST_MAIN(TestConfigColors)

@@ -1,6 +1,7 @@
 #include "config/forceresizable.h"
 
 #include "config/loader.h"
+#include "kdl/characters.h"
 #include "kdl/kdl.h"
 
 #include <QRegularExpression>
@@ -69,15 +70,6 @@ QString indentAt(const std::u32string &text, qsizetype position)
     return slice(text, start, end);
 }
 
-QString rawString(const QString &value)
-{
-    QString hashes = QStringLiteral("#");
-    while (value.contains(QLatin1Char('"') + hashes)) {
-        hashes += QLatin1Char('#');
-    }
-    return QLatin1Char('r') + hashes + QLatin1Char('"') + value + QLatin1Char('"') + hashes;
-}
-
 bool isExactAppRule(const Kdl::Node &rule, const QString &pattern)
 {
     if (rule.name != QLatin1String("window-rule") || !rule.childrenNamed(QStringLiteral("exclude")).isEmpty()) {
@@ -117,7 +109,7 @@ QString appendBlock(QString text, const QString &block)
 QString appendRule(const QString &text, const QString &pattern, bool enabled)
 {
     const QString block = QStringLiteral("window-rule {\n    match app-id=%1\n    force-resizable %2\n}\n")
-                              .arg(rawString(pattern), enabled ? QStringLiteral("true") : QStringLiteral("false"));
+                              .arg(Kdl::rawString(pattern), enabled ? QStringLiteral("true") : QStringLiteral("false"));
     return appendBlock(text, block);
 }
 

@@ -94,7 +94,7 @@ void TestSettingsPagesQml::loadsWithoutWarnings()
         QCoreApplication::processEvents();
         window->grabWindow();
     };
-    const QStringList ids {QStringLiteral("layout"), QStringLiteral("look"), QStringLiteral("motion"), QStringLiteral("mouse"),
+    const QStringList ids {QStringLiteral("layout"), QStringLiteral("appearance"), QStringLiteral("motion"), QStringLiteral("mouse"),
         QStringLiteral("touch"), QStringLiteral("shortcuts"), QStringLiteral("rules"), QStringLiteral("monitors"),
         QStringLiteral("workspaces"), QStringLiteral("taskbar"), QStringLiteral("plasma"), QStringLiteral("experiments")};
     const QString pagesSource = SettingsHome::read(m_home.sourcePath(QStringLiteral("catalog/Pages.js")));

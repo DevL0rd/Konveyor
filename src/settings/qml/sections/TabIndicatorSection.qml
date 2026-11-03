@@ -169,6 +169,7 @@ ColumnLayout {
                 enabled: root.shown
                 subPaths: [modelData.state + "-color", modelData.state + "-gradient"]
                 label: modelData.label
+                description: modelData.description || ""
                 iconName: "color-management"
 
                 PaintEditor {
@@ -176,8 +177,11 @@ ColumnLayout {
                     colorName: modelData.state + "-color"
                     gradientName: modelData.state + "-gradient"
                     paint: root.tab[modelData.state]
-                    allowAuto: true
+                    allowAuto: modelData.state !== "inactive"
+                    resetPaths: allowAuto ? [] : [blockPath + "/" + colorName, blockPath + "/" + gradientName]
                     autoLabel: "Match focus ring"
+                    autoPaint: (root.values["focus-ring"] || {})[modelData.state]
+                    stacked: root.width < Kirigami.Units.gridUnit * 40
                 }
             }
         }

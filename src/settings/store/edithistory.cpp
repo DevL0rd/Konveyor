@@ -18,7 +18,7 @@ void EditHistory::record(const QString &before)
 {
     const bool inBurst = m_lastRecord.isValid() && m_lastRecord.durationElapsed() < m_burst;
     m_lastRecord.restart();
-    if (inBurst && !m_snapshots.isEmpty()) {
+    if (inBurst) {
         return;
     }
     if (!m_snapshots.isEmpty() && m_snapshots.last() == before) {

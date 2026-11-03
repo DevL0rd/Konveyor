@@ -133,6 +133,13 @@ private Q_SLOTS:
         }
     }
 
+    void bezierKindWithoutControlPointsIsLinear()
+    {
+        const Curve curve(EasingCurve::CubicBezier);
+        QCOMPARE(curve.kind(), EasingCurve::CubicBezier);
+        QCOMPARE(curve.y(0.3), 0.3);
+    }
+
     void curveFromConfig()
     {
         Konveyor::Config::EasingParams params;

@@ -21,7 +21,7 @@ namespace Konveyor
 namespace
 {
 
-constexpr int reloadDebounceMs = 50;
+constexpr int reloadDebounceMs = 5;
 constexpr QLatin1StringView forceResizableFileName("force-resizable.kdl");
 
 QString bundledDefaultConfig()
@@ -189,8 +189,8 @@ void ConfigManager::migrate()
         if (done.contains(migration.id)) {
             continue;
         }
-        if (!Settings::shipsAnyBind(*defaults, migration.defaultBinds)) {
-            qCInfo(lcKonveyor).noquote() << "konveyor: config migration" << migration.id << "waits for default binds that ship it";
+        if (!Settings::shipsAny(*defaults, migration.shippedPaths)) {
+            qCInfo(lcKonveyor).noquote() << "konveyor: config migration" << migration.id << "waits for the defaults that ship it";
             continue;
         }
         const auto migrated = rewrite([&](const QString &text) { return Settings::applyMigration(migration, text, m_path, *defaults); });

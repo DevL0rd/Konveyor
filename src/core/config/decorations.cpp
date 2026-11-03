@@ -50,6 +50,9 @@ BorderRule decodeBorderRule(const Kdl::Node &node)
     addToggleHandlers(table, on, off);
     addTripletHandlers(table, rule.active, rule.inactive, rule.urgent);
     table.insert(QStringLiteral("width"), [&rule](const Kdl::Node &child) { rule.width = numberArgument(child, Range {0, 65535}); });
+    table.insert(QStringLiteral("active-style"), [&rule](const Kdl::Node &child) { rule.activeStyle = stringArgument(child); });
+    table.insert(QStringLiteral("inactive-style"), [&rule](const Kdl::Node &child) { rule.inactiveStyle = stringArgument(child); });
+    table.insert(QStringLiteral("urgent-style"), [&rule](const Kdl::Node &child) { rule.urgentStyle = stringArgument(child); });
     decodeChildren(node, table);
     rule.enabled = decodeToggle(node, on, off);
     return rule;

@@ -118,7 +118,6 @@ public:
     double workspaceHeightWithGap() const;
     std::vector<double> workspaceRenderOffsets() const;
     double transitionProgress() const;
-    bool isWorkspaceSwitching() const { return m_transition.has_value(); }
     bool isWorkspaceGesture() const { return m_transition && m_transition->isGesture(); }
 
     void beginWorkspaceSwipe(bool isTouchpad, bool continueMotion = true);

@@ -195,6 +195,20 @@ private Q_SLOTS:
         QCOMPARE(spring.timeToTarget(), std::optional<Duration>(Duration::max()));
     }
 
+    void negativeDampingNeverSettles()
+    {
+        Spring spring = makeSpring(Case {1.0, 800, 0, 1, 0}, 0.0001);
+        spring.params.damping = -4.0;
+        QCOMPARE(spring.duration(), Duration::max());
+        QCOMPARE(spring.timeToTarget(), std::optional<Duration>(Duration::max()));
+    }
+
+    void aNewtonSearchThatNeverConvergesGivesUpAtOnce()
+    {
+        const Spring spring = makeSpring(Case {17.6568, 2863.9, 71.0938, 71.0968, 862.695}, 0.0838521);
+        QCOMPARE(spring.duration(), Duration::zero());
+    }
+
     void equalEndpointsSettleImmediately()
     {
         const Spring spring = makeSpring(Case {1.15, 850, 0, 0, 0}, 0.0001);

@@ -13,6 +13,7 @@ from kontrol_panel import SERVICE, card, panel, panel_windows
 from kwinsession import CLIENTS, qdbus, run_script, wait_for
 from nested import build_dir
 from screenshot import capture_workspace, close
+from sessionguard import popen
 
 GREEN = (0, 255, 0)
 DIMMED_GREEN = (0, 115, 0)
@@ -87,7 +88,7 @@ def start_panel(settings):
     rc.parent.mkdir(exist_ok=True)
     rc.write_text("[General]\n" + "".join(f"{key}={value}\n" for key, value in settings.items()))
     log = open(os.environ["KONVEYOR_KWIN_LOG"], "a")
-    process = subprocess.Popen([str(build_dir() / "bin" / "konveyor-kontrol-panel"), os.environ["KONVEYOR_KONTROL_PANEL_DIR"]],
+    process = popen([str(build_dir() / "bin" / "konveyor-kontrol-panel"), os.environ["KONVEYOR_KONTROL_PANEL_DIR"]],
                                stdout=log, stderr=subprocess.STDOUT)
     if not wait_for(lambda: dbus.SessionBus().name_has_owner(SERVICE[0]), 60):
         raise RuntimeError("the Kontrol Panel never took its bus name")
@@ -138,7 +139,7 @@ def open_panel(checks, settings):
 def taskbar_ready(checks):
     checks.expect(wait_for(lambda: "scale" in qdbus("org.kde.KWin", "/Effects", "org.kde.kwin.Effects.loadedEffects").splitlines(), 30),
                   "KWin loaded Scale before the opening animation checks")
-    subprocess.Popen(["qml6", str(CLIENTS / "backdrop-client.qml")])
+    popen(["qml6", str(CLIENTS / "backdrop-client.qml")])
     checks.expect(wait_for(lambda: "taskbar" in stacking(), 30), "the stand-in taskbar mapped")
     checks.expect(wait_for(lambda: close(shot().getpixel(TASKBAR), WHITE) and close(shot().getpixel(CORNER), GREEN), 30), "the wallpaper and taskbar are drawn")
 

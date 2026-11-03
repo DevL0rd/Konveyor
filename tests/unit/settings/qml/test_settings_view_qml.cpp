@@ -1,5 +1,8 @@
 #include "settingsqmlharness.h"
 
+#include <QQmlIncubationController>
+#include <QQuickWindow>
+
 using namespace Konveyor::Settings::Testing;
 
 class TestSettingsViewQml : public QObject
@@ -54,6 +57,54 @@ private Q_SLOTS:
         QVERIFY(!SettingsHome::read(m_home.configPath()).contains(QStringLiteral("always-expand-single-column false")));
         QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("always-expand-single-column")).toBool(),
             true);
+    }
+
+    void incubatesSectionsInTheBackgroundOnce()
+    {
+        QQmlEngine engine;
+        QString error;
+        const std::unique_ptr<QObject> host
+            = m_home.create(engine, "QtObject { function load() { SettingsNavigation.loadSectionsInBackground() } }", &error);
+        QVERIFY2(host, qPrintable(error));
+        QVERIFY(engine.incubationController() == nullptr);
+        QVERIFY(QMetaObject::invokeMethod(host.get(), "load"));
+        QQmlIncubationController *controller = engine.incubationController();
+        QVERIFY(controller != nullptr);
+        QVERIFY(QMetaObject::invokeMethod(host.get(), "load"));
+        QCOMPARE(engine.incubationController(), controller);
+    }
+
+    void survivesSwitchingPagesWhileTheyLoad()
+    {
+        WarningLog log;
+        QQmlEngine engine;
+        QString error;
+        const std::unique_ptr<QObject> root = m_home.create(engine,
+            "import QtQuick.Window\n"
+            "Window {\n"
+            "    width: 1100; height: 800; visible: true\n"
+            "    property alias view: settings\n"
+            "    SettingsView { id: settings; anchors.fill: parent }\n"
+            "}\n",
+            &error);
+        QVERIFY2(root, qPrintable(error));
+        QVERIFY(QTest::qWaitForWindowExposed(qobject_cast<QQuickWindow *>(root.get())));
+        QObject *view = root->property("view").value<QObject *>();
+        QVERIFY(view);
+        QQmlIncubationController *controller = engine.incubationController();
+        QVERIFY(controller);
+        const QStringList pages {QStringLiteral("appearance"), QStringLiteral("taskbar"), QStringLiteral("shortcuts")};
+        int interrupted = 0;
+        for (int step = 0; step < 200; ++step) {
+            view->setProperty("pageId", pages.at(step % pages.size()));
+            view->setProperty("active", step % 5 != 4);
+            interrupted += controller->incubatingObjectCount() > 0 ? 1 : 0;
+            controller->incubateFor(step % 4);
+            QTest::qWait(0);
+        }
+        QVERIFY(interrupted > 0);
+        QTRY_COMPARE_WITH_TIMEOUT(controller->incubatingObjectCount(), 0, SignalTimeoutMs);
+        QCOMPARE(log.take(), QStringList {});
     }
 
 private:

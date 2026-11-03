@@ -50,11 +50,6 @@ public:
     std::optional<WindowId> activeWindow() const { return m_activeWindow; }
     Tile *tileFor(WindowId id);
     QRectF workingArea() const { return m_workingArea; }
-    QSizeF viewSize() const { return m_viewSize; }
-    double scale() const { return m_scale; }
-    const OptionsPtr &options() const { return m_options; }
-    const Anim::Clock &clock() const { return m_clock; }
-    const std::optional<ResizeSession> &interactiveResize() const { return m_resize; }
 
     void addTile(Tile tile, bool activate);
     static void prepareTileSize(Tile &tile);

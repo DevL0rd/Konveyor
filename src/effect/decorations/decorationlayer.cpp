@@ -39,7 +39,17 @@ Config::CornerRadius expandRadius(const Config::CornerRadius &radius, double amo
 DecorationLayer::DecorationLayer(const AccentColor &accent, QObject *parent)
     : QObject(parent)
     , m_accent(accent)
-{ }
+    , m_audioSignals(m_signalBus)
+    , m_styled(accent, m_painter, m_signalBus)
+    , m_events(accent, m_painter, m_styled, m_signalBus)
+    , m_viewSignals(m_signalBus, m_events)
+{
+    connect(&m_battery, &BatteryMonitor::onBatteryChanged, this, [this](bool onBattery) {
+        m_styled.setOnBattery(onBattery);
+        m_events.setOnBattery(onBattery);
+        m_audioSignals.setOnBattery(onBattery);
+    });
+}
 
 DecorationLayer::~DecorationLayer() = default;
 
@@ -54,15 +64,80 @@ void DecorationLayer::update(KWin::Window *window, const Layout::WindowState &st
     const QRectF frame = window->frameGeometry();
     const double borderInset = state.border.enabled ? state.border.width : 0.0;
     const OutlineRequest request {frame, 0.0, radiusFor(window, state.cornerRadius), workspaceView, scale};
-    apply(decorations.border, parent, outline(request, state.border, state));
-    apply(
-        decorations.focusRing, parent, outline({request.frame, borderInset, request.radius, workspaceView, scale}, state.focusRing, state));
+    updatePart({StyledBorders::Part::Border, decorations.border, window, request}, state.border, state);
+    updatePart({StyledBorders::Part::FocusRing, decorations.focusRing, window, {frame, borderInset, request.radius, workspaceView, scale}},
+        state.focusRing, state);
     const qsizetype tabCount = state.tabBar.visible ? state.tabBar.tabRects.size() : 0;
     decorations.tabs.resize(static_cast<size_t>(tabCount));
     for (qsizetype i = 0; i < tabCount; ++i) {
         apply(decorations.tabs[static_cast<size_t>(i)], parent,
             filled(frame, state.tabBar.tabRects[i], state.tabBar.tabRadii[i], state.tabBar.tabPaints.value(i), workspaceView, scale));
     }
+}
+
+void DecorationLayer::updatePart(const PartRequest &request, const Layout::DecorationState &decoration, const Layout::WindowState &state)
+{
+    Placement placement = outline(request.outline, decoration, state);
+    const Config::BorderStyle *style = placement.visible ? m_styled.styleNamed(decoration.style) : nullptr;
+    if (style) {
+        m_styled.place(state.id, request.window, request.part, {style, request.outline.inset, decoration.width, request.outline.radius});
+        placement.visible = false;
+    } else {
+        m_styled.hide(state.id, request.part);
+        placement.visible = placement.visible && decoration.paint.isSet();
+    }
+    apply(request.slot, request.window->windowItem(), placement);
+}
+
+void DecorationLayer::setBorderStyles(const QList<Config::BorderStyle> &styles, bool reduceMotion)
+{
+    m_styled.setStyles(styles, reduceMotion);
+    m_events.setReduceMotion(reduceMotion);
+    m_audioSignals.setReduceMotion(reduceMotion);
+}
+
+void DecorationLayer::paintBorders(Layout::WindowId id, const StyledBorders::PaintRequest &request)
+{
+    m_styled.paint(id, request);
+    m_events.paint(id, request);
+}
+
+void DecorationLayer::scheduleBorderFrames()
+{
+    m_styled.scheduleFrames();
+    m_events.scheduleFrames();
+    m_viewSignals.settle();
+}
+
+void DecorationLayer::updateViewSignals(const QList<Layout::OutputViewState> &views, const QList<Layout::WindowState> &states)
+{
+    m_viewSignals.update(views, states);
+}
+
+void DecorationLayer::fireEvent(Config::EventTrigger trigger, Layout::WindowId id, std::optional<QPointF> point, QPointF direction)
+{
+    m_events.fire(trigger, id, point, direction);
+}
+
+void DecorationLayer::syncEventEffects(
+    const QList<Layout::WindowState> &states, const std::function<KWin::Window *(Layout::WindowId)> &windowOf)
+{
+    QList<EventEffects::Window> windows;
+    windows.reserve(states.size());
+    for (const Layout::WindowState &state : states) {
+        if (KWin::Window *window = windowOf(state.id); window && window->windowItem()) {
+            windows.append({window, &state, radiusFor(window, state.cornerRadius)});
+        }
+    }
+    m_events.sync(windows);
+    m_audioSignals.setWindowLookup([windowOf](quint64 id) -> std::optional<Audio::CapturedWindow> {
+        const KWin::Window *window = windowOf(id);
+        if (!window) {
+            return std::nullopt;
+        }
+        return Audio::CapturedWindow {{window->pid(), window->desktopFileName()}, window->isFullScreen()};
+    });
+    m_audioSignals.refresh();
 }
 
 void DecorationLayer::showDropHint(Layout::WindowId carrier, KWin::Window *window, const DropHintRequest &request)
@@ -89,6 +164,8 @@ void DecorationLayer::hideDropHint()
 void DecorationLayer::remove(Layout::WindowId id)
 {
     m_decorations.erase(id);
+    m_styled.remove(id);
+    m_events.remove(id);
     if (m_dropHintCarrier == id) {
         hideDropHint();
     }
@@ -108,6 +185,7 @@ void DecorationLayer::retainOnly(const QSet<Layout::WindowId> &ids)
     if (m_dropHintCarrier && !ids.contains(*m_dropHintCarrier)) {
         hideDropHint();
     }
+    m_styled.retainOnly(ids);
     for (auto it = m_decorations.begin(); it != m_decorations.end();) {
         it = ids.contains(it->first) ? std::next(it) : m_decorations.erase(it);
     }

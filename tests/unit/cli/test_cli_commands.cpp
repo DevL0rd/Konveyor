@@ -1,4 +1,5 @@
 #include "../dbus/fakekglobalaccel.h"
+#include "fakekonveyor.h"
 
 #include <KConfig>
 #include <KConfigGroup>
@@ -8,6 +9,7 @@
 #include <memory>
 
 using Konveyor::Test::FakeKGlobalAccel;
+using Konveyor::Test::FakeKonveyor;
 using Konveyor::Test::PrivateSession;
 using Konveyor::Test::ProgramResult;
 using Konveyor::Test::writeFile;
@@ -136,6 +138,27 @@ private Q_SLOTS:
     void restoreShortcutsWithNothingSavedDoesNothing()
     {
         const ProgramResult result = konveyor({QStringLiteral("restore-shortcuts")});
+        QCOMPARE(result.exitCode, 0);
+        QCOMPARE(result.out, QStringLiteral("Restored 0 KDE shortcuts\n"));
+    }
+
+    void restoreShortcutsRefusesWhileKonveyorRuns()
+    {
+        FakeKonveyor running;
+        QVERIFY(running.start(m_session->address()));
+        seedReleased();
+        const ProgramResult result = konveyor({QStringLiteral("restore-shortcuts")});
+        QCOMPARE(result.exitCode, 1);
+        QVERIFY(result.err.contains(QStringLiteral("Konveyor is still running")));
+        QVERIFY(result.out.isEmpty());
+        QCOMPARE(releasedGroups(), QStringList {QStringLiteral("kwin/Overview")});
+    }
+
+    void restoreShortcutsWithoutASessionBusHasNothingToProtect()
+    {
+        QProcessEnvironment environment = m_session->environment();
+        environment.insert(QStringLiteral("DBUS_SESSION_BUS_ADDRESS"), QStringLiteral("unix:path=/nonexistent/konveyor-test-bus"));
+        const ProgramResult result = m_session->run(QStringLiteral(KONVEYOR_CLI), {QStringLiteral("restore-shortcuts")}, environment);
         QCOMPARE(result.exitCode, 0);
         QCOMPARE(result.out, QStringLiteral("Restored 0 KDE shortcuts\n"));
     }

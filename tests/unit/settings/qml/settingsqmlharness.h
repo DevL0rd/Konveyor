@@ -92,6 +92,13 @@ public:
         return object;
     }
 
+    QObject *openStore(QQmlEngine &engine, const std::optional<QString> &text) const
+    {
+        resetConfig(text);
+        create(engine, "QtObject {}");
+        return store(engine);
+    }
+
     static QObject *store(QQmlEngine &engine)
     {
         return engine.singletonInstance<QObject *>(QStringLiteral("org.kde.konveyor.settings"), QStringLiteral("SettingsStore"));
@@ -159,12 +166,13 @@ constexpr QByteArrayView ScriptHost = R"(
 import "catalog/Kdl.js" as Kdl
 import "catalog/RuleSummary.js" as RuleSummary
 import "catalog/MotionMath.js" as MotionMath
+import "catalog/EventEffects.js" as EventEffects
 import "sections/LayoutKeys.js" as LayoutKeys
 import "sections/CornerRule.js" as CornerRule
 import "components/rules/RulePaint.js" as RulePaint
 import "components/monitors/MonitorSummary.js" as MonitorSummary
 QtObject {
-    readonly property var libraries: ({ Kdl: Kdl, RuleSummary: RuleSummary, MotionMath: MotionMath, LayoutKeys: LayoutKeys,
+    readonly property var libraries: ({ Kdl: Kdl, RuleSummary: RuleSummary, MotionMath: MotionMath, EventEffects: EventEffects, LayoutKeys: LayoutKeys,
         CornerRule: CornerRule, RulePaint: RulePaint, MonitorSummary: MonitorSummary })
     function run(library, name, args) {
         const result = libraries[library][name].apply(null, args.map(arg => arg === "@store" ? SettingsStore : arg));

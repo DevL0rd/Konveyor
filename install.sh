@@ -77,6 +77,13 @@ build() {
     as_owner "${KONVEYOR_BUILD_ENV[@]}" cmake --build "$BUILD_DIR" "${clean[@]}"
 }
 
+check_host_libraries() {
+    ((${#KONVEYOR_BUILD_ENV[@]})) || return 0
+    local missing
+    missing=$({ find "$BUILD_DIR/bin" -type f \( -perm -u+x -o -name '*.so' \) -exec ldd {} + 2>/dev/null || true; } | awk '/not found/ { print $1 }' | sort -u | tr '\n' ' ')
+    [[ -z $missing ]] || die "the build in $KONVEYOR_BUILD_BOX needs libraries this system doesn't have: ${missing}Update the system, reboot and run ./install.sh again"
+}
+
 reclaim_files() {
     local paths=("$BUILD_DIR") manifest existing=() path foreign
     if $KONVEYOR_ATOMIC; then
@@ -233,6 +240,7 @@ system_update() {
     read_install_options "$owner_state/install-options"
     source_git submodule update --init --recursive --quiet
     build
+    check_host_libraries
     install_files
     install_versioned_plugin
     record_fingerprint
@@ -270,6 +278,7 @@ main() {
     install_dependencies
     reclaim_files
     build
+    check_host_libraries
     install_files
     install_versioned_plugin
     record_fingerprint

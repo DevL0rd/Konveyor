@@ -8,24 +8,41 @@ RowLayout {
 
     property var options: []
     property var currentValue
+    property bool compact: false
     signal chosen(var value)
 
     spacing: 0
+
+    QQC2.ButtonGroup {
+        id: group
+    }
 
     Repeater {
         model: root.options
 
         QQC2.Button {
+            id: segment
             required property var modelData
             required property int index
+            readonly property bool selected: root.currentValue === modelData.value
 
+            QQC2.ButtonGroup.group: group
             text: modelData.label
             icon.name: modelData.icon || ""
-            checkable: true
+            checkable: selected
+            checked: selected
+            Accessible.checkable: true
+            Accessible.checked: selected
             Layout.fillHeight: true
-            checked: root.currentValue === modelData.value
-            flat: !checked
+            Layout.preferredWidth: root.compact ? metrics.advanceWidth + Kirigami.Units.gridUnit * 1.5 : -1
+            flat: !selected
             onClicked: root.chosen(modelData.value)
+
+            TextMetrics {
+                id: metrics
+                font: segment.font
+                text: segment.text
+            }
 
             QQC2.ToolTip.text: modelData.tooltip || ""
             QQC2.ToolTip.visible: hovered && (modelData.tooltip || "").length > 0

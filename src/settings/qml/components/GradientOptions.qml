@@ -21,9 +21,35 @@ QQC2.Popup {
 
     padding: Kirigami.Units.largeSpacing
 
-    contentItem: Kirigami.FormLayout {
+    contentItem: GridLayout {
+        columns: 2
+        columnSpacing: Kirigami.Units.largeSpacing
+        rowSpacing: Kirigami.Units.smallSpacing
+
+        QQC2.Label { text: "From:"; Layout.alignment: Qt.AlignRight }
+
+        ColorField {
+            value: popup.gradient.from
+            onEdited: css => popup.edited({ from: css })
+        }
+
+        QQC2.Label { text: "To:"; Layout.alignment: Qt.AlignRight }
+
+        ColorField {
+            value: popup.gradient.to
+            onEdited: css => popup.edited({ to: css })
+        }
+
+        QQC2.Label { text: "Angle:"; Layout.alignment: Qt.AlignRight }
+
+        AngleDial {
+            angle: popup.gradient.angle
+            onEdited: value => popup.edited({ angle: value })
+        }
+
+        QQC2.Label { text: "Spread across:"; Layout.alignment: Qt.AlignRight }
+
         QQC2.ComboBox {
-            Kirigami.FormData.label: "Spread across:"
             model: [
                 { value: "window", label: "Each window" },
                 { value: "workspace-view", label: "The whole screen" }
@@ -34,8 +60,9 @@ QQC2.Popup {
             onActivated: popup.edited({ "relative-to": currentValue })
         }
 
+        QQC2.Label { text: "Blend colors in:"; Layout.alignment: Qt.AlignRight }
+
         QQC2.ComboBox {
-            Kirigami.FormData.label: "Blend colors in:"
             model: popup.spaces
             textRole: "label"
             valueRole: "value"

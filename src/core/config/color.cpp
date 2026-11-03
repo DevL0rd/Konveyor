@@ -125,7 +125,7 @@ std::optional<QColor> buildHsl(const QStringList &tokens, double alpha)
 std::optional<QColor> parseFunctionColor(const QString &text)
 {
     const qsizetype open = text.indexOf(QLatin1Char('('));
-    if (open < 0 || !text.endsWith(QLatin1Char(')'))) {
+    if (!text.endsWith(QLatin1Char(')'))) {
         return std::nullopt;
     }
     const QString name = text.left(open).trimmed();
@@ -254,6 +254,11 @@ QColor decodeColorNode(const Kdl::Node &node)
         fail(node, QStringLiteral("`accent` is only supported for focus ring, border, tab indicator and insert hint colors"));
     }
     return paint.color;
+}
+
+Paint decodePaintValue(const Kdl::Value &value)
+{
+    return paintFromText(value);
 }
 
 Paint decodePaintNode(const Kdl::Node &node)

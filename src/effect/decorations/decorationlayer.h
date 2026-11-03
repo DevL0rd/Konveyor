@@ -1,12 +1,19 @@
 #pragma once
 
+#include "audio/audiosignals.h"
+#include "decorations/batterymonitor.h"
+#include "decorations/eventeffects.h"
+#include "decorations/styledborders.h"
+#include "decorations/viewsignals.h"
 #include "layout/engine/engine.h"
 #include "render/borderimage.h"
+#include "render/signals.h"
 
 #include <QObject>
 #include <QPointer>
 #include <QSet>
 
+#include <functional>
 #include <map>
 #include <memory>
 
@@ -46,6 +53,17 @@ public:
     void remove(Layout::WindowId id);
     void retainOnly(const QSet<Layout::WindowId> &ids);
     Config::CornerRadius radiusFor(KWin::Window *window, const Config::CornerRadius &fromRules);
+    void setBorderStyles(const QList<Config::BorderStyle> &styles, bool reduceMotion);
+    void setAudioBeatThreshold(float threshold) { m_audioSignals.setBeatThreshold(threshold); }
+    Render::SignalBus &signalBus() { return m_signalBus; }
+    BatteryMonitor &battery() { return m_battery; }
+    bool paintsBorders() const { return !m_styled.isEmpty() || m_events.isPlaying(); }
+    void paintBorders(Layout::WindowId id, const StyledBorders::PaintRequest &request);
+    void scheduleBorderFrames();
+    void syncEventEffects(const QList<Layout::WindowState> &states, const std::function<KWin::Window *(Layout::WindowId)> &windowOf);
+    bool wantsViewStates() const { return m_viewSignals.isWanted(); }
+    void updateViewSignals(const QList<Layout::OutputViewState> &views, const QList<Layout::WindowState> &states);
+    void fireEvent(Config::EventTrigger trigger, Layout::WindowId id, std::optional<QPointF> point = std::nullopt, QPointF direction = {});
 
 private:
     struct Slot
@@ -86,6 +104,15 @@ private:
         double scale = 1.0;
     };
 
+    struct PartRequest
+    {
+        StyledBorders::Part part = StyledBorders::Part::Border;
+        Slot &slot;
+        KWin::Window *window = nullptr;
+        OutlineRequest outline;
+    };
+
+    void updatePart(const PartRequest &request, const Layout::DecorationState &decoration, const Layout::WindowState &state);
     Placement outline(const OutlineRequest &request, const Layout::DecorationState &decoration, const Layout::WindowState &state) const;
     Placement filled(const QRectF &frame, const QRectF &rect, const Config::CornerRadius &radius, const Layout::ResolvedPaint &paint,
         const QRectF &workspaceView, double scale) const;
@@ -97,6 +124,13 @@ private:
     std::map<Layout::WindowId, Decorations> m_decorations;
     std::optional<Layout::WindowId> m_dropHintCarrier;
     Slot m_dropHint;
+    BorderLayerPainter m_painter;
+    Render::SignalBus m_signalBus;
+    Audio::AudioSignals m_audioSignals;
+    StyledBorders m_styled;
+    EventEffects m_events;
+    ViewSignals m_viewSignals;
+    BatteryMonitor m_battery;
 };
 
 }

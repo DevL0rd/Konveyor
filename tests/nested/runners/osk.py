@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 import os
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from fakepointer import click
-from kwinsession import active_title, konveyor_action, konveyor_windows, run_script, wait_for
+from kwinsession import active_title, konveyor_action, konveyor_windows, run_script, virtual_keyboard, wait_for
 from screenshot import capture_workspace
-
-
-def keyboard(method, *args):
-    return subprocess.run(["busctl", "--user", method, "org.kde.KWin", "/VirtualKeyboard", "org.kde.kwin.VirtualKeyboard", *args],
-                          capture_output=True, text=True).stdout.strip()
 
 
 def frames():
@@ -53,12 +47,12 @@ def main():
     print("two rows:", before)
     x, y, width, height = before["C"]
     click(x + width / 2, y + height - 35, settle=False)
-    keyboard("call", "forceActivate")
+    virtual_keyboard("call", "forceActivate")
     wait_for(lambda: panel_top() is not None and at_targets() and frames()["C"][1] + frames()["C"][3] <= panel_top()[0] + 1, 60)
     panel = panel_top()
     shown = frames()
     capture_workspace(str(Path(os.environ["KONVEYOR_REPORT"]).with_suffix(".png")))
-    print(f"keyboard visible {keyboard('get-property', 'visible')}, panel {panel}, active {active_title()}")
+    print(f"keyboard visible {virtual_keyboard('get-property', 'visible')}, panel {panel}, active {active_title()}")
     print("with keyboard:", shown)
     if panel is None:
         problems.append("the on-screen keyboard did not show")
@@ -78,7 +72,7 @@ def main():
             problems.append(f"tapping Q on the keyboard did not type into C ({typed})")
     if active_title() != "C":
         problems.append(f"C lost focus while the keyboard opened (active: {active_title()})")
-    keyboard("set-property", "active", "b", "false")
+    virtual_keyboard("set-property", "active", "b", "false")
     wait_for(lambda: at_targets() and frames() == before, 60)
     after = frames()
     print("keyboard closed:", after)

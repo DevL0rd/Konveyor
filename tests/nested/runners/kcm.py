@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 
 from kwinsession import run_script
+from sessionguard import popen
 
 REPO = Path(__file__).resolve().parents[3]
 OURS = re.compile(r"kcm_konveyor|org/kde/konveyor|Konveyor settings page")
@@ -25,7 +26,7 @@ def module_window():
 
 def open_page(page, problems):
     with tempfile.TemporaryFile("w+") as log:
-        process = subprocess.Popen(["kcmshell6", "kcm_konveyor", "--args", page], stdout=log, stderr=subprocess.STDOUT)
+        process = popen(["kcmshell6", "kcm_konveyor", "--args", page], stdout=log, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + 60
         caption = None
         while caption is None and time.monotonic() < deadline and process.poll() is None:

@@ -150,8 +150,8 @@ inline Config::LayoutPart randomLayoutPart(Dice &dice)
     maybe(part.newWindowPlacement, full.newWindowPlacement);
     maybe(part.presetWindowHeights, full.presetWindowHeights);
     maybe(part.struts, full.struts);
-    maybe(part.focusRing, Config::BorderRule {full.focusRing.enabled, full.focusRing.width, {}, {}, {}});
-    maybe(part.border, Config::BorderRule {full.border.enabled, full.border.width, {}, {}, {}});
+    maybe(part.focusRing, Config::BorderRule {full.focusRing.enabled, full.focusRing.width, {}, {}, {}, {}, {}, {}});
+    maybe(part.border, Config::BorderRule {full.border.enabled, full.border.width, {}, {}, {}, {}, {}, {}});
     maybe(part.tabIndicator,
         Config::TabIndicatorPart {full.tabIndicator.enabled, full.tabIndicator.hideWhenSingleTab, {}, {}, full.tabIndicator.width, {},
             full.tabIndicator.position, {}, {}, {}});

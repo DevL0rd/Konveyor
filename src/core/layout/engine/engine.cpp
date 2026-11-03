@@ -177,7 +177,7 @@ void Engine::removeOutput(const QString &name)
         return;
     }
     const bool draggedHere = d->windowDrag && d->windowDrag->output.compare(name, Qt::CaseInsensitive) == 0;
-    if (draggedHere && d->monitors.size() == 1) {
+    if (d->windowDrag && d->monitors.size() == 1) {
         d->interactiveMoveFinish();
     }
     d->lastActiveWorkspace.insert(name, d->monitors[*idx].activeWorkspace().id());
@@ -214,14 +214,12 @@ std::optional<QString> Engine::focusedOutput() const
 void Engine::focusWorkspace(const QString &output, int index)
 {
     qCInfo(lcKonveyor) << "konveyor: focusing workspace" << index << "on" << output;
-    Monitor *monitor = d->monitorByName(output);
-    if (!monitor || index < 1) {
+    const auto idx = d->monitorIndexByName(output);
+    if (!idx || index < 1) {
         return;
     }
-    monitor->switchWorkspace(static_cast<std::size_t>(index - 1));
-    if (const auto idx = d->monitorIndexByName(output)) {
-        d->activeMonitorIndex = *idx;
-    }
+    d->monitors[*idx].switchWorkspace(static_cast<std::size_t>(index - 1));
+    d->activeMonitorIndex = *idx;
     d->refresh();
 }
 

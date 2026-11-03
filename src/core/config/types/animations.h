@@ -54,6 +54,7 @@ struct Animations
     AnimationParams horizontalViewMovement;
     AnimationParams windowMovement;
     AnimationParams windowResize;
+    bool reduceMotion = false;
     bool operator==(const Animations &) const = default;
 };
 

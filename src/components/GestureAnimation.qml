@@ -15,6 +15,8 @@ Item {
     property real progress: 0
     signal looped
 
+    readonly property real captionHeight: showCaption ? caption.implicitHeight : 0
+
     readonly property bool touchscreen: device === "touchscreen"
     readonly property real handSign: natural ? -1 : 1
     readonly property bool tap: gesture.startsWith("tap-")
@@ -117,7 +119,7 @@ Item {
         readonly property real aspect: 16 / 10
         anchors.horizontalCenter: parent.horizontalCenter
         y: 0
-        height: Math.min((demo.height - caption.height) * (demo.touchscreen ? 1 : 0.68), demo.width / aspect)
+        height: Math.min((demo.height - captionHeight) * (demo.touchscreen ? 1 : 0.68), demo.width / aspect)
         width: height * aspect
         opacity: demo.active ? 1 : 0.45
 
@@ -189,7 +191,7 @@ Item {
         anchors.top: frame.bottom
         anchors.topMargin: Kirigami.Units.smallSpacing
         width: frame.width * 0.5
-        height: Math.max(0, demo.height - caption.height - frame.height - Kirigami.Units.smallSpacing * 2)
+        height: Math.max(0, demo.height - captionHeight - frame.height - Kirigami.Units.smallSpacing * 2)
         radius: Kirigami.Units.cornerRadius
         color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
         border.color: Qt.alpha(Kirigami.Theme.textColor, 0.25)
@@ -267,7 +269,6 @@ Item {
         visible: demo.showCaption
         anchors.bottom: parent.bottom
         width: parent.width
-        height: visible ? implicitHeight : 0
         text: demo.active ? demo.caption : "Left to KDE"
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight

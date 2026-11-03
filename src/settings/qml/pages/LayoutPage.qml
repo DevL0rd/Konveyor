@@ -18,7 +18,7 @@ SettingsPage {
         Layout.fillWidth: true
     }
 
-    PlacementSection {
-        Layout.fillWidth: true
+    LaterSection {
+        sourceComponent: PlacementSection {}
     }
 }

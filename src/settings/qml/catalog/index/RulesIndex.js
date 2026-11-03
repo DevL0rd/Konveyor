@@ -11,7 +11,7 @@ const entries = [
     { page: "rules", section: "When it opens", label: "Pin an app's column to the start or end of the row", keywords: "column position pin start end first last" },
     { page: "rules", section: "When it opens", label: "Floating window position", keywords: "floating position anchor corner offset" },
     { page: "rules", section: "Size limits", label: "Minimum and maximum window size", keywords: "min max width height limit" },
-    { page: "rules", section: "Look", label: "Window opacity", keywords: "opacity transparent see-through" },
-    { page: "rules", section: "Look", label: "Rounded corners and clipping for an app", keywords: "geometry corner radius clip rounded" },
-    { page: "rules", section: "Look", label: "Custom focus ring or border for an app", keywords: "focus ring border color width override" }
+    { page: "rules", section: "Appearance", label: "Window opacity", keywords: "opacity transparent see-through" },
+    { page: "rules", section: "Appearance", label: "Rounded corners and clipping for an app", keywords: "geometry corner radius clip rounded" },
+    { page: "rules", section: "Appearance", label: "Custom focus ring or border for an app", keywords: "focus ring border color width override" }
 ];

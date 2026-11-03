@@ -75,6 +75,7 @@ void TestConfigStructure::onAndOffTogether_data()
     QTest::newRow("workspace focus-ring") << QStringLiteral("workspace \"w\" { layout { focus-ring { on; »off; }; }; }");
     QTest::newRow("rule border") << QStringLiteral("window-rule { border { on; »off; }; }");
     QTest::newRow("rule focus-ring") << QStringLiteral("window-rule { focus-ring { off; »on; }; }");
+    QTest::newRow("border with later settings") << QStringLiteral("layout { border { on; »off; width 3; }; }");
 }
 
 void TestConfigStructure::onAndOffTogether()

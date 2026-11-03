@@ -85,7 +85,7 @@ void TestSettingsControlsListsQml::controls_data()
             "monitor-profile \"p\" {\n    layout {\n        always-center-single-column\n    }\n}\n"));
     addControl("profile ring",
         profile("Show focus ring", "toggle@Customize here;toggled", "[]", "monitor-profile/layout/focus-ring",
-            R"({"children":["on","width","active-color","inactive-color","urgent-color"]})"));
+            R"({"children":["on","width","active-color","urgent-color"]})"));
     addControl("profile struts",
         profile("Reserved screen edges", "toggle@Customize here;toggled", "[]", "monitor-profile/layout/struts",
             R"({"children":["left","right","top","bottom"]})"));

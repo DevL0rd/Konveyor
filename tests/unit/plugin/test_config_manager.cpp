@@ -1,3 +1,4 @@
+#include "configfiles.h"
 #include "plugin/configmanager.h"
 
 #include <QDir>
@@ -11,28 +12,10 @@
 #include <memory>
 
 using Konveyor::ConfigManager;
-
-namespace
-{
-
-QString gapsConfig(int gaps)
-{
-    return QStringLiteral("layout {\n    gaps %1\n}\n").arg(gaps);
-}
-
-bool writeInPlace(const QString &path, const QString &text)
-{
-    QFile file(path);
-    return file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text) && file.write(text.toUtf8()) >= 0;
-}
-
-bool replaceByRename(const QString &path, const QString &text)
-{
-    QSaveFile file(path);
-    return file.open(QIODevice::WriteOnly | QIODevice::Text) && file.write(text.toUtf8()) >= 0 && file.commit();
-}
-
-}
+using Konveyor::Test::gapsConfig;
+using Konveyor::Test::isolate;
+using Konveyor::Test::replaceByRename;
+using Konveyor::Test::writeInPlace;
 
 class TestConfigManager : public QObject
 {
@@ -43,13 +26,6 @@ public:
     {
         qputenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/konveyor-test-bus");
         isolate(QDir::temp().filePath(QStringLiteral("konveyor-config-manager-unset")));
-    }
-
-    static void isolate(const QString &root)
-    {
-        qputenv("XDG_STATE_HOME", QDir(root).filePath(QStringLiteral("state")).toUtf8());
-        qputenv("XDG_DATA_HOME", QDir(root).filePath(QStringLiteral("data")).toUtf8());
-        qputenv("XDG_DATA_DIRS", QDir(root).filePath(QStringLiteral("system")).toUtf8());
     }
 
 private Q_SLOTS:
@@ -64,6 +40,8 @@ private Q_SLOTS:
     void keepsFollowingAConfigLoadedFromAnotherPath();
     void addsNewDefaultBindsOnce();
     void waitsForDefaultsThatShipTheBinds();
+    void migratesOldBorderConfigsOnceAtStart();
+    void leavesABrokenConfigUnmigrated();
 
 private:
     QString filePath(const QString &name) const;
@@ -219,6 +197,63 @@ void TestConfigManager::waitsForDefaultsThatShipTheBinds()
     manager.start();
     QCOMPARE(manager.config().binds.size(), 1);
     QVERIFY(!QFile::exists(filePath(QStringLiteral("state/konveyor/config-migrations"))));
+}
+
+void TestConfigManager::migratesOldBorderConfigsOnceAtStart()
+{
+    QVERIFY(QDir().mkpath(filePath(QStringLiteral("data/konveyor"))));
+    QVERIFY(QFile::copy(
+        QStringLiteral(KONVEYOR_SOURCE_DIR "/data/default-config.kdl"), filePath(QStringLiteral("data/konveyor/default-config.kdl"))));
+    const QString old = QStringLiteral("layout {\n    focus-ring {\n        width 4\n        active-color \"accent\"\n"
+                                       "        inactive-color \"#505050\"\n    }\n}\n"
+                                       "border-style \"Hot\" {\n    layer \"heat\" {\n        colors \"#ff0000\" \"#0000ff\"\n    }\n}\n");
+    QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), old));
+    {
+        ConfigManager manager;
+        manager.start();
+        const Konveyor::Config::Config &config = manager.config();
+        QCOMPARE(config.layout.focusRing.width, 2.0);
+        QCOMPARE(config.layout.focusRing.activeStyle, QStringLiteral("Default-Style"));
+        QCOMPARE(config.layout.focusRing.urgentStyle, QStringLiteral("Default-Attention-Style"));
+        QCOMPARE(config.borderStyles.first().name, QStringLiteral("Hot"));
+        QCOMPARE(config.borderStyles.first().layers.first().kind, Konveyor::Config::BorderLayerKind::Gradient);
+    }
+    QFile applied(filePath(QStringLiteral("state/konveyor/config-migrations")));
+    QVERIFY(applied.open(QIODevice::ReadOnly));
+    const QStringList ids = QString::fromUtf8(applied.readAll()).split(u'\n', Qt::SkipEmptyParts);
+    for (const QString &id : {QStringLiteral("heat-layers"), QStringLiteral("animated-border-defaults"), QStringLiteral("focus-effects")}) {
+        QVERIFY2(ids.contains(id), qPrintable(id));
+    }
+    QFile migrated(filePath(QStringLiteral("config.kdl")));
+    QVERIFY(migrated.open(QIODevice::ReadOnly));
+    const QString text = QString::fromUtf8(migrated.readAll());
+    QVERIFY(!text.contains(QStringLiteral("heat")));
+    QVERIFY(!text.contains(QStringLiteral("inactive-color")));
+    ConfigManager again;
+    again.start();
+    QFile after(filePath(QStringLiteral("config.kdl")));
+    QVERIFY(after.open(QIODevice::ReadOnly));
+    QCOMPARE(QString::fromUtf8(after.readAll()), text);
+}
+
+void TestConfigManager::leavesABrokenConfigUnmigrated()
+{
+    QVERIFY(QDir().mkpath(filePath(QStringLiteral("data/konveyor"))));
+    QVERIFY(QFile::copy(
+        QStringLiteral(KONVEYOR_SOURCE_DIR "/data/default-config.kdl"), filePath(QStringLiteral("data/konveyor/default-config.kdl"))));
+    const QString broken = QStringLiteral("layout {\n    focus-ring {\n        width 4\n");
+    QVERIFY(writeInPlace(filePath(QStringLiteral("config.kdl")), broken));
+    {
+        ConfigManager manager;
+        manager.start();
+    }
+    QFile file(filePath(QStringLiteral("config.kdl")));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(QString::fromUtf8(file.readAll()), broken);
+    QFile applied(filePath(QStringLiteral("state/konveyor/config-migrations")));
+    if (applied.open(QIODevice::ReadOnly)) {
+        QVERIFY(!QString::fromUtf8(applied.readAll()).contains(QStringLiteral("animated-border-defaults")));
+    }
 }
 
 QTEST_GUILESS_MAIN(TestConfigManager)

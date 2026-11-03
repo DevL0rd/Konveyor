@@ -32,6 +32,9 @@ def cmake(arguments):
         plugins.mkdir(parents=True, exist_ok=True)
         for plugin in ("konveyor_effect", "process_monitor_telemetry"):
             (plugins / f"{plugin}.so").write_text(f"{plugin} {os.environ.get('STUB_BUILD', 'build')}\n")
+        panel = Path(option(arguments, "--build")) / "bin" / "konveyor-kontrol-panel"
+        panel.write_text("#!/bin/sh\n")
+        panel.chmod(0o755)
         return 0
     build = Path(option(arguments, "--install"))
     defines = json.loads((build / "stub-cache.json").read_text())
@@ -50,6 +53,15 @@ def cmake(arguments):
             target.write_text(f"{relative}\n")
         manifest.append(str(target))
     (build / "install_manifest.txt").write_text("\n".join(manifest))
+    return 0
+
+
+def ldd(arguments):
+    missing = os.environ.get("STUB_MISSING_LIBRARY")
+    for argument in arguments:
+        print(f"{argument}:")
+        if missing and argument.endswith("/konveyor-kontrol-panel"):
+            print(f"\t{missing} => not found")
     return 0
 
 
@@ -198,5 +210,6 @@ HANDLERS = {
     "runuser": runuser,
     "id": identity,
     "getent": getent,
+    "ldd": ldd,
     "date": date,
 }

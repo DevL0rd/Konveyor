@@ -38,6 +38,7 @@ QVariantMap animationValue(const Config::AnimationParams &params)
 void insertAnimations(QVariantMap &values, const Config::Animations &animations)
 {
     values.insert(QStringLiteral("animations/enabled"), animations.enabled);
+    values.insert(QStringLiteral("animations/reduce-motion"), animations.reduceMotion);
     values.insert(QStringLiteral("animations/slowdown"), animations.slowdown);
     const QList<std::pair<QString, const Config::AnimationParams *>> entries {
         {QStringLiteral("workspace-switch"), &animations.workspaceSwitch},
@@ -121,6 +122,7 @@ QVariantMap globalValues(const Config::Config &config)
             gestures.titlebarDrag == Config::TitlebarDrag::MoveWindow ? QStringLiteral("move-window") : QStringLiteral("scroll-view")},
     };
     insertAnimations(values, config.animations);
+    values.insert(QStringLiteral("border-styles"), borderStyleValues(config.borderStyles));
     return values;
 }
 

@@ -111,6 +111,57 @@ private Q_SLOTS:
         QCOMPARE(failed.first().action, QStringLiteral("Overview"));
     }
 
+    void restoreLeavesAnActionOnTheKeysItWasGivenSince()
+    {
+        const QKeySequence metaP(QStringLiteral("Meta+P"));
+        m_fake->add(
+            {QStringLiteral("kwin"), QStringLiteral("Present Windows"), QStringLiteral("KWin"), QStringLiteral("Present")}, {metaP});
+        const ReleasedShortcut shortcut {QStringLiteral("kwin"), QStringLiteral("Present Windows"), QStringLiteral("KWin"),
+            QStringLiteral("Present"), {QKeySequence(QStringLiteral("Meta+Q"))}};
+        FakeKGlobalAccel::settle();
+        const auto before = m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size();
+        QVERIFY(ShortcutConflicts::restore({shortcut}).isEmpty());
+        QCOMPARE(m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size(), before);
+        QCOMPARE(m_fake->keys(QStringLiteral("kwin"), QStringLiteral("Present Windows")), QList<QKeySequence> {metaP});
+    }
+
+    void restoreUnwantedGivesBackOnlyWhatIsNoLongerWanted()
+    {
+        const ReleasedShortcut wanted {QStringLiteral("kwin"), QStringLiteral("Overview"), QStringLiteral("KWin"), QString(), {metaW}};
+        const ReleasedShortcut unwanted {QStringLiteral("plasmashell"), QStringLiteral("show dashboard"), QStringLiteral("Plasma"),
+            QStringLiteral("Show Desktop"), {QKeySequence(QStringLiteral("Ctrl+F12"))}};
+        FakeKGlobalAccel::settle();
+        const auto before = m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size();
+        const QList<ReleasedShortcut> kept = ShortcutConflicts::restoreUnwanted({wanted, unwanted}, {metaW});
+        QCOMPARE(kept.size(), 1);
+        QCOMPARE(kept.first().action, QStringLiteral("Overview"));
+        QCOMPARE(m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size(), before + 1);
+    }
+
+    void restoreUnwantedKeepsTheSupersededActionsWhateverIsWanted()
+    {
+        const ReleasedShortcut tiles {QStringLiteral("kwin"), QStringLiteral("Edit Tiles"), QStringLiteral("KWin"), QString(),
+            {QKeySequence(QStringLiteral("Meta+T"))}};
+        FakeKGlobalAccel::settle();
+        const auto before = m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size();
+        const QList<ReleasedShortcut> kept = ShortcutConflicts::restoreUnwanted({tiles}, {});
+        QCOMPARE(kept.size(), 1);
+        QCOMPARE(kept.first().action, QStringLiteral("Edit Tiles"));
+        QCOMPARE(m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size(), before);
+    }
+
+    void restoreUnwantedKeepsWhatKGlobalAccelRefused()
+    {
+        const ReleasedShortcut unwanted {QStringLiteral("plasmashell"), QStringLiteral("show dashboard"), QStringLiteral("Plasma"),
+            QStringLiteral("Show Desktop"), {QKeySequence(QStringLiteral("Ctrl+F12"))}};
+        m_fake.reset();
+        const QList<ReleasedShortcut> kept = ShortcutConflicts::restoreUnwanted({unwanted}, {});
+        m_fake = std::make_unique<FakeKGlobalAccel>();
+        QVERIFY(m_fake->start(m_session->address()));
+        QCOMPARE(kept.size(), 1);
+        QCOMPARE(kept.first().action, QStringLiteral("show dashboard"));
+    }
+
     void saveAndLoadRoundTrip()
     {
         const QList<ReleasedShortcut> released {
