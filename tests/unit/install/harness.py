@@ -35,10 +35,7 @@ KWIN = "6.7.0"
 
 @functools.cache
 def can_fake_root():
-    # Build sandboxes and hosts that restrict unprivileged user namespaces (Ubuntu 24.04's AppArmor) refuse this.
-    unshare = shutil.which("unshare")
-    return unshare is not None and subprocess.run([unshare, "--user", "--map-root-user", "--", "true"],
-                                                  capture_output=True).returncode == 0
+    return subprocess.run([shutil.which("unshare"), "--user", "--map-root-user", "--", "true"], capture_output=True).returncode == 0
 
 
 SOURCE_FUNCTIONS = """

@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# Warnings fail the build. Packagers building with other compilers can turn
-# that off with cmake --compile-no-warning-as-error.
 if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
     set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 endif()
