@@ -140,6 +140,7 @@ struct KonveyorEffect::Private
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;
     QPointF resizeOrigin;
+    bool resizeByTouch = false;
     quint64 bindCount = 0;
     QString lastBindKey;
     QString lastBindAction;
