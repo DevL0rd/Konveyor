@@ -62,7 +62,7 @@ void Workspace::setOutput(const OutputArea &area)
         return;
     }
     if (m_area.outputName != area.outputName) {
-        clearWindowedFullscreenFallbacks();
+        clearLockedOutputCovers();
     }
     m_area = area;
     resolveHomeByConnector();
@@ -74,7 +74,7 @@ void Workspace::setOutput(const OutputArea &area)
 
 void Workspace::clearOutput()
 {
-    clearWindowedFullscreenFallbacks();
+    clearLockedOutputCovers();
     m_area.outputName.clear();
     m_area.outputId.clear();
 }

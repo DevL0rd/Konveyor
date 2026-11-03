@@ -116,12 +116,12 @@ private Q_SLOTS:
         row.fixture.engine().setWindowFullscreen(game, false);
         row.fixture.settle();
         const auto before = row.fixture.engine().placementOf(game);
-        QVERIFY(before && before->isWindowedFullscreenFallback);
+        QVERIFY(before && before->coversLockedOutput);
         QVERIFY(row.fixture.state(game).isWindowedFullscreen);
         QVERIFY(startMove(row.fixture, game, QPointF(2, 540)));
         row.cancel();
         const auto restored = row.fixture.engine().placementOf(game);
-        QVERIFY(restored && restored->isWindowedFullscreenFallback);
+        QVERIFY(restored && restored->coversLockedOutput);
         QVERIFY(row.fixture.state(game).isWindowedFullscreen);
         QVERIFY(!row.fixture.state(game).isFloating);
         QCOMPARE(row.fixture.state(game).requestedSizingMode, Layout::WindowMode::Fullscreen);

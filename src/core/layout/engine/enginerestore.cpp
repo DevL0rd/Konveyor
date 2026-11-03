@@ -14,7 +14,7 @@ void restoreWindowPlan(NewWindowPlan &plan, const RestorePlacement &restore, con
 {
     plan.wantsMaximized |= restore.requestedSizingMode == WindowMode::Maximized;
     plan.isFloating = restore.isFloating || (restore.returnsToFloating && !plan.wantsFullscreen && !plan.wantsMaximized);
-    plan.wantsFullscreen |= restore.isWindowedFullscreenFallback;
+    plan.wantsFullscreen |= restore.coversLockedOutput;
     for (std::size_t idx = 0; idx < monitors.size(); ++idx) {
         if (monitors[idx].indexOfWorkspace(restore.workspace)) {
             plan.monitorIndex = idx;
@@ -51,7 +51,7 @@ void Engine::addWindow(WindowId id, const WindowProperties &properties, const QS
         d->restoreFloatingFrame(id, restore->floatingFrame);
     }
     if (!plan.wantsFullscreen && d->isLockedToOutputSize(id)) {
-        d->floatOverOutput(id);
+        d->presentOverOutput(id);
     }
     d->refresh();
 }
@@ -115,7 +115,7 @@ std::optional<RestorePlacement> Engine::placementOf(WindowId id) const
             continue;
         }
         placement.columnIndex = c;
-        placement.isWindowedFullscreenFallback = columns[c].tiles[*position].isWindowedFullscreenFallback;
+        placement.coversLockedOutput = columns[c].tiles[*position].coversLockedOutput;
         placement.width = columns[c].widthSetting;
         placement.fillsWidth = columns[c].fillsWidth;
         placement.columnDisplay = columns[c].displayStyle;
@@ -154,8 +154,8 @@ void Engine::Private::restorePresentation(Workspace &workspace, WindowId id, con
     if (restore.columnDisplay && column && column->tiles.size() == 1) {
         workspace.setColumnDisplay(*restore.columnDisplay, id);
     }
-    if (restore.isWindowedFullscreenFallback && tile->window().requestedMode() == WindowMode::Fullscreen) {
-        tile->isWindowedFullscreenFallback = true;
+    if (restore.coversLockedOutput && tile->window().requestedMode() == WindowMode::Fullscreen) {
+        tile->coversLockedOutput = true;
         tile->window().requestWindowedFullscreen(true);
     }
 }

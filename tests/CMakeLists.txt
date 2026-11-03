@@ -177,6 +177,11 @@ target_include_directories(fullscreen_guard_client PRIVATE ${CMAKE_CURRENT_BINAR
 target_link_libraries(fullscreen_guard_client PRIVATE PkgConfig::WAYLAND_CLIENT)
 target_compile_options(fullscreen_guard_client PRIVATE -Wall -Wextra)
 
+add_executable(strict_size_client nested/clients/strict_size_client.cpp ${XDG_SHELL_HEADER} ${XDG_SHELL_CODE})
+target_include_directories(strict_size_client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(strict_size_client PRIVATE PkgConfig::WAYLAND_CLIENT)
+target_compile_options(strict_size_client PRIVATE -Wall -Wextra)
+
 set(TOPLEVEL_TAG_XML ${WAYLAND_PROTOCOLS_DATA}/staging/xdg-toplevel-tag/xdg-toplevel-tag-v1.xml)
 set(TOPLEVEL_TAG_HEADER ${CMAKE_CURRENT_BINARY_DIR}/xdg-toplevel-tag-v1-client-protocol.h)
 set(TOPLEVEL_TAG_CODE ${CMAKE_CURRENT_BINARY_DIR}/xdg-toplevel-tag-v1-protocol.c)

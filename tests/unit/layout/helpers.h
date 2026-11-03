@@ -28,6 +28,15 @@ inline Layout::WindowProperties makeWindow(const QString &appId = {}, const QStr
     return properties;
 }
 
+inline Layout::WindowProperties lockedWindow(QSizeF size = QSizeF(1920, 1080))
+{
+    Layout::WindowProperties properties = makeWindow(QStringLiteral("game"), QStringLiteral("game"), size);
+    properties.isResizable = false;
+    properties.minSize = size;
+    properties.maxSize = size;
+    return properties;
+}
+
 inline Config::Config instantConfig()
 {
     Config::Config config;

@@ -77,11 +77,7 @@ void markClosed(void *data, xdg_toplevel *)
     static_cast<Client *>(data)->closed = true;
 }
 
-void ignoreBounds(void *, xdg_toplevel *, int32_t, int32_t) { }
-
-void ignoreCapabilities(void *, xdg_toplevel *, wl_array *) { }
-
-constexpr xdg_toplevel_listener toplevelListener {toplevelConfigure, markClosed, ignoreBounds, ignoreCapabilities};
+constexpr xdg_toplevel_listener toplevelListener {toplevelConfigure, markClosed, ignoreToplevelBounds, ignoreToplevelCapabilities};
 
 }
 

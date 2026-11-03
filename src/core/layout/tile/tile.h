@@ -95,7 +95,7 @@ public:
 
     void requestOuterSize(QSizeF size, bool animate);
     void requestMaximized(QSizeF size, bool animate);
-    void clearWindowedFullscreenFallback();
+    void clearLockedOutputCover();
     void requestFullscreen(bool animate);
     double outerWidthFor(double size) const;
     ColumnWidth columnWidthFor(const Config::PresetSize &preset) const;
@@ -106,7 +106,7 @@ public:
     QSizeF maxNormalSize() const;
 
     bool returnsToFloating = false;
-    bool isWindowedFullscreenFallback = false;
+    bool coversLockedOutput = false;
     std::optional<QSize> savedFloatingSize;
     std::optional<QPointF> savedFloatingPosition;
     std::optional<std::size_t> floatingWidthPresetIndex;

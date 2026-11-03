@@ -156,7 +156,7 @@ struct RestorePlacement
 {
     WorkspaceId workspace = 0;
     bool isFloating = false;
-    bool isWindowedFullscreenFallback = false;
+    bool coversLockedOutput = false;
     bool returnsToFloating = false;
     WindowMode requestedSizingMode = WindowMode::Normal;
     std::optional<QSize> savedFloatingSize;

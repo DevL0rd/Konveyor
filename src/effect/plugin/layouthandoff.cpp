@@ -37,7 +37,7 @@ QJsonObject entryToJson(const QUuid &window, const QString &output, int workspac
         {QStringLiteral("output"), output},
         {QStringLiteral("workspace"), workspaceIndex},
         {QStringLiteral("floating"), placement.isFloating},
-        {QStringLiteral("windowedFullscreenFallback"), placement.isWindowedFullscreenFallback},
+        {QStringLiteral("coversLockedOutput"), placement.coversLockedOutput},
         {QStringLiteral("returnsToFloating"), placement.returnsToFloating},
         {QStringLiteral("sizingMode"), static_cast<int>(placement.requestedSizingMode)},
         {QStringLiteral("savedFloatingSize"),
@@ -94,7 +94,7 @@ LayoutHandoff LayoutHandoff::take()
         entry.output = object.value(QStringLiteral("output")).toString();
         entry.workspaceIndex = object.value(QStringLiteral("workspace")).toInt();
         entry.placement.isFloating = object.value(QStringLiteral("floating")).toBool();
-        entry.placement.isWindowedFullscreenFallback = object.value(QStringLiteral("windowedFullscreenFallback")).toBool();
+        entry.placement.coversLockedOutput = object.value(QStringLiteral("coversLockedOutput")).toBool();
         entry.placement.returnsToFloating = object.value(QStringLiteral("returnsToFloating")).toBool();
         const int mode = object.value(QStringLiteral("sizingMode")).toInt();
         if (mode >= static_cast<int>(Layout::WindowMode::Normal) && mode <= static_cast<int>(Layout::WindowMode::Fullscreen)) {

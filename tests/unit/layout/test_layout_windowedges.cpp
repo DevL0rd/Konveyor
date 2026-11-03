@@ -105,7 +105,7 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void windowsBecomingOutputSizedFloatOverTheOutput()
+    void windowsBecomingOutputSizedCoverTheOutputInTheirColumn()
     {
         Fixture fixture;
         fixture.add(QStringLiteral("a"));
@@ -116,11 +116,14 @@ private Q_SLOTS:
         locked.maxSize = QSizeF(1920, 1080);
         fixture.engine().updateWindowProperties(id, locked);
         fixture.settle();
-        QVERIFY(fixture.state(id).isFloating);
+        QVERIFY(!fixture.state(id).isFloating);
+        QVERIFY(fixture.state(id).isWindowedFullscreen);
         fixture.engine().updateWindowProperties(id, locked);
         Layout::WindowProperties smaller = locked;
         smaller.minSize = QSizeF(800, 600);
         fixture.engine().updateWindowProperties(id, smaller);
+        QVERIFY(!fixture.state(id).isFloating);
+        QVERIFY(!fixture.state(id).isWindowedFullscreen);
         VERIFY_INVARIANTS(fixture);
     }
 

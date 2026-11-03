@@ -185,6 +185,7 @@ void KonveyorEffect::handleWindowSizeCommitted(Layout::WindowId id, const QSizeF
 {
     KWin::Window *window = d->windows.windowOf(id);
     if (window && adoptFloatingGeometry(id, window)) {
+        changeEngine().windowSizeCommitted(id, size);
         scheduleFlush();
         return;
     }

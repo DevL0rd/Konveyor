@@ -151,7 +151,7 @@ private Q_SLOTS:
         const Layout::WindowId id = tile.id();
         workspace.addTile(std::move(tile), tileRequest(Layout::AddTarget(), Layout::Activation::Always, false));
         workspace.setFullscreen(id, true);
-        workspace.scrolling().tileFor(id)->isWindowedFullscreenFallback = true;
+        workspace.scrolling().tileFor(id)->coversLockedOutput = true;
         workspace.toggleWindowFloating(id);
         QVERIFY(workspace.isFloating(id));
         workspace.toggleWindowFloating(id);

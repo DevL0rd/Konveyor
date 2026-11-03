@@ -12,7 +12,8 @@ enum class Request
 {
     Unfullscreen,
     Minimize,
-    Protocol
+    Protocol,
+    Locked
 };
 
 struct Client
@@ -38,6 +39,8 @@ struct Client
     int height = 400;
     int bufferWidth = 0;
     int bufferHeight = 0;
+    int lockedWidth = 0;
+    int lockedHeight = 0;
 };
 
 void bindOutput(void *data, wl_registry *registry, uint32_t name, const char *interface, uint32_t)
@@ -64,15 +67,21 @@ void requestState(Client *client)
     ++client->phaseRequests;
 }
 
+bool takesCommands(const Client *client)
+{
+    return client->request == Request::Protocol || client->request == Request::Locked;
+}
+
 void surfaceConfigure(void *data, xdg_surface *surface, uint32_t serial)
 {
     auto *client = static_cast<Client *>(data);
     xdg_surface_ack_configure(surface, serial);
-    if (client->request == Request::Protocol) {
+    if (takesCommands(client)) {
         std::printf("configure:%u:%s:%dx%d\n", serial, client->fullscreen ? "fullscreen" : "normal", client->width, client->height);
         std::fflush(stdout);
-        const int width = client->width > 0 ? client->width : 600;
-        const int height = client->height > 0 ? client->height : 400;
+        const bool locked = client->request == Request::Locked;
+        const int width = locked ? client->lockedWidth : client->width > 0 ? client->width : 600;
+        const int height = locked ? client->lockedHeight : client->height > 0 ? client->height : 400;
         if (width != client->bufferWidth || height != client->bufferHeight) {
             if (client->buffer) {
                 wl_buffer_destroy(client->buffer);
@@ -142,6 +151,20 @@ void toplevelCapabilities(void *, xdg_toplevel *, wl_array *) { }
 
 constexpr xdg_toplevel_listener toplevelListener {toplevelConfigure, toplevelClose, toplevelBounds, toplevelCapabilities};
 
+void lockSize(Client *client)
+{
+    xdg_toplevel_set_min_size(client->toplevel, client->lockedWidth, client->lockedHeight);
+    xdg_toplevel_set_max_size(client->toplevel, client->lockedWidth, client->lockedHeight);
+    if (client->buffer) {
+        wl_buffer_destroy(client->buffer);
+    }
+    client->buffer = makeSolidBuffer(client->globals.shm, client->lockedWidth, client->lockedHeight, 0xffb03030u);
+    client->bufferWidth = client->lockedWidth;
+    client->bufferHeight = client->lockedHeight;
+    wl_surface_attach(client->surface, client->buffer, 0, 0);
+    wl_surface_damage_buffer(client->surface, 0, 0, client->lockedWidth, client->lockedHeight);
+}
+
 void requestProtocolState(Client *client)
 {
     char command[32];
@@ -157,6 +180,11 @@ void requestProtocolState(Client *client)
         xdg_toplevel_unset_fullscreen(client->toplevel);
     } else if (std::strcmp(command, "minimize\n") == 0) {
         xdg_toplevel_set_minimized(client->toplevel);
+    } else if (std::sscanf(command, "windowed %dx%d", &client->lockedWidth, &client->lockedHeight) == 2) {
+        xdg_toplevel_unset_fullscreen(client->toplevel);
+        lockSize(client);
+    } else if (std::sscanf(command, "resize %dx%d", &client->lockedWidth, &client->lockedHeight) == 2) {
+        lockSize(client);
     }
     wl_surface_commit(client->surface);
     wl_display_flush(client->display);
@@ -171,9 +199,9 @@ bool dispatch(Client *client)
     }
     wl_display_flush(client->display);
     pollfd descriptors[] {{wl_display_get_fd(client->display), POLLIN, 0}, {STDIN_FILENO, POLLIN, 0}};
-    const bool awaitingRequest = client->request != Request::Protocol && client->focusPhase > 0 && client->phaseRequests < 1;
+    const bool awaitingRequest = !takesCommands(client) && client->focusPhase > 0 && client->phaseRequests < 1;
     const int timeout = awaitingRequest ? 2 : 1000;
-    const int ready = poll(descriptors, client->request == Request::Protocol ? 2 : 1, timeout);
+    const int ready = poll(descriptors, takesCommands(client) ? 2 : 1, timeout);
     if (ready > 0 && (descriptors[0].revents & POLLIN)) {
         if (wl_display_read_events(client->display) < 0) {
             return false;
@@ -184,7 +212,7 @@ bool dispatch(Client *client)
     if (wl_display_dispatch_pending(client->display) < 0) {
         return false;
     }
-    if (client->request == Request::Protocol && (descriptors[1].revents & POLLIN)) {
+    if (takesCommands(client) && (descriptors[1].revents & POLLIN)) {
         requestProtocolState(client);
     }
     if (awaitingRequest) {
@@ -197,12 +225,16 @@ bool dispatch(Client *client)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
+    if (argc != 3 && argc != 6) {
         return 2;
     }
     Client client;
     if (std::strcmp(argv[2], "protocol") == 0) {
         client.request = Request::Protocol;
+    } else if (argc == 6 && std::strcmp(argv[2], "locked") == 0) {
+        client.request = Request::Locked;
+        client.lockedWidth = std::atoi(argv[3]);
+        client.lockedHeight = std::atoi(argv[4]);
     } else if (std::strcmp(argv[2], "minimize") == 0) {
         client.request = Request::Minimize;
     }
@@ -224,7 +256,11 @@ int main(int argc, char **argv)
     client.toplevel = xdg_surface_get_toplevel(client.xdgSurface);
     xdg_toplevel_add_listener(client.toplevel, &toplevelListener, &client);
     xdg_toplevel_set_title(client.toplevel, argv[1]);
-    xdg_toplevel_set_app_id(client.toplevel, "konveyor-fullscreen-guard-test");
+    xdg_toplevel_set_app_id(client.toplevel, client.request == Request::Locked ? argv[5] : "konveyor-fullscreen-guard-test");
+    if (client.request == Request::Locked) {
+        xdg_toplevel_set_min_size(client.toplevel, client.lockedWidth, client.lockedHeight);
+        xdg_toplevel_set_max_size(client.toplevel, client.lockedWidth, client.lockedHeight);
+    }
     wl_surface_commit(client.surface);
     while (!client.closed && dispatch(&client)) { }
     return 0;

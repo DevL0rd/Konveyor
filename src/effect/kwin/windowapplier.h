@@ -32,6 +32,7 @@ public:
     void forget(Layout::WindowId id);
 
 private:
+    static bool requiresStrictSize(KWin::Window *window, const Layout::WindowState &state);
     static QRectF frameFor(const Layout::WindowState &state);
     static QRectF placedFrame(const Layout::WindowState &state);
     void applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled, bool allowResize,

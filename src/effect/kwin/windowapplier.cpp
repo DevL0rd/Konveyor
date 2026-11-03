@@ -13,10 +13,8 @@
 #include <window.h>
 #include <workspace.h>
 
-#ifdef KONVEYOR_KWIN_CONFINES_COMMITS
 #include <wayland_server.h>
 #include <xdgshellwindow.h>
-#endif
 
 #include <QScopedValueRollback>
 
@@ -61,6 +59,42 @@ void setExemptFromConfinement(KWin::Window *window, bool exempt)
 void setExemptFromConfinement(KWin::Window *, bool) { }
 #endif
 
+using NextStates = KWin::XdgToplevelInterface::States KWin::XdgToplevelWindow::*;
+using ConfigureScheduler = void (KWin::Window::*)();
+
+template<NextStates Flag> struct NextStatesAccess
+{
+    friend NextStates nextStates() { return Flag; }
+};
+
+template<ConfigureScheduler Function> struct ConfigureSchedulerAccess
+{
+    friend ConfigureScheduler configureScheduler() { return Function; }
+};
+
+NextStates nextStates();
+ConfigureScheduler configureScheduler();
+template struct NextStatesAccess<&KWin::XdgToplevelWindow::m_nextStates>;
+template struct ConfigureSchedulerAccess<&KWin::Window::doSetActive>;
+
+constexpr KWin::XdgToplevelInterface::States TiledEdges {KWin::XdgToplevelInterface::State::TiledLeft
+    | KWin::XdgToplevelInterface::State::TiledRight | KWin::XdgToplevelInterface::State::TiledTop
+    | KWin::XdgToplevelInterface::State::TiledBottom};
+
+void setStrictSize(KWin::Window *window, bool strict)
+{
+    KWin::XdgToplevelWindow *toplevel = KWin::waylandServer()->findXdgToplevelWindow(window->surface());
+    if (!toplevel) {
+        return;
+    }
+    KWin::XdgToplevelInterface::States &states = toplevel->*nextStates();
+    const KWin::XdgToplevelInterface::States wanted = strict ? (states | TiledEdges) : (states & ~TiledEdges);
+    if (wanted != states) {
+        states = wanted;
+        (toplevel->*configureScheduler())();
+    }
+}
+
 }
 
 WindowApplier::WindowApplier(const WindowRegistry &windows)
@@ -97,11 +131,18 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             m_appliedFrames.insert(state.id, frame);
         }
         applySizingMode(window, state);
+        setStrictSize(window, requiresStrictSize(window, state));
         applyGeometry(window, frame, requestedSize, !state.isFloating, state.isForceResizable || window->isResizable(),
             state.requestedSizingMode == Layout::WindowMode::Fullscreen);
         applyBorderRadius(window, state);
     }
     applyStacking(states);
+}
+
+bool WindowApplier::requiresStrictSize(KWin::Window *window, const Layout::WindowState &state)
+{
+    return state.isForceResizable && !state.isFloating && !window->isResizable()
+        && state.requestedSizingMode != Layout::WindowMode::Fullscreen && !window->isRequestedFullScreen();
 }
 
 bool WindowApplier::isApplying() const

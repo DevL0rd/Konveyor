@@ -276,7 +276,7 @@ QSizeF Tile::visibleOuterSize() const
 
 void Tile::requestOuterSize(QSizeF size, bool animate)
 {
-    clearWindowedFullscreenFallback();
+    clearLockedOutputCover();
     if (m_border.enabled) {
         size = QSizeF(std::max(1.0, size.width() - m_border.width * 2.0), std::max(1.0, size.height() - m_border.width * 2.0));
     }
@@ -285,14 +285,14 @@ void Tile::requestOuterSize(QSizeF size, bool animate)
 
 void Tile::requestMaximized(QSizeF size, bool animate)
 {
-    clearWindowedFullscreenFallback();
+    clearLockedOutputCover();
     m_window.requestSize(roundedSize(size), WindowMode::Maximized, animate);
 }
 
-void Tile::clearWindowedFullscreenFallback()
+void Tile::clearLockedOutputCover()
 {
-    if (isWindowedFullscreenFallback) {
-        isWindowedFullscreenFallback = false;
+    if (coversLockedOutput) {
+        coversLockedOutput = false;
         m_window.requestWindowedFullscreen(false);
     }
 }
@@ -300,7 +300,7 @@ void Tile::clearWindowedFullscreenFallback()
 void Tile::requestFullscreen(bool animate)
 {
     m_window.requestSize(roundedSize(m_viewSize), WindowMode::Fullscreen, animate);
-    if (isWindowedFullscreenFallback) {
+    if (coversLockedOutput) {
         m_window.requestWindowedFullscreen(true);
     }
 }

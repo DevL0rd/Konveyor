@@ -48,6 +48,10 @@ inline void answerPing(void *, xdg_wm_base *shell, uint32_t serial)
 
 inline constexpr xdg_wm_base_listener pingListener {answerPing};
 
+inline void ignoreToplevelBounds(void *, xdg_toplevel *, int32_t, int32_t) { }
+
+inline void ignoreToplevelCapabilities(void *, xdg_toplevel *, wl_array *) { }
+
 inline bool bindGlobals(wl_display *display, XdgGlobals &globals)
 {
     wl_registry *registry = wl_display_get_registry(display);

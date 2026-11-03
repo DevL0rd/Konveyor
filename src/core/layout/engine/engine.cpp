@@ -157,7 +157,7 @@ void Engine::updateOutput(const OutputInfo &output)
     Monitor *monitor = d->monitorByName(output.name);
     if (d->outputInfos.value(output.name).geometry.topLeft() != output.geometry.topLeft()) {
         for (Workspace &workspace : monitor->workspaces()) {
-            workspace.clearWindowedFullscreenFallbacks();
+            workspace.clearLockedOutputCovers();
         }
     }
     d->outputInfos.insert(output.name, output);

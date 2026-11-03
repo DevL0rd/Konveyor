@@ -39,8 +39,8 @@ void Workspace::toggleWindowFloating(std::optional<WindowId> window)
     if (!target || !hasWindow(*target)) {
         return;
     }
-    if (Tile *tile = tileFor(*target); tile && tile->isWindowedFullscreenFallback) {
-        tile->clearWindowedFullscreenFallback();
+    if (Tile *tile = tileFor(*target); tile && tile->coversLockedOutput) {
+        tile->clearLockedOutputCover();
         m_strip.setFullscreen(*target, false);
     }
     const QPointF renderPos = tileRenderPosition(*target).value_or(QPointF());

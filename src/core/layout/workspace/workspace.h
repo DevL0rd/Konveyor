@@ -69,7 +69,7 @@ public:
     void setConfiguredHome(const QString &reference);
     const OutputArea &area() const { return m_area; }
     void setOutput(const OutputArea &area);
-    void clearWindowedFullscreenFallbacks();
+    void clearLockedOutputCovers();
     void clearOutput();
 
     void updateConfig(OptionsPtr globalOptions);

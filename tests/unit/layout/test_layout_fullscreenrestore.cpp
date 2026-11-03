@@ -139,7 +139,7 @@ private Q_SLOTS:
             QVERIFY(fixture.perform(QString::fromLatin1(action)).ok);
             QCOMPARE(fixture.state(game).requestedSizingMode, Layout::WindowMode::Normal);
             QCOMPARE(fixture.state(game).isWindowedFullscreen, QString::fromLatin1(action) == QStringLiteral("toggle-windowed-fullscreen"));
-            QVERIFY(!fixture.engine().placementOf(game)->isWindowedFullscreenFallback);
+            QVERIFY(!fixture.engine().placementOf(game)->coversLockedOutput);
             if (QString::fromLatin1(action) == QStringLiteral("toggle-window-floating")) {
                 QVERIFY(fixture.state(game).isFloating);
             }
@@ -163,7 +163,7 @@ private Q_SLOTS:
         fixture.add();
         fixture.engine().setWindowFullscreen(game, false);
         const auto placement = fixture.engine().placementOf(game);
-        QVERIFY(placement->isWindowedFullscreenFallback);
+        QVERIFY(placement->coversLockedOutput);
         fixture.remove(game);
         auto properties = locked ? lockedGame() : makeWindow(QStringLiteral("game"), QStringLiteral("game"), QSizeF(800, 600));
         properties.wantsFullscreen = false;
@@ -188,7 +188,7 @@ private Q_SLOTS:
         auto properties = lockedGame();
         properties.wantsFullscreen = false;
         restoreGame(fixture, game, properties, placement);
-        QVERIFY(!fixture.engine().placementOf(game)->isWindowedFullscreenFallback);
+        QVERIFY(!fixture.engine().placementOf(game)->coversLockedOutput);
         verifyNormalSizing(fixture, game);
         VERIFY_INVARIANTS(fixture);
     }
@@ -260,26 +260,27 @@ private Q_SLOTS:
         fixture.engine().setWindowFullscreen(game, false);
         QVERIFY(fixture.perform(QStringLiteral("consume-or-expel-window-left")).ok);
         fixture.settle();
-        QVERIFY(!fixture.engine().placementOf(game)->isWindowedFullscreenFallback);
+        QVERIFY(!fixture.engine().placementOf(game)->coversLockedOutput);
         verifyNormalSizing(fixture, game);
         VERIFY_INVARIANTS(fixture);
     }
 
-    void originallyFloatingLockedWindowReturnsToFloating_data()
+    void openedLockedWindowReturnsToCoveringItsColumn_data()
     {
         QTest::addColumn<bool>("hidden");
         QTest::newRow("uninterrupted") << false;
         QTest::newRow("hidden and restored") << true;
     }
 
-    void originallyFloatingLockedWindowReturnsToFloating()
+    void openedLockedWindowReturnsToCoveringItsColumn()
     {
         QFETCH(bool, hidden);
         Fixture fixture;
         auto properties = lockedGame();
         properties.wantsFullscreen = false;
         const auto game = fixture.addWith(properties);
-        QVERIFY(fixture.state(game).isFloating);
+        QVERIFY(!fixture.state(game).isFloating);
+        QVERIFY(fixture.state(game).isWindowedFullscreen);
         fixture.engine().setWindowFullscreen(game, true);
         if (hidden) {
             const auto placement = fixture.engine().placementOf(game);
@@ -290,8 +291,9 @@ private Q_SLOTS:
         }
         fixture.engine().setWindowFullscreen(game, false);
         fixture.settle();
-        QVERIFY(fixture.state(game).isFloating);
-        verifyNormalSizing(fixture, game);
+        QVERIFY(!fixture.state(game).isFloating);
+        QVERIFY(fixture.state(game).isWindowedFullscreen);
+        QVERIFY(fixture.engine().placementOf(game)->coversLockedOutput);
         VERIFY_INVARIANTS(fixture);
     }
 

@@ -108,7 +108,7 @@ void Engine::Private::moveWindowToMonitor(
     if (!workspace) {
         return;
     }
-    if (workspace->tileFor(*id)->isWindowedFullscreenFallback) {
+    if (workspace->tileFor(*id)->coversLockedOutput) {
         workspace->setFullscreen(*id, false);
     }
     DetachedTile removed = workspace->removeTile(*id);
@@ -141,7 +141,7 @@ void Engine::Private::moveColumnToMonitor(std::size_t monitorIndex, bool activat
     }
     if (const Column *column = source.scrolling().activeColumn()) {
         for (const Tile &tile : column->tiles) {
-            if (tile.isWindowedFullscreenFallback) {
+            if (tile.coversLockedOutput) {
                 source.setFullscreen(tile.id(), false);
                 break;
             }
