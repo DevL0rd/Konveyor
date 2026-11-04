@@ -34,7 +34,10 @@ MouseArea {
     property real settledWidth: 0
     property bool wasExpanded: false
 
-    onScreenSpanChanged: {
+    readonly property real fullSpan: fit.preferredSpan
+    onScreenSpanChanged: reprobe()
+    onFullSpanChanged: reprobe()
+    function reprobe() {
         probingWidth = true
         settledWidth = 0
         widthProbe.restart()
