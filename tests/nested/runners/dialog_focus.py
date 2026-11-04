@@ -53,10 +53,9 @@ def click_and_verify(checks, label, title, target, nudge=False):
 
 
 def open_dialog(kind, geometry=None, pointer=(1500, 900)):
-    host = launch("H", 900, 900, kind)
-    wait_for(lambda: "H" in kwin_titles(), 30)
-    time.sleep(1)
     move(*pointer)
+    host = launch("H", 900, 900, kind)
+    wait_for(lambda: active_title() == "H", 30)
     wait_for(lambda: "H-Dialog" in kwin_titles(), 30)
     time.sleep(0.5)
     if geometry:
