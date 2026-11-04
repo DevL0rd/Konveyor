@@ -9,12 +9,13 @@ via XHR (no per-poll process spawn).
 
 Collected: total + per-core CPU% (split into P-cores / E-cores on Intel hybrid),
 per-group average frequency, package power (Intel RAPL), CPU temperature, RAM +
-swap, and the GPU (util, VRAM, temp, power, clocks, fan) from NVML for NVIDIA
-or amdgpu sysfs for AMD.
+swap, the GPU (util, VRAM, temp, power, clocks, fan) from NVML for NVIDIA or
+amdgpu sysfs for AMD, and network throughput summed over the physical
+interfaces.
 
 Modes: --serve | --snapshot | --once
 """
-import os, sys, json, time, glob, socket
+import os, sys, json, time, glob, socket, collections
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path[:0] = [HERE, os.path.join(os.path.dirname(os.path.dirname(HERE)), "shared")]
@@ -220,8 +221,51 @@ def read_gpu():
         return None
 
 
+# ---------------------------------------------------------------- network
+def read_net_counters():
+    """iface -> (rx bytes, tx bytes) for physical NICs: interfaces backed by a
+    device. Skips lo, bridges, VPN tunnels and container veths, whose traffic
+    also crosses a NIC and would be counted twice."""
+    out = {}
+    try:
+        with open("/proc/net/dev") as f:
+            lines = f.readlines()[2:]
+    except OSError:
+        return out
+    for ln in lines:
+        name, _, rest = ln.partition(":")
+        name = name.strip()
+        if not os.path.exists("/sys/class/net/%s/device" % name):
+            continue
+        v = rest.split()
+        out[name] = (int(v[0]), int(v[8]))
+    return out
+
+
+NET_WINDOW = 2.0                                     # seconds the rates average over
+
+
+def net_rates(samples, tick, cur):
+    """Summed down/up bytes per second, averaged over the last NET_WINDOW
+    seconds whatever the poll interval, so bursty traffic reads steadily.
+    samples holds (tick, counters) from earlier polls. An interface whose
+    counters went backwards (re-plugged, driver reload) sits this one out."""
+    samples.append((tick, cur))
+    while len(samples) > 2 and tick - samples[1][0] >= NET_WINDOW:
+        samples.popleft()
+    then, prev = samples[0]
+    dt = tick - then
+    down = up = 0
+    for name, (rx, tx) in cur.items():
+        if name in prev and dt > 0 and rx >= prev[name][0] and tx >= prev[name][1]:
+            down += rx - prev[name][0]
+            up += tx - prev[name][1]
+    return {"down": round(down / dt) if dt > 0 else 0, "up": round(up / dt) if dt > 0 else 0,
+            "ifaces": sorted(cur)}
+
+
 # ---------------------------------------------------------------- build
-_prev = {"stat": {}, "energy": None, "when": None}
+_prev = {"stat": {}, "energy": None, "when": None, "net": collections.deque()}
 
 
 def _usage(name, prev, cur):
@@ -280,6 +324,8 @@ def build():
     else:
         cpu["watts"] = 0
 
+    net = net_rates(_prev["net"], tick, read_net_counters())
+
     _prev["stat"] = stat
     _prev["energy"] = energy
     _prev["when"] = tick
@@ -296,7 +342,7 @@ def build():
     return {
         "ts": now, "host": socket.gethostname(), "cpu_model": CPU_MODEL,
         "uptime": uptime, "load": load, "ncpu": ncpu,
-        "cpu": cpu, "mem": read_mem(), "gpu": read_gpu() or amd_gpu(CPU_MODEL),
+        "cpu": cpu, "mem": read_mem(), "gpu": read_gpu() or amd_gpu(CPU_MODEL), "net": net,
     }
 
 

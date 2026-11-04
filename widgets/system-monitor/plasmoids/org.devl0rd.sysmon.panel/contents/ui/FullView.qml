@@ -106,7 +106,10 @@ Item {
             readonly property bool gpuMatch: root.gpu !== null && Plasmoid.configuration.showGpu
                                              && (gpuMetricMatch >= 0 || matchesWords(["gpu", "graphics", "vram", "video", "memory clock", root.gpuShort(root.gpu ? root.gpu.name : "").toLowerCase()]))
             readonly property bool memMatch: matchesWords(["memory", "ram", "swap"])
-            readonly property var matchedCards: [cpuMatch ? cpuCard : null, coresMatch ? coresCard : null, gpuMatch ? gpuCard : null, memMatch ? memCard : null].filter(card => card !== null)
+            readonly property int netMetricMatch: metricMatch(root.netMetrics)
+            readonly property bool netMatch: root.net !== null && Plasmoid.configuration.showNet
+                                             && (netMetricMatch >= 0 || matchesWords(["network", "net", "throughput", "bandwidth"].concat(root.net ? root.net.ifaces || [] : [])))
+            readonly property var matchedCards: [cpuMatch ? cpuCard : null, coresMatch ? coresCard : null, gpuMatch ? gpuCard : null, memMatch ? memCard : null, netMatch ? netCard : null].filter(card => card !== null)
 
             anchors.fill: parent
             icon: root.panelIcon
@@ -121,7 +124,7 @@ Item {
             }
             statusColor: root.collectorAlive ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.disabledTextColor
             statusText: root.collectorAlive ? i18n("Live") : i18n("Collector stopped")
-            searchPlaceholder: i18n("Search CPU, cores, GPU, memory…")
+            searchPlaceholder: i18n("Search CPU, cores, GPU, memory, network…")
             matchCount: query === "" ? -1 : matchedCards.length
             onSearchAccepted: if (matchedCards.length > 0) scroll.scrollTo(matchedCards[0])
             onCloseRequested: if (full.overlayMode) full.overlayCloseRequested(); else root.expanded = false
@@ -167,7 +170,7 @@ Item {
                 visible: !!root.snap.cpu && shell.query !== "" && shell.matchedCards.length === 0
                 iconName: "edit-find"
                 text: i18n("No matches")
-                explanation: i18n("Try cpu, temp, core 3, gpu, vram or swap")
+                explanation: i18n("Try cpu, temp, core 3, gpu, vram, swap or upload")
             }
 
             PopScroll {
@@ -370,6 +373,10 @@ Item {
                         valueText: Style.bytes(root.mem.swap_used) + " / " + Style.bytes(root.mem.swap_total)
                         color: Style.hue("memory", Kirigami.Theme)
                     }
+                }
+
+                NetCard {
+                    id: netCard
                 }
 
                 PlasmaComponents.Label {

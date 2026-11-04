@@ -81,7 +81,7 @@ private Q_SLOTS:
             {QStringLiteral("ping"), QStringLiteral("clients"), QStringLiteral("blocked"), QStringLiteral("none")});
         addSwitches("sysmon",
             {QStringLiteral("compactShowCpu"), QStringLiteral("compactShowGpu"), QStringLiteral("compactShowRam"),
-                QStringLiteral("compactShowTemps"), QStringLiteral("panelShrink")});
+                QStringLiteral("compactShowNet"), QStringLiteral("compactShowTemps"), QStringLiteral("panelShrink")});
         addSwitches("procmon",
             {QStringLiteral("compactShowCpu"), QStringLiteral("compactShowGpu"), QStringLiteral("compactShowFps"),
                 QStringLiteral("panelShrink")});

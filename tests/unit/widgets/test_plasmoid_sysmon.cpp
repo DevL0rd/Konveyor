@@ -122,7 +122,7 @@ private Q_SLOTS:
         harness->root()->setProperty("tooltipWanted", true);
         QCOMPARE(harness->root()->property("toolTipSubText").toString(),
             QStringLiteral("Up 1d 1h\nCPU 43% · 71°C · 3.2 GHz · 35 W\nGPU 97% · 66°C · 81 W · VRAM 4.0 GB / 16.0 GB\n"
-                           "RAM 16.0 GB / 32.0 GB · Swap 1.0 GB / 8.0 GB"));
+                           "RAM 16.0 GB / 32.0 GB · Swap 1.0 GB / 8.0 GB\nNetwork ↓ 10.0 Mb/s · ↑ 320 Kb/s"));
         QCOMPARE(harness->eval(QStringLiteral("cpuShort()")).toString(), QStringLiteral("i9-13980HX"));
         QCOMPARE(harness->eval(QStringLiteral("gpuShort(gpu.name)")).toString(), QStringLiteral("RTX 4090 Laptop GPU"));
         QCOMPARE(harness->eval(QStringLiteral("gpuShort('')")).toString(), QStringLiteral("GPU"));
@@ -241,6 +241,8 @@ private Q_SLOTS:
         QTest::newRow("core") << QStringLiteral("core 3") << 1;
         QTest::newRow("swap") << QStringLiteral("swap") << 1;
         QTest::newRow("model name") << QStringLiteral("rtx") << 1;
+        QTest::newRow("network metric") << QStringLiteral("upload") << 1;
+        QTest::newRow("interface") << QStringLiteral("enp5s0") << 1;
         QTest::newRow("nothing") << QStringLiteral("zzz") << 0;
     }
 

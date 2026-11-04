@@ -47,5 +47,12 @@
     "fan": 45,
     "clock_max": 3000,
     "power_max": 175
+  },
+  "net": {
+    "down": 1250000,
+    "up": 40000,
+    "ifaces": [
+      "enp5s0"
+    ]
   }
 }
