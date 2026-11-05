@@ -123,6 +123,7 @@ class CollectorTest(unittest.TestCase):
         self.start(mock.patch.dict(os.environ, self.environment, clear=True))
         self.start(mock.patch.dict(sys.modules, {"pynvml": pynvml}))
         sys.modules.pop("sysmon_amdgpu", None)
+        sys.modules.pop("sysmon_intelgpu", None)
         for patch in self.fake.patches():
             self.start(patch)
         return load_script(path, name)
