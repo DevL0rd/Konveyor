@@ -391,7 +391,7 @@ audio-beat-threshold 1.4
 // window on that monitor is maximized to the edges, and put them back after.
 // The panel's previous width mode is kept in the panel's own settings, so a
 // panel you change in the meantime is left the way you set it.
-fill-panels-on-maximize
+// fill-panels-on-maximize
 
 // Konveyor extension: uncomment to stop windows from being minimized. This
 // adds a KWin window rule that forces minimize off, which also hides the
