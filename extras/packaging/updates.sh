@@ -127,7 +127,7 @@ register_updates() {
     enable_user_unit "$KONVEYOR_UPDATE_UNIT"
 }
 
-unregister_updates() {
+remove_system_updates() {
     local entry source target mode
     for entry in "${KONVEYOR_UPDATE_HOOKS[@]}" "- $KONVEYOR_LEGACY_HOOK -"; do
         read -r source target mode <<<"$entry"
@@ -136,6 +136,11 @@ unregister_updates() {
     [[ -d $KONVEYOR_UPDATER_DIR ]] && run_root rm -rf "$KONVEYOR_UPDATER_DIR"
     [[ -e $KONVEYOR_SOURCE_STATE ]] && run_prefix rm -f "$KONVEYOR_SOURCE_STATE"
     [[ -f $KONVEYOR_LEGACY_SOURCE_STATE ]] && run_prefix rm -f "$KONVEYOR_LEGACY_SOURCE_STATE"
+    return 0
+}
+
+unregister_updates() {
+    remove_system_updates
     rm -rf "$KONVEYOR_USER_UPDATER_DIR"
     disable_user_unit "$KONVEYOR_UPDATE_UNIT"
     disable_user_unit "$KONVEYOR_LOGIN_UNIT"

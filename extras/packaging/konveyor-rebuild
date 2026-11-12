@@ -31,11 +31,6 @@ git_owner() {
     as_source_owner git -C "$source_dir" "$@"
 }
 
-if [[ ! -d $source_dir ]] || ! git_owner rev-parse --git-dir >/dev/null 2>&1; then
-    log "source checkout $source_dir is gone or not a git repository, skipping"
-    exit 0
-fi
-
 pull_updates() {
     git_owner rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1 || return 1
     if ! git_owner fetch --quiet; then
@@ -63,11 +58,29 @@ mkdir -p "$KONVEYOR_STATE_DIR"
 exec 9>"$KONVEYOR_REBUILD_LOCK"
 flock 9
 
+if [[ ! -d $source_dir ]]; then
+    if [[ -d $home ]]; then
+        log "source checkout $source_dir is gone, removing Konveyor's system update hook"
+        remove_system_updates
+        rm -f "$KONVEYOR_BUILT_FOR" "$KONVEYOR_BUILD_FAILED" "$KONVEYOR_REBUILD_LOCK"
+        rmdir --ignore-fail-on-non-empty "$KONVEYOR_STATE_DIR"
+    else
+        log "source checkout $source_dir is gone but the home of $owner is missing, skipping"
+    fi
+    exit 0
+fi
+
+if ! git_owner rev-parse --git-dir >/dev/null 2>&1; then
+    log "source checkout $source_dir is not a readable git repository, skipping"
+    exit 0
+fi
+
 pulled=false
 pull_updates && pulled=true
 if $pulled || [[ $(system_fingerprint) != "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/null)" ]]; then
     if [[ $(kwin_headers_version) != "$(kwin_version)" ]]; then
         log "KWin $(kwin_version) and its development files $(kwin_headers_version) don't match yet, waiting for the update to finish"
+        $pulled && rm -f "$KONVEYOR_BUILT_FOR"
         exit 0
     fi
     inputs=$(build_inputs)

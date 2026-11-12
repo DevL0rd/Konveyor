@@ -47,9 +47,39 @@ class TestRebuild(HarnessTest):
         self.assertEqual(self.rebuild(), "")
         self.assertFalse(self.installed.exists())
 
-    def test_a_missing_checkout_is_skipped(self):
+    def test_a_gone_checkout_removes_the_update_hook_and_state(self):
+        hook = self.harness.system / "usr" / "share" / "libalpm" / "hooks" / "konveyor-rebuild.hook"
+        updater = self.harness.system / "usr" / "lib" / "konveyor"
+        self.harness.write(hook, "")
+        self.harness.write(updater / "konveyor-rebuild", "")
+        self.harness.write(self.state / "build-failed", "x\n")
         self.register(self.harness.root / "gone", "tester")
-        self.assertIn("is gone or not a git repository, skipping", self.rebuild())
+        self.assertIn("is gone, removing Konveyor's system update hook", self.rebuild())
+        removed = {tuple(call[1:]) for call in self.harness.calls("sudo")}
+        self.assertIn(("rm", "-f", str(hook)), removed)
+        self.assertIn(("rm", "-rf", str(updater)), removed)
+        self.assertIn(("rm", "-f", str(self.state / "update-source")), removed)
+        for name in ("built-for", "build-failed", "rebuild.lock"):
+            self.assertFalse((self.state / name).exists(), name)
+        self.assertFalse(self.installed.exists())
+
+    def test_a_git_failure_in_an_existing_checkout_is_skipped_not_removed(self):
+        broken = self.harness.root / "broken"
+        broken.mkdir()
+        self.register(broken, "tester")
+        self.assertIn("is not a readable git repository, skipping", self.rebuild())
+        self.assertEqual(self.harness.calls("sudo"), [])
+        self.assertTrue((self.state / "built-for").exists())
+        self.assertFalse(self.installed.exists())
+
+    def test_a_gone_checkout_is_only_skipped_when_the_home_is_missing(self):
+        hook = self.harness.system / "usr" / "share" / "libalpm" / "hooks" / "konveyor-rebuild.hook"
+        self.harness.write(hook, "")
+        self.register(self.harness.root / "gone", "tester")
+        self.harness.environment["STUB_OWNER_HOME"] = str(self.harness.root / "unmounted-home")
+        self.assertIn("the home of tester is missing, skipping", self.rebuild())
+        self.assertEqual(self.harness.calls("sudo"), [])
+        self.assertTrue((self.state / "built-for").exists())
         self.assertFalse(self.installed.exists())
 
     def test_nothing_happens_when_nothing_changed(self):
@@ -95,6 +125,15 @@ class TestRebuild(HarnessTest):
         (self.state / "built-for").write_text("kwin=6.6.0\n")
         self.assertIn("KWin 6.7.0 and its development files 6.6.0 don't match yet", self.rebuild())
         self.assertFalse(self.installed.exists())
+
+    def test_pulled_commits_are_not_lost_while_waiting_for_the_development_files(self):
+        self.harness.set_headers("6.6.0")
+        self.harness.push_upstream_commit("install.sh", self.recorder("pulled"))
+        self.assertIn("don't match yet", self.rebuild())
+        self.assertFalse((self.state / "built-for").exists())
+        self.harness.set_headers("6.7.0")
+        self.rebuild()
+        self.assertRebuilt()
 
     def failing_installer(self):
         installer = self.support / "install"

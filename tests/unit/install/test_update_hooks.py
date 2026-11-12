@@ -98,6 +98,11 @@ class TestHooks(HarnessTest):
         self.assertSucceeded(self.harness.functions("register_updates"))
         self.assertEqual([call for call in self.harness.calls("sudo") if call[1] == "sed"], [])
 
+    def test_the_pacman_hook_only_triggers_for_the_packages_the_fingerprint_covers(self):
+        hook = (PACKAGING / "konveyor-rebuild.hook").read_text()
+        targets = [line for line in hook.splitlines() if line.startswith("Target = ")]
+        self.assertEqual(targets, ["Target = kwin", "Target = qt6-base", "Target = plasma-desktop"])
+
     def test_the_hooks_run_the_updater_that_gets_installed(self):
         result = subprocess.run(["bash", "-c", 'source "$1/common.sh"; source "$1/updates.sh"; printf %s "$KONVEYOR_UPDATER_DIR"', "dir",
                                  str(PACKAGING)], env={"HOME": str(self.harness.home), "PATH": self.harness.environment["PATH"]},

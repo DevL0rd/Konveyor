@@ -2,7 +2,9 @@
 Operation = Install
 Operation = Upgrade
 Type = Package
-Target = *
+Target = kwin
+Target = qt6-base
+Target = plasma-desktop
 
 [Action]
 Description = Updating Konveyor...
