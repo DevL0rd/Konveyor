@@ -45,6 +45,23 @@ void decodeEdgeScroll(const Kdl::Node &node, const QString &triggerName, DndEdge
     decodeChildren(node, table);
 }
 
+void decodeEdgeSwitchColumns(const Kdl::Node &node, EdgeSwitchColumns &edges)
+{
+    expectOnlyChildren(node);
+    bool on = false;
+    bool off = false;
+    NodeTable table;
+    addToggleHandlers(table, on, off);
+    table.insert(QStringLiteral("delay-ms"),
+        [&edges](const Kdl::Node &child) { edges.delayMs = static_cast<int>(integerArgument(child, Range {0, 65535})); });
+    table.insert(QStringLiteral("monitor-edges"), [&edges](const Kdl::Node &child) {
+        edges.monitorEdges = keywordArgument(child, {QStringLiteral("outer"), QStringLiteral("all")}) == 0 ? EdgeSwitchMonitorEdges::Outer
+                                                                                                           : EdgeSwitchMonitorEdges::All;
+    });
+    decodeChildren(node, table);
+    edges.enabled = decodeToggle(node, on, off).value_or(true);
+}
+
 void decodeWarpMouse(const Kdl::Node &node, Input &input)
 {
     expectNoArguments(node);
@@ -129,6 +146,8 @@ void decodeGestures(const Kdl::Node &node, Gestures &gestures)
     table.insert(
         QStringLiteral("touchscreen"), [&gestures](const Kdl::Node &child) { decodeMultiTouch(child, gestures.touchscreen, true); });
     table.insert(QStringLiteral("hot-corners"), [&gestures](const Kdl::Node &child) { gestures.hotCorners = decodeHotCorners(child); });
+    table.insert(QStringLiteral("edge-switch-columns"),
+        [&gestures](const Kdl::Node &child) { decodeEdgeSwitchColumns(child, gestures.edgeSwitchColumns); });
     table.insert(QStringLiteral("titlebar-drag"), [&gestures](const Kdl::Node &child) {
         const int index = keywordArgument(child, {QStringLiteral("scroll-view"), QStringLiteral("move-window")});
         gestures.titlebarDrag = index == 0 ? TitlebarDrag::ScrollView : TitlebarDrag::MoveWindow;

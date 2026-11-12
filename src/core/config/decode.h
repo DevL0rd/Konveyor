@@ -67,6 +67,7 @@ int keywordArgument(const Kdl::Node &node, const QStringList &keywords);
 
 void decodeChildren(const Kdl::Node &node, const NodeTable &table, const QSet<QString> &repeatable = {});
 void decodeProperties(const Kdl::Node &node, const ValueTable &table);
+void addToggleHandlers(NodeTable &table, bool &on, bool &off);
 std::optional<bool> decodeToggle(const Kdl::Node &node, bool on, bool off);
 
 }

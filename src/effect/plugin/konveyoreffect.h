@@ -76,6 +76,10 @@ private:
     QString setAppRuleJson(const QString &json);
     void applyHotCorners(const Config::Config &config);
     void handlePointerMotion(const QPointF &position, qint64 timestampMs);
+    void trackEdgeHover(const QPointF &position);
+    bool edgeSwitchBlocked() const;
+    void switchColumnAtEdge();
+    void resetEdgeHover();
     QPointF interactionPoint() const;
     bool routeGesture(bool consumed);
     bool handleTouchDown(qint32 id, const QPointF &position, qint64 timestampMs);

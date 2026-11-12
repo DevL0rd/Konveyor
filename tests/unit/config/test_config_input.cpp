@@ -12,6 +12,7 @@ class TestConfigInput : public QObject
 private Q_SLOTS:
     void parsesGestures();
     void parsesHotCorners();
+    void parsesEdgeSwitchColumns();
     void parsesMultiTouch();
     void parsesInput();
     void rejectsUnknownInputOptions();
@@ -110,6 +111,33 @@ void TestConfigInput::parsesHotCorners()
 
     const Config implied = parsed(QStringLiteral("gestures {\n hot-corners {\n }\n}\n"));
     QCOMPARE(implied.gestures.hotCorners.topLeft, true);
+}
+
+void TestConfigInput::parsesEdgeSwitchColumns()
+{
+    const Config defaults = parsed(QString());
+    QCOMPARE(defaults.gestures.edgeSwitchColumns.enabled, false);
+    QCOMPARE(defaults.gestures.edgeSwitchColumns.delayMs, 300);
+    QCOMPARE(defaults.gestures.edgeSwitchColumns.monitorEdges, EdgeSwitchMonitorEdges::Outer);
+
+    const Config on = parsed(QStringLiteral("gestures {\n edge-switch-columns {\n on\n delay-ms 120\n monitor-edges \"all\"\n }\n}\n"));
+    QCOMPARE(on.gestures.edgeSwitchColumns.enabled, true);
+    QCOMPARE(on.gestures.edgeSwitchColumns.delayMs, 120);
+    QCOMPARE(on.gestures.edgeSwitchColumns.monitorEdges, EdgeSwitchMonitorEdges::All);
+
+    const Config implied = parsed(QStringLiteral("gestures {\n edge-switch-columns {\n delay-ms 0\n }\n}\n"));
+    QCOMPARE(implied.gestures.edgeSwitchColumns.enabled, true);
+    QCOMPARE(implied.gestures.edgeSwitchColumns.delayMs, 0);
+
+    const Config off = parsed(QStringLiteral("gestures {\n edge-switch-columns {\n off\n monitor-edges \"outer\"\n }\n}\n"));
+    QCOMPARE(off.gestures.edgeSwitchColumns.enabled, false);
+    QCOMPARE(off.gestures.edgeSwitchColumns.monitorEdges, EdgeSwitchMonitorEdges::Outer);
+
+    QVERIFY(mustFail(QStringLiteral("gestures {\n edge-switch-columns {\n monitor-edges \"inner\"\n }\n}\n"))
+            .message.contains(QStringLiteral("expected one of")));
+    QVERIFY(mustFail(QStringLiteral("gestures {\n edge-switch-columns {\n on\n off\n }\n}\n"))
+            .message.contains(QStringLiteral("cannot use both")));
+    QVERIFY(mustFail(QStringLiteral("gestures {\n edge-switch-columns {\n delay-ms -5\n }\n}\n")).message.length() > 0);
 }
 
 void TestConfigInput::parsesInput()

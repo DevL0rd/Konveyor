@@ -47,7 +47,7 @@ private:
 void TestSettingsValues::globalDefaults()
 {
     const QVariantMap values = globalValues(Config::Config());
-    QCOMPARE(values.size(), 28);
+    QCOMPARE(values.size(), 29);
     for (const QString &key : flagKeys()) {
         QVERIFY2(values.value(key).typeId() == QMetaType::Bool && !values.value(key).toBool(), qPrintable(key));
     }
@@ -84,6 +84,7 @@ gestures {
     dnd-edge-view-scroll { trigger-width 40; delay-ms 90; max-speed 900; }
     dnd-edge-workspace-switch { trigger-height 30; delay-ms 70; max-speed 800; }
     hot-corners { top-right; bottom-left; }
+    edge-switch-columns { delay-ms 450; monitor-edges "all"; }
     resize-tiled-windows false
     titlebar-drag "scroll-view"
     touchpad {
@@ -118,6 +119,9 @@ gestures {
     QCOMPARE(corners.value(QStringLiteral("top-left")).toBool(), false);
     QCOMPARE(corners.value(QStringLiteral("top-right")).toBool(), true);
     QCOMPARE(corners.value(QStringLiteral("bottom-left")).toBool(), true);
+    QCOMPARE(values.value(QStringLiteral("gestures/edge-switch-columns")).toMap(),
+        (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("delay-ms"), 450},
+            {QStringLiteral("monitor-edges"), QStringLiteral("all")}}));
     const QVariantMap touchpad = values.value(QStringLiteral("gestures/touchpad")).toMap();
     QCOMPARE(touchpad.value(QStringLiteral("swipe-fingers")).toInt(), 4);
     QCOMPARE(touchpad.value(QStringLiteral("pinch-fingers")).toInt(), 3);

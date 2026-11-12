@@ -29,6 +29,20 @@ struct HotCorners
     bool operator==(const HotCorners &) const = default;
 };
 
+enum class EdgeSwitchMonitorEdges
+{
+    Outer,
+    All
+};
+
+struct EdgeSwitchColumns
+{
+    bool enabled = false;
+    int delayMs = 300;
+    EdgeSwitchMonitorEdges monitorEdges = EdgeSwitchMonitorEdges::Outer;
+    bool operator==(const EdgeSwitchColumns &) const = default;
+};
+
 enum class TitlebarDrag
 {
     ScrollView,
@@ -113,6 +127,7 @@ struct Gestures
     DndEdgeScroll dndEdgeViewScroll;
     DndEdgeScroll dndEdgeWorkspaceSwitch {50, 100, 1500};
     HotCorners hotCorners;
+    EdgeSwitchColumns edgeSwitchColumns;
     TitlebarDrag titlebarDrag = TitlebarDrag::MoveWindow;
     bool resizeTiledWindows = true;
     bool operator==(const Gestures &) const = default;

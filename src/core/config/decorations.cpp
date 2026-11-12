@@ -14,12 +14,6 @@ const QStringList &tabPositions()
     return positions;
 }
 
-void addToggleHandlers(NodeTable &table, bool &on, bool &off)
-{
-    table.insert(QStringLiteral("on"), [&on](const Kdl::Node &node) { on = flagArgument(node); });
-    table.insert(QStringLiteral("off"), [&off](const Kdl::Node &node) { off = flagArgument(node); });
-}
-
 void addPaintHandlers(NodeTable &table, const QString &colorName, const QString &gradientName, std::optional<Paint> &paint)
 {
     table.insert(colorName, [&paint](const Kdl::Node &node) { applyPaintColor(paint, decodePaintNode(node)); });

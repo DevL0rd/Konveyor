@@ -253,6 +253,12 @@ void decodeProperties(const Kdl::Node &node, const ValueTable &table)
     }
 }
 
+void addToggleHandlers(NodeTable &table, bool &on, bool &off)
+{
+    table.insert(QStringLiteral("on"), [&on](const Kdl::Node &node) { on = flagArgument(node); });
+    table.insert(QStringLiteral("off"), [&off](const Kdl::Node &node) { off = flagArgument(node); });
+}
+
 std::optional<bool> decodeToggle(const Kdl::Node &node, bool on, bool off)
 {
     if (on && off) {

@@ -28,6 +28,7 @@
 #include "anim/clock.h"
 #include "config/loader.h"
 #include "ipc/model.h"
+#include "layout/common/edgehover.h"
 #include "layout/gestures/gesturerouter.h"
 #include "tools/widgettool.h"
 
@@ -133,6 +134,8 @@ struct KonveyorEffect::Private
     QTimer memorySaveTimer;
     QTimer startupRulesTimer;
     QTimer pointerFocusTimer;
+    QTimer edgeHoverTimer;
+    Layout::EdgeHoverTracker edgeHover;
     QPointer<KWin::Window> pointerFocusCandidate;
     WindowMemoryStore memoryStore;
     LayoutHandoff handoff;

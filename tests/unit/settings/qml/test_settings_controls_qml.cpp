@@ -100,6 +100,22 @@ void TestSettingsControlsQml::controls_data()
     addControl("last corner off",
         {"MousePage", "Active corners", "toggled", R"(["top-left"])", "gestures/hot-corners", R"({"children":["top-left","off"]})",
             "gestures { hot-corners { top-left; }; }\n"});
+    addControl("edge switch on",
+        {"MousePage", "Switch columns at the screen edges", "switched", "[true]", "gestures/edge-switch-columns", R"({"children":["on"]})",
+            "gestures {\n}\n"});
+    addControl("edge switch on shipped",
+        {"MousePage", "Switch columns at the screen edges", "switched", "[true]", "gestures/edge-switch-columns",
+            R"({"children":["delay-ms","monitor-edges","on"]})",
+            "gestures { edge-switch-columns { off; delay-ms 300; monitor-edges \"outer\"; }; }\n"});
+    addControl("edge switch off",
+        {"MousePage", "Switch columns at the screen edges", "switched", "[false]", "gestures/edge-switch-columns",
+            R"({"children":["off"]})", "gestures { edge-switch-columns { on; }; }\n"});
+    addControl("edge switch delay",
+        {"MousePage", "Wait at the edge", "edited", "[450.4]", "gestures/edge-switch-columns/delay-ms", R"({"args":[450]})",
+            "gestures { edge-switch-columns { on; }; }\n"});
+    addControl("edge switch monitors",
+        {"MousePage", "Edges between monitors", "chosen", R"(["all"])", "gestures/edge-switch-columns/monitor-edges", R"({"args":["all"]})",
+            "gestures { edge-switch-columns { on; }; }\n"});
     addControl(
         "edge width", {"MousePage", "Edge width", "edited", "[40.4]", "gestures/dnd-edge-view-scroll/trigger-width", R"({"args":[40]})"});
     addControl("edge height",

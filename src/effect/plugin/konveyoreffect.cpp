@@ -52,6 +52,8 @@ KonveyorEffect::KonveyorEffect()
     connect(&d->memorySaveTimer, &QTimer::timeout, this, [this] { d->memoryStore.save(readEngine().windowMemory()); });
     d->pointerFocusTimer.setSingleShot(true);
     connect(&d->pointerFocusTimer, &QTimer::timeout, this, &KonveyorEffect::followPointerFocus);
+    d->edgeHoverTimer.setSingleShot(true);
+    connect(&d->edgeHoverTimer, &QTimer::timeout, this, &KonveyorEffect::switchColumnAtEdge);
     d->startupRulesTimer.setSingleShot(true);
     d->startupRulesTimer.setTimerType(Qt::PreciseTimer);
     connect(&d->startupRulesTimer, &QTimer::timeout, this, [this] { changeEngine().refreshRules(); });
@@ -305,6 +307,7 @@ void KonveyorEffect::applyConfig(const Config::Config &config)
     d->windows.reevaluate();
     d->shortcuts.setBinds(config.binds);
     applyHotCorners(config);
+    resetEdgeHover();
     d->plasmaShell.setHideDesktopWidgets(config.hideDesktopWidgets);
     d->plasmaShell.setFillPanels(config.fillPanelsOnMaximize);
     MinimizeRule::apply(config.disableMinimize);

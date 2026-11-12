@@ -13,6 +13,7 @@ SettingsPage {
     readonly property var corners: SettingsStore.values["gestures/hot-corners"] || ({})
     readonly property var viewScroll: SettingsStore.values["gestures/dnd-edge-view-scroll"] || ({})
     readonly property var workspaceSwitch: SettingsStore.values["gestures/dnd-edge-workspace-switch"] || ({})
+    readonly property var edgeSwitch: SettingsStore.values["gestures/edge-switch-columns"] || ({})
     readonly property string warpChoice: SettingsStore.values["input/warp-mouse-to-focus"] !== true ? "off" : (SettingsStore.values["input/warp-mouse-to-focus/mode"] || "nearest")
     property string edgeEmphasis: ""
 
@@ -90,6 +91,53 @@ SettingsPage {
                     { value: "center-xy-always", title: "Always center", description: "Jumps to the middle every time", preview: warpPreview }
                 ]
                 onChosen: value => page.writeWarp(value)
+            }
+        }
+    }
+
+    CardHeader {
+        title: "Screen edges"
+    }
+
+    Card {
+        SwitchRow {
+            label: "Switch columns at the screen edges"
+            description: "Rest the pointer against the left or right edge of the screen to focus the next column that way, like Meta+Left and Meta+Right. It moves one column each time the pointer reaches the edge. Corners, dragging and fullscreen windows are left alone."
+            iconName: "go-next-view"
+            resetPaths: ["gestures/edge-switch-columns"]
+            isOn: page.edgeSwitch.enabled === true
+            onSwitched: on => SettingsStore.setToggle("gestures/edge-switch-columns", on)
+        }
+
+        SliderRow {
+            label: "Wait at the edge"
+            description: "How long the pointer has to stay at the edge, so passing by doesn't switch columns."
+            resetPaths: ["gestures/edge-switch-columns/delay-ms"]
+            enabled: page.edgeSwitch.enabled === true
+            from: 0
+            to: 2000
+            stepSize: 10
+            unit: "ms"
+            lowLabel: "Instant"
+            highLabel: "Patient"
+            value: page.edgeSwitch["delay-ms"] || 0
+            onEdited: value => SettingsStore.setValue("gestures/edge-switch-columns/delay-ms", [Math.round(value)])
+        }
+
+        SettingRow {
+            label: "Edges between monitors"
+            description: "With several monitors, choose whether the edges where two screens meet also switch columns, or only the outer edges of the whole desktop."
+            iconName: "video-display"
+            resetPaths: ["gestures/edge-switch-columns/monitor-edges"]
+            enabled: page.edgeSwitch.enabled === true
+
+            Segmented {
+                currentValue: page.edgeSwitch["monitor-edges"] || "outer"
+                options: [
+                    { value: "outer", label: "Outer edges only" },
+                    { value: "all", label: "Also between monitors" }
+                ]
+                onChosen: value => SettingsStore.setValue("gestures/edge-switch-columns/monitor-edges", [value])
             }
         }
     }

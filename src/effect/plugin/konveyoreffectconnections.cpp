@@ -48,7 +48,10 @@ void KonveyorEffect::installInputFilter()
               Config::ScrollDirection direction) { return d->shortcuts.triggerPointerBind(trigger, modifiers, button, direction); };
     d->input = std::make_unique<InputFilter>(InputHandlers {
         pointerBind,
-        [this](const QPointF &position, qint64 timestamp) { handlePointerMotion(position, timestamp); },
+        [this](const QPointF &position, qint64 timestamp) {
+            trackEdgeHover(position);
+            handlePointerMotion(position, timestamp);
+        },
         [this] { endTitlebarDrag(); },
         [this](const QPointF &position) { return switchToTabUnderPointer(position); },
         [this](quint32 keycode, Config::BindModifiers modifiers, bool repeat) {

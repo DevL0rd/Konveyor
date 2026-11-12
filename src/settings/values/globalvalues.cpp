@@ -116,6 +116,14 @@ QVariantMap globalValues(const Config::Config &config)
                 {QStringLiteral("bottom-left"), gestures.hotCorners.bottomLeft},
                 {QStringLiteral("bottom-right"), gestures.hotCorners.bottomRight},
             }},
+        {QStringLiteral("gestures/edge-switch-columns"),
+            QVariantMap {
+                {QStringLiteral("enabled"), gestures.edgeSwitchColumns.enabled},
+                {QStringLiteral("delay-ms"), gestures.edgeSwitchColumns.delayMs},
+                {QStringLiteral("monitor-edges"),
+                    gestures.edgeSwitchColumns.monitorEdges == Config::EdgeSwitchMonitorEdges::All ? QStringLiteral("all")
+                                                                                                   : QStringLiteral("outer")},
+            }},
         {QStringLiteral("gestures/touchpad"), multiTouchValue(gestures.touchpad)},
         {QStringLiteral("gestures/touchscreen"), multiTouchValue(gestures.touchscreen)},
         {QStringLiteral("gestures/resize-tiled-windows"), gestures.resizeTiledWindows},
