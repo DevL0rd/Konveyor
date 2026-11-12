@@ -73,7 +73,8 @@ QByteArray qmlSource()
 
 void wheel(QQuickWindow *window, const QPointF &position)
 {
-    QWheelEvent event(position, window->mapToGlobal(position), QPoint(), QPoint(0, -240), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+    QWheelEvent event(
+        position, window->mapToGlobal(position), QPoint(), QPoint(0, -240), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
     QCoreApplication::sendEvent(window, &event);
 }
 
