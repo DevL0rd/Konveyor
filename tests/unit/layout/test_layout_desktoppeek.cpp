@@ -67,6 +67,55 @@ private Q_SLOTS:
         QCOMPARE(key.delayPassed(true), Step::None);
     }
 
+    void releasingMetaAfterAPeekIsReportedOnce()
+    {
+        PeekKey key;
+        key.metaPressed(true);
+        QVERIFY(!key.takePeekedWhileHeld());
+        key.delayPassed(true);
+        key.metaReleased(false);
+        QVERIFY(key.takePeekedWhileHeld());
+        QVERIFY(!key.takePeekedWhileHeld());
+
+        key.metaPressed(true);
+        key.metaReleased(false);
+        QVERIFY(!key.takePeekedWhileHeld());
+    }
+
+    void releasingMetaAfterAPeekEndedByResetIsStillReported()
+    {
+        PeekKey key;
+        key.metaPressed(true);
+        key.delayPassed(true);
+        key.reset();
+        QVERIFY(key.takePeekedWhileHeld());
+    }
+
+    void releasingMetaAfterAnotherKeyOrABlockedPeekIsNotReported()
+    {
+        PeekKey key;
+        key.metaPressed(true);
+        key.delayPassed(true);
+        key.otherKeyPressed();
+        QVERIFY(!key.takePeekedWhileHeld());
+
+        key.metaPressed(true);
+        key.delayPassed(false);
+        QVERIFY(!key.takePeekedWhileHeld());
+    }
+
+    void aDropKeepsReportingTheNextRelease()
+    {
+        PeekKey key;
+        key.metaPressed(true);
+        key.delayPassed(true);
+        key.metaReleased(true);
+        QVERIFY(key.takePeekedWhileHeld());
+        key.metaPressed(true);
+        key.metaReleased(true);
+        QVERIFY(key.takePeekedWhileHeld());
+    }
+
     void aBlockedPeekStaysIdle()
     {
         PeekKey key;

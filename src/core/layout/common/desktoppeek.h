@@ -34,6 +34,7 @@ public:
     Step dragEnded();
     Step reset();
     bool isPeeking() const;
+    bool takePeekedWhileHeld();
 
 private:
     enum class Phase
@@ -45,6 +46,7 @@ private:
     };
 
     Phase m_phase = Phase::Idle;
+    bool m_peekedWhileHeld = false;
 };
 
 class PeekAside

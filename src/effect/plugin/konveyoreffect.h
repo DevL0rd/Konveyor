@@ -81,7 +81,7 @@ private:
     bool edgeSwitchBlocked() const;
     void switchColumnAtEdge();
     void resetEdgeHover();
-    void handlePeekKey(int key, bool pressed, Qt::KeyboardModifiers modifiers);
+    bool handlePeekKey(int key, bool pressed, Qt::KeyboardModifiers modifiers);
     bool handlePeekPointer(bool used);
     void trackPeekPointer(const QPointF &position);
     void runPeekStep(Layout::PeekKey::Step step);

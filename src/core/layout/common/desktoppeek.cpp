@@ -10,6 +10,7 @@ PeekKey::Step PeekKey::metaPressed(bool alone)
 {
     switch (m_phase) {
     case Phase::Idle:
+        m_peekedWhileHeld = false;
         if (!alone) {
             return Step::None;
         }
@@ -23,6 +24,7 @@ PeekKey::Step PeekKey::metaPressed(bool alone)
         return Step::Disarm;
     case Phase::AwaitingDrop:
         m_phase = Phase::Peeking;
+        m_peekedWhileHeld = true;
         return Step::None;
     case Phase::Peeking:
         return Step::None;
@@ -32,6 +34,7 @@ PeekKey::Step PeekKey::metaPressed(bool alone)
 
 PeekKey::Step PeekKey::otherKeyPressed()
 {
+    m_peekedWhileHeld = false;
     switch (m_phase) {
     case Phase::Armed:
         m_phase = Phase::Idle;
@@ -61,6 +64,7 @@ PeekKey::Step PeekKey::delayPassed(bool allowed)
         return Step::None;
     }
     m_phase = allowed ? Phase::Peeking : Phase::Idle;
+    m_peekedWhileHeld = allowed;
     return allowed ? Step::Begin : Step::None;
 }
 
@@ -102,6 +106,11 @@ PeekKey::Step PeekKey::reset()
         return Step::None;
     }
     return Step::None;
+}
+
+bool PeekKey::takePeekedWhileHeld()
+{
+    return std::exchange(m_peekedWhileHeld, false);
 }
 
 bool PeekKey::isPeeking() const

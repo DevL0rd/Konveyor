@@ -179,8 +179,9 @@ bool InputFilter::pointerAxis(KWin::PointerAxisEvent *event)
 bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
 {
     m_modifiers.key(event->key, event->state != KWin::KeyboardKeyState::Released, event->modifiers);
-    if (event->state != KWin::KeyboardKeyState::Repeated) {
-        m_handlers.peekKey(event->key, event->state == KWin::KeyboardKeyState::Pressed, event->modifiers);
+    if (event->state != KWin::KeyboardKeyState::Repeated
+        && m_handlers.peekKey(event->key, event->state == KWin::KeyboardKeyState::Pressed, event->modifiers)) {
+        event->key = Qt::Key_unknown;
     }
     if (event->state == KWin::KeyboardKeyState::Released) {
         return m_swallowedKeys.remove(event->nativeScanCode);

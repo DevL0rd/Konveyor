@@ -2,10 +2,7 @@
 
 #include "config/log.h"
 
-#include <kglobalacceld.h>
 #include <scene/windowitem.h>
-
-#include <QDBusConnection>
 
 namespace Konveyor
 {
@@ -49,14 +46,6 @@ void setKeptVisible(PeekedWindow &faded, bool visible)
     }
 }
 
-void cancelModifierOnlyShortcut()
-{
-    QObject *registered = QDBusConnection::sessionBus().objectRegisteredAt(QStringLiteral("/kglobalaccel"));
-    if (auto *accel = qobject_cast<KGlobalAccelD *>(registered)) {
-        accel->resetModifierOnlyState();
-    }
-}
-
 Anim::Animation fadeTo(const Anim::Clock &clock, const std::optional<Anim::Animation> &current, double to)
 {
     const double from = current ? current->value() : 1.0 - to;
@@ -65,19 +54,20 @@ Anim::Animation fadeTo(const Anim::Clock &clock, const std::optional<Anim::Anima
 
 }
 
-void KonveyorEffect::handlePeekKey(int key, bool pressed, Qt::KeyboardModifiers modifiers)
+bool KonveyorEffect::handlePeekKey(int key, bool pressed, Qt::KeyboardModifiers modifiers)
 {
     if (!d->config.config().experiments.peekDesktop.enabled) {
-        return;
+        return false;
     }
     if (!isMetaKey(key)) {
         if (pressed) {
             runPeekStep(d->peekKey.otherKeyPressed());
         }
-        return;
+        return false;
     }
     const bool alone = !(modifiers & (Qt::ControlModifier | Qt::ShiftModifier | Qt::AltModifier));
     runPeekStep(pressed ? d->peekKey.metaPressed(alone) : d->peekKey.metaReleased(KWin::waylandServer()->seat()->isDragPointer()));
+    return !pressed && d->peekKey.takePeekedWhileHeld();
 }
 
 bool KonveyorEffect::handlePeekPointer(bool used)
@@ -135,7 +125,6 @@ void KonveyorEffect::beginPeek()
     peek.aside.begin(peek.kept && peek.kept->frameGeometry().contains(pointer));
     peek.fade = fadeTo(d->clock, std::nullopt, 0.0);
     d->peek = std::move(peek);
-    cancelModifierOnlyShortcut();
     qCInfo(lcKonveyor) << "konveyor: peeking at the desktop on" << output << "faded" << d->peek->faded.size() << "windows";
     scheduleFlush();
 }

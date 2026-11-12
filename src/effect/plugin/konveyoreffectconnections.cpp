@@ -66,7 +66,7 @@ void KonveyorEffect::installInputFilter()
                 d->dbus->setModifiersHeld(super, alt);
             }
         },
-        [this](int key, bool pressed, Qt::KeyboardModifiers modifiers) { handlePeekKey(key, pressed, modifiers); },
+        [this](int key, bool pressed, Qt::KeyboardModifiers modifiers) { return handlePeekKey(key, pressed, modifiers); },
         [this](bool used) { return handlePeekPointer(used); },
     });
     d->axisInput = std::make_unique<AxisFilter>(pointerBind);

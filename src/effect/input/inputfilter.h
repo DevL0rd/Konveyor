@@ -24,7 +24,7 @@ struct InputHandlers
     std::function<void()> escapePressed;
     std::function<bool()> toggleDragFloating;
     std::function<void(bool, bool)> modifiersHeld;
-    std::function<void(int, bool, Qt::KeyboardModifiers)> peekKey;
+    std::function<bool(int, bool, Qt::KeyboardModifiers)> peekKey;
     std::function<bool(bool)> peekPointer;
 };
 
