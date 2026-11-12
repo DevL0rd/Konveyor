@@ -107,6 +107,31 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
         QFile::remove(wanted.path);
     }
+    void widthIsMeasuredAgainWhenDataArrives_data()
+    {
+        QTest::addColumn<QString>("name");
+        for (const char *name : {"sysmon", "procmon", "routermon"}) {
+            QTest::newRow(name) << QString::fromLatin1(name);
+        }
+    }
+
+    void widthIsMeasuredAgainWhenDataArrives()
+    {
+        QFETCH(QString, name);
+        const Panel wanted = panel(name);
+        PlasmoidHarness harness(wanted.spec);
+        QObject *root = harness.load(Form::Horizontal, {});
+        QVERIFY2(root, qPrintable(harness.error));
+        QQuickItem *compact = harness.show("compactRepresentation");
+        QVERIFY(compact);
+        compact->setSize(QSizeF(1200, 40));
+        harness.resolveRuntime(QStringLiteral("printf %s"));
+        QTRY_VERIFY(!compact->property("probingWidth").toBool());
+        const double empty = compact->property("settledWidth").toDouble();
+        QVERIFY(harness.deliver(wanted.path, wanted.snapshot, [&] { return root->property(wanted.arrived).toBool(); }));
+        QTRY_VERIFY(compact->property("settledWidth").toDouble() > empty);
+        QFile::remove(wanted.path);
+    }
 };
 
 QTEST_MAIN(TestPlasmoidPanels)
