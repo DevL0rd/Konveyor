@@ -265,6 +265,13 @@ foreach(name test_portal_plasmoid_qml test_portal_friends_qml test_portal_friend
     set_tests_properties(${name} PROPERTIES LABELS "unit;widgets" ENVIRONMENT "QT_QPA_PLATFORM=offscreen;DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent/konveyor-test-bus")
 endforeach()
 
+add_executable(test_portal_tilegrid_wheel_qml unit/widgets/portal/test_portal_tilegrid_wheel_qml.cpp)
+target_link_libraries(test_portal_tilegrid_wheel_qml PRIVATE Qt6::Qml Qt6::Quick Qt6::Test)
+target_compile_options(test_portal_tilegrid_wheel_qml PRIVATE -Wall -Wextra)
+target_compile_definitions(test_portal_tilegrid_wheel_qml PRIVATE KONVEYOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+add_test(NAME test_portal_tilegrid_wheel_qml COMMAND test_portal_tilegrid_wheel_qml)
+set_tests_properties(test_portal_tilegrid_wheel_qml PROPERTIES LABELS "unit;widgets" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
 find_package(Qt6 REQUIRED COMPONENTS Widgets DBus)
 find_package(KWin 6.7 REQUIRED COMPONENTS kwineffects)
 add_library(konveyor_test_touchpad MODULE nested/plugins/touchpad/touchpadplugin.cpp)

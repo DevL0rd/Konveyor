@@ -23,14 +23,11 @@ GridView {
     readonly property int columns: Math.max(1, Math.floor(width / cellWidth))
     readonly property bool keyboardSelection: sectionActive && currentIndex >= 0
 
-    interactive: scrolling
-    // Only grids that actually scroll get a handler. On static sub-grids
-    // (scrolling: false) the handler would swallow wheel events, including
-    // touchpad gestures, before they can reach the enclosing page's scroll
-    // view, making whole sections of the page unscrollable.
     Kirigami.WheelHandler {
         target: grid.scrolling ? grid : null
     }
+
+    interactive: scrolling
     implicitHeight: shownCount > 0 ? Math.ceil(shownCount / columns) * cellHeight : 0
     currentIndex: -1
     keyNavigationEnabled: false

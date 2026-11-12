@@ -247,9 +247,7 @@ Item {
                             reuseItems: true
                             boundsBehavior: Flickable.StopAtBounds
                             spacing: 1
-                            Kirigami.WheelHandler {
-                                target: view
-                            }
+
                             readonly property real stickPx: Math.max(0, Plasmoid.configuration.stickLines) * Kirigami.Units.gridUnit * 1.6
 
                             function updateFollowing() {

@@ -250,10 +250,13 @@ def net_rates(samples, tick, cur):
     """Summed down/up bytes per second, averaged over the last NET_WINDOW
     seconds whatever the poll interval, so bursty traffic reads steadily.
     samples holds (tick, counters) from earlier polls. An interface whose
-    counters went backwards (re-plugged, driver reload) sits this one out."""
+    counters went backwards (re-plugged, driver reload) sits this one out.
+    None when no device-backed interface exists."""
     samples.append((tick, cur))
     while len(samples) > 2 and tick - samples[1][0] >= NET_WINDOW:
         samples.popleft()
+    if not cur:
+        return None
     then, prev = samples[0]
     dt = tick - then
     down = up = 0

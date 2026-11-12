@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import builtins
 import shutil
+import sys
 import unittest
 from unittest import mock
 
 from collectorharness import WIDGETS, CollectorTest
 
 SCRIPT = WIDGETS / "system-monitor" / "bin" / "sysmon_amdgpu.py"
+sys.path.insert(0, str(SCRIPT.parent))
 WAKING = ("gpu_metrics", "pp_dpm_sclk", "gpu_busy_percent", "temp1_input", "power1_average", "freq1_input", "pwm1")
 
 

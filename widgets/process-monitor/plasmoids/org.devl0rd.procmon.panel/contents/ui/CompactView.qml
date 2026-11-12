@@ -28,20 +28,8 @@ MouseArea {
     readonly property var frametimes: root.frametimesFor(framePid)
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     readonly property bool lit: containsMouse || root.expanded
-    readonly property real screenSpan: vertical ? Screen.height : Screen.width
     readonly property bool wideScreen: Screen.width >= Screen.height
-    property bool probingWidth: true
-    property real settledWidth: 0
     property bool wasExpanded: false
-
-    readonly property real fullSpan: fit.preferredSpan
-    onScreenSpanChanged: reprobe()
-    onFullSpanChanged: reprobe()
-    function reprobe() {
-        probingWidth = true
-        settledWidth = 0
-        widthProbe.restart()
-    }
 
     opacity: root.collectorStale ? 0.5 : 1
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
@@ -81,18 +69,15 @@ MouseArea {
         items: [compact.nameSpan, cpuChip.stageSpan, gpuChip.stageSpan, fpsChip.stageSpan]
     }
 
-    Timer {
+    PanelWidthProbe {
         id: widthProbe
-        interval: 200
-        running: true
-        onTriggered: {
-            compact.settledWidth = fit.tileSpan
-            compact.probingWidth = false
-        }
+        tileSpan: fit.tileSpan
+        fullSpan: fit.preferredSpan
+        screenSpan: compact.vertical ? Screen.height : Screen.width
     }
 
     Layout.minimumWidth: vertical ? 0 : (fit.shrink && !wideScreen ? fit.minimumSpan : fit.preferredSpan)
-    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !wideScreen && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !wideScreen && widthProbe.settledSpan > 0 ? widthProbe.settledSpan : fit.preferredSpan)
     Layout.minimumHeight: vertical ? (fit.shrink ? fit.minimumSpan : fit.preferredSpan) : 0
     Layout.preferredHeight: vertical ? fit.preferredSpan : 0
 

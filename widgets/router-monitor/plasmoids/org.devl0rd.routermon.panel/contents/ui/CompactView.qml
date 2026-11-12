@@ -26,20 +26,8 @@ MouseArea {
                                     : Plasmoid.configuration.planDownMbps > 0 ? Plasmoid.configuration.planDownMbps
                                     : Math.max(1, Plasmoid.configuration.peakDown)
     readonly property real upScale: Plasmoid.configuration.maxMbps > 0 ? Plasmoid.configuration.maxMbps : Math.max(1, Plasmoid.configuration.peakUp)
-    readonly property real screenSpan: vertical ? Screen.height : Screen.width
     readonly property bool wideScreen: Screen.width >= Screen.height
-    property bool probingWidth: true
-    property real settledWidth: 0
     property bool wasExpanded: false
-
-    readonly property real fullSpan: fit.preferredSpan
-    onScreenSpanChanged: reprobe()
-    onFullSpanChanged: reprobe()
-    function reprobe() {
-        probingWidth = true
-        settledWidth = 0
-        widthProbe.restart()
-    }
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
@@ -66,18 +54,15 @@ MouseArea {
         items: [downChip.stageSpan, upChip.stageSpan, pingChip.stageSpan, clientsChip.stageSpan, blockedChip.stageSpan]
     }
 
-    Timer {
+    PanelWidthProbe {
         id: widthProbe
-        interval: 200
-        running: true
-        onTriggered: {
-            compact.settledWidth = fit.tileSpan
-            compact.probingWidth = false
-        }
+        tileSpan: fit.tileSpan
+        fullSpan: fit.preferredSpan
+        screenSpan: compact.vertical ? Screen.height : Screen.width
     }
 
     Layout.minimumWidth: vertical ? 0 : (fit.shrink && !wideScreen ? fit.minimumSpan : fit.preferredSpan)
-    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : (fit.shrink && widthProbe.settledSpan > 0 ? widthProbe.settledSpan : fit.preferredSpan)
     Layout.minimumHeight: vertical ? (fit.shrink ? fit.minimumSpan : fit.preferredSpan) : 0
     Layout.preferredHeight: vertical ? fit.preferredSpan : 0
 

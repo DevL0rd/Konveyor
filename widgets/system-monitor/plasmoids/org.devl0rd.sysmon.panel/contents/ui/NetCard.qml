@@ -1,7 +1,7 @@
 import QtQuick
+import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import "lib"
-import "lib/Format.js" as Fmt
 
 PopCard {
     collapsible: shell.query === ""
@@ -9,10 +9,12 @@ PopCard {
     onCollapseToggled: shell.toggleCollapsed("network")
     visible: shell.netMatch
     title: i18n("Network")
-    icon: "network-wired"
-    trailing: root.net ? "↓ " + Fmt.rate(root.net.down) + "  ↑ " + Fmt.rate(root.net.up) : ""
+    icon: root.netWireless ? "network-wireless" : "network-wired"
+    trailing: root.net && netTabs.current.fmt ? netTabs.current.fmt(netTabs.current.get(root.net)) : ""
+    trailingColor: root.net && netTabs.current.color ? netTabs.current.color(netTabs.current.get(root.net), Kirigami.Theme) : Kirigami.Theme.textColor
 
     PopMetricTabs {
+        id: netTabs
         metrics: root.netMetrics
         source: root.net || ({})
         tick: root.tick

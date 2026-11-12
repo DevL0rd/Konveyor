@@ -100,7 +100,7 @@ Item {
                 return -1
             }
             readonly property int cpuMetricMatch: metricMatch(root.cpuMetrics)
-            readonly property int gpuMetricMatch: metricMatch(root.gpuMetrics)
+            readonly property int gpuMetricMatch: metricMatch(root.gpuShown)
             readonly property bool cpuMatch: cpuMetricMatch >= 0 || matchesWords(["cpu", "processor", root.cpuShort().toLowerCase()])
             readonly property bool coresMatch: Plasmoid.configuration.showPerCore && (query === "" || coreQuery !== null || matchesWords(["cores", "threads", "p-core", "e-core"]))
             readonly property bool gpuMatch: root.gpu !== null && Plasmoid.configuration.showGpu
@@ -198,7 +198,7 @@ Item {
                         visible: root.gpu !== null && Plasmoid.configuration.showGpu
                         value: root.gpu ? root.gpu.util || 0 : 0
                         label: i18n("GPU")
-                        caption: root.gpu ? Fmt.temp(root.gpu.temp) + " · " + Math.round(root.gpu.power || 0) + " W" : ""
+                        caption: root.gpu ? root.gpuDetails() : ""
                         color: Style.heatStrong(root.gpu ? root.gpu.util || 0 : 0, 60, 85, Kirigami.Theme)
                         onClicked: { scroll.scrollTo(gpuCard); gpuCard.flash() }
                     }
@@ -299,12 +299,12 @@ Item {
 
                     PopMetricTabs {
                         id: gpuTabs
-                        metrics: root.gpuMetrics
+                        metrics: root.gpuShown
                         source: root.gpu || ({})
                         tick: root.tick
                         valuesFor: key => root.series("gpu." + key)
                         chartVisible: Plasmoid.configuration.showCharts
-                        selected: shell.gpuMetricMatch >= 0 ? shell.gpuMetricMatch : Plasmoid.configuration.gpuTab
+                        selected: shell.gpuMetricMatch >= 0 ? shell.gpuMetricMatch : Math.max(0, Math.min(Plasmoid.configuration.gpuTab, root.gpuShown.length - 1))
                         onUserSelected: index => Plasmoid.configuration.gpuTab = index
                     }
                     PopBar {

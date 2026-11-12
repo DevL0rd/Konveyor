@@ -33,7 +33,6 @@ PopCard {
 
         Kirigami.WheelHandler {
             target: strip
-            blockTargetWheel: false
         }
 
         delegate: Item {

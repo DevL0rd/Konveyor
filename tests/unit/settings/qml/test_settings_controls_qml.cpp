@@ -25,7 +25,8 @@ void TestSettingsControlsQml::controls_data()
     addControl("hide widgets on",
         {"PlasmaPage", "Hide desktop widgets behind windows", "switched", "[true]", "hide-desktop-widgets", R"({"args":[]})", empty});
     addControl("fill panels off",
-        {"PlasmaPage", "Stretch panels while a window is maximized", "switched", "[false]", "fill-panels-on-maximize", "null"});
+        {"PlasmaPage", "Stretch panels while a window is maximized", "switched", "[false]", "fill-panels-on-maximize", "null",
+            "fill-panels-on-maximize\n"});
     addControl("fill panels on",
         {"PlasmaPage", "Stretch panels while a window is maximized", "switched", "[true]", "fill-panels-on-maximize", R"({"args":[]})",
             empty});

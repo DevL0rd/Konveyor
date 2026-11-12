@@ -59,11 +59,6 @@ ColumnLayout {
             move: Transition { NumberAnimation { properties: "y"; duration: 220; easing.type: Easing.OutCubic } }
             displaced: Transition { NumberAnimation { properties: "y"; duration: 220; easing.type: Easing.OutCubic } }
 
-            // Native smooth wheel scrolling with touchpad inertia.
-            Kirigami.WheelHandler {
-                target: list
-            }
-
             delegate: ClientRow {
                 required property var model
                 width: list.width - (list.QQC2.ScrollBar.vertical && list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)

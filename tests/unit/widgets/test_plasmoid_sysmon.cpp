@@ -10,6 +10,8 @@ const QByteArray snapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon.json
 
 const QByteArray hybridSnapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon-hybrid.json"));
 
+const QByteArray intelSnapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon-intel.json"));
+
 const QByteArray emptySnapshot = R"({"ts":0,"cpu":{},"mem":{},"gpu":null})";
 
 const PlasmoidSpec panel {QStringLiteral("system-monitor/plasmoids/org.devl0rd.sysmon.panel"), QStringLiteral("org.devl0rd.sysmon.panel"),
@@ -129,6 +131,64 @@ private Q_SLOTS:
         QVERIFY(feed(*harness, hybridSnapshot));
         QCOMPARE(harness->root()->property("toolTipSubText").toString(),
             QStringLiteral("Up 0m\nCPU 5% · 40°C · 3.9 GHz · 0 W\nRAM 512 B / 1 KB"));
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
+    void leavesOutGpuMetricsTheDriverCannotRead()
+    {
+        auto harness = started(Form::Planar);
+        QVERIFY(harness);
+        QVERIFY(feed(*harness, intelSnapshot));
+        harness->root()->setProperty("tooltipWanted", true);
+        QCOMPARE(harness->root()->property("toolTipSubText").toString(),
+            QStringLiteral("Up 1d 1h\nCPU 43% · 71°C · 3.2 GHz · 35 W\nGPU 31% · 1250 MHz\nRAM 16.0 GB / 32.0 GB · Swap 1.0 GB / 8.0 GB"));
+        QCOMPARE(harness->eval(QStringLiteral("gpuShown.map(m => m.key)")).toStringList(), (QStringList {QStringLiteral("usage"), QStringLiteral("clock")}));
+        QCOMPARE(harness->eval(QStringLiteral("series('gpu.temp')")).toList(), QVariantList());
+        QCOMPARE(harness->eval(QStringLiteral("series('gpu.clock')")).toList(), (QVariantList {1250}));
+        QStringList captions;
+        for (QObject *ring : harness->findAll("PopRing")) {
+            captions.append(ring->property("caption").toString());
+        }
+        QVERIFY2(captions.contains(QStringLiteral("1250 MHz")), qPrintable(captions.join(QLatin1Char('|'))));
+        const QStringList texts = visibleTexts(harness->scene());
+        QVERIFY2(texts.contains(QStringLiteral("Max clock")), qPrintable(texts.join(QLatin1Char('|'))));
+        QVERIFY(!texts.contains(QStringLiteral("Power limit")));
+        QVERIFY(!texts.contains(QStringLiteral("Memory clock")));
+        QVERIFY(!texts.contains(QStringLiteral("Network")));
+        QVERIFY(!texts.contains(QStringLiteral("NET")));
+        QObject *popup = shell(*harness);
+        QVERIFY(popup);
+        popup->setProperty("searchText", QStringLiteral("temp"));
+        QCOMPARE(popup->property("matchCount").toInt(), 1);
+        popup->setProperty("searchText", QStringLiteral("clock"));
+        QCOMPARE(popup->property("matchCount").toInt(), 2);
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
+    void showsWirelessNetworksInGigabits()
+    {
+        auto harness = started(Form::Planar);
+        QVERIFY(harness);
+        QVERIFY(feed(*harness, QByteArray(snapshot).replace("\"down\": 1250000", "\"down\": 187500000").replace("enp5s0", "wlan0")));
+        harness->root()->setProperty("tooltipWanted", true);
+        QVERIFY2(harness->root()->property("toolTipSubText").toString().endsWith(QStringLiteral("\nNetwork ↓ 1.50 Gb/s · ↑ 320 Kb/s")),
+            qPrintable(harness->root()->property("toolTipSubText").toString()));
+        QObject *card = nullptr;
+        for (QObject *candidate : harness->findAll("NetCard")) {
+            card = candidate;
+        }
+        QVERIFY(card);
+        QCOMPARE(card->property("icon").toString(), QStringLiteral("network-wireless"));
+        QCOMPARE(card->property("trailing").toString(), QStringLiteral("1.50 Gb/s"));
+        QVERIFY(harness->eval(QStringLiteral("netMetrics[0].color(0) === Style.hue('down', Kirigami.Theme)")).toBool());
+        QObject *chart = nullptr;
+        for (QObject *candidate : findByType(card, "Sparkline")) {
+            chart = candidate;
+        }
+        QVERIFY(chart);
+        QCOMPARE(chart->property("gradient").toBool(), false);
+        QVERIFY(feed(*harness, QByteArray(snapshot).replace("\"enp5s0\"", "\"wwan0\", \"enp5s0\"")));
+        QCOMPARE(card->property("icon").toString(), QStringLiteral("network-wired"));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 

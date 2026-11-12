@@ -86,6 +86,9 @@ private:
         row("[Fmt.pct(undefined), Fmt.pct(null), Fmt.pct(12.6)]", "[\"0%\",\"0%\",\"13%\"]");
         row("[Fmt.rate(undefined), Fmt.rate(-1), Fmt.rate(0), Fmt.rate(0.1), Fmt.rate(1), Fmt.rate(125), Fmt.rate(125000)]",
             "[\"—\",\"—\",\"idle\",\"idle\",\"8 b/s\",\"1 Kb/s\",\"1.0 Mb/s\"]");
+        row("[Fmt.rate(124.95), Fmt.rate(124950), Fmt.rate(124990000), Fmt.rate(150000000), Fmt.rate(1249000000), Fmt.rate(1250000000), "
+            "Fmt.rate(12490000000), Fmt.rate(12500000000)]",
+            "[\"1 Kb/s\",\"1.0 Mb/s\",\"999.9 Mb/s\",\"1.20 Gb/s\",\"9.99 Gb/s\",\"10.0 Gb/s\",\"99.9 Gb/s\",\"100 Gb/s\"]");
         row("[Fmt.duration(undefined), Fmt.duration(59), Fmt.duration(3600), Fmt.duration(3661), Fmt.duration(90061)]",
             "[\"0m\",\"0m\",\"1h 0m\",\"1h 1m\",\"1d 1h\"]");
         row("[Fmt.temp(undefined), Fmt.temp(71.5), Fmt.dbm(undefined), Fmt.dbm(-50)]", "[\"0°C\",\"72°C\",\"0 dBm\",\"-50 dBm\"]");

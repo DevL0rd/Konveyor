@@ -126,10 +126,13 @@ private Q_SLOTS:
         QVERIFY(compact);
         compact->setSize(QSizeF(1200, 40));
         harness.resolveRuntime(QStringLiteral("printf %s"));
-        QTRY_VERIFY(!compact->property("probingWidth").toBool());
-        const double empty = compact->property("settledWidth").toDouble();
+        const QList<QObject *> probes = findByType(compact, "PanelWidthProbe");
+        QCOMPARE(probes.size(), 1);
+        QObject *probe = probes.first();
+        QTRY_VERIFY(!probe->property("probing").toBool());
+        const double empty = probe->property("settled").toDouble();
         QVERIFY(harness.deliver(wanted.path, wanted.snapshot, [&] { return root->property(wanted.arrived).toBool(); }));
-        QTRY_VERIFY(compact->property("settledWidth").toDouble() > empty);
+        QTRY_VERIFY(probe->property("settledSpan").toDouble() > empty);
         QFile::remove(wanted.path);
     }
 };

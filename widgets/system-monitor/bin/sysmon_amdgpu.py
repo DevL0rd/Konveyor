@@ -2,35 +2,9 @@ import glob
 import os
 import re
 
+from sysmon_sysfs import awake, hwdb_name, read
+
 _amd = {"card": None}
-_ASLEEP = ("suspended", "suspending")
-
-
-def _read(path, cast=int):
-    try:
-        with open(path) as f:
-            return cast(f.read().strip())
-    except (OSError, ValueError):
-        return None
-
-
-def _hwdb_name(dev):
-    """The device's name in the udev hardware database, e.g. "Navi 32 [Radeon
-    RX 7700 XT / 7800 XT]" -> "Radeon RX 7700 XT / 7800 XT". None if udev
-    doesn't know it."""
-    try:
-        with open(os.path.join(dev, "uevent")) as f:
-            slot = re.search(r"^PCI_SLOT_NAME=(.+)$", f.read(), re.M).group(1)
-        with open("/run/udev/data/+pci:" + slot) as f:
-            model = re.search(r"^E:ID_MODEL_FROM_DATABASE=(.+)$", f.read(), re.M).group(1)
-    except (OSError, AttributeError):
-        return None
-    brand = re.search(r"\[(.+)\]", model)
-    return brand.group(1) if brand else model
-
-
-def _awake(dev):
-    return _read(os.path.join(dev, "power", "runtime_status"), str) not in _ASLEEP
 
 
 def _find_card():
@@ -39,8 +13,8 @@ def _find_card():
     cards = [os.path.dirname(p) for p in sorted(glob.glob("/sys/class/drm/card[0-9]*/device/gpu_busy_percent"))]
     if not cards:
         return None
-    dev = max(cards, key=lambda d: _read(os.path.join(d, "mem_info_vram_total")) or 0)
-    name = _read(os.path.join(dev, "product_name"), str) or "AMD " + (_hwdb_name(dev) or "GPU")
+    dev = max(cards, key=lambda d: read(os.path.join(d, "mem_info_vram_total")) or 0)
+    name = read(os.path.join(dev, "product_name"), str) or "AMD " + (hwdb_name(dev) or "GPU")
     return {"dev": dev, "name": name, "hwmon": None, "apu": False, "clock_max": 0, "probed": False}
 
 
@@ -55,7 +29,7 @@ def _probe(card, cpu_model):
             card["apu"] = f.read(3)[2] >= 2
     except (OSError, IndexError):
         card["apu"] = False
-    sclk = _read(os.path.join(dev, "pp_dpm_sclk"), lambda text: [int(m) for m in re.findall(r"(\d+)\s*mhz", text, re.I)])
+    sclk = read(os.path.join(dev, "pp_dpm_sclk"), lambda text: [int(m) for m in re.findall(r"(\d+)\s*mhz", text, re.I)])
     card["clock_max"] = max(sclk or [0])
     if " w/ " in cpu_model and card["apu"]:
         card["name"] = "AMD " + cpu_model.partition(" w/ ")[2]
@@ -79,17 +53,17 @@ def amd_gpu(cpu_model=""):
     if card is None:
         return None
     dev = card["dev"]
-    awake = _awake(dev)
-    if awake and not card["probed"]:
+    powered = awake(dev)
+    if powered and not card["probed"]:
         _probe(card, cpu_model)
     hw = _hwmon(card)
 
     def mem(kind):
-        return ((_read(os.path.join(dev, "mem_info_%s_used" % kind)) or 0) if awake else 0,
-                _read(os.path.join(dev, "mem_info_%s_total" % kind)) or 0)
+        return ((read(os.path.join(dev, "mem_info_%s_used" % kind)) or 0) if powered else 0,
+                read(os.path.join(dev, "mem_info_%s_total" % kind)) or 0)
 
     def sensor(name, scale=1):
-        v = _read(os.path.join(hw, name)) if hw and awake else None
+        v = read(os.path.join(hw, name)) if hw and powered else None
         return v / scale if v is not None else None
 
     used, total = mem("vram")
@@ -100,7 +74,7 @@ def amd_gpu(cpu_model=""):
     pwm, pwm_max = sensor("pwm1"), sensor("pwm1_max")
     return {
         "name": card["name"],
-        "util": (_read(os.path.join(dev, "gpu_busy_percent")) or 0) if awake else 0,
+        "util": (read(os.path.join(dev, "gpu_busy_percent")) or 0) if powered else 0,
         "vram_used": used, "vram_total": total,
         "vram_pct": (used / total * 100) if total else 0,
         "temp": sensor("temp1_input", 1000) or 0,

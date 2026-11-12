@@ -231,8 +231,8 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
         self.write_i915(1000)
         gpu = self.load(SCRIPT, "sysmon_collect").build()["gpu"]
         self.assertEqual(gpu, {"name": "Intel Iris Xe Graphics", "util": 0, "vram_used": 0, "vram_total": 0,
-                               "vram_pct": 0, "temp": 0, "power": 0, "clock_gr": 800, "clock_mem": 0,
-                               "fan": 0, "clock_max": 1300, "power_max": 0, "shared": True})
+                               "vram_pct": 0, "temp": None, "power": None, "clock_gr": 800, "clock_mem": None,
+                               "fan": None, "clock_max": 1300, "power_max": None, "shared": True})
 
     def test_amdgpu_takes_precedence_over_i915(self):
         self.write_minimal()
@@ -262,6 +262,13 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
         with mock.patch.object(module.time, "monotonic", return_value=54.0):
             self.assertEqual(module.build()["net"]["down"], 1000)
 
+    def test_without_a_device_backed_interface_there_is_no_network(self):
+        self.write_minimal()
+        self.write_net({"lo": (0, 0), "docker0": (5, 5)})
+        module = self.load(SCRIPT, "sysmon_collect")
+        with mock.patch.object(module.time, "monotonic", return_value=50.0):
+            self.assertIsNone(module.build()["net"])
+
     def test_network_throughput_averages_over_two_seconds_at_any_poll_interval(self):
         self.write_minimal()
         self.fake.write("/sys/class/net/enp5s0/device/uevent", "")
@@ -271,8 +278,6 @@ class TestSysmonCollect(ServeLoopTests, CollectorTest):
             self.write_net({"enp5s0": (received, 0)})
             with mock.patch.object(module.time, "monotonic", return_value=50.0 + step * 0.5):
                 downs.append(module.build()["net"]["down"])
-        # A 4000-byte burst in one half-second poll reads as 2000 B/s over the
-        # two-second window until the window has moved past it.
         self.assertEqual(downs, [0, 0, 4000, 2667, 2000, 2000, 0])
 
     def test_snapshot_before_the_first_write_is_empty(self):

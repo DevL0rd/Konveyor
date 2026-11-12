@@ -10,7 +10,7 @@ sys.path.insert(0, str(HERE / "harness"))
 def main():
     from nested import PLASMASHELL, run_runner
 
-    return run_runner(HERE / "runners" / "plasma.py", timeout=420, clients=("A", "B"), setup=PLASMASHELL)
+    return run_runner(HERE / "runners" / "plasma.py", timeout=420, clients=("A", "B"), setup=PLASMASHELL, extra_config="fill-panels-on-maximize\n")
 
 
 if __name__ == "__main__":

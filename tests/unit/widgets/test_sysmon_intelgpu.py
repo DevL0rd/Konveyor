@@ -71,6 +71,31 @@ class TestSysmonIntelgpu(CollectorTest):
         self.fake.write("/run/udev/data/+pci:0000:00:02.0", "E:ID_MODEL_FROM_DATABASE=TigerLake-LP GT2 [Iris Xe Graphics]\n")
         self.assertEqual(self.module.intel_gpu()["name"], "Intel Iris Xe Graphics")
 
+    def test_a_name_already_starting_with_intel_is_not_prefixed_again(self):
+        self.card()
+        self.fake.write(DEV + "uevent", "DRIVER=i915\nPCI_SLOT_NAME=0000:00:02.0\n")
+        self.fake.write("/run/udev/data/+pci:0000:00:02.0", "E:ID_MODEL_FROM_DATABASE=Intel Arc Graphics\n")
+        self.assertEqual(self.module.intel_gpu()["name"], "Intel Arc Graphics")
+
+    def test_a_counter_that_goes_backwards_skips_the_sample(self):
+        self.card(rc6_ms=5000)
+        self.module.intel_gpu()
+        self.assertEqual(self.sample(5500)["util"], 75)
+        self.assertEqual(self.sample(100)["util"], 75)
+        self.assertEqual(self.sample(600)["util"], 75)
+        self.assertEqual(self.sample(2600)["util"], 0)
+
+    def test_readings_the_gpu_cannot_give_are_none(self):
+        self.card()
+        gpu = self.module.intel_gpu()
+        for key in ("temp", "power", "fan", "power_max", "clock_mem"):
+            self.assertIsNone(gpu[key], key)
+
+    def test_a_card_with_local_memory_is_not_shared(self):
+        self.card()
+        self.fake.write("/sys/class/drm/card1/lmem_total_bytes", "8589934592\n")
+        self.assertFalse(self.module.intel_gpu()["shared"])
+
     def test_an_unknown_gpu_is_named_generically(self):
         self.card()
         self.assertEqual(self.module.intel_gpu()["name"], "Intel Graphics")

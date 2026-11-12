@@ -20,22 +20,11 @@ MouseArea {
     readonly property string chipStyle: Plasmoid.configuration.compactStyle
     readonly property bool showLabels: vertical || thickness >= Kirigami.Units.gridUnit * 2.4
     readonly property bool temps: Plasmoid.configuration.compactShowTemps
+    readonly property bool gpuTemps: temps && root.gpu !== null && root.gpu.temp !== null
     readonly property string lockedStage: Plasmoid.configuration.panelDetail === "auto" ? "" : Plasmoid.configuration.panelDetail
     readonly property bool hasData: !!root.snap.cpu
-    readonly property real screenSpan: vertical ? Screen.height : Screen.width
     readonly property bool wideScreen: Screen.width >= Screen.height
-    property bool probingWidth: true
-    property real settledWidth: 0
     property bool wasExpanded: false
-
-    readonly property real fullSpan: fit.preferredSpan
-    onScreenSpanChanged: reprobe()
-    onFullSpanChanged: reprobe()
-    function reprobe() {
-        probingWidth = true
-        settledWidth = 0
-        widthProbe.restart()
-    }
 
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
     hoverEnabled: true
@@ -62,18 +51,15 @@ MouseArea {
         items: [cpuChip.stageSpan, gpuChip.stageSpan, ramChip.stageSpan, netChip.stageSpan]
     }
 
-    Timer {
+    PanelWidthProbe {
         id: widthProbe
-        interval: 200
-        running: true
-        onTriggered: {
-            compact.settledWidth = fit.tileSpan
-            compact.probingWidth = false
-        }
+        tileSpan: fit.tileSpan
+        fullSpan: fit.preferredSpan
+        screenSpan: compact.vertical ? Screen.height : Screen.width
     }
 
     Layout.minimumWidth: vertical ? 0 : (fit.shrink && !wideScreen ? fit.minimumSpan : fit.preferredSpan)
-    Layout.preferredWidth: vertical ? 0 : (fit.shrink && !probingWidth && settledWidth > 0 ? settledWidth : fit.preferredSpan)
+    Layout.preferredWidth: vertical ? 0 : (fit.shrink && widthProbe.settledSpan > 0 ? widthProbe.settledSpan : fit.preferredSpan)
     Layout.minimumHeight: vertical ? (fit.shrink ? fit.minimumSpan : fit.preferredSpan) : 0
     Layout.preferredHeight: vertical ? fit.preferredSpan : 0
 
@@ -138,10 +124,10 @@ MouseArea {
             fitSpace: fit.space(1)
             label: i18n("GPU")
             widestValue: "100%"
-            widestSecondary: compact.temps ? "100°" : ""
+            widestSecondary: compact.gpuTemps ? "100°" : ""
             value: root.gpu ? Math.round(root.gpu.util || 0) + "%" : ""
             valueColor: Style.heat(root.gpu ? root.gpu.util || 0 : 0, 90, 99, Kirigami.Theme)
-            secondary: compact.temps && root.gpu && root.gpu.temp ? Math.round(root.gpu.temp) + "°" : ""
+            secondary: compact.gpuTemps ? Math.round(root.gpu.temp) + "°" : ""
             secondaryColor: Style.heat(root.gpu ? root.gpu.temp || 0 : 0, 75, 88, Kirigami.Theme)
             fraction: root.gpu ? (root.gpu.util || 0) / 100 : 0
             barColor: Style.hue("up", Kirigami.Theme)

@@ -227,7 +227,6 @@ Item {
                             reuseItems: true
                             cacheBuffer: Kirigami.Units.gridUnit * 20
                             boundsBehavior: Flickable.StopAtBounds
-                            // Native smooth wheel scrolling with touchpad inertia.
                             Kirigami.WheelHandler {
                                 target: list
                             }

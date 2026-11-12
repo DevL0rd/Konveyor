@@ -88,17 +88,32 @@ PlasmoidItem {
         metric("fan", i18n("Fan"), ["fan", "cooling"], g => g.fan || 0, v => Math.round(v) + "%",
                g => Plasmoid.configuration.gpuFanMax > 0 ? Plasmoid.configuration.gpuFanMax : 100)
     ]
+    readonly property var gpuFields: ({ usage: "util", temp: "temp", clock: "clock_gr", power: "power", fan: "fan" })
+    readonly property var gpuShown: gpu ? gpuMetrics.filter(m => gpu[gpuFields[m.key]] !== null) : []
+    function gpuDetails() {
+        const parts = []
+        if (gpu.temp !== null)
+            parts.push(Fmt.temp(gpu.temp))
+        if (gpu.power !== null)
+            parts.push(Math.round(gpu.power || 0) + " W")
+        if (parts.length === 0)
+            parts.push(Math.round(gpu.clock_gr || 0) + " MHz")
+        return parts.join(" · ")
+    }
 
     readonly property var netMetrics: [
-        metric("down", i18n("Download"), ["download", "down", "receive", "rx"], n => n.down || 0, Fmt.rate, n => 0),
-        metric("up", i18n("Upload"), ["upload", "up", "send", "tx"], n => n.up || 0, Fmt.rate, n => 0)
+        Object.assign(metric("down", i18n("Download"), ["download", "down", "receive", "rx"], n => n.down || 0, Fmt.rate, n => 0),
+                      { flat: true, color: (v, theme) => Style.hue("down", theme || Kirigami.Theme) }),
+        Object.assign(metric("up", i18n("Upload"), ["upload", "up", "send", "tx"], n => n.up || 0, Fmt.rate, n => 0),
+                      { flat: true, color: (v, theme) => Style.hue("up", theme || Kirigami.Theme) })
     ]
+    readonly property bool netWireless: !!net && (net.ifaces || []).length > 0 && net.ifaces.every(name => /^w[lw]/.test(name))
 
     function record() {
         for (const m of cpuMetrics)
             History.push(history, "cpu." + m.key, m.get(cpu))
         if (gpu) {
-            for (const m of gpuMetrics)
+            for (const m of gpuShown)
                 History.push(history, "gpu." + m.key, m.get(gpu))
         }
         History.push(history, "mem.usage", mem.pct || 0)
@@ -123,7 +138,7 @@ PlasmoidItem {
             i18n("CPU %1% · %2 · %3 GHz · %4 W", Math.round(cpu.total || 0), Fmt.temp(cpu.temp), (cpu.freq || 0).toFixed(1), Math.round(cpu.watts || 0))
         ]
         if (gpu)
-            lines.push(i18n("GPU %1% · %2 · %3 W", Math.round(gpu.util || 0), Fmt.temp(gpu.temp), Math.round(gpu.power || 0))
+            lines.push(i18n("GPU %1% · %2", Math.round(gpu.util || 0), gpuDetails())
                        + (gpu.vram_total > 0 ? i18n(" · %1 %2 / %3", gpu.shared ? i18n("Memory") : i18n("VRAM"),
                                                     Style.bytes(gpu.vram_used), Style.bytes(gpu.vram_total)) : ""))
         lines.push(i18n("RAM %1 / %2", Style.bytes(mem.used), Style.bytes(mem.total))
