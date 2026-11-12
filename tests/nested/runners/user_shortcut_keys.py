@@ -13,6 +13,7 @@ KEY_R = 0x52
 PRESET_WIDTH = ("konveyor", "konveyor-Super+R")
 REBOOT = ("ksmserver", "Reboot Without Confirmation")
 DESKTOP_DOWN = ("kwin", "Switch One Desktop Down")
+OTHER_DEFAULT = ("konveyor-test-other.desktop", "RecordRegion")
 
 
 def effect_keys():
@@ -33,7 +34,7 @@ def user_key_survives_a_restart(checks):
     checks.expect(reload_effect(), "the effect loads again, as at the next login")
     checks.expect(wait_for(lambda: any(component == "konveyor" and keys for (component, _), keys in all_shortcuts().items()), 30), "Konveyor registered its shortcuts again")
     checks.equal(shortcut(*REBOOT), [META | KEY_R], "the user's shortcut keeps Meta+R after Konveyor loads")
-    checks.equal(shortcut("org.kde.spectacle.desktop", "RecordRegion"), [META | KEY_R], "another default holder of Meta+R is left with it too")
+    checks.equal(shortcut(*OTHER_DEFAULT), [META | KEY_R], "another default holder of Meta+R is left with it too")
     checks.equal(effect_keys(), [], "Konveyor does not take Meta+R back")
     checks.expect("/".join(REBOOT) not in released(), f"the user's shortcut is not recorded as taken over ({sorted(released())})")
     checks.expect("/".join(DESKTOP_DOWN) in released(), "KDE's own default keys are still taken over")

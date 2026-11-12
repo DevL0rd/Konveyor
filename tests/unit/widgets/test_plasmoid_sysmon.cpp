@@ -1,47 +1,13 @@
-#include "plasmoidharness.h"
+#include "sysmonfixture.h"
 
-#include <QJsonDocument>
-#include <QTest>
-
-namespace
-{
-
-const QByteArray snapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon.json"));
-
-const QByteArray hybridSnapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon-hybrid.json"));
-
-const QByteArray intelSnapshot = PlasmoidHarness::fixture(QStringLiteral("sysmon-intel.json"));
-
-const QByteArray emptySnapshot = R"({"ts":0,"cpu":{},"mem":{},"gpu":null})";
-
-const PlasmoidSpec panel {QStringLiteral("system-monitor/plasmoids/org.devl0rd.sysmon.panel"), QStringLiteral("org.devl0rd.sysmon.panel"),
-    QStringLiteral("cpu"), {}};
-const PlasmoidSpec overlayHost {QStringLiteral("system-monitor/plasmoids/org.devl0rd.sysmon.panel"),
-    QStringLiteral("org.devl0rd.sysmon.overlay"), QStringLiteral("cpu"), {}};
-
-QString dataPath()
-{
-    return qEnvironmentVariable("XDG_RUNTIME_DIR") + QStringLiteral("/Linux-System-Monitor/data.json");
-}
-
-std::unique_ptr<PlasmoidHarness> started(int form, const QVariantMap &config = {}, const PlasmoidSpec &spec = panel)
-{
-    return PlasmoidHarness::started(spec, form, config);
-}
-
-bool feed(PlasmoidHarness &harness, const QByteArray &json)
-{
-    const int tick = harness.root()->property("tick").toInt();
-    return harness.deliver(dataPath(), json, [&] { return harness.root()->property("tick").toInt() > tick; });
-}
-
-QObject *shell(PlasmoidHarness &harness)
-{
-    const QList<QObject *> shells = harness.findAll("PopupShell");
-    return shells.isEmpty() ? nullptr : shells.first();
-}
-
-}
+using Sysmon::dataPath;
+using Sysmon::emptySnapshot;
+using Sysmon::feed;
+using Sysmon::hybridSnapshot;
+using Sysmon::intelSnapshot;
+using Sysmon::shell;
+using Sysmon::snapshot;
+using Sysmon::started;
 
 class TestPlasmoidSysmon : public QObject
 {
@@ -142,7 +108,8 @@ private Q_SLOTS:
         harness->root()->setProperty("tooltipWanted", true);
         QCOMPARE(harness->root()->property("toolTipSubText").toString(),
             QStringLiteral("Up 1d 1h\nCPU 43% · 71°C · 3.2 GHz · 35 W\nGPU 31% · 1250 MHz\nRAM 16.0 GB / 32.0 GB · Swap 1.0 GB / 8.0 GB"));
-        QCOMPARE(harness->eval(QStringLiteral("gpuShown.map(m => m.key)")).toStringList(), (QStringList {QStringLiteral("usage"), QStringLiteral("clock")}));
+        QCOMPARE(harness->eval(QStringLiteral("gpuShown.map(m => m.key)")).toStringList(),
+            (QStringList {QStringLiteral("usage"), QStringLiteral("clock")}));
         QCOMPARE(harness->eval(QStringLiteral("series('gpu.temp')")).toList(), QVariantList());
         QCOMPARE(harness->eval(QStringLiteral("series('gpu.clock')")).toList(), (QVariantList {1250}));
         QStringList captions;
@@ -288,144 +255,6 @@ private Q_SLOTS:
         QTRY_VERIFY_WITH_TIMEOUT(!harness->root()->property("collectorAlive").toBool(), 10000);
         QCOMPARE(popup->property("statusText").toString(), QStringLiteral("Collector stopped"));
         QVERIFY(visibleTexts(harness->scene()).contains(QStringLiteral("Collector not running")));
-        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
-    }
-
-    void searchFiltersTheCards_data()
-    {
-        QTest::addColumn<QString>("query");
-        QTest::addColumn<int>("matches");
-        QTest::newRow("empty") << QString() << -1;
-        QTest::newRow("gpu") << QStringLiteral("gpu") << 1;
-        QTest::newRow("temperature") << QStringLiteral("temp") << 2;
-        QTest::newRow("core") << QStringLiteral("core 3") << 1;
-        QTest::newRow("swap") << QStringLiteral("swap") << 1;
-        QTest::newRow("model name") << QStringLiteral("rtx") << 1;
-        QTest::newRow("network metric") << QStringLiteral("upload") << 1;
-        QTest::newRow("interface") << QStringLiteral("enp5s0") << 1;
-        QTest::newRow("nothing") << QStringLiteral("zzz") << 0;
-    }
-
-    void searchFiltersTheCards()
-    {
-        QFETCH(QString, query);
-        QFETCH(int, matches);
-        auto harness = started(Form::Planar);
-        QVERIFY(harness);
-        QVERIFY(feed(*harness, snapshot));
-        QObject *popup = shell(*harness);
-        QVERIFY(popup);
-        popup->setProperty("searchText", query);
-        QCOMPARE(popup->property("matchCount").toInt(), matches);
-        QCOMPARE(visibleTexts(harness->scene()).contains(QStringLiteral("No matches")), matches == 0);
-        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
-    }
-
-    void collapsesCardsIntoTheConfiguration()
-    {
-        auto harness = started(Form::Planar, {{QStringLiteral("collapsedCards"), QStringLiteral("gpu")}});
-        QVERIFY(harness);
-        QVERIFY(feed(*harness, snapshot));
-        QObject *popup = shell(*harness);
-        QVERIFY(popup);
-        QVERIFY(harness->eval(QStringLiteral("isCollapsed('gpu')"), popup).toBool());
-        harness->eval(QStringLiteral("toggleCollapsed('cpu')"), popup);
-        QCOMPARE(harness->config(QStringLiteral("collapsedCards")).toString(), QStringLiteral("gpu,cpu"));
-        harness->eval(QStringLiteral("toggleCollapsed('gpu')"), popup);
-        QCOMPARE(harness->config(QStringLiteral("collapsedCards")).toString(), QStringLiteral("cpu"));
-        popup->setProperty("searchText", QStringLiteral("cpu"));
-        QVERIFY(!harness->eval(QStringLiteral("isCollapsed('cpu')"), popup).toBool());
-        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
-    }
-
-    void showsHybridCoreGroups()
-    {
-        auto harness = started(Form::Planar);
-        QVERIFY(harness);
-        QVERIFY(feed(*harness, hybridSnapshot));
-        QObject *popup = shell(*harness);
-        QVERIFY(popup);
-        const QStringList texts = visibleTexts(harness->scene());
-        QVERIFY2(texts.contains(QStringLiteral("2 P · 1 E")), qPrintable(texts.join(QLatin1Char('|'))));
-        QVERIFY(texts.contains(QStringLiteral("Performance cores")));
-        popup->setProperty("searchText", QStringLiteral("e-core 1"));
-        QCOMPARE(harness->eval(QStringLiteral("coreQuery"), popup).toMap(),
-            (QVariantMap {{QStringLiteral("group"), QStringLiteral("e")}, {QStringLiteral("index"), 1}}));
-        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
-    }
-
-    void coreBarsFollowTheirCore()
-    {
-        auto harness = started(Form::Planar);
-        QVERIFY(harness);
-        QVERIFY(feed(*harness, snapshot));
-        QObject *popup = shell(*harness);
-        QVERIFY(popup);
-        const auto bars = [&] {
-            QList<QQuickItem *> found;
-            const QList<QQuickItem *> items = visibleItems(harness->scene(), "QQuickItem");
-            std::copy_if(items.cbegin(), items.cend(), std::back_inserter(found),
-                [](QQuickItem *item) { return item->property("marked").isValid(); });
-            return found;
-        };
-        const auto marked = [&] {
-            QStringList out;
-            for (QQuickItem *bar : bars()) {
-                if (bar->property("marked").toBool()) {
-                    out.append(QStringLiteral("%1:%2").arg(bar->property("index").toInt()).arg(bar->property("value").toDouble()));
-                }
-            }
-            return out;
-        };
-        const auto withCores = [](const QVariantList &cores) {
-            QVariantMap map = QJsonDocument::fromJson(snapshot).toVariant().toMap();
-            QVariantMap cpu = map.value(QStringLiteral("cpu")).toMap();
-            cpu.insert(QStringLiteral("cores"), cores);
-            map.insert(QStringLiteral("cpu"), cpu);
-            return QJsonDocument::fromVariant(map).toJson(QJsonDocument::Compact);
-        };
-        popup->setProperty("searchText", QStringLiteral("core 3"));
-        QTRY_COMPARE(marked(), QStringList {QStringLiteral("2:90")});
-        QVERIFY(feed(*harness, withCores({5, 95, 15, 60, 70, 80})));
-        QTRY_COMPARE(bars().size(), 6);
-        QCOMPARE(marked(), QStringList {QStringLiteral("2:15")});
-        popup->setProperty("searchText", QStringLiteral("core 6"));
-        QCOMPARE(marked(), QStringList {QStringLiteral("5:80")});
-        QVERIFY(feed(*harness, snapshot));
-        QTRY_COMPARE(bars().size(), 4);
-        QCOMPARE(marked(), QStringList());
-        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
-    }
-
-    void opensTheSettingsFromThePopup()
-    {
-        auto harness = started(Form::Planar);
-        QVERIFY(harness);
-        QVERIFY(feed(*harness, snapshot));
-        QObject *popup = shell(*harness);
-        QVERIFY(popup);
-        const QList<QObject *> buttons = findByType(popup, "ToolButton");
-        for (QObject *button : buttons) {
-            if (button->property("text").toString() == QStringLiteral("Configure…")) {
-                QMetaObject::invokeMethod(button, "clicked");
-            }
-        }
-        QVERIFY(harness->plasmoid()->action(QStringLiteral("configure")));
-        QCOMPARE(harness->plasmoid()->action(QStringLiteral("configure"))->triggered, 1);
-        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
-    }
-
-    void overlayHostStaysHiddenUntilAWindowAsks()
-    {
-        auto harness = started(Form::Planar, {}, overlayHost);
-        QVERIFY(harness);
-        QCOMPARE(harness->plasmoid()->status, 6);
-        QVERIFY(!harness->root()->property("dataWanted").toBool());
-        QObject *root = harness->root();
-        QVERIFY(harness->overlay(R"([{"key": "app", "pid": 5, "windowId": 3, "x": 0, "y": 0, "width": 900, "height": 600}])", true));
-        QVERIFY(root->property("dataWanted").toBool());
-        QVERIFY(feed(*harness, snapshot));
-        QVERIFY(harness->overlay("[]", false));
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 };
