@@ -241,6 +241,17 @@ experiments {
 }
 ```
 
+`experiments { peek-desktop { on; } }` lets you reach the desktop without losing your windows, for example to drag files to and from a Desktop folder. Hold <kbd>Meta</kbd> on its own for `delay-ms` (300 by default) and every other window on the screen under the pointer fades out and stops taking clicks, while the focused window and the panels stay. Move the pointer off the focused window and it slides to the other side of the screen, shrinking to half the screen first if it is wider; it moves once per peek. Clicking and dragging during the peek keep it open and act as if <kbd>Meta</kbd> were not held, and while a file is being dragged nothing moves. Let go of <kbd>Meta</kbd>, or finish the drop if that comes later, and the windows fade back and the focused one returns to its place and size; the layout itself never changes. Any other key, a click or the wheel before the delay cancels it, so every <kbd>Meta</kbd> shortcut and <kbd>Meta</kbd>+drag work as before, and a quick tap still opens the launcher (a peek never does). Another key during the peek ends it. It does nothing while the focused window is fullscreen, the overview is open or the screen is locked. It is off by default; Settings → Experiments → **Peek at the desktop while holding Meta** turns it on, with **Hold before peeking** below it.
+
+```kdl
+experiments {
+    peek-desktop {
+        on
+        delay-ms 300
+    }
+}
+```
+
 ```kdl
 monitor-profile "portrait" {
     match aspect-ratio-below=1.0

@@ -172,4 +172,17 @@ void decodeInput(const Kdl::Node &node, Input &input)
     decodeChildren(node, table);
 }
 
+void decodePeekDesktop(const Kdl::Node &node, PeekDesktop &peek)
+{
+    expectOnlyChildren(node);
+    bool on = false;
+    bool off = false;
+    NodeTable table;
+    addToggleHandlers(table, on, off);
+    table.insert(QStringLiteral("delay-ms"),
+        [&peek](const Kdl::Node &child) { peek.delayMs = static_cast<int>(integerArgument(child, Range {0, 65535})); });
+    decodeChildren(node, table);
+    peek.enabled = decodeToggle(node, on, off).value_or(true);
+}
+
 }

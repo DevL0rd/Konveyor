@@ -8,9 +8,6 @@
 namespace Konveyor
 {
 
-namespace
-{
-
 void setDragFade(KWin::Window *window, std::optional<double> fade)
 {
     KWin::WindowItem *item = window ? window->windowItem() : nullptr;
@@ -23,8 +20,6 @@ void setDragFade(KWin::Window *window, std::optional<double> fade)
     if (KWin::ShadowItem *shadow = item->shadowItem()) {
         shadow->setOpacity(content);
     }
-}
-
 }
 
 KonveyorEffect::KonveyorEffect()
@@ -54,6 +49,8 @@ KonveyorEffect::KonveyorEffect()
     connect(&d->pointerFocusTimer, &QTimer::timeout, this, &KonveyorEffect::followPointerFocus);
     d->edgeHoverTimer.setSingleShot(true);
     connect(&d->edgeHoverTimer, &QTimer::timeout, this, &KonveyorEffect::switchColumnAtEdge);
+    d->peekTimer.setSingleShot(true);
+    connect(&d->peekTimer, &QTimer::timeout, this, [this] { runPeekStep(d->peekKey.delayPassed(!peekBlocked())); });
     d->startupRulesTimer.setSingleShot(true);
     d->startupRulesTimer.setTimerType(Qt::PreciseTimer);
     connect(&d->startupRulesTimer, &QTimer::timeout, this, [this] { changeEngine().refreshRules(); });
@@ -92,6 +89,7 @@ KonveyorEffect::~KonveyorEffect()
     if (d->draggedOpacity) {
         setDragFade(d->windows.windowOf(d->draggedOpacity->first), std::nullopt);
     }
+    finishPeek();
     releaseQuickTiling();
     MinimizeRule::apply(false);
     for (const KWin::ElectricBorder border : std::as_const(d->reservedCorners)) {
@@ -175,7 +173,6 @@ void KonveyorEffect::stepAnimations()
 {
     changeEngine().tickAnimations();
     flush();
-    d->animating = readEngine().isAnimating();
     if (!d->animating) {
         d->animationTimer.stop();
     }
@@ -190,7 +187,8 @@ void KonveyorEffect::scheduleFlush()
 
 void KonveyorEffect::flush()
 {
-    const QList<Layout::WindowState> states = readEngine().windowStates();
+    QList<Layout::WindowState> states = readEngine().windowStates();
+    placePeekedWindow(states);
     const QList<Layout::WorkspaceState> workspaces = readEngine().workspaceStates();
     endMoveIntoFullscreen(states);
     updateHomeOutputs(states);
@@ -208,7 +206,7 @@ void KonveyorEffect::flush()
     d->fullscreenShade.update(states);
     applyFocusRequest();
     d->plasmaShell.update(states, d->outputs.orderedNames());
-    d->animating = readEngine().isAnimating();
+    d->animating = stepPeek() || readEngine().isAnimating();
     if (d->animating && !d->animationTimer.isActive()) {
         d->animationTimer.start();
     }
@@ -308,6 +306,9 @@ void KonveyorEffect::applyConfig(const Config::Config &config)
     d->shortcuts.setBinds(config.binds);
     applyHotCorners(config);
     resetEdgeHover();
+    if (!config.experiments.peekDesktop.enabled) {
+        runPeekStep(d->peekKey.reset());
+    }
     d->plasmaShell.setHideDesktopWidgets(config.hideDesktopWidgets);
     d->plasmaShell.setFillPanels(config.fillPanelsOnMaximize);
     MinimizeRule::apply(config.disableMinimize);

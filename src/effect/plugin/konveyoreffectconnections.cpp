@@ -50,6 +50,7 @@ void KonveyorEffect::installInputFilter()
         pointerBind,
         [this](const QPointF &position, qint64 timestamp) {
             trackEdgeHover(position);
+            trackPeekPointer(position);
             handlePointerMotion(position, timestamp);
         },
         [this] { endTitlebarDrag(); },
@@ -65,10 +66,14 @@ void KonveyorEffect::installInputFilter()
                 d->dbus->setModifiersHeld(super, alt);
             }
         },
+        [this](int key, bool pressed, Qt::KeyboardModifiers modifiers) { handlePeekKey(key, pressed, modifiers); },
+        [this](bool used) { return handlePeekPointer(used); },
     });
     d->axisInput = std::make_unique<AxisFilter>(pointerBind);
     d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {
-        changeEngine().dataDragEdgeScroll(outputNameAt(position), position, timestampMs);
+        if (!d->peekKey.isPeeking()) {
+            changeEngine().dataDragEdgeScroll(outputNameAt(position), position, timestampMs);
+        }
     });
     installGestureFilters();
 }
@@ -224,7 +229,15 @@ void KonveyorEffect::connectDragAndDrop()
 {
     KWin::SeatInterface *seat = KWin::waylandServer()->seat();
     connect(seat, &KWin::SeatInterface::dragStarted, this, [this] { changeEngine().beginDataDrag(); });
-    connect(seat, &KWin::SeatInterface::dragEnded, this, [this] { changeEngine().endDataDrag(); });
+    connect(seat, &KWin::SeatInterface::dragEnded, this, [this] {
+        changeEngine().endDataDrag();
+        runPeekStep(d->peekKey.dragEnded());
+    });
+    connect(KWin::waylandServer(), &KWin::WaylandServer::lockStateChanged, this, [this] {
+        if (KWin::waylandServer()->isScreenLocked()) {
+            runPeekStep(d->peekKey.reset());
+        }
+    });
 }
 
 void KonveyorEffect::connectOutputs()

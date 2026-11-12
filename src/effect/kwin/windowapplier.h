@@ -32,10 +32,10 @@ public:
     bool consumeInFlightSize(Layout::WindowId id, const QSizeF &size);
     bool isEchoOfAppliedFrame(Layout::WindowId id, const QRectF &frame) const;
     void forget(Layout::WindowId id);
+    static QRectF frameFor(const Layout::WindowState &state);
 
 private:
     bool keepsStrictSize(KWin::Window *window, const Layout::WindowState &state, const QRectF &frame);
-    static QRectF frameFor(const Layout::WindowState &state);
     static QRectF placedFrame(const Layout::WindowState &state);
     void applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled, bool allowResize,
         bool fullscreenPresentation) const;

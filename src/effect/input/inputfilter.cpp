@@ -137,6 +137,10 @@ bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
     m_modifiers.sync(event->modifiers);
     const std::optional<Config::MouseButton> button = buttonOf(event->button);
     const bool pressed = event->state == KWin::PointerButtonState::Pressed;
+    if (m_handlers.peekPointer(pressed)) {
+        event->modifiers = Qt::NoModifier;
+        event->modifiersRelevantForShortcuts = Qt::NoModifier;
+    }
     if (!pressed) {
         m_handlers.pointerReleased();
         return m_swallowedButtons.remove(event->button);
@@ -163,9 +167,21 @@ bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
     return false;
 }
 
+bool InputFilter::pointerAxis(KWin::PointerAxisEvent *event)
+{
+    if (m_handlers.peekPointer(true)) {
+        event->modifiers = Qt::NoModifier;
+        event->modifiersRelevantForGlobalShortcuts = Qt::NoModifier;
+    }
+    return false;
+}
+
 bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
 {
     m_modifiers.key(event->key, event->state != KWin::KeyboardKeyState::Released, event->modifiers);
+    if (event->state != KWin::KeyboardKeyState::Repeated) {
+        m_handlers.peekKey(event->key, event->state == KWin::KeyboardKeyState::Pressed, event->modifiers);
+    }
     if (event->state == KWin::KeyboardKeyState::Released) {
         return m_swallowedKeys.remove(event->nativeScanCode);
     }

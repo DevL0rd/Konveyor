@@ -24,6 +24,8 @@ struct InputHandlers
     std::function<void()> escapePressed;
     std::function<bool()> toggleDragFloating;
     std::function<void(bool, bool)> modifiersHeld;
+    std::function<void(int, bool, Qt::KeyboardModifiers)> peekKey;
+    std::function<bool(bool)> peekPointer;
 };
 
 class InputFilter : public KWin::InputEventFilter
@@ -34,6 +36,7 @@ public:
 
     bool pointerButton(KWin::PointerButtonEvent *event) override;
     bool pointerMotion(KWin::PointerMotionEvent *event) override;
+    bool pointerAxis(KWin::PointerAxisEvent *event) override;
     bool keyboardKey(KWin::KeyboardKeyEvent *event) override;
 
 private:

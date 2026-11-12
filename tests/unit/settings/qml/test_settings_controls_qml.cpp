@@ -43,6 +43,15 @@ void TestSettingsControlsQml::controls_data()
     addControl("keep fullscreen",
         {"ExperimentsPage", "Prevent leaving fullscreen on focus change", "switched", "[true]", "experiments/prevent-fullscreen-exit",
             R"({"args":[]})"});
+    addControl("peek on",
+        {"ExperimentsPage", "Peek at the desktop while holding Meta", "switched", "[true]", "experiments/peek-desktop",
+            R"({"children":["on"]})", "experiments {\n}\n"});
+    addControl("peek off",
+        {"ExperimentsPage", "Peek at the desktop while holding Meta", "switched", "[false]", "experiments/peek-desktop",
+            R"({"children":["delay-ms","off"]})", "experiments { peek-desktop { on; delay-ms 300; }; }\n"});
+    addControl("peek delay",
+        {"ExperimentsPage", "Hold before peeking", "edited", "[450.4]", "experiments/peek-desktop/delay-ms", R"({"args":[450]})",
+            "experiments { peek-desktop { on; }; }\n"});
     addControl("back and forth",
         {"WorkspacesPage", "Go back when switching to the current workspace", "switched", "[true]", "input/workspace-auto-back-and-forth",
             R"({"args":[]})"});

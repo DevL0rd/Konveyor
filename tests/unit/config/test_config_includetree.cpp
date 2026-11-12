@@ -179,7 +179,7 @@ void TestConfigIncludeTree::mergesExperimentsAndFlagsAcrossFiles()
         QStringLiteral(
             "experiments { prevent-fullscreen-exit; }\nhide-desktop-widgets false\nconfig-notification { disable-failed false; }\n"
             "fill-panels-on-maximize\n"));
-    QCOMPARE(config.experiments, (Experiments {true, true}));
+    QCOMPARE(config.experiments, (Experiments {true, true, {}}));
     QCOMPARE(config.hideDesktopWidgets, false);
     QCOMPARE(config.configNotificationDisableFailed, false);
     QCOMPARE(config.disableMinimize, true);

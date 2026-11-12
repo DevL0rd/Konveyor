@@ -32,16 +32,14 @@ layout {
     remember-window-sizes false
     remember-window-positions false
 
-    // When an app already has a window on the workspace, open the new one
-    // next to it: "beside" gives it its own column right of the app's
-    // columns, "stack" adds it as a row under them, "off" opens it beside
-    // the focused column. Window rules can choose per app.
+    // When an app already has a window on the workspace, open the new one next to it: "beside" gives it its own
+    // column right of the app's columns, "stack" adds it as a row under them, "off" opens it beside the focused
+    // column. Window rules can choose per app.
     group-app-windows "beside"
     max-rows-per-column 3
 
-    // "column" gives every new window its own column. "stack" adds it as a
-    // row to the focused column until that column holds max-rows-per-column
-    // windows, then opens a new column. Monitor profiles and window rules can
+    // "column" gives every new window its own column. "stack" adds it as a row to the focused column until that
+    // column holds max-rows-per-column windows, then opens a new column. Monitor profiles and window rules can
     // choose differently.
     new-window-placement "column"
 
@@ -380,14 +378,12 @@ binds {
 
 }
 
-// Konveyor extension: hide Plasma desktop widgets while a window is visible on
-// the active workspace of that monitor. Needs a desktop containment that reads
-// the hideDesktopWidgets key; without one this does nothing.
+// Konveyor extension: hide Plasma desktop widgets while a window is visible on the active workspace of that monitor.
+// Needs a desktop containment that reads the hideDesktopWidgets key; without one this does nothing.
 hide-desktop-widgets
 
-// Konveyor extension: how far a sound must rise above its recent average to count
-// as a beat for effects that react to a window's audio, from 1 to 4. Lower fires
-// more often.
+// Konveyor extension: how far a sound must rise above its recent average to count as a beat for effects that react
+// to a window's audio, from 1 to 4. Lower fires more often.
 audio-beat-threshold 1.4
 
 // Konveyor extension: uncomment to stretch Plasma panels to the full screen width while a window on that monitor
@@ -398,3 +394,7 @@ audio-beat-threshold 1.4
 // Konveyor extension: uncomment to stop windows from being minimized. This adds a KWin window rule that forces
 // minimize off, which also hides the minimize button on KDE title bars. The rule is removed when Konveyor is disabled.
 // disable-minimize
+
+// Konveyor experiment: uncomment to hold Meta on its own and fade every other window on that screen, so files can be
+// dragged to and from the desktop. The focused window stays and slides aside when the pointer leaves it.
+// experiments { peek-desktop { on; delay-ms 300; } }

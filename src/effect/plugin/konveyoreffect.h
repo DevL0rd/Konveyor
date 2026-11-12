@@ -2,6 +2,7 @@
 
 #include "config/types.h"
 #include "document/apprules.h"
+#include "layout/common/desktoppeek.h"
 #include "layout/engine/engine.h"
 
 #include <effect/effect.h>
@@ -80,6 +81,16 @@ private:
     bool edgeSwitchBlocked() const;
     void switchColumnAtEdge();
     void resetEdgeHover();
+    void handlePeekKey(int key, bool pressed, Qt::KeyboardModifiers modifiers);
+    bool handlePeekPointer(bool used);
+    void trackPeekPointer(const QPointF &position);
+    void runPeekStep(Layout::PeekKey::Step step);
+    bool peekBlocked() const;
+    void beginPeek();
+    void endPeek();
+    void placePeekedWindow(QList<Layout::WindowState> &states) const;
+    bool stepPeek();
+    void finishPeek();
     QPointF interactionPoint() const;
     bool routeGesture(bool consumed);
     bool handleTouchDown(qint32 id, const QPointF &position, qint64 timestampMs);

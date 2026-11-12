@@ -9,10 +9,18 @@
 namespace Konveyor::Config
 {
 
+struct PeekDesktop
+{
+    bool enabled = false;
+    int delayMs = 300;
+    bool operator==(const PeekDesktop &) const = default;
+};
+
 struct Experiments
 {
     bool preventFullscreenMinimize = false;
     bool preventFullscreenExit = false;
+    PeekDesktop peekDesktop;
     bool operator==(const Experiments &) const = default;
 };
 

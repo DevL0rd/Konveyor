@@ -74,6 +74,8 @@ void addSimpleHandlers(NodeTable &table, LoadContext &context)
             [&config](const Kdl::Node &child) { config.experiments.preventFullscreenMinimize = flagArgument(child); });
         inner.insert(QStringLiteral("prevent-fullscreen-exit"),
             [&config](const Kdl::Node &child) { config.experiments.preventFullscreenExit = flagArgument(child); });
+        inner.insert(QStringLiteral("peek-desktop"),
+            [&config](const Kdl::Node &child) { decodePeekDesktop(child, config.experiments.peekDesktop); });
         decodeChildren(node, inner);
     });
     table.insert(QStringLiteral("config-notification"), [&config](const Kdl::Node &node) {

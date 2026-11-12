@@ -12,6 +12,7 @@ class TestConfigSections : public QObject
 private Q_SLOTS:
     void hidesDesktopWidgetsFlag();
     void experimentsFlags();
+    void peekDesktop();
     void rejectsUnsupportedSections_data();
     void rejectsUnsupportedSections();
 };
@@ -39,6 +40,28 @@ void TestConfigSections::experimentsFlags()
     )"));
     QVERIFY(enabled.experiments.preventFullscreenMinimize);
     QVERIFY(enabled.experiments.preventFullscreenExit);
+}
+
+void TestConfigSections::peekDesktop()
+{
+    const Config defaults = parsed(QString());
+    QCOMPARE(defaults.experiments.peekDesktop, PeekDesktop {});
+    QCOMPARE(defaults.experiments.peekDesktop.enabled, false);
+    QCOMPARE(defaults.experiments.peekDesktop.delayMs, 300);
+
+    const Config on = parsed(QStringLiteral("experiments {\n peek-desktop {\n on\n delay-ms 450\n }\n}\n"));
+    QCOMPARE(on.experiments.peekDesktop, (PeekDesktop {true, 450}));
+    const Config implied = parsed(QStringLiteral("experiments {\n peek-desktop {\n delay-ms 0\n }\n}\n"));
+    QCOMPARE(implied.experiments.peekDesktop, (PeekDesktop {true, 0}));
+    const Config off = parsed(QStringLiteral("experiments {\n peek-desktop {\n off\n }\n}\n"));
+    QCOMPARE(off.experiments.peekDesktop, (PeekDesktop {false, 300}));
+    const Config mixed = parsed(QStringLiteral("experiments { prevent-fullscreen-exit; peek-desktop { off; delay-ms 200; }; }\n"));
+    QCOMPARE(mixed.experiments, (Experiments {false, true, PeekDesktop {false, 200}}));
+
+    QVERIFY(
+        mustFail(QStringLiteral("experiments {\n peek-desktop {\n on\n off\n }\n}\n")).message.contains(QStringLiteral("cannot use both")));
+    QVERIFY(mustFail(QStringLiteral("experiments {\n peek-desktop {\n delay-ms -5\n }\n}\n")).message.length() > 0);
+    QVERIFY(mustFail(QStringLiteral("experiments {\n peek-desktop 1\n}\n")).message.length() > 0);
 }
 
 void TestConfigSections::rejectsUnsupportedSections_data()

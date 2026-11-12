@@ -47,7 +47,7 @@ private:
 void TestSettingsValues::globalDefaults()
 {
     const QVariantMap values = globalValues(Config::Config());
-    QCOMPARE(values.size(), 29);
+    QCOMPARE(values.size(), 30);
     for (const QString &key : flagKeys()) {
         QVERIFY2(values.value(key).typeId() == QMetaType::Bool && !values.value(key).toBool(), qPrintable(key));
     }
@@ -71,7 +71,7 @@ void TestSettingsValues::globalCustomized()
 hide-desktop-widgets
 fill-panels-on-maximize
 disable-minimize
-experiments { prevent-fullscreen-minimize; prevent-fullscreen-exit; }
+experiments { prevent-fullscreen-minimize; prevent-fullscreen-exit; peek-desktop { delay-ms 450; }; }
 config-notification { disable-failed; }
 input {
     focus-follows-mouse
@@ -122,6 +122,8 @@ gestures {
     QCOMPARE(values.value(QStringLiteral("gestures/edge-switch-columns")).toMap(),
         (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("delay-ms"), 450},
             {QStringLiteral("monitor-edges"), QStringLiteral("all")}}));
+    QCOMPARE(values.value(QStringLiteral("experiments/peek-desktop")).toMap(),
+        (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("delay-ms"), 450}}));
     const QVariantMap touchpad = values.value(QStringLiteral("gestures/touchpad")).toMap();
     QCOMPARE(touchpad.value(QStringLiteral("swipe-fingers")).toInt(), 4);
     QCOMPARE(touchpad.value(QStringLiteral("pinch-fingers")).toInt(), 3);

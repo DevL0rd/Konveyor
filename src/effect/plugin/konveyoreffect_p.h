@@ -25,9 +25,11 @@
 #include "plugin/notifications.h"
 #include "plugin/windowmemorystore.h"
 
+#include "anim/animation.h"
 #include "anim/clock.h"
 #include "config/loader.h"
 #include "ipc/model.h"
+#include "layout/common/desktoppeek.h"
 #include "layout/common/edgehover.h"
 #include "layout/gestures/gesturerouter.h"
 #include "tools/widgettool.h"
@@ -96,6 +98,26 @@ inline const Config::HotCorners &hotCornersOn(const Config::Config &config, cons
     return entry == config.outputs.end() ? config.gestures.hotCorners : *entry->hotCorners;
 }
 
+void setDragFade(KWin::Window *window, std::optional<double> fade);
+
+struct PeekedWindow
+{
+    QPointer<KWin::Window> window;
+    bool keptVisible = false;
+};
+
+struct DesktopPeek
+{
+    QPointer<KWin::Window> kept;
+    QString output;
+    QList<PeekedWindow> faded;
+    Layout::PeekAside aside;
+    std::optional<QRectF> asideFrame;
+    std::optional<Anim::Animation> fade;
+    std::optional<Anim::Animation> slide;
+    bool restoring = false;
+};
+
 struct HeldQuickTiling
 {
     Layout::WindowId window = 0;
@@ -136,6 +158,9 @@ struct KonveyorEffect::Private
     QTimer pointerFocusTimer;
     QTimer edgeHoverTimer;
     Layout::EdgeHoverTracker edgeHover;
+    QTimer peekTimer;
+    Layout::PeekKey peekKey;
+    std::optional<DesktopPeek> peek;
     QPointer<KWin::Window> pointerFocusCandidate;
     WindowMemoryStore memoryStore;
     LayoutHandoff handoff;
