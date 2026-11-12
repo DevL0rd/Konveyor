@@ -120,6 +120,7 @@ void DesktopSync::apply(const QList<Layout::WorkspaceState> &workspaces, const Q
     const QScopedValueRollback guard(m_applying, true);
     const int count = maxWorkspaceIndex(workspaces);
     growDesktops(count);
+    applyRows(horizontal);
     applyWindowDesktops(windows);
     applyCurrentDesktops(workspaces);
     shrinkDesktops(count);
