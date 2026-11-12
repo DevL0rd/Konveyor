@@ -146,6 +146,9 @@ Config::Config configFor(const Levels &levels)
     QString text
         = QStringLiteral("animations { off; }\nwindow-rule {\n    match app-id=\"^stacker$\"\n    new-window-placement \"stack\"\n}\n");
     QStringList global = levels.global;
+    if (!global.join(QString()).contains(QStringLiteral("wrap-columns"))) {
+        global.prepend(QStringLiteral("wrap-columns false"));
+    }
     if (!global.join(QString()).contains(QStringLiteral("always-expand-single-column"))) {
         global.prepend(QStringLiteral("always-expand-single-column false"));
     }

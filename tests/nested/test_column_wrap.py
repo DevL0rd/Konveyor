@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wrap a row of wide centered columns in a nested KWin and check the first column follows the last one only with wrap-columns."""
+"""Wrap a row of wide centered columns with pinned ends in a nested KWin and check wrap-columns loops them and frees the pins."""
 import os
 import sys
 from pathlib import Path
@@ -11,6 +11,16 @@ WIDE = """
 window-rule {
     default-column-width { proportion 0.9; }
 }
+
+window-rule {
+    match title="^A$"
+    column-position "start"
+}
+
+window-rule {
+    match title="^D$"
+    column-position "end"
+}
 """
 
 
@@ -18,7 +28,7 @@ def main():
     from nested import REPO, run_runner
 
     config = (REPO / "data" / "default-config.kdl").read_text()
-    if 'center-focused-column "never"' not in config or "wrap-columns false" not in config:
+    if 'center-focused-column "never"' not in config or "wrap-columns true" not in config:
         print("the default config no longer has the layout lines this test rewrites")
         return 1
     config = config.replace('center-focused-column "never"', 'center-focused-column "always"') + WIDE

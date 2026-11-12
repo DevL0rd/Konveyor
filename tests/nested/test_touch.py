@@ -8,9 +8,9 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import BREEZE_DECORATION, REPO, run_runner
+    from nested import BREEZE_DECORATION, run_runner, unwrapped_config
 
-    config = (REPO / "data" / "default-config.kdl").read_text()
+    config = unwrapped_config()
     scrolling = config.replace('titlebar-drag "move-window"', 'titlebar-drag "scroll-view"')
     if scrolling == config:
         print("the default config no longer has the titlebar-drag line this test rewrites")

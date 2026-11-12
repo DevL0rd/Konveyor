@@ -8,9 +8,9 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import run_runner
+    from nested import run_runner, unwrapped_config
 
-    return run_runner(HERE / "runners" / "dialog_focus.py", timeout=600, xwayland=True)
+    return run_runner(HERE / "runners" / "dialog_focus.py", timeout=600, config_kdl=unwrapped_config(), xwayland=True)
 
 
 if __name__ == "__main__":

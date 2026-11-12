@@ -37,7 +37,7 @@ def row_scrolls(checks):
 
 
 def natural_swipe_flips_the_row(checks):
-    checks.expect(load_config(default_config().replace("        natural-swipe\n", "        natural-swipe false\n", 1)),
+    checks.expect(load_config(default_config(wrapped=False).replace("        natural-swipe\n", "        natural-swipe false\n", 1)),
                   "a config without natural-swipe for the touchpad loads")
     settle()
     start = first_column_x()
@@ -45,7 +45,7 @@ def natural_swipe_flips_the_row(checks):
     checks.expect(wait_for(lambda: first_column_x() < start - 100, 30),
                   f"without natural-swipe a swipe right scrolls the row the other way ({start} -> {first_column_x()})")
     settle()
-    load_config(default_config())
+    load_config(default_config(wrapped=False))
     settle()
 
 
@@ -101,7 +101,7 @@ def other_finger_counts_pass_through(checks):
 
 
 def gestures_off_hand_swipes_to_kwin(checks):
-    config = default_config().replace("    touchpad {\n", "    touchpad {\n        off\n", 1)
+    config = default_config(wrapped=False).replace("    touchpad {\n", "    touchpad {\n        off\n", 1)
     checks.expect(load_config(config), "a config with touchpad gestures off loads")
     before = (columns(), active_workspace())
     touchpad.swipe(3, dx=-600)
@@ -113,7 +113,7 @@ def gestures_off_hand_swipes_to_kwin(checks):
     checks.expect(wait_for(lambda: "overview" in kde_active_effects(), 30), f"KWin's own 4-finger swipe up opens its Overview ({kde_active_effects()})")
     tap([], KEY_ESCAPE)
     checks.expect(wait_for(lambda: "overview" not in kde_active_effects(), 30), "and Escape closes it")
-    load_config(default_config())
+    load_config(default_config(wrapped=False))
     settle()
     title = active_title()
     before = window_place(title)

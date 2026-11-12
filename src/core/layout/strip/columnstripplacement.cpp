@@ -185,6 +185,9 @@ void ColumnStrip::insertTileAfter(WindowId rightOf, Tile tile, bool activate, Co
 std::size_t ColumnStrip::allowedColumnIndex(
     std::optional<Config::ColumnPosition> pin, std::size_t desired, std::optional<std::size_t> excluding) const
 {
+    if (wrapsColumns()) {
+        return std::min(desired, m_columns.size() - (excluding ? 1 : 0));
+    }
     std::size_t count = 0;
     std::size_t leadingStart = 0;
     std::size_t trailingEnd = 0;

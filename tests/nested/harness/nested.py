@@ -215,6 +215,14 @@ export QT_QPA_PLATFORM=wayland
 """
 
 
+def unwrapped_config():
+    config = (REPO / "data" / "default-config.kdl").read_text()
+    unwrapped = config.replace("    wrap-columns true\n", "    wrap-columns false\n", 1)
+    if unwrapped == config:
+        raise RuntimeError("the default config no longer has the wrap-columns line these tests rewrite")
+    return unwrapped
+
+
 def run_runner(runner, timeout, extra_config="", client="client.qml", arguments="", clients=("A", "B", "C"), setup="", **session):
     prelude = f'python3 {HARNESS / "clients.py"} {client} {" ".join(clients)} > "$KONVEYOR_REPORT" 2>&1 && ' if clients else ""
     script = RUNNER_SCRIPT.format(setup=setup, prelude=prelude, runner=runner, arguments=arguments)

@@ -8,11 +8,13 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import run_script
+    from nested import run_script, unwrapped_config
 
     clients, runner = HERE / "harness" / "clients.py", HERE / "runners" / "fullscreen.py"
     script = f'export QT_QPA_PLATFORM=wayland\npython3 {clients} client.qml A > "$KONVEYOR_REPORT" 2>&1 && python3 {runner} > "$KONVEYOR_REPORT" 2>&1\n'
-    return run_script(script, timeout=180)
+    wrapped = run_script(script, timeout=180)
+    unwrapped = run_script(script, timeout=180, config_kdl=unwrapped_config())
+    return wrapped or unwrapped
 
 
 if __name__ == "__main__":

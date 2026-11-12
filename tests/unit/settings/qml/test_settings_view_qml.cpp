@@ -37,8 +37,8 @@ private Q_SLOTS:
             "import \"sections/LayoutKeys.js\" as LayoutKeys\n"
             "SettingsView {\n"
             "    active: false\n"
-            "    function expandAlone(on) { return LayoutKeys.writeFlag(SettingsStore, \"layout\", false, "
-            "\"always-expand-single-column\", on, true) }\n"
+            "    function wrapAround(on) { return LayoutKeys.writeFlag(SettingsStore, \"layout\", false, "
+            "\"wrap-columns\", on, true) }\n"
             "}",
             &error);
         QVERIFY2(view, qPrintable(error));
@@ -46,17 +46,15 @@ private Q_SLOTS:
         QVERIFY(store);
         QSignalSpy saved(store, SIGNAL(saved()));
 
-        QVERIFY(QMetaObject::invokeMethod(view.get(), "expandAlone", Q_ARG(QVariant, false)));
+        QVERIFY(QMetaObject::invokeMethod(view.get(), "wrapAround", Q_ARG(QVariant, false)));
         QVERIFY(saved.wait(SignalTimeoutMs));
-        QVERIFY(SettingsHome::read(m_home.configPath()).contains(QStringLiteral("always-expand-single-column false")));
-        QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("always-expand-single-column")).toBool(),
-            false);
+        QVERIFY(SettingsHome::read(m_home.configPath()).contains(QStringLiteral("wrap-columns false")));
+        QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("wrap-columns")).toBool(), false);
 
-        QVERIFY(QMetaObject::invokeMethod(view.get(), "expandAlone", Q_ARG(QVariant, true)));
+        QVERIFY(QMetaObject::invokeMethod(view.get(), "wrapAround", Q_ARG(QVariant, true)));
         QVERIFY(saved.wait(SignalTimeoutMs));
-        QVERIFY(!SettingsHome::read(m_home.configPath()).contains(QStringLiteral("always-expand-single-column false")));
-        QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("always-expand-single-column")).toBool(),
-            true);
+        QVERIFY(!SettingsHome::read(m_home.configPath()).contains(QStringLiteral("wrap-columns false")));
+        QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("wrap-columns")).toBool(), true);
     }
 
     void incubatesSectionsInTheBackgroundOnce()

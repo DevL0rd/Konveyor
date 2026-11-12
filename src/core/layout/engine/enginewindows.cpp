@@ -230,7 +230,7 @@ void Engine::Private::placeNewWindow(
     }
     const ColumnWidth width = workspace->tiledWidthFor(tile.window(), plan.width);
     MonitorAddRequest request = makeAddRequest(plan, width);
-    if (!restore && plan.rules.openAtColumn && !plan.isFloating && !plan.parent) {
+    if (!restore && plan.rules.openAtColumn && !plan.isFloating && !plan.parent && !workspace->options()->layout.wrapColumns) {
         const std::size_t columns = workspace->scrolling().columns().size();
         request.target
             = MonitorAddTarget::onWorkspace(workspace->id(), std::min(static_cast<std::size_t>(*plan.rules.openAtColumn - 1), columns));

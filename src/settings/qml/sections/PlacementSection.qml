@@ -197,12 +197,12 @@ ColumnLayout {
             scope: root
             key: "wrap-columns"
             label: "Scroll around past the last column"
-            description: "When the columns don't fit on the screen, show the first column again after the last one, so the row never ends. Focus keys, the wheel and swipes keep going around."
+            description: "When the columns don't fit on the screen, show the first column again after the last one, so the row never ends. Focus keys, the wheel and swipes keep going around, and pinned columns lose their end of the row."
             iconName: "media-playlist-repeat"
 
             ScopedSwitch {
                 isOn: root.values["wrap-columns"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "wrap-columns", on, false)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "wrap-columns", on, true)
             }
         }
 
@@ -215,7 +215,7 @@ ColumnLayout {
 
             ScopedSwitch {
                 isOn: root.values["always-expand-single-column"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "always-expand-single-column", on, true)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "always-expand-single-column", on, false)
             }
         }
 

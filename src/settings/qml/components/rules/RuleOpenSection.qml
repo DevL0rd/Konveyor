@@ -113,7 +113,7 @@ ColumnLayout {
         maximum: 999
         fallback: 1
         label: "Open as column"
-        description: "Open as this column of its workspace, counting from the left"
+        description: "Open as this column of its workspace, counting from the left. Ignored while the row scrolls around"
         iconName: "view-split-left-right"
     }
 
@@ -209,7 +209,7 @@ ColumnLayout {
     ColumnPositionRow {
         path: section.rulePath + "/column-position"
         label: "Pin its column"
-        description: "Pinned columns stay at one end of the row; new columns open on the other side of them"
+        description: "Pinned columns stay at one end of the row; new columns open on the other side of them. Ignored while the row scrolls around"
         iconName: "pin"
     }
 

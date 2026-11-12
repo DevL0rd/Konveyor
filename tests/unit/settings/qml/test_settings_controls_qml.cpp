@@ -154,15 +154,15 @@ void TestSettingsControlsQml::controls_data()
         {"LayoutPage", "Center a lone window", "switched", "[false]", "layout/always-center-single-column", "null",
             "layout { always-center-single-column; }\n"});
     addControl("wrap columns on",
-        {"LayoutPage", "Scroll around past the last column", "switched", "[true]", "layout/wrap-columns", R"({"args":[]})"});
+        {"LayoutPage", "Scroll around past the last column", "switched", "[true]", "layout/wrap-columns", R"({"args":[true]})",
+            "layout { wrap-columns false; }\n"});
     addControl("wrap columns off",
-        {"LayoutPage", "Scroll around past the last column", "switched", "[false]", "layout/wrap-columns", R"({"args":[false]})",
-            "layout { wrap-columns; }\n"});
-    addControl("expand lone off",
-        {"LayoutPage", "Expand a lone window", "switched", "[false]", "layout/always-expand-single-column", R"({"args":[false]})"});
+        {"LayoutPage", "Scroll around past the last column", "switched", "[false]", "layout/wrap-columns", R"({"args":[false]})"});
     addControl("expand lone on",
-        {"LayoutPage", "Expand a lone window", "switched", "[true]", "layout/always-expand-single-column", R"({"args":[true]})",
-            "layout { always-expand-single-column false; }\n"});
+        {"LayoutPage", "Expand a lone window", "switched", "[true]", "layout/always-expand-single-column", R"({"args":[]})"});
+    addControl("expand lone off",
+        {"LayoutPage", "Expand a lone window", "switched", "[false]", "layout/always-expand-single-column", R"({"args":[false]})",
+            "layout { always-expand-single-column; }\n"});
     addControl(
         "remember sizes", {"LayoutPage", "Remember window sizes", "switched", "[true]", "layout/remember-window-sizes", R"({"args":[]})"});
     addControl("forget sizes",
@@ -172,8 +172,8 @@ void TestSettingsControlsQml::controls_data()
         {"LayoutPage", "Remember floating window positions", "switched", "[true]", "layout/remember-window-positions", R"({"args":[]})"});
     addControl("reset gaps", {"LayoutPage", "Gaps", "resetRequested", "[]", "layout/gaps", R"({"args":[16]})", "layout { gaps 3; }\n"});
     addControl("reset expand",
-        {"LayoutPage", "Expand a lone window", "resetRequested", "[]", "layout/always-expand-single-column", R"({"args":[true]})",
-            "layout { always-expand-single-column false; }\n"});
+        {"LayoutPage", "Expand a lone window", "resetRequested", "[]", "layout/always-expand-single-column", R"({"args":[false]})",
+            "layout { always-expand-single-column; }\n"});
     addControl(
         "reset animations", {"MotionPage", "Animate windows", "resetRequested", "[]", "animations/off", "null", "animations { off; }\n"});
     addControl("reset widgets",

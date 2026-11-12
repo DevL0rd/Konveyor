@@ -26,6 +26,34 @@ double ColumnStrip::columnXNear(std::size_t idx, double scrollPosition) const
     return colX + (nearestPeriodCopy(mid, viewCenter(scrollPosition), wrapPeriod()) - mid);
 }
 
+double ColumnStrip::columnXFrom(std::size_t from, std::size_t idx) const
+{
+    const double x = columnOffset(idx);
+    const double period = wrapPeriod();
+    if (period <= 0.0 || from == idx) {
+        return x;
+    }
+    const std::size_t count = m_columns.size();
+    const bool forward = 2 * ((idx + count - from) % count) <= count;
+    if (forward) {
+        return idx < from ? x + period : x;
+    }
+    return idx > from ? x - period : x;
+}
+
+double ColumnStrip::columnXReached(std::optional<double> targetX, std::size_t idx, std::optional<std::size_t> from) const
+{
+    if (from && *from != idx) {
+        return columnXFrom(*from, idx);
+    }
+    return columnXNear(idx, targetX.value_or(targetScrollPosition()));
+}
+
+bool ColumnStrip::wrapsColumns() const
+{
+    return m_options->layout.wrapColumns;
+}
+
 double ColumnStrip::wrappedSlide(std::size_t idx, double linearSlide) const
 {
     const double period = wrapPeriod();

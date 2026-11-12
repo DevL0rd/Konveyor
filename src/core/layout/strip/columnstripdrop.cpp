@@ -54,6 +54,9 @@ std::pair<std::size_t, double> closestTileGap(const Column &column, double y)
 
 DropSlot ColumnStrip::dropSlotAt(QPointF pos, std::optional<Config::ColumnPosition> movingPin) const
 {
+    if (wrapsColumns()) {
+        movingPin = std::nullopt;
+    }
     DropSlot position = unpinnedDropSlotAt(pos);
     if (position.kind == DropSlot::Kind::InColumn && movingPin && m_columns[position.column].pinnedPosition() != movingPin) {
         position = newColumnAt(position.column);

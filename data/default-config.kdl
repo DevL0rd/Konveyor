@@ -13,18 +13,18 @@ layout {
     fixed-workspace-count 0
     horizontal-desktops false
     wrap-workspaces false
-    wrap-columns false
+    wrap-columns true
     gaps 16
     center-focused-column "never"
 
     // Where a new window's column opens: "left" or "right" of the focused
-    // column. A column pinned with column-position sends it to the other side.
+    // column. column-position pins and open-at-column are ignored while
+    // wrap-columns is on, as the row has no first or last column then.
     new-column-position "right"
 
-    // Stretch a column to the full width while it is the only one on its
-    // workspace; it goes back to its own width once another column opens.
-    // Apps that can't be resized keep their own size.
-    always-expand-single-column true
+    // Stretch a lone column to the full width; apps that can't be resized
+    // keep their own size.
+    always-expand-single-column false
 
     preset-column-widths { proportion 0.25; proportion 0.5; proportion 0.75; proportion 1.0; }
 

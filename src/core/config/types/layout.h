@@ -17,8 +17,8 @@ struct Layout
     CenterFocusedColumn centerFocusedColumn = CenterFocusedColumn::Never;
     NewColumnPosition newColumnPosition = NewColumnPosition::Right;
     bool alwaysCenterSingleColumn = false;
-    bool wrapColumns = false;
-    bool alwaysExpandSingleColumn = true;
+    bool wrapColumns = true;
+    bool alwaysExpandSingleColumn = false;
     bool emptyWorkspaceAboveFirst = false;
     int fixedWorkspaceCount = 0;
     bool horizontalDesktops = false;

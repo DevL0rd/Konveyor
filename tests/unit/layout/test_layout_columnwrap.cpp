@@ -59,6 +59,42 @@ QList<Layout::WindowId> activateFirstBesideFullscreenLast(Fixture &fixture)
     return row;
 }
 
+struct ThreeColumnRow
+{
+    Layout::WindowId left;
+    Layout::WindowId wide;
+    Layout::WindowId right;
+};
+
+ThreeColumnRow addThreeColumnRow(Fixture &fixture)
+{
+    ThreeColumnRow row;
+    row.left = fixture.add(QStringLiteral("left"));
+    row.wide = fixture.add(QStringLiteral("wide"));
+    row.right = fixture.add(QStringLiteral("right"));
+    fixture.engine().activateWindow(row.left);
+    fixture.settle();
+    fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("1260")});
+    fixture.engine().activateWindow(row.wide);
+    fixture.settle();
+    fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("5088")});
+    fixture.engine().activateWindow(row.right);
+    fixture.settle();
+    fixture.perform(QStringLiteral("set-column-width"), {QStringLiteral("1260")});
+    return row;
+}
+
+Config::Config wideConfig()
+{
+    return wrapConfig(instantConfig(), true, Config::CenterFocusedColumn::OnOverflow, 0.25);
+}
+
+bool onScreen(Fixture &fixture, Layout::WindowId id)
+{
+    const QRectF frame = fixture.frame(id);
+    return frame.right() > 0.0 && frame.left() < 5120.0;
+}
+
 }
 
 class TestLayoutColumnWrap : public QObject
@@ -77,6 +113,63 @@ private Q_SLOTS:
         QVERIFY(centered(fixture, row[0]));
         QVERIFY(near(fixture.frame(row[3]).right(), fixture.frame(row[0]).left() - Gaps));
         QVERIFY(near(fixture.frame(row[1]).left(), fixture.frame(row[0]).right() + Gaps));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void aWideColumnStillWrapsAroundInBothDirections()
+    {
+        Fixture fixture(wideConfig(), QRectF(0, 0, 5120, 1440));
+        const ThreeColumnRow row = addThreeColumnRow(fixture);
+        const std::array<Layout::WindowId, 3> order {row.left, row.wide, row.right};
+        std::size_t at = 2;
+        for (const char *direction : {"focus-column-right", "focus-column-left"}) {
+            const int step = QLatin1String(direction) == QLatin1String("focus-column-right") ? 1 : 2;
+            for (int move = 0; move < 7; ++move) {
+                QVERIFY(fixture.perform(QString::fromLatin1(direction)).ok);
+                at = (at + static_cast<std::size_t>(step)) % 3;
+                QCOMPARE(fixture.focused(), std::optional(order[at]));
+                QVERIFY2(onScreen(fixture, order[at]), "the focused column is on screen");
+                QVERIFY2(fixture.frame(order[at]).left() >= 0.0 && fixture.frame(order[at]).right() <= 5120.0,
+                    "the focused column is fully shown");
+            }
+        }
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void aWideColumnSlidesForwardInsteadOfBackToTheStart_data()
+    {
+        QTest::addColumn<bool>("forward");
+        QTest::newRow("focus right") << true;
+        QTest::newRow("focus left") << false;
+    }
+
+    void aWideColumnSlidesForwardInsteadOfBackToTheStart()
+    {
+        QFETCH(bool, forward);
+        Fixture fixture(
+            wrapConfig(linearAnimationConfig(200), true, Config::CenterFocusedColumn::OnOverflow, 0.25), QRectF(0, 0, 5120, 1440));
+        const ThreeColumnRow row = addThreeColumnRow(fixture);
+        fixture.advanceInSteps(1000);
+        const std::array<Layout::WindowId, 3> ids {row.left, row.wide, row.right};
+        const double period = fixture.frame(row.left).width() * 2.0 + fixture.frame(row.wide).width() + 3.0 * Gaps;
+        for (int move = 0; move < 6; ++move) {
+            std::array<double, 3> previous {};
+            for (std::size_t i = 0; i < ids.size(); ++i) {
+                previous[i] = fixture.state(ids[i]).renderFrame.x();
+            }
+            QVERIFY(fixture.perform(QString::fromLatin1(forward ? "focus-column-right" : "focus-column-left")).ok);
+            for (int step = 0; step < 16; ++step) {
+                fixture.advance(16);
+                for (std::size_t i = 0; i < ids.size(); ++i) {
+                    const double moved = fixture.state(ids[i]).renderFrame.x() - previous[i];
+                    const double delta = moved - std::round(moved / period) * period;
+                    QVERIFY2(forward ? delta <= 0.5 : delta >= -0.5, "every column keeps sliding the same way");
+                    previous[i] += moved;
+                }
+            }
+            fixture.advanceInSteps(400);
+            QVERIFY(onScreen(fixture, *fixture.focused()));
+        }
         VERIFY_INVARIANTS(fixture);
     }
 
@@ -207,6 +300,24 @@ private Q_SLOTS:
         const QList<Layout::WindowId> row = activateFirstBesideFullscreenLast(fixture);
         QVERIFY(fixture.frame(row[0]).center().x() > 960.0);
         QVERIFY(near(fixture.frame(row[0]).right(), 1920.0 - Gaps));
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void aLoneFullscreenColumnStaysOnTheSideItIsOn()
+    {
+        Fixture fixture(centeredRow(true));
+        const QList<Layout::WindowId> row = addColumns(fixture, 2);
+        fixture.engine().setWindowFullscreen(row[1], true);
+        fixture.settle();
+        fixture.engine().activateWindow(row[0]);
+        fixture.settle();
+        QVERIFY(fixture.frame(row[0]).center().x() < 960.0);
+        QVERIFY(near(fixture.frame(row[0]).left(), Gaps));
+        fixture.engine().activateWindow(row[1]);
+        fixture.settle();
+        fixture.engine().activateWindow(row[0]);
+        fixture.settle();
+        QVERIFY(fixture.frame(row[0]).center().x() < 960.0);
         VERIFY_INVARIANTS(fixture);
     }
 

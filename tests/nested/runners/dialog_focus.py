@@ -13,7 +13,7 @@ from kwinsession import CLIENTS, active_title, for_window, frame, konveyor_actio
 
 
 def enable_focus_follows_mouse():
-    return load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n"))
+    return load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n"))
 
 
 def occurrences(needle):

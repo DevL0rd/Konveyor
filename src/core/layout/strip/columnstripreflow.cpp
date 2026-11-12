@@ -41,7 +41,7 @@ void ColumnStrip::reflowForLayout(const Config::Layout &from, const Config::Layo
 
 bool ColumnStrip::isLooseColumn(const Column &column) const
 {
-    if (column.tiles.size() != 1 || column.fillsWidth || column.isTabbed() || column.pinnedPosition()
+    if (column.tiles.size() != 1 || column.fillsWidth || column.isTabbed() || (!wrapsColumns() && column.pinnedPosition())
         || column.requestedMode() != WindowMode::Normal) {
         return false;
     }

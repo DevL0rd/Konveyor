@@ -8,9 +8,9 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import run_runner
+    from nested import run_runner, unwrapped_config
 
-    return run_runner(HERE / "runners" / "pointer_focus.py", timeout=240, xwayland=True, client="popup-client.qml", extra_kwinrc="[Windows]\nDelayFocusInterval=1000\n")
+    return run_runner(HERE / "runners" / "pointer_focus.py", timeout=240, config_kdl=unwrapped_config(), xwayland=True, client="popup-client.qml", extra_kwinrc="[Windows]\nDelayFocusInterval=1000\n")
 
 
 if __name__ == "__main__":
