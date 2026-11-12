@@ -57,7 +57,7 @@ layout {
         inactive-style "Default-Style-Inactive"
         urgent-style "Default-Attention-Style"
     }
-
+    focus-ring-transition "ride" // "ride", "crossfade" or "delayed"; see the docs.
     border {
         off
         width 4

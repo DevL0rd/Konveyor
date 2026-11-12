@@ -62,15 +62,27 @@ private Q_SLOTS:
         if (external) {
             fixture.engine().focusWorkspace(QStringLiteral("DP-1"), 2);
             fixture.settle();
+            for (int step : {0, 50, 4000}) {
+                fixture.advance(step);
+                QCOMPARE(fixture.state(first).renderFrame, firstFrame);
+                QCOMPARE(fixture.state(first).targetFrame, firstFrame);
+                QCOMPARE(fixture.state(second).renderFrame, secondFrame);
+                QCOMPARE(fixture.state(second).targetFrame, secondFrame);
+                QVERIFY(!fixture.state(first).visible);
+                QVERIFY(fixture.state(second).visible);
+                QCOMPARE(fixture.engine().windowAt(secondFrame.center()), std::optional(second));
+                QCOMPARE(fixture.engine().outputStates().first().transitionProgress, 1.0);
+            }
         } else {
             fixture.perform(QStringLiteral("focus-workspace-down"));
-        }
-        for (int step : {0, 50, 4000}) {
-            fixture.advance(step);
-            QCOMPARE(fixture.state(first).renderFrame, firstFrame);
-            QCOMPARE(fixture.state(first).targetFrame, firstFrame);
-            QCOMPARE(fixture.state(second).renderFrame, secondFrame);
-            QCOMPARE(fixture.state(second).targetFrame, secondFrame);
+            QVERIFY(fixture.engine().isWorkspaceTransitioning());
+            fixture.advance(50);
+            QVERIFY(fixture.state(first).renderFrame.y() != firstFrame.y());
+            QVERIFY(fixture.state(second).renderFrame.y() != secondFrame.y());
+            fixture.advance(4000);
+            QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+            QCOMPARE(fixture.state(first).renderFrame, fixture.state(first).targetFrame);
+            QCOMPARE(fixture.state(second).renderFrame, fixture.state(second).targetFrame);
             QVERIFY(!fixture.state(first).visible);
             QVERIFY(fixture.state(second).visible);
             QCOMPARE(fixture.engine().windowAt(secondFrame.center()), std::optional(second));
@@ -97,9 +109,13 @@ private Q_SLOTS:
         QVERIFY(fixture.state(tab).tabBar.visible);
         fixture.perform(QStringLiteral("focus-workspace-down"));
         fixture.advance(50);
-        QCOMPARE(fixture.state(tab).tabBar.tabRects, rects);
+        QVERIFY(fixture.state(tab).visible);
+        QVERIFY(fixture.state(tab).tabBar.visible);
+        fixture.advance(4000);
+        QVERIFY(!fixture.state(tab).visible);
         QVERIFY(!fixture.state(tab).tabBar.visible);
         fixture.perform(QStringLiteral("focus-workspace-up"));
+        fixture.advance(4000);
         QCOMPARE(fixture.state(tab).tabBar.tabRects, rects);
         QVERIFY(fixture.state(tab).tabBar.visible);
         VERIFY_INVARIANTS(fixture);
@@ -121,6 +137,7 @@ private Q_SLOTS:
         QCOMPARE(fixture.state(floating).targetFrame, requested);
         QVERIFY(!fixture.state(floating).visible);
         fixture.perform(QStringLiteral("focus-workspace-down"));
+        fixture.advance(1);
         QCOMPARE(fixture.state(floating).renderFrame, requested);
         VERIFY_INVARIANTS(fixture);
     }
@@ -153,6 +170,85 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
+    void workspaceTransitionQueryTracksGestureAndSettle()
+    {
+        NativeWorkspaces row;
+        Fixture &fixture = row.fixture;
+        QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+
+        fixture.engine().beginWorkspaceSwipe(QStringLiteral("DP-1"), true);
+        QVERIFY(fixture.engine().isWorkspaceTransitioning());
+
+        fixture.engine().updateWorkspaceSwipe(-120.0, fixture.elapsed() + 1, true);
+        QVERIFY(fixture.engine().isWorkspaceTransitioning());
+
+        fixture.advance(200);
+        fixture.engine().endWorkspaceSwipe(true);
+        QVERIFY(fixture.engine().isWorkspaceTransitioning());
+
+        fixture.advance(4000);
+        QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void keyboardDesktopSwitchRunsOnePaintedTransition()
+    {
+        Fixture fixture(animatedConfig());
+        fixture.engine().setNativeDesktopPresentation(true);
+        const auto id = fixture.add();
+        fixture.advance(4000);
+        QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+
+        fixture.perform(QStringLiteral("focus-workspace-down"));
+        QVERIFY(fixture.engine().isWorkspaceTransitioning());
+        fixture.advance(50);
+        QVERIFY(fixture.state(id).renderFrame.y() != fixture.state(id).targetFrame.y());
+
+        fixture.advance(4000);
+        QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+        QCOMPARE(fixture.state(id).renderFrame.y(), fixture.state(id).targetFrame.y());
+        QCOMPARE(fixture.state(id).workspaceIndex, 1);
+        QVERIFY(!fixture.state(id).onActiveWorkspace);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void movingWindowToTheNextDesktopPaintsAndPrunesTheSource()
+    {
+        NativeWorkspaces row;
+        Fixture &fixture = row.fixture;
+        const auto id = row.first;
+        QCOMPARE(fixture.state(id).workspaceIndex, 1);
+        const QRectF before = fixture.state(id).renderFrame;
+
+        QVERIFY(fixture.perform(QStringLiteral("move-window-to-workspace-down")).ok);
+        QVERIFY(fixture.engine().isWorkspaceTransitioning());
+        fixture.advance(50);
+        QVERIFY(fixture.state(id).renderFrame != before);
+        QVERIFY(fixture.state(id).renderFrame != fixture.state(id).targetFrame);
+
+        fixture.advance(4000);
+        QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+        // The source desktop is empty now, so pruning collapses it and the
+        // destination takes its place at the front of the stack.
+        QCOMPARE(fixture.state(id).workspaceIndex, 1);
+        QVERIFY(fixture.state(id).onActiveWorkspace);
+        QCOMPARE(fixture.state(id).renderFrame, fixture.state(id).targetFrame);
+        VERIFY_INVARIANTS(fixture);
+    }
+
+    void externalDesktopSwitchAdoptsImmediately()
+    {
+        NativeWorkspaces row;
+        Fixture &fixture = row.fixture;
+        const QRectF secondFrame = fixture.frame(row.second);
+        fixture.engine().focusWorkspace(QStringLiteral("DP-1"), 2);
+        QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+        QCOMPARE(fixture.engine().outputStates().first().transitionProgress, 1.0);
+        QCOMPARE(fixture.state(row.second).workspaceIndex, 2);
+        QCOMPARE(fixture.state(row.second).renderFrame, secondFrame);
+        VERIFY_INVARIANTS(fixture);
+    }
+
     void swipeAfterDesktopSwitchStartsAtTheVisibleWorkspace()
     {
         NativeWorkspaces row;
@@ -176,6 +272,7 @@ private Q_SLOTS:
         const auto id = row.second;
         const auto workspace = fixture.state(id).workspace;
         fixture.perform(QStringLiteral("focus-workspace-down"));
+        fixture.advance(4000);
         const QPointF start = fixture.frame(id).center();
         QVERIFY(fixture.engine().beginWindowDrag(id, start));
         fixture.engine().updateWindowDrag(start + QPointF(300, 0), QStringLiteral("DP-1"));
@@ -193,9 +290,14 @@ private Q_SLOTS:
         const auto id = fixture.add();
         fixture.advance(4000);
         fixture.perform(QStringLiteral("focus-workspace-down"));
+        fixture.advance(50);
+        QVERIFY(fixture.state(id).visible);
+        fixture.advance(4000);
+        QVERIFY(!fixture.state(id).visible);
         fixture.engine().setOverviewOpen(true);
         QCOMPARE(fixture.state(id).renderFrame.y(), 16.0);
         QCOMPARE(fixture.state(id).targetFrame.y(), 16.0);
+        QVERIFY(!fixture.state(id).visible);
         fixture.engine().setOverviewOpen(false);
         QCOMPARE(fixture.state(id).renderFrame.y(), 16.0);
         VERIFY_INVARIANTS(fixture);
@@ -216,6 +318,7 @@ private Q_SLOTS:
         Fixture &fixture = row.fixture;
         const auto id = row.second;
         fixture.perform(QStringLiteral("focus-workspace-down"));
+        fixture.advance(4000);
         const QRectF frame = fixture.state(id).renderFrame;
         if (action.isEmpty()) {
             fixture.engine().setOverviewOpen(true);

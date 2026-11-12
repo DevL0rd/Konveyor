@@ -79,6 +79,21 @@ void Monitor::switchWorkspace(std::size_t idx)
     activateWorkspace(std::min(idx, m_workspaces.size() - 1));
 }
 
+void Monitor::adoptWorkspace(std::size_t idx)
+{
+    if (m_workspaces.empty()) {
+        return;
+    }
+    idx = std::min(idx, m_workspaces.size() - 1);
+    if (idx != m_activeWorkspaceIndex) {
+        m_previousWorkspaceId = m_workspaces[m_activeWorkspaceIndex].id();
+        m_activeWorkspaceIndex = idx;
+    }
+    // An external desktop change (KDE's own shortcut or pager) is animated by
+    // KWin Slide; Konveyor only follows and must not start a second motion.
+    m_transition.reset();
+}
+
 void Monitor::goToWorkspaceOrBack(std::size_t idx)
 {
     const std::size_t target = std::min(idx, m_workspaces.size() - 1);

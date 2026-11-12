@@ -59,6 +59,29 @@ ColumnLayout {
             }
         }
 
+        ScopedRow {
+            scope: root
+            key: "focus-ring-transition"
+            wideControl: true
+            visible: root.ring.enabled === true && !root.excluded.includes(root.key)
+            inheritedSummary: ({ ride: "ride the motion", crossfade: "crossfade", delayed: "appear at the end" })[root.values["focus-ring-transition"]] || ""
+            label: "Moving between workspaces"
+            description: "What happens to the focused window's ring while the workspaces move. Only the ring changes; borders stay put."
+            iconName: "transform-move"
+
+            ChoiceCards {
+                width: parent.width
+                currentValue: root.values["focus-ring-transition"]
+                cardHeight: Kirigami.Units.gridUnit * 7
+                onChosen: value => LayoutKeys.write(SettingsStore, root.scopePath, "focus-ring-transition", value)
+                options: [
+                    { value: "ride", title: "Ride the motion", description: "Keeps each ring on its window as it moves" },
+                    { value: "crossfade", title: "Crossfade", description: "Fades each ring with its window and brings it back if the switch is pulled back" },
+                    { value: "delayed", title: "Delayed", description: "No ring until the switch settles, then the new window's ring appears" }
+                ]
+            }
+        }
+
         Repeater {
             model: [
                 { state: "active", label: "Focused window", description: "The window you're typing into", icon: "window-new" },

@@ -46,6 +46,14 @@ output "DP-2" {
 
 The default config ships two: `Default-Style` for the focused window's ring and `Default-Attention-Style` for windows that want attention, on a 2 pixel wide `focus-ring`. Existing configs that still have the old default ring (width 4, accent color, no style) get the same setup once; anything you changed is kept.
 
+`focus-ring-transition` sets what happens to the focused window's ring while the workspaces move. The ring follows the live visible workspace, so keyboard switches and touchpad and edge-scroll gestures behave the same, and a swipe pulled back brings the ring back with it. `"ride"` (the default) keeps each ring on its window as it moves. `"crossfade"` fades the old ring out as the new one fades in, following the switch in both directions. `"delayed"` shows no focused ring until the motion stops, then the new window's ring appears. It changes only the focus ring, never `border`. It follows the usual `layout`, `monitor-profile`, `output` and `workspace` levels.
+
+```kdl
+layout {
+    focus-ring-transition "crossfade"
+}
+```
+
 Settings → Appearance edits all of this without touching the file by hand: styles, their layers and colors, ready-made starting points, and which style the focus ring and border use for each state, including per-monitor and profile overrides. Window rule styles are set in the file.
 
 ```kdl

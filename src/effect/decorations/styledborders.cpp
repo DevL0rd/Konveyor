@@ -165,8 +165,13 @@ void StyledBorders::place(Layout::WindowId id, KWin::Window *window, Part part, 
     ShownBorder &shown = *slot;
     const bool restyled = shown.style != *placement.style;
     shown.style = *placement.style;
+    const bool faded = shown.opacity != placement.opacity;
+    shown.opacity = placement.opacity;
     updateReach(shown, placement);
     placeBorderCarrier(shown.carrier, window, shown.outerReach, shown.innerReach);
+    if (faded) {
+        repaint(parts, shown);
+    }
     if (restyled) {
         shown.motions.resize(static_cast<std::size_t>(shown.style.layers.size()));
         for (Render::LayerMotion &motion : shown.motions) {
@@ -283,7 +288,7 @@ void StyledBorders::paint(Layout::WindowId id, const PaintRequest &request)
             continue;
         }
         bool live = false;
-        const QList<BorderLayerPainter::Layer> layers = layersFor(id, *shown, frame, opacity, live);
+        const QList<BorderLayerPainter::Layer> layers = layersFor(id, *shown, frame, opacity * shown->opacity, live);
         found->second.paintedAt = seconds();
         m_painter.draw(target, {frame, shown->radius, shown->inset, shown->width}, layers);
         shown->paintedLive = live;

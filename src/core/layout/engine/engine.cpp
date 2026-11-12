@@ -52,7 +52,22 @@ void Engine::setNativeDesktopPresentation(bool enabled)
 
 bool Engine::Private::usesWorkspaceMotion(const Monitor &monitor) const
 {
-    return !nativeDesktopPresentation || monitor.isWorkspaceGesture();
+    return !nativeDesktopPresentation || monitor.isWorkspaceTransitioning();
+}
+
+double workspaceRingOpacity(Config::FocusRingTransition mode, double distance)
+{
+    switch (mode) {
+    case Config::FocusRingTransition::Ride:
+        return 1.0;
+    case Config::FocusRingTransition::Crossfade: {
+        const double t = std::clamp(1.0 - distance, 0.0, 1.0);
+        return t * t * (3.0 - 2.0 * t);
+    }
+    case Config::FocusRingTransition::Delayed:
+        return 0.0;
+    }
+    return 1.0;
 }
 
 std::vector<double> Engine::Private::workspaceRenderOffsets(const Monitor &monitor) const
@@ -213,14 +228,25 @@ std::optional<QString> Engine::focusedOutput() const
 
 void Engine::focusWorkspace(const QString &output, int index)
 {
-    qCInfo(lcKonveyor) << "konveyor: focusing workspace" << index << "on" << output;
+    qCInfo(lcKonveyor) << "konveyor: adopting workspace" << index << "on" << output;
     const auto idx = d->monitorIndexByName(output);
     if (!idx || index < 1) {
         return;
     }
-    d->monitors[*idx].switchWorkspace(static_cast<std::size_t>(index - 1));
+    d->monitors[*idx].adoptWorkspace(static_cast<std::size_t>(index - 1));
     d->activeMonitorIndex = *idx;
     d->refresh();
+}
+
+bool Engine::isWorkspaceTransitioning() const
+{
+    return std::ranges::any_of(d->monitors, &Monitor::isWorkspaceTransitioning);
+}
+
+bool Engine::isWorkspaceTransitioning(const QString &output) const
+{
+    const auto monitor = std::ranges::find(d->monitors, output, &Monitor::outputName);
+    return monitor != d->monitors.end() && monitor->isWorkspaceTransitioning();
 }
 
 bool Engine::isOverviewOpen() const

@@ -114,7 +114,10 @@ def desktop_switch_geometry(checks):
             pending.result()
         shifts = [change for change in changes if change != ready and float(change.rsplit("|", 1)[1]) != before[change.split("|", 1)[0]][1]]
         source = "KDE" if external else "Konveyor"
-        checks.equal(shifts, [], f"{source} desktop switches add no outgoing or incoming window slides")
+        if external:
+            checks.equal(shifts, [], f"{source} desktop switches add no outgoing or incoming window slides")
+        else:
+            checks.expect(bool(shifts), f"{source} desktop switches paint their own motion ({len(shifts)} frames)")
         checks.equal(frames(), before, f"{source} desktop switches preserve both desktops' frames")
 
 

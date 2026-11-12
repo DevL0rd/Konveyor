@@ -27,6 +27,9 @@ void TestSettingsControlsAppearanceQml::controls_data()
         {"AppearancePage", "Show border", "switched", "[true]", "layout/border",
             R"({"children":["width","active-color","inactive-color","urgent-color","on"]})"});
     addControl("ring width", {"AppearancePage", "Thickness", "edited", "[6.4]", "layout/focus-ring/width", R"({"args":[6]})"});
+    addControl("ring transition",
+        {"AppearancePage", "Moving between workspaces", "chosen", R"(["crossfade"])", "layout/focus-ring-transition",
+            R"({"args":["crossfade"]})"});
     addControl("border width", {"AppearancePage", "Thickness", "edited", "[2]", "layout/border/width", R"({"args":[2]})", nullptr, 1});
     addControl(
         "ring gradient", {"AppearancePage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-gradient", gradient});

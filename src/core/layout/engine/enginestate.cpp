@@ -60,11 +60,6 @@ std::optional<QSizeF> nonZeroSize(QSize size)
     return QSizeF(size);
 }
 
-}
-
-namespace
-{
-
 int stackingOrder(const Column &column, std::size_t tile)
 {
     if (!column.isTabbed() || tile < column.activeTileIndex) {
@@ -153,6 +148,7 @@ WindowState buildWindowState(
     const bool coversOutput = state.sizingMode == WindowMode::Fullscreen || state.requestedSizingMode == WindowMode::Fullscreen;
     const bool ringShown = window.isActivated() || window.isUrgent() || drawsOnInactiveWindows(tile.focusRingConfig());
     state.focusRing = decorationFor(tile.focusRingConfig(), ringShown && !coversOutput, window.isUrgent(), window.isActivated());
+    state.activeFocusRing = decorationFor(tile.focusRingConfig(), !coversOutput, window.isUrgent(), true);
     state.border
         = decorationFor(tile.borderConfig(), tile.borderThickness().has_value() && !coversOutput, window.isUrgent(), window.isActivated());
     state.eventEffects = workspace.options()->layout.eventEffects;
@@ -181,7 +177,6 @@ QList<WindowState> Engine::windowStates() const
         const double heightWithGap = monitor.workspaceHeightWithGap();
         const QPointF origin = d->originOf(monitor.outputName());
         const double viewHeight = monitor.area().viewSize.height();
-
         for (std::size_t idx = 0; idx < monitor.workspaces().size(); ++idx) {
             const Workspace &workspace = monitor.workspaces()[idx];
             WorkspaceRenderContext context;
@@ -193,6 +188,9 @@ QList<WindowState> Engine::windowStates() const
             context.index = static_cast<int>(idx) + 1;
             context.onActive = idx == monitor.activeWorkspaceIndex();
             context.visible = context.onActive || (workspaceMotion && context.renderY > -viewHeight && context.renderY < viewHeight);
+            const double distance = qAbs(monitor.transitionProgress() - static_cast<double>(idx));
+            const bool riding = monitor.isWorkspaceTransitioning() && distance < 1.0;
+            context.ringOpacity = riding ? workspaceRingOpacity(monitor.options()->layout.focusRingTransition, distance) : -1.0;
             d->appendWorkspaceStates(states, workspace, context);
         }
     }
@@ -295,6 +293,10 @@ void Engine::Private::appendWorkspaceStates(
         const Tile &tile = *ref.tile;
         WindowState state = buildWindowState(tile, workspace, context, ref.pos, targets.value(tile.id(), ref.pos));
         state.visible = context.visible && ref.visible;
+        if (context.ringOpacity >= 0.0 && workspace.activeWindow() == state.id) {
+            state.focusRing = state.activeFocusRing;
+            state.focusRing.opacity = context.ringOpacity;
+        }
         const TileIndex index = indices.value(tile.id());
         state.columnIndex = index.column;
         state.tileIndex = index.tile;

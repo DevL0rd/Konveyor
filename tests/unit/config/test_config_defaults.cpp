@@ -70,6 +70,7 @@ void TestConfigDefaults::defaultAppearanceValues()
     const Layout layout = defaultConfig().layout;
     QCOMPARE(layout.focusRing.enabled, true);
     QCOMPARE(layout.focusRing.width, 2.0);
+    QCOMPARE(layout.focusRingTransition, FocusRingTransition::Ride);
     QCOMPARE(layout.focusRing.active.color, QColor(127, 200, 255));
     QVERIFY(!layout.focusRing.inactive.isSet());
     QCOMPARE(layout.focusRing.urgent.color, QColor(155, 0, 0));
@@ -191,6 +192,7 @@ void TestConfigDefaults::mergedLayoutAppliesPart()
     border.enabled = true;
     border.width = 9;
     part.border = border;
+    part.focusRingTransition = FocusRingTransition::Crossfade;
 
     const Layout merged = mergedLayout(defaultConfig().layout, part);
     QCOMPARE(merged.gaps, 8.0);
@@ -199,6 +201,10 @@ void TestConfigDefaults::mergedLayoutAppliesPart()
     QCOMPARE(merged.border.enabled, true);
     QCOMPARE(merged.border.width, 9.0);
     QCOMPARE(merged.focusRing.width, 2.0);
+    QCOMPARE(merged.focusRingTransition, FocusRingTransition::Crossfade);
+
+    const Layout inherited = mergedLayout(defaultConfig().layout, LayoutPart {});
+    QCOMPARE(inherited.focusRingTransition, FocusRingTransition::Ride);
 }
 
 void TestConfigDefaults::mergedLayoutUnsetsWithFalseFlag()

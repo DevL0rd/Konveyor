@@ -23,10 +23,12 @@ void TestConfigOutputs::parsesOutput()
     const LoadResult result = mustLoad(QStringLiteral(R"(
         layout {
             gaps 16
+            focus-ring-transition "delayed"
         }
         output "eDP-1" {
             layout {
                 gaps 4
+                focus-ring-transition "crossfade"
                 border {
                     on
                 }
@@ -44,9 +46,12 @@ void TestConfigOutputs::parsesOutput()
     QVERIFY(primary.layout.has_value());
     QCOMPARE(primary.layout->gaps, std::optional(4.0));
     QCOMPARE(primary.layout->focusRing, std::nullopt);
+    QCOMPARE(primary.layout->focusRingTransition, std::optional(FocusRingTransition::Crossfade));
     const Layout primaryLayout = mergedLayout(result.config.layout, *primary.layout);
     QCOMPARE(primaryLayout.border.enabled, true);
     QCOMPARE(primaryLayout.focusRing.width, 2.0);
+    QCOMPARE(primaryLayout.focusRingTransition, FocusRingTransition::Crossfade);
+    QCOMPARE(mergedLayout(result.config.layout, LayoutPart {}).focusRingTransition, FocusRingTransition::Delayed);
     QVERIFY(primary.hotCorners.has_value());
     QCOMPARE(primary.hotCorners->enabled, false);
     QCOMPARE(result.config.layout.gaps, 16.0);
@@ -89,6 +94,7 @@ void TestConfigOutputs::parsesWorkspaces()
             open-on-output "eDP-1"
             layout {
                 gaps 2
+                focus-ring-transition "delayed"
             }
         }
         workspace "code"
@@ -98,6 +104,8 @@ void TestConfigOutputs::parsesWorkspaces()
     QCOMPARE(config.workspaces.first().openOnOutput, std::optional {QStringLiteral("eDP-1")});
     QVERIFY(config.workspaces.first().layout.has_value());
     QCOMPARE(config.workspaces.first().layout->gaps, std::optional(2.0));
+    QCOMPARE(config.workspaces.first().layout->focusRingTransition, std::optional(FocusRingTransition::Delayed));
+    QCOMPARE(mergedLayout(config.layout, *config.workspaces.first().layout).focusRingTransition, FocusRingTransition::Delayed);
     QCOMPARE(config.workspaces.at(1).name, QStringLiteral("code"));
     QVERIFY(!config.workspaces.at(1).layout.has_value());
 }

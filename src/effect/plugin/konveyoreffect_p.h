@@ -18,6 +18,7 @@
 #include "kwin/outputregistry.h"
 #include "kwin/windowapplier.h"
 #include "kwin/windowregistry.h"
+#include "kwin/windowvisibility.h"
 #include "plasma/kontrolpanelstacking.h"
 #include "plasma/plasmashellsync.h"
 #include "plugin/configmanager.h"
@@ -131,6 +132,7 @@ struct KonveyorEffect::Private
     ConfigManager config;
     AccentColor accent;
     WindowRegistry windows;
+    WindowVisibility visibility;
     FullscreenGuard fullscreenGuard;
     OutputRegistry outputs;
     Layout::Engine engine;
@@ -165,6 +167,8 @@ struct KonveyorEffect::Private
     WindowMemoryStore memoryStore;
     LayoutHandoff handoff;
     bool animating = false;
+    bool slideSuppression = false;
+
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;
     QPointF resizeOrigin;
@@ -191,7 +195,8 @@ struct KonveyorEffect::Private
     QSet<Layout::WindowId> placingMonitorPanels;
 
     Private(Layout::Hooks hooks, ShortcutManager::Handler shortcutHandler)
-        : fullscreenGuard(windows)
+        : visibility(windows)
+        , fullscreenGuard(windows)
         , engine(clock, std::move(hooks))
         , gestures(engine)
         , applier(windows)

@@ -251,6 +251,20 @@ void KonveyorEffect::connectOutputs()
 
 void KonveyorEffect::connectDesktopSync()
 {
+    d->desktops.setCurrentDesktopChangeGuard([this](const QString &output, const DesktopSync::CurrentDesktopChange &change) {
+        KWin::Effect *previous = KWin::effects->activeFullScreenEffect();
+        const bool suppress = readEngine().isWorkspaceTransitioning(output) && previous == nullptr;
+        if (suppress) {
+            d->slideSuppression = true;
+            KWin::effects->setActiveFullScreenEffect(this);
+        }
+        change();
+        if (suppress) {
+            d->slideSuppression = false;
+            KWin::effects->setActiveFullScreenEffect(previous);
+            KWin::effects->addRepaintFull();
+        }
+    });
     connect(&d->desktops, &DesktopSync::workspaceActivatedByUser, this, [this](const QString &output, int index) {
         qCInfo(lcKonveyor) << "konveyor: KDE switched to desktop" << index << "on" << output;
         changeEngine().focusWorkspace(output, index);

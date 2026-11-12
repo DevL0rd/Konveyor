@@ -68,6 +68,11 @@ DesktopSync::DesktopSync(const WindowRegistry &windows, const OutputRegistry &ou
 
 DesktopSync::~DesktopSync()
 {
+    if (!m_restoreOnDestruct) {
+        // The compositor is tearing its effects down, so the desktop manager may
+        // already be half-destroyed. Leave it entirely alone in that case.
+        return;
+    }
     for (auto it = m_originalNames.cbegin(); it != m_originalNames.cend(); ++it) {
         if (KWin::VirtualDesktop *desktop = manager()->desktopForId(it.key())) {
             desktop->setName(it.value());
@@ -76,6 +81,11 @@ DesktopSync::~DesktopSync()
     restoreDesktops();
     manager()->setPerOutputVirtualDesktops(m_previousPerOutput);
     manager()->setRows(m_previousRows);
+}
+
+void DesktopSync::setRestoreOnDestruct(bool restore)
+{
+    m_restoreOnDestruct = restore;
 }
 
 void DesktopSync::restoreDesktops()
@@ -113,6 +123,11 @@ void DesktopSync::start()
         });
     connect(&m_windows, &WindowRegistry::windowAdded, this,
         [this](Layout::WindowId id, KWin::Window *window) { watchWindowDesktops(window, id); });
+}
+
+void DesktopSync::setCurrentDesktopChangeGuard(CurrentDesktopChangeGuard guard)
+{
+    m_currentDesktopChangeGuard = std::move(guard);
 }
 
 void DesktopSync::apply(const QList<Layout::WorkspaceState> &workspaces, const QList<Layout::WindowState> &windows, bool horizontal)
@@ -177,7 +192,11 @@ void DesktopSync::applyCurrentDesktops(const QList<Layout::WorkspaceState> &work
         KWin::LogicalOutput *output = m_outputs.outputNamed(workspace.output);
         KWin::VirtualDesktop *desktop = desktopAt(workspace.index);
         if (output && desktop && manager()->currentDesktop(output) != desktop) {
-            manager()->setCurrent(desktop, output);
+            if (m_currentDesktopChangeGuard) {
+                m_currentDesktopChangeGuard(workspace.output, [this, desktop, output] { manager()->setCurrent(desktop, output); });
+            } else {
+                manager()->setCurrent(desktop, output);
+            }
         }
     }
 }

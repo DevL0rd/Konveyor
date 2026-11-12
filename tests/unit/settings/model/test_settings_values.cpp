@@ -172,9 +172,10 @@ animations {
 void TestSettingsValues::layoutDefaults()
 {
     const QVariantMap values = layoutValues(Config::Layout());
-    QCOMPARE(values.size(), 27);
+    QCOMPARE(values.size(), 28);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("never"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("right"));
+    QCOMPARE(values.value(QStringLiteral("focus-ring-transition")).toString(), QStringLiteral("ride"));
     QCOMPARE(values.value(QStringLiteral("always-expand-single-column")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("always-center-single-column")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("wrap-columns")).toBool(), true);
@@ -198,6 +199,7 @@ layout {
     gaps 7
     center-focused-column "on-overflow"
     new-column-position "left"
+    focus-ring-transition "crossfade"
     always-center-single-column
     wrap-columns false
     always-expand-single-column
@@ -225,6 +227,7 @@ layout {
     QCOMPARE(values.value(QStringLiteral("gaps")).toDouble(), 7.0);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("on-overflow"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("left"));
+    QCOMPARE(values.value(QStringLiteral("focus-ring-transition")).toString(), QStringLiteral("crossfade"));
     for (const QString &key : {QStringLiteral("always-center-single-column"), QStringLiteral("always-expand-single-column"),
              QStringLiteral("empty-workspace-above-first"), QStringLiteral("remember-window-sizes"),
              QStringLiteral("remember-window-positions"), QStringLiteral("float-child-windows"), QStringLiteral("wrap-workspaces")}) {

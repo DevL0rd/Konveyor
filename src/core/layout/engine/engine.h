@@ -96,6 +96,7 @@ struct DecorationState
 {
     bool enabled = false;
     double width = 0;
+    double opacity = 1.0;
     ResolvedPaint paint;
     QString style;
     bool operator==(const DecorationState &) const = default;
@@ -139,6 +140,9 @@ struct WindowState
     std::optional<QSizeF> requestedMinSize;
     std::optional<QSizeF> requestedMaxSize;
     DecorationState focusRing;
+    // The ring this window wore while it owned the focus, so a transition can keep
+    // painting it after the window has already handed the focus over.
+    DecorationState activeFocusRing;
     DecorationState border;
     Config::EventEffects eventEffects;
     std::optional<Config::CornerRadius> cornerRadius;
@@ -203,6 +207,10 @@ struct OutputState
     QColor backgroundColor;
     bool operator==(const OutputState &) const = default;
 };
+
+// How strongly a workspace's focused window shows its ring while the workspace
+// sits `distance` workspaces away from the live visible position.
+double workspaceRingOpacity(Config::FocusRingTransition mode, double distance);
 
 struct ActionResult
 {
@@ -294,6 +302,8 @@ public:
     void focusWorkspace(const QString &output, int index);
     void setWindowMemory(const WindowMemory &memory);
     const WindowMemory &windowMemory() const;
+    bool isWorkspaceTransitioning() const;
+    bool isWorkspaceTransitioning(const QString &output) const;
     bool isOverviewOpen() const;
     Anim::Duration timeUntilStartupEnds() const;
     void refreshRules();

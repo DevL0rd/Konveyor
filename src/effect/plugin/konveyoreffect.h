@@ -100,6 +100,7 @@ private:
     void decidePendingTouchMove(qint64 timestampMs);
     void showKdeOverview(bool open);
     void connectOverviewSync();
+    void updateWindowVisibility(const QList<Layout::WindowState> &states);
     void followActiveWindow();
     void followActiveWindowAfterClose();
     void onActiveWindowChanged();

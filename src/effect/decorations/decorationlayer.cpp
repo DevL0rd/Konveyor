@@ -68,7 +68,8 @@ void DecorationLayer::updatePart(const PartRequest &request, const Layout::Decor
     Placement placement = outline(request.outline, decoration, state);
     const Config::BorderStyle *style = placement.visible ? m_styled.styleNamed(decoration.style) : nullptr;
     if (style) {
-        m_styled.place(state.id, request.window, request.part, {style, request.outline.inset, decoration.width, request.outline.radius});
+        m_styled.place(state.id, request.window, request.part,
+            {style, request.outline.inset, decoration.width, request.outline.radius, decoration.opacity});
         placement.visible = false;
     } else {
         m_styled.hide(state.id, request.part);
@@ -210,6 +211,7 @@ void DecorationLayer::applyOutlined(Slot &slot, KWin::Item *parent, const Placem
     if (slot.outline->innerRect() != placement.innerRect) {
         slot.outline->setInnerRect(placement.innerRect);
     }
+    slot.outline->setOpacity(placement.opacity);
 }
 
 void DecorationLayer::applyImage(Slot &slot, KWin::Item *parent, const Placement &placement)
@@ -225,6 +227,7 @@ void DecorationLayer::applyImage(Slot &slot, KWin::Item *parent, const Placement
         slot.item->setSize(placement.spec.size);
     }
     slot.item->setPosition(placement.position);
+    slot.item->setOpacity(placement.opacity);
 }
 
 DecorationLayer::Placement DecorationLayer::outline(
@@ -243,6 +246,7 @@ DecorationLayer::Placement DecorationLayer::outline(
     placement.spec.outerRadius = expandRadius(request.radius, offset);
     placement.spec.scale = request.scale;
     placement.thickness = decoration.width;
+    placement.opacity = decoration.opacity;
     placement.innerRect
         = QRectF(-request.inset, -request.inset, request.frame.width() + request.inset * 2, request.frame.height() + request.inset * 2);
     fillPaint(placement.spec, decoration.paint, globalRect, request.workspaceView);
