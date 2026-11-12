@@ -63,6 +63,15 @@ SettingsPage {
             onSwitched: on => SettingsStore.setFlag("input/focus-follows-mouse", on)
         }
 
+        SwitchRow {
+            label: "Focus shortcuts act on the screen under the pointer"
+            description: "Shortcuts that move between columns and windows, like Meta+Left and Meta+Right, work on the screen the pointer is on. When off, they stay in the focused window's row."
+            iconName: "input-keyboard"
+            resetPaths: ["input/focus-keys-follow-mouse"]
+            isOn: SettingsStore.values["input/focus-keys-follow-mouse"] === true
+            onSwitched: on => SettingsStore.setFlag("input/focus-keys-follow-mouse", on)
+        }
+
         SettingRow {
             label: "Move the pointer with keyboard focus"
             description: "When a shortcut focuses another window, bring the pointer along so it's where you're looking."

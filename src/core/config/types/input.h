@@ -131,6 +131,7 @@ struct Input
     bool warpMouseToFocus = false;
     WarpMouseMode warpMouseMode = WarpMouseMode::Separate;
     bool workspaceAutoBackAndForth = false;
+    bool focusKeysFollowMouse = false;
     QString modKey = QStringLiteral("Super");
     bool operator==(const Input &) const = default;
 };

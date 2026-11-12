@@ -27,6 +27,7 @@ const FlagCase kFlags[] = {
     {"config-notification { %1; }", "disable-failed", [](const Config &c) { return c.configNotificationDisableFailed; }, false},
     {"input { %1; }", "focus-follows-mouse", [](const Config &c) { return c.input.focusFollowsMouse; }, false},
     {"input { %1; }", "workspace-auto-back-and-forth", [](const Config &c) { return c.input.workspaceAutoBackAndForth; }, false},
+    {"input { %1; }", "focus-keys-follow-mouse", [](const Config &c) { return c.input.focusKeysFollowMouse; }, false},
     {"layout { %1; }", "always-center-single-column", [](const Config &c) { return c.layout.alwaysCenterSingleColumn; }, false},
     {"layout { %1; }", "always-expand-single-column", [](const Config &c) { return c.layout.alwaysExpandSingleColumn; }, false},
     {"layout { %1; }", "remember-window-sizes", [](const Config &c) { return c.layout.rememberWindowSizes; }, false},

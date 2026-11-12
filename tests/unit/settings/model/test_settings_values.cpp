@@ -24,6 +24,15 @@ private Q_SLOTS:
     void rulesMatchLiveWindows();
 
 private:
+    static QStringList flagKeys()
+    {
+        return {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"), QStringLiteral("disable-minimize"),
+            QStringLiteral("experiments/prevent-fullscreen-minimize"), QStringLiteral("experiments/prevent-fullscreen-exit"),
+            QStringLiteral("config-notification/disable-failed"), QStringLiteral("input/focus-follows-mouse"),
+            QStringLiteral("input/warp-mouse-to-focus"), QStringLiteral("input/workspace-auto-back-and-forth"),
+            QStringLiteral("input/focus-keys-follow-mouse")};
+    }
+
     static Config::Config load(const QString &text)
     {
         const auto loaded = Config::loadString(text, QStringLiteral("config.kdl"));
@@ -38,12 +47,8 @@ private:
 void TestSettingsValues::globalDefaults()
 {
     const QVariantMap values = globalValues(Config::Config());
-    QCOMPARE(values.size(), 27);
-    for (const QString &key :
-        {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"), QStringLiteral("disable-minimize"),
-            QStringLiteral("experiments/prevent-fullscreen-minimize"), QStringLiteral("experiments/prevent-fullscreen-exit"),
-            QStringLiteral("config-notification/disable-failed"), QStringLiteral("input/focus-follows-mouse"),
-            QStringLiteral("input/warp-mouse-to-focus"), QStringLiteral("input/workspace-auto-back-and-forth")}) {
+    QCOMPARE(values.size(), 28);
+    for (const QString &key : flagKeys()) {
         QVERIFY2(values.value(key).typeId() == QMetaType::Bool && !values.value(key).toBool(), qPrintable(key));
     }
     QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(true));
@@ -72,6 +77,7 @@ input {
     focus-follows-mouse
     warp-mouse-to-focus mode="center-xy-always"
     workspace-auto-back-and-forth
+    focus-keys-follow-mouse
     mod-key "Alt"
 }
 gestures {
@@ -96,11 +102,7 @@ gestures {
     touchscreen { off; long-press-ms 800; }
 }
 )")));
-    for (const QString &key :
-        {QStringLiteral("hide-desktop-widgets"), QStringLiteral("fill-panels-on-maximize"), QStringLiteral("disable-minimize"),
-            QStringLiteral("experiments/prevent-fullscreen-minimize"), QStringLiteral("experiments/prevent-fullscreen-exit"),
-            QStringLiteral("config-notification/disable-failed"), QStringLiteral("input/focus-follows-mouse"),
-            QStringLiteral("input/warp-mouse-to-focus"), QStringLiteral("input/workspace-auto-back-and-forth")}) {
+    for (const QString &key : flagKeys()) {
         QVERIFY2(values.value(key).toBool(), qPrintable(key));
     }
     QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(false));

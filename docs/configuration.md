@@ -207,6 +207,8 @@ When reducing the count or collecting workspaces from a disconnected monitor, ex
 
 Besides keys, binds take `MouseLeft`, `MouseRight`, `MouseMiddle`, `MouseBack`, `MouseForward`, `WheelScrollUp`/`Down`/`Left`/`Right` and `TouchpadScrollUp`/`Down`/`Left`/`Right`, with or without modifiers. KWin's own wheel shortcuts come first: Meta+Ctrl with the vertical wheel zooms (the Zoom effect) and Meta+Alt with it switches desktops, so a bind on one of those only runs once that KWin shortcut is changed or turned off. `ISO_Level3_Shift` (AltGr) and `ISO_Level5_Shift` work as modifiers and as `mod-key`; KDE's shortcut system cannot hold them, so Konveyor catches those binds itself.
 
+Mouse and wheel binds and the workspace keys (`focus-workspace`, `focus-workspace-up`/`down`/`previous`) act on the monitor under the pointer. Other key binds act on the focused window's monitor. `input { focus-keys-follow-mouse; }` sends the column and window focus keys (`focus-column-*` and `focus-window-*`, except `focus-window-previous`) to the monitor under the pointer too, so Meta+Left and Meta+Right walk that monitor's row. Settings → Mouse → **Focus shortcuts act on the screen under the pointer** turns it on.
+
 ## Placing new windows
 
 `new-window-placement "column"` (the default) gives every new window its own column. `new-window-placement "stack"` adds it as a row to the focused column until the column holds `max-rows-per-column` windows, then opens a new column; rows share the height evenly. With `group-app-windows "beside"` a new window stacks into its app's last column instead of the focused one. `new-window-placement`, `group-app-windows` and `max-rows-per-column` work globally, inside `monitor-profile` and `output` layout blocks, and per app in window rules.

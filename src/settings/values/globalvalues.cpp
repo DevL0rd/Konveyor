@@ -104,6 +104,7 @@ QVariantMap globalValues(const Config::Config &config)
         {QStringLiteral("input/warp-mouse-to-focus"), input.warpMouseToFocus},
         {QStringLiteral("input/warp-mouse-to-focus/mode"), warpModes.at(static_cast<qsizetype>(input.warpMouseMode))},
         {QStringLiteral("input/workspace-auto-back-and-forth"), input.workspaceAutoBackAndForth},
+        {QStringLiteral("input/focus-keys-follow-mouse"), input.focusKeysFollowMouse},
         {QStringLiteral("input/mod-key"), input.modKey},
         {QStringLiteral("gestures/dnd-edge-view-scroll"), edgeScrollValue(gestures.dndEdgeViewScroll)},
         {QStringLiteral("gestures/dnd-edge-workspace-switch"), edgeScrollValue(gestures.dndEdgeWorkspaceSwitch)},

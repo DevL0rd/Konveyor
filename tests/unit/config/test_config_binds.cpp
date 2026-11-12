@@ -119,24 +119,32 @@ void TestConfigBinds::bindsActOnThePointerOutput_data()
 {
     QTest::addColumn<QString>("bind");
     QTest::addColumn<bool>("pointer");
+    QTest::addColumn<bool>("followingMouse");
 
-    QTest::newRow("workspace by number") << QStringLiteral("Mod+2 { focus-workspace 2; }") << true;
-    QTest::newRow("workspace down") << QStringLiteral("Mod+Page_Down { focus-workspace-down; }") << true;
-    QTest::newRow("workspace up") << QStringLiteral("Mod+Page_Up { focus-workspace-up; }") << true;
-    QTest::newRow("workspace previous") << QStringLiteral("Mod+Tab { focus-workspace-previous; }") << true;
-    QTest::newRow("wheel column scroll") << QStringLiteral("Mod+WheelScrollRight { focus-column-right; }") << true;
-    QTest::newRow("wheel workspace") << QStringLiteral("Mod+WheelScrollDown { focus-workspace-down; }") << true;
-    QTest::newRow("mouse button") << QStringLiteral("Mod+MouseMiddle { close-window; }") << true;
-    QTest::newRow("key column focus") << QStringLiteral("Mod+Left { focus-column-left; }") << false;
-    QTest::newRow("key window move") << QStringLiteral("Mod+Ctrl+Left { move-column-left; }") << false;
-    QTest::newRow("key column to workspace") << QStringLiteral("Mod+Shift+2 { move-column-to-workspace 2; }") << false;
+    QTest::newRow("workspace by number") << QStringLiteral("Mod+2 { focus-workspace 2; }") << true << true;
+    QTest::newRow("workspace down") << QStringLiteral("Mod+Page_Down { focus-workspace-down; }") << true << true;
+    QTest::newRow("workspace up") << QStringLiteral("Mod+Page_Up { focus-workspace-up; }") << true << true;
+    QTest::newRow("workspace previous") << QStringLiteral("Mod+Tab { focus-workspace-previous; }") << true << true;
+    QTest::newRow("wheel column scroll") << QStringLiteral("Mod+WheelScrollRight { focus-column-right; }") << true << true;
+    QTest::newRow("wheel workspace") << QStringLiteral("Mod+WheelScrollDown { focus-workspace-down; }") << true << true;
+    QTest::newRow("mouse button") << QStringLiteral("Mod+MouseMiddle { close-window; }") << true << true;
+    QTest::newRow("key column focus") << QStringLiteral("Mod+Left { focus-column-left; }") << false << true;
+    QTest::newRow("key first column") << QStringLiteral("Mod+Home { focus-column-first; }") << false << true;
+    QTest::newRow("key column or monitor") << QStringLiteral("Mod+L { focus-column-or-monitor-right; }") << false << true;
+    QTest::newRow("key window row") << QStringLiteral("Mod+Down { focus-window-or-workspace-down; }") << false << true;
+    QTest::newRow("key previous window") << QStringLiteral("Alt+Tab { focus-window-previous; }") << false << false;
+    QTest::newRow("key window move") << QStringLiteral("Mod+Ctrl+Left { move-column-left; }") << false << false;
+    QTest::newRow("key column to workspace") << QStringLiteral("Mod+Shift+2 { move-column-to-workspace 2; }") << false << false;
+    QTest::newRow("key close") << QStringLiteral("Mod+Q { close-window; }") << false << false;
 }
 
 void TestConfigBinds::bindsActOnThePointerOutput()
 {
     QFETCH(QString, bind);
     QFETCH(bool, pointer);
-    QCOMPARE(bindActsOnPointerOutput(firstBind(bind)), pointer);
+    QFETCH(bool, followingMouse);
+    QCOMPARE(bindActsOnPointerOutput(firstBind(bind), Input()), pointer);
+    QCOMPARE(bindActsOnPointerOutput(firstBind(bind), parsed(QStringLiteral("input { focus-keys-follow-mouse; }")).input), followingMouse);
 }
 
 void TestConfigBinds::parsesMouseTriggers_data()

@@ -112,6 +112,7 @@ void TestConfigDefaults::defaultGestureAndInputValues()
     QCOMPARE(config.input.focusFollowsMouse, false);
     QCOMPARE(config.input.warpMouseToFocus, false);
     QCOMPARE(config.input.workspaceAutoBackAndForth, false);
+    QCOMPARE(config.input.focusKeysFollowMouse, false);
     QCOMPARE(config.input.modKey, QStringLiteral("Super"));
     QCOMPARE(config.configNotificationDisableFailed, false);
 }

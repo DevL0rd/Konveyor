@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harness"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from checks import Checks
+from checks import Checks, default_config, load_config
 from fakepointer import chord, move, tap
 from keycodes import KEY_CODES, MODIFIER_CODES
 from kwinsession import activate, konveyor, wait_for
@@ -63,6 +63,24 @@ def wheel_scrolls_columns_under_the_pointer(checks):
     checks.equal(engine_output(), right, "and the layout's output follows it")
 
 
+def key_column_actions_follow_the_pointer_when_asked(checks):
+    left, right, named = screens()
+    checks.expect(load_config(default_config().replace("    // focus-keys-follow-mouse\n", "    focus-keys-follow-mouse\n")), "focus-keys-follow-mouse loads")
+    focus("B")
+    focus("A")
+    checks.expect(settle_focus("A"), f"A is focused on {left} ({engine_focus()})")
+    move(named[right][0] + 400, 540)
+    tap([SUPER], KEY_CODES["Right"])
+    checks.expect(wait_for(lambda: engine_focus() == "D", 15), f"Meta+Right with the pointer on {right} walks {right}'s row ({engine_focus()})")
+    checks.equal(engine_output(), right, "and the layout's output follows it")
+    checks.expect(load_config(default_config()), "the default config loads again")
+    focus("A")
+    checks.expect(settle_focus("A"), f"A is focused on {left} again ({engine_focus()})")
+    move(named[right][0] + 400, 540)
+    tap([SUPER], KEY_CODES["Right"])
+    checks.expect(wait_for(lambda: engine_focus() == "A2", 15), f"with the option off Meta+Right walks the focused window's row again ({engine_focus()})")
+
+
 def workspace_keys_switch_the_pointer_output(checks):
     left, right, named = screens()
     focus("B")
@@ -87,7 +105,8 @@ def workspace_keys_switch_the_pointer_output(checks):
 
 
 def main():
-    Checks().run(build, key_column_actions_follow_the_focused_window, wheel_scrolls_columns_under_the_pointer, workspace_keys_switch_the_pointer_output)
+    Checks().run(build, key_column_actions_follow_the_focused_window, wheel_scrolls_columns_under_the_pointer,
+                 key_column_actions_follow_the_pointer_when_asked, workspace_keys_switch_the_pointer_output)
 
 
 if __name__ == "__main__":

@@ -59,6 +59,9 @@ void TestSettingsControlsQml::controls_data()
             R"({"args":[]})"});
     addControl(
         "focus follows", {"MousePage", "Focus follows the mouse", "switched", "[true]", "input/focus-follows-mouse", R"({"args":[]})"});
+    addControl("focus keys follow mouse",
+        {"MousePage", "Focus shortcuts act on the screen under the pointer", "switched", "[true]", "input/focus-keys-follow-mouse",
+            R"({"args":[]})"});
     addControl("warp nearest",
         {"MousePage", "Move the pointer with keyboard focus", "chosen", R"(["nearest"])", "input/warp-mouse-to-focus",
             R"({"args":[],"props":{}})"});

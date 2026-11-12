@@ -147,6 +147,8 @@ void decodeInput(const Kdl::Node &node, Input &input)
     table.insert(QStringLiteral("warp-mouse-to-focus"), [&input](const Kdl::Node &child) { decodeWarpMouse(child, input); });
     table.insert(QStringLiteral("workspace-auto-back-and-forth"),
         [&input](const Kdl::Node &child) { input.workspaceAutoBackAndForth = flagArgument(child); });
+    table.insert(
+        QStringLiteral("focus-keys-follow-mouse"), [&input](const Kdl::Node &child) { input.focusKeysFollowMouse = flagArgument(child); });
     table.insert(QStringLiteral("mod-key"), [&input](const Kdl::Node &child) { input.modKey = decodeModKey(child); });
     decodeChildren(node, table);
 }

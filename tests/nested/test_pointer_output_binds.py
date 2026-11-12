@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run workspace hotkeys and wheel binds on the output under the pointer, and window hotkeys on the focused window's output."""
+"""Run workspace hotkeys and wheel binds on the output under the pointer, and window hotkeys on the focused window's output unless focus-keys-follow-mouse is on."""
 import sys
 from pathlib import Path
 

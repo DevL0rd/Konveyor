@@ -33,7 +33,7 @@ KonveyorEffect::KonveyorEffect()
         ++d->bindCount;
         d->lastBindKey = Config::bindKeyLabel(bind);
         d->lastBindAction = bind.action.name;
-        if (Config::bindActsOnPointerOutput(bind)) {
+        if (Config::bindActsOnPointerOutput(bind, d->config.config().input)) {
             const QString output = outputNameAt(KWin::effects->cursorPos());
             if (!output.isEmpty() && readEngine().focusedOutput() != output) {
                 changeEngine().focusOutput(output);

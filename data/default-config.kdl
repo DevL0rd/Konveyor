@@ -6,6 +6,7 @@ input {
     // focus-follows-mouse
     // warp-mouse-to-focus
     // workspace-auto-back-and-forth
+    // focus-keys-follow-mouse
 }
 
 layout {

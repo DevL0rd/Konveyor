@@ -77,11 +77,14 @@ QString bindKeyLabel(const Bind &bind)
     return parts.join(QLatin1Char('+'));
 }
 
-bool bindActsOnPointerOutput(const Bind &bind)
+bool bindActsOnPointerOutput(const Bind &bind, const Input &input)
 {
     static const QStringList workspaceSwitches {QStringLiteral("focus-workspace"), QStringLiteral("focus-workspace-down"),
         QStringLiteral("focus-workspace-up"), QStringLiteral("focus-workspace-previous")};
-    return bind.trigger != BindTrigger::Key || workspaceSwitches.contains(bind.action.name);
+    const QString &name = bind.action.name;
+    const bool rowFocus = name.startsWith(QLatin1String("focus-column"))
+        || (name.startsWith(QLatin1String("focus-window-")) && name != QLatin1String("focus-window-previous"));
+    return bind.trigger != BindTrigger::Key || workspaceSwitches.contains(name) || (input.focusKeysFollowMouse && rowFocus);
 }
 
 }

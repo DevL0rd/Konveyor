@@ -35,6 +35,6 @@ Config defaultConfig();
 Layout mergedLayout(Layout base, const LayoutPart &part);
 quint32 keysymFromName(const QString &name);
 QString bindKeyLabel(const Bind &bind);
-bool bindActsOnPointerOutput(const Bind &bind);
+bool bindActsOnPointerOutput(const Bind &bind, const Input &input);
 
 }
