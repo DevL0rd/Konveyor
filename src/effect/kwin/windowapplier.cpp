@@ -317,7 +317,7 @@ void WindowApplier::applyGeometry(KWin::Window *window, const QRectF &frame, con
 
 void WindowApplier::applyBorderRadius(KWin::Window *window, const Layout::WindowState &state)
 {
-    const Config::CornerRadius &radius = state.cornerRadius;
+    const Config::CornerRadius radius = state.cornerRadius.value_or(Config::CornerRadius());
     const KWin::BorderRadius wanted = state.clipToGeometry
         ? KWin::BorderRadius(radius.topLeft, radius.topRight, radius.bottomRight, radius.bottomLeft)
         : window->isDecorated() ? KWin::BorderRadius::from(window->decoration()->borderRadius())

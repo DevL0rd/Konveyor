@@ -52,7 +52,7 @@ public:
     void hideDropHint();
     void remove(Layout::WindowId id);
     void retainOnly(const QSet<Layout::WindowId> &ids);
-    Config::CornerRadius radiusFor(KWin::Window *window, const Config::CornerRadius &fromRules);
+    static Config::CornerRadius radiusFor(KWin::Window *window, const std::optional<Config::CornerRadius> &fromRules);
     void setBorderStyles(const QList<Config::BorderStyle> &styles, bool reduceMotion);
     void setAudioBeatThreshold(float threshold) { m_audioSignals.setBeatThreshold(threshold); }
     Render::SignalBus &signalBus() { return m_signalBus; }
@@ -120,7 +120,6 @@ private:
         Render::BorderSpec &spec, const Layout::ResolvedPaint &paint, const QRectF &globalRect, const QRectF &workspaceView) const;
 
     const AccentColor &m_accent;
-    double m_systemRadius = 0.0;
     std::map<Layout::WindowId, Decorations> m_decorations;
     std::optional<Layout::WindowId> m_dropHintCarrier;
     Slot m_dropHint;

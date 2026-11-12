@@ -6,7 +6,6 @@
 #include <scene/borderradius.h>
 #include <scene/outlinedborderitem.h>
 
-#include <algorithm>
 #include <scene/imageitem.h>
 #include <scene/windowitem.h>
 #include <window.h>
@@ -16,17 +15,6 @@ namespace Konveyor
 
 namespace
 {
-
-bool hasRadius(const Config::CornerRadius &radius)
-{
-    return radius.topLeft > 0 || radius.topRight > 0 || radius.bottomRight > 0 || radius.bottomLeft > 0;
-}
-
-double reportedRadius(KWin::Window *window)
-{
-    const KWin::BorderRadius radius = window->borderRadius();
-    return std::max({radius.topLeft(), radius.topRight(), radius.bottomRight(), radius.bottomLeft()});
-}
 
 Config::CornerRadius expandRadius(const Config::CornerRadius &radius, double amount)
 {
@@ -171,13 +159,13 @@ void DecorationLayer::remove(Layout::WindowId id)
     }
 }
 
-Config::CornerRadius DecorationLayer::radiusFor(KWin::Window *window, const Config::CornerRadius &fromRules)
+Config::CornerRadius DecorationLayer::radiusFor(KWin::Window *window, const std::optional<Config::CornerRadius> &fromRules)
 {
-    if (hasRadius(fromRules)) {
-        return fromRules;
+    if (fromRules) {
+        return *fromRules;
     }
-    m_systemRadius = std::max(m_systemRadius, reportedRadius(window));
-    return {m_systemRadius, m_systemRadius, m_systemRadius, m_systemRadius};
+    const KWin::BorderRadius radius = window->borderRadius();
+    return {radius.topLeft(), radius.topRight(), radius.bottomRight(), radius.bottomLeft()};
 }
 
 void DecorationLayer::retainOnly(const QSet<Layout::WindowId> &ids)

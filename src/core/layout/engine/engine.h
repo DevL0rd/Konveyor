@@ -141,7 +141,7 @@ struct WindowState
     DecorationState focusRing;
     DecorationState border;
     Config::EventEffects eventEffects;
-    Config::CornerRadius cornerRadius;
+    std::optional<Config::CornerRadius> cornerRadius;
     bool clipToGeometry = false;
     TabBarState tabBar;
     int columnIndex = 0;

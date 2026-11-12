@@ -156,7 +156,7 @@ WindowState buildWindowState(
     state.border
         = decorationFor(tile.borderConfig(), tile.borderThickness().has_value() && !coversOutput, window.isUrgent(), window.isActivated());
     state.eventEffects = workspace.options()->layout.eventEffects;
-    state.cornerRadius = coversOutput ? Config::CornerRadius() : window.rules().geometryCornerRadius.value_or(Config::CornerRadius());
+    state.cornerRadius = coversOutput ? std::optional(Config::CornerRadius()) : window.rules().geometryCornerRadius;
     state.clipToGeometry = !coversOutput && window.rules().clipToGeometry.value_or(false);
     return state;
 }

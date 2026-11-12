@@ -263,20 +263,6 @@ private Q_SLOTS:
         VERIFY_INVARIANTS(fixture);
     }
 
-    void cornerRadiusAndClippingReachWindowState()
-    {
-        Config::Config config = instantConfig();
-        Config::WindowRule rule;
-        rule.geometryCornerRadius = Config::CornerRadius {8, 8, 8, 8};
-        rule.clipToGeometry = true;
-        config.windowRules.append(rule);
-        Fixture fixture(config);
-        const auto id = fixture.add(QStringLiteral("round"));
-        QCOMPARE(fixture.state(id).cornerRadius.topLeft, 8.0);
-        QVERIFY(fixture.state(id).clipToGeometry);
-        VERIFY_INVARIANTS(fixture);
-    }
-
     void accentColorSourceIsPassedThrough()
     {
         Config::Config config = instantConfig();

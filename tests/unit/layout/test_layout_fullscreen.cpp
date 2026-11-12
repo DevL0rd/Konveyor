@@ -47,11 +47,13 @@ private Q_SLOTS:
         const auto id = fixture.add();
         const auto decorated = [&fixture, id]() {
             const Layout::WindowState state = fixture.state(id);
-            return state.focusRing.enabled && state.border.enabled && state.clipToGeometry && state.cornerRadius.topLeft == 8.0;
+            return state.focusRing.enabled && state.border.enabled && state.clipToGeometry
+                && state.cornerRadius == Config::CornerRadius {8, 8, 8, 8};
         };
         const auto bare = [&fixture, id]() {
             const Layout::WindowState state = fixture.state(id);
-            return !state.focusRing.enabled && !state.border.enabled && !state.clipToGeometry && state.cornerRadius.topLeft == 0.0;
+            return !state.focusRing.enabled && !state.border.enabled && !state.clipToGeometry
+                && state.cornerRadius == Config::CornerRadius();
         };
         QVERIFY(decorated());
 
