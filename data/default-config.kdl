@@ -13,7 +13,7 @@ layout {
     fixed-workspace-count 0
     horizontal-desktops false
     wrap-workspaces false
-    wrap-columns true
+    wrap-columns false
     gaps 16
     center-focused-column "never"
 

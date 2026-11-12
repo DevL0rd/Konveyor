@@ -9,12 +9,11 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import BREEZE_DECORATION, run_runner, unwrapped_config
+    from nested import BREEZE_DECORATION, run_runner
 
     return run_runner(
         HERE / "runners" / "touch_edges.py",
         timeout=180,
-        config_kdl=unwrapped_config(),
         extra_kwinrc=BREEZE_DECORATION,
     )
 

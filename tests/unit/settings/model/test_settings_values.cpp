@@ -177,7 +177,7 @@ void TestSettingsValues::layoutDefaults()
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("right"));
     QCOMPARE(values.value(QStringLiteral("always-expand-single-column")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("always-center-single-column")).toBool(), false);
-    QCOMPARE(values.value(QStringLiteral("wrap-columns")).toBool(), true);
+    QCOMPARE(values.value(QStringLiteral("wrap-columns")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("float-child-windows")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("remember-window-sizes")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("remember-window-positions")).toBool(), false);
@@ -199,7 +199,7 @@ layout {
     center-focused-column "on-overflow"
     new-column-position "left"
     always-center-single-column
-    wrap-columns false
+    wrap-columns
     always-expand-single-column
     empty-workspace-above-first
     remember-window-sizes
@@ -225,12 +225,12 @@ layout {
     QCOMPARE(values.value(QStringLiteral("gaps")).toDouble(), 7.0);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("on-overflow"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("left"));
-    for (const QString &key : {QStringLiteral("always-center-single-column"), QStringLiteral("always-expand-single-column"),
-             QStringLiteral("empty-workspace-above-first"), QStringLiteral("remember-window-sizes"),
-             QStringLiteral("remember-window-positions"), QStringLiteral("float-child-windows"), QStringLiteral("wrap-workspaces")}) {
+    for (const QString &key :
+        {QStringLiteral("always-center-single-column"), QStringLiteral("wrap-columns"), QStringLiteral("always-expand-single-column"),
+            QStringLiteral("empty-workspace-above-first"), QStringLiteral("remember-window-sizes"),
+            QStringLiteral("remember-window-positions"), QStringLiteral("float-child-windows"), QStringLiteral("wrap-workspaces")}) {
         QVERIFY2(values.value(key).toBool(), qPrintable(key));
     }
-    QCOMPARE(values.value(QStringLiteral("wrap-columns")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("group-app-windows")).toString(), QStringLiteral("stack"));
     QCOMPARE(values.value(QStringLiteral("max-rows-per-column")).toInt(), 5);
     QCOMPARE(values.value(QStringLiteral("new-window-placement")).toString(), QStringLiteral("stack"));

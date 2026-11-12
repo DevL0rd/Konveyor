@@ -72,7 +72,7 @@ void TestSettingsWritersQml::writeFlagEveryFlag_data()
         {QString(), QStringLiteral("float-child-windows"), false},
         {QString(), QStringLiteral("always-center-single-column"), false},
         {QString(), QStringLiteral("always-expand-single-column"), false},
-        {QString(), QStringLiteral("wrap-columns"), true},
+        {QString(), QStringLiteral("wrap-columns"), false},
         {QString(), QStringLiteral("remember-window-sizes"), false},
         {QString(), QStringLiteral("remember-window-positions"), false},
         {QStringLiteral("tab-indicator"), QStringLiteral("hide-when-single-tab"), false},

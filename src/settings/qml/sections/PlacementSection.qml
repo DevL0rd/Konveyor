@@ -202,7 +202,7 @@ ColumnLayout {
 
             ScopedSwitch {
                 isOn: root.values["wrap-columns"] === true
-                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "wrap-columns", on, true)
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "wrap-columns", on, false)
             }
         }
 

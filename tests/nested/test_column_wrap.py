@@ -28,7 +28,7 @@ def main():
     from nested import REPO, run_runner
 
     config = (REPO / "data" / "default-config.kdl").read_text()
-    if 'center-focused-column "never"' not in config or "wrap-columns true" not in config:
+    if 'center-focused-column "never"' not in config or "wrap-columns false" not in config:
         print("the default config no longer has the layout lines this test rewrites")
         return 1
     config = config.replace('center-focused-column "never"', 'center-focused-column "always"') + WIDE

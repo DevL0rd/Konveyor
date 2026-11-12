@@ -6,7 +6,7 @@ from pathlib import Path
 
 import hermetic
 from kwinsession import konveyor
-from nested import REPO, build_dir, unwrapped_config
+from nested import REPO, build_dir
 
 
 class Checks:
@@ -45,8 +45,8 @@ def config_path():
     return Path(os.environ["XDG_CONFIG_HOME"]) / "konveyor" / "config.kdl"
 
 
-def default_config(wrapped=True):
-    return (REPO / "data" / "default-config.kdl").read_text() if wrapped else unwrapped_config()
+def default_config():
+    return (REPO / "data" / "default-config.kdl").read_text()
 
 
 def load_config(text):
