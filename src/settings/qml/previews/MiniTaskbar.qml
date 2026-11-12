@@ -20,12 +20,15 @@ Item {
     readonly property var look: {
         const result = {};
         for (const key of ["showApps", "showWorkspaces", "autoIconSize", "iconSize", "iconSpacing", "buttonPadding", "highlightStyle",
-                 "indicatorStyle", "indicatorEdge", "showSeparator", "groupMode", "workspacesAfterTasks", "pillContent"]) {
+                 "indicatorStyle", "indicatorEdge", "showSeparator", "groupMode", "workspacesAfterTasks", "pillContent",
+                 "appNames", "appNameWidth"]) {
             result[key] = bar.overrides[key] !== undefined ? bar.overrides[key] : bar.settings[key];
         }
         return result;
     }
-    readonly property real thickness: Math.min(height, width / 7, maximumThickness)
+    readonly property int nameMode: look.appNames || 0
+    readonly property real thickness: Math.min(height, width / (nameMode === 0 ? 7 : 16), maximumThickness)
+    readonly property real nameWidth: (look.appNameWidth || 140) * thickness / 48
     readonly property real iconSize: look.autoIconSize === false ? thickness * Math.min(0.9, (look.iconSize || 32) / 48) : thickness * 0.6
     readonly property real padding: Math.min(thickness * 0.2, (look.buttonPadding === undefined ? 3 : look.buttonPadding) * thickness / 48)
     readonly property real spacing: (look.iconSpacing === undefined ? 2 : look.iconSpacing) * thickness / 48
@@ -35,10 +38,13 @@ Item {
     readonly property bool opposite: look.indicatorEdge === 1
     readonly property bool grouped: look.groupMode !== 2
     readonly property var entries: grouped
-        ? [{ icons: ["system-file-manager"], count: 1 }, { icons: ["internet-web-browser"], count: 2 },
-           { icons: ["utilities-terminal", "accessories-text-editor"], capsule: true }, { icons: ["multimedia-player"], count: 1 }]
-        : [{ icons: ["system-file-manager"], count: 1 }, { icons: ["internet-web-browser"], count: 1 }, { icons: ["internet-web-browser"], count: 1 },
-           { icons: ["utilities-terminal", "accessories-text-editor"], capsule: true }, { icons: ["multimedia-player"], count: 1 }]
+        ? [{ icons: ["system-file-manager"], names: ["Files"], count: 1 }, { icons: ["internet-web-browser"], names: ["Web Browser"], count: 2 },
+           { icons: ["utilities-terminal", "accessories-text-editor"], names: ["Terminal", "Text Editor"], capsule: true },
+           { icons: ["multimedia-player"], names: ["Music Player"], count: 1 }]
+        : [{ icons: ["system-file-manager"], names: ["Files"], count: 1 }, { icons: ["internet-web-browser"], names: ["Web Browser"], count: 1 },
+           { icons: ["internet-web-browser"], names: ["Web Browser"], count: 1 },
+           { icons: ["utilities-terminal", "accessories-text-editor"], names: ["Terminal", "Text Editor"], capsule: true },
+           { icons: ["multimedia-player"], names: ["Music Player"], count: 1 }]
     readonly property var firsts: entries.map((entry, index) => entries.slice(0, index).reduce((sum, each) => sum + each.icons.length, 0))
     readonly property int iconCount: entries.reduce((sum, entry) => sum + entry.icons.length, 0)
 
@@ -122,6 +128,7 @@ Item {
                         required property int index
                         strip: bar
                         icons: modelData.icons
+                        names: modelData.names
                         capsule: !!modelData.capsule
                         count: modelData.count || 1
                         focusedIcon: bar.shownFocus - bar.firsts[index]

@@ -39,6 +39,8 @@ PlasmoidItem {
         animate: TaskbarSettings.values.animations
         pulse: TaskbarSettings.values.attentionPulse
         tooltips: TaskbarSettings.values.showTooltips
+        nameMode: TaskbarSettings.values.appNames
+        nameWidth: TaskbarSettings.values.appNameWidth
     }
 
     TaskbarState {

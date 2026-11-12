@@ -5,6 +5,8 @@ const entries = [
     { page: "taskbar", section: "What it shows", label: "Show workspaces", keywords: "taskbar pills workspace switcher strip hide" },
     { page: "taskbar", section: "Icons", label: "Icon size", keywords: "taskbar icon size big small panel thickness" },
     { page: "taskbar", section: "Icons", label: "Fixed icon size", keywords: "taskbar icon size pixels" },
+    { page: "taskbar", section: "Icons", label: "App names", keywords: "taskbar app name title label text icons only" },
+    { page: "taskbar", section: "Icons", label: "Longest name", keywords: "taskbar app name width truncate elide ellipsis" },
     { page: "taskbar", section: "Icons", label: "Space between icons", keywords: "taskbar spacing gap compact" },
     { page: "taskbar", section: "Icons", label: "Padding around each icon", keywords: "taskbar padding margin compact" },
     { page: "taskbar", section: "Focus and indicators", label: "Focused app", keywords: "taskbar highlight active filled outline" },

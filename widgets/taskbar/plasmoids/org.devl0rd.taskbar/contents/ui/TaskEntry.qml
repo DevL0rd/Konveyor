@@ -53,7 +53,7 @@ Item {
         id: shell
         visible: entryItem.capsule
         anchors.centerIn: parent
-        width: entryItem.look.vertical ? entryItem.look.iconSize + entryItem.look.padding * 2 + entryItem.inset * 2 : parent.width
+        width: entryItem.look.vertical && !entryItem.look.namesFit(entryItem.across - entryItem.inset * 2) ? entryItem.look.iconSize + entryItem.look.padding * 2 + entryItem.inset * 2 : parent.width
         height: entryItem.look.vertical ? parent.height : entryItem.look.iconSize + entryItem.look.padding * 2 + entryItem.inset * 2
         radius: Kirigami.Units.cornerRadius * 2
         color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, entryItem.dragging ? 0.16 : 0.08)

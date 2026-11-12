@@ -12,6 +12,8 @@
         <entry name="iconSize" type="Int"><default>32</default></entry>
         <entry name="iconSpacing" type="Int"><default>2</default></entry>
         <entry name="buttonPadding" type="Int"><default>3</default></entry>
+        <entry name="appNames" type="Int"><default>0</default></entry>
+        <entry name="appNameWidth" type="Int"><default>140</default></entry>
         <entry name="highlightStyle" type="Int"><default>0</default></entry>
         <entry name="indicatorStyle" type="Int"><default>0</default></entry>
         <entry name="indicatorEdge" type="Int"><default>0</default></entry>

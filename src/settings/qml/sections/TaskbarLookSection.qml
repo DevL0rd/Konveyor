@@ -33,6 +33,33 @@ ColumnLayout {
             to: 96
         }
 
+        SettingRow {
+            label: "App names"
+            description: "On a side panel the names show once the panel is wide enough for them."
+            iconName: "format-text-bold"
+            taskbarKeys: ["appNames"]
+
+            Segmented {
+                currentValue: TaskbarSettings.values.appNames
+                options: [
+                    { value: 0, label: "Icons only" },
+                    { value: 1, label: "Icon and name" },
+                    { value: 2, label: "Name only" }
+                ]
+                onChosen: value => TaskbarSettings.values.appNames = value
+            }
+        }
+
+        TaskbarSliderRow {
+            key: "appNameWidth"
+            label: "Longest name"
+            description: "Longer names end in an ellipsis. Only limits horizontal panels; on side panels names fill the panel width."
+            iconName: "format-text-direction-ltr"
+            enabled: TaskbarSettings.values.appNames !== 0
+            from: 40
+            to: 400
+        }
+
         TaskbarSliderRow {
             key: "iconSpacing"
             label: "Space between icons"

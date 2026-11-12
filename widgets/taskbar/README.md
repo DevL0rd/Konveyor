@@ -1,6 +1,6 @@
 # Konveyor Taskbar
 
-An icons-only task manager for KDE Plasma 6 panels, built for Konveyor. Its icons are your columns: they sit in the same order as the columns on the current workspace of the screen the panel is on, and moving either one moves the other.
+A task manager for KDE Plasma 6 panels, built for Konveyor. Its icons are your columns: they sit in the same order as the columns on the current workspace of the screen the panel is on, and moving either one moves the other.
 
 ## Features
 
@@ -44,6 +44,8 @@ The settings live in Konveyor Settings, on the **Taskbar** page, with a live pre
 | What it shows | Show apps | On |
 | | Show workspaces | On; one of the two stays on |
 | Icons | Icon size | Follows the panel thickness, or a fixed size |
+| | App names | Icons only, the icon and the app's name, or the name only; on a side panel names show once it is wide enough |
+| | Longest name | 140 px; longer names end in an ellipsis; only limits horizontal panels, on side panels names fill the panel width |
 | | Space between icons | 2 px |
 | | Padding around each icon | 3 px |
 | | Focused app | Filled, outline or no highlight |

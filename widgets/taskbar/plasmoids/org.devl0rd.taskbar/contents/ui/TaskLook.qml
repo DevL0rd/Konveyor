@@ -16,12 +16,27 @@ QtObject {
     property bool animate: true
     property bool pulse: true
     property bool tooltips: true
+    property int nameMode: 0
+    property int nameWidth: 140
 
-    readonly property int iconSize: Math.max(12, Math.min(Math.round(thickness) - 2, autoIconSize ? Math.round(thickness * 0.6) : fixedIconSize))
+    readonly property int nameGap: Kirigami.Units.smallSpacing
+    readonly property int listInset: padding + Kirigami.Units.smallSpacing * 2
+    readonly property int listIcon: autoIconSize ? Kirigami.Units.iconSizes.medium : fixedIconSize
+    readonly property bool listed: vertical && namesFit(thickness)
+    readonly property int iconSize: Math.max(12, Math.min(Math.round(thickness) - 2,
+        listed ? listIcon : autoIconSize ? Math.round(thickness * 0.6) : fixedIconSize))
     readonly property int button: iconSize + padding * 2
     readonly property int edge: indicatorOpposite ? opposite(location) : location
     readonly property int shortDuration: animate ? Kirigami.Units.shortDuration : 0
     readonly property int longDuration: animate ? Kirigami.Units.longDuration : 0
+
+    function nameRoom(across) {
+        return vertical ? across - listInset * 2 - 2 - (nameMode === 1 ? listIcon + nameGap : 0) : nameWidth
+    }
+
+    function namesFit(across) {
+        return nameMode !== 0 && (!vertical || nameRoom(across) >= Kirigami.Units.gridUnit * 2)
+    }
 
     function opposite(side) {
         switch (side) {

@@ -6,6 +6,7 @@ Item {
 
     property Item strip
     property var icons: []
+    property var names: []
     property bool capsule: false
     property int count: 1
     property int focusedIcon: -1
@@ -47,12 +48,13 @@ Item {
                 required property string modelData
                 required property int index
                 readonly property bool focused: task.focusedIcon === index
-                width: task.button
+                readonly property bool named: task.strip.nameMode !== 0
+                width: named ? content.width + task.strip.padding * 2 + 2 : task.button
                 height: task.strip.thickness
 
                 Rectangle {
                     anchors.centerIn: parent
-                    width: task.button - 2
+                    width: slot.width - 2
                     height: task.button - 2
                     radius: Kirigami.Units.cornerRadius
                     color: task.strip.look.highlightStyle === 0 && slot.focused ? Qt.alpha(Kirigami.Theme.highlightColor, 0.28) : "transparent"
@@ -64,15 +66,33 @@ Item {
                     }
                 }
 
-                Kirigami.Icon {
+                Row {
+                    id: content
                     anchors.centerIn: parent
-                    width: task.strip.iconSize
-                    height: width
-                    source: slot.modelData
+                    spacing: task.strip.padding
                     opacity: task.dimmedIcon === slot.index ? 0.35 : 1
 
                     Behavior on opacity {
                         NumberAnimation { duration: Kirigami.Units.longDuration }
+                    }
+
+                    Kirigami.Icon {
+                        visible: task.strip.nameMode !== 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: task.strip.iconSize
+                        height: width
+                        source: slot.modelData
+                    }
+
+                    Text {
+                        visible: slot.named
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(implicitWidth, task.strip.nameWidth)
+                        text: task.names[slot.index] || ""
+                        textFormat: Text.PlainText
+                        elide: Text.ElideRight
+                        color: Kirigami.Theme.textColor
+                        font.pixelSize: Math.max(1, Math.round(task.strip.thickness * 0.26))
                     }
                 }
 

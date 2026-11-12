@@ -26,6 +26,9 @@ PlasmaCore.ToolTipArea {
     readonly property string appName: windows.length > 0 ? (windows[0].appName || windows[0].title) : launcher ? (launcher.name || "") : ""
     readonly property bool horizontalEdge: look.edge === PlasmaCore.Types.TopEdge || look.edge === PlasmaCore.Types.BottomEdge
         || (look.edge !== PlasmaCore.Types.LeftEdge && look.edge !== PlasmaCore.Types.RightEdge)
+    readonly property bool named: appName !== "" && look.namesFit(across)
+    readonly property bool iconShown: look.nameMode !== 2 || !named
+    readonly property bool besideStart: look.vertical && named
 
     signal activated()
     signal middleClicked()
@@ -38,7 +41,7 @@ PlasmaCore.ToolTipArea {
         launchBounce.restart()
     }
 
-    implicitWidth: look.vertical ? across : look.button
+    implicitWidth: look.vertical ? across : named ? content.width + look.padding * 2 + 2 : look.button
     implicitHeight: look.vertical ? look.button : across
     mainText: appName
     subText: grouped ? "" : windows.length === 1 && windows[0].title !== appName ? windows[0].title : idle ? i18n("Pinned — click to open") : ""
@@ -62,7 +65,7 @@ PlasmaCore.ToolTipArea {
     Rectangle {
         id: surface
         anchors.centerIn: parent
-        width: button.look.vertical ? button.look.iconSize + button.look.padding * 2 : button.width - 2
+        width: button.look.vertical && !button.named ? button.look.iconSize + button.look.padding * 2 : button.width - 2
         height: button.look.vertical ? button.height - 2 : button.look.iconSize + button.look.padding * 2
         radius: Kirigami.Units.cornerRadius * 1.5
         readonly property bool filled: button.focused && button.look.highlightStyle === 0
@@ -104,22 +107,49 @@ PlasmaCore.ToolTipArea {
         NumberAnimation { target: attentionPulse; property: "level"; from: 0.5; to: 0.15; duration: 700; easing.type: Easing.InOutSine }
     }
 
-    Kirigami.Icon {
-        id: appIcon
-        anchors.centerIn: parent
-        width: button.look.iconSize
-        height: width
-        source: button.iconSource
-        active: mouse.containsMouse
-        opacity: button.idle || button.minimized ? 0.72 : 1
-        scale: mouse.pressed ? 0.9 : mouse.containsMouse && button.look.animate ? 1.06 : 1
+    Item {
+        id: content
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.horizontalCenter: button.besideStart ? undefined : parent.horizontalCenter
+        anchors.left: button.besideStart ? surface.left : undefined
+        anchors.leftMargin: button.look.listInset
+        width: (button.iconShown ? appIcon.width : 0) + (button.named ? label.width : 0) + (button.iconShown && button.named ? button.look.nameGap : 0)
+        height: Math.max(button.iconShown ? appIcon.height : 0, button.named ? label.height : 0)
         transform: Translate { id: lift }
+        opacity: button.idle || button.minimized ? 0.72 : 1
 
-        Behavior on scale {
-            NumberAnimation { duration: button.look.shortDuration; easing.type: Easing.OutCubic }
-        }
         Behavior on opacity {
             NumberAnimation { duration: button.look.shortDuration }
+        }
+
+        Kirigami.Icon {
+            id: appIcon
+            visible: button.iconShown
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: button.look.iconSize
+            height: width
+            source: button.iconSource
+            active: mouse.containsMouse
+            scale: mouse.pressed ? 0.9 : mouse.containsMouse && button.look.animate ? 1.06 : 1
+
+            Behavior on scale {
+                NumberAnimation { duration: button.look.shortDuration; easing.type: Easing.OutCubic }
+            }
+        }
+
+        Text {
+            id: label
+            visible: button.named
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.min(implicitWidth, button.look.nameRoom(button.across))
+            text: button.appName
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            maximumLineCount: 1
+            color: Kirigami.Theme.textColor
+            font: Kirigami.Theme.defaultFont
         }
     }
 
@@ -144,7 +174,7 @@ PlasmaCore.ToolTipArea {
         anchors.top: button.look.edge === PlasmaCore.Types.TopEdge ? parent.top : undefined
         anchors.left: button.look.edge === PlasmaCore.Types.LeftEdge ? parent.left : undefined
         anchors.right: button.look.edge === PlasmaCore.Types.RightEdge ? parent.right : undefined
-        anchors.margins: Math.max(1, Math.round((button.across - button.look.iconSize - button.look.padding * 2) / 4))
+        anchors.margins: button.besideStart ? 2 : Math.max(1, Math.round((button.across - button.look.iconSize - button.look.padding * 2) / 4))
     }
 
     ShortcutBadge {

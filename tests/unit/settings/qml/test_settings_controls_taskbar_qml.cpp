@@ -78,6 +78,8 @@ private Q_SLOTS:
         row("Show workspaces", "switched", "[false]", "showWorkspaces", "false");
         row("Icon size", "chosen", "[false]", "autoIconSize", "false");
         row("Fixed icon size", "edited", "[40.4]", "iconSize", "40");
+        row("App names", "chosen", "[1]", "appNames", "1");
+        row("Longest name", "edited", "[220.4]", "appNameWidth", "220");
         row("Space between icons", "edited", "[6]", "iconSpacing", "6");
         row("Padding around each icon", "edited", "[0]", "buttonPadding", "0");
         row("Focused app", "chosen", "[1]", "highlightStyle", "1");
