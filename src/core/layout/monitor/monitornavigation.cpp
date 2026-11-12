@@ -23,6 +23,27 @@ void Monitor::focusWindowOrWorkspaceUp()
     }
 }
 
+std::size_t Monitor::workspaceAbove() const
+{
+    if (m_activeWorkspaceIndex > 0) {
+        return m_activeWorkspaceIndex - 1;
+    }
+    return wrapsWorkspaces() ? m_workspaces.size() - 1 : 0;
+}
+
+std::size_t Monitor::workspaceBelow() const
+{
+    if (m_activeWorkspaceIndex + 1 < m_workspaces.size()) {
+        return m_activeWorkspaceIndex + 1;
+    }
+    return wrapsWorkspaces() ? 0 : m_workspaces.size() - 1;
+}
+
+bool Monitor::wrapsWorkspaces() const
+{
+    return m_options->layout.wrapWorkspaces && m_options->layout.fixedWorkspaceCount > 0;
+}
+
 void Monitor::switchWorkspaceUp()
 {
     const WorkspaceSwipe *gesture = m_transition ? m_transition->swipe() : nullptr;
@@ -31,7 +52,7 @@ void Monitor::switchWorkspaceUp()
         activateWorkspace(static_cast<std::size_t>(value));
         return;
     }
-    activateWorkspace(m_activeWorkspaceIndex > 0 ? m_activeWorkspaceIndex - 1 : 0);
+    activateWorkspace(workspaceAbove());
 }
 
 void Monitor::switchWorkspaceDown()
@@ -42,7 +63,7 @@ void Monitor::switchWorkspaceDown()
         activateWorkspace(static_cast<std::size_t>(value));
         return;
     }
-    activateWorkspace(std::min(m_activeWorkspaceIndex + 1, m_workspaces.size() - 1));
+    activateWorkspace(workspaceBelow());
 }
 
 std::optional<std::size_t> Monitor::previousWorkspaceIndex() const
@@ -93,12 +114,12 @@ void Monitor::moveUpOrToWorkspaceUp()
 
 void Monitor::moveToWorkspaceUp(Activation activate)
 {
-    moveToWorkspace(std::nullopt, m_activeWorkspaceIndex > 0 ? m_activeWorkspaceIndex - 1 : 0, activate);
+    moveToWorkspace(std::nullopt, workspaceAbove(), activate);
 }
 
 void Monitor::moveToWorkspaceDown(Activation activate)
 {
-    moveToWorkspace(std::nullopt, std::min(m_activeWorkspaceIndex + 1, m_workspaces.size() - 1), activate);
+    moveToWorkspace(std::nullopt, workspaceBelow(), activate);
 }
 
 void Monitor::animateTileBetweenWorkspaces(
@@ -154,12 +175,12 @@ void Monitor::moveToWorkspace(std::optional<WindowId> window, std::size_t idx, A
 
 void Monitor::moveColumnToWorkspaceUp(bool activate)
 {
-    moveColumnToWorkspace(m_activeWorkspaceIndex > 0 ? m_activeWorkspaceIndex - 1 : 0, activate);
+    moveColumnToWorkspace(workspaceAbove(), activate);
 }
 
 void Monitor::moveColumnToWorkspaceDown(bool activate)
 {
-    moveColumnToWorkspace(std::min(m_activeWorkspaceIndex + 1, m_workspaces.size() - 1), activate);
+    moveColumnToWorkspace(workspaceBelow(), activate);
 }
 
 void Monitor::moveColumnToWorkspace(std::size_t idx, bool activate)

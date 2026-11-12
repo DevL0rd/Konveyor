@@ -111,8 +111,8 @@ public:
         bool isFloating, const EffectiveWindowRules &rules, QSize minSize, QSize maxSize) const;
     ColumnWidth tiledWidthFor(const LayoutWindow &window, const std::optional<Config::PresetSize> &width) const;
 
-    bool focusLeft();
-    bool focusRight();
+    bool focusLeft(bool wrap);
+    bool focusRight(bool wrap);
     void focusColumnFirst();
     void focusColumnLast();
     void focusColumnRightOrFirst();

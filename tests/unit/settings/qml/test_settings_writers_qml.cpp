@@ -144,7 +144,7 @@ void TestSettingsWritersQml::flagDefaultsMatchRuntime()
             ++checked;
         }
     }
-    QCOMPARE(checked, 5);
+    QCOMPARE(checked, 6);
     const QVariantMap tab = runtime.value(QStringLiteral("tab-indicator")).toMap();
     QCOMPARE(tab.value(QStringLiteral("hide-when-single-tab")).toBool(), false);
     QCOMPARE(tab.value(QStringLiteral("place-within-column")).toBool(), false);

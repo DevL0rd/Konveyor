@@ -9,16 +9,16 @@
 namespace Konveyor::Layout
 {
 
-bool Workspace::focusLeft()
+bool Workspace::focusLeft(bool wrap)
 {
     focusTiling();
-    return m_strip.focusLeft();
+    return m_strip.focusLeft(wrap);
 }
 
-bool Workspace::focusRight()
+bool Workspace::focusRight(bool wrap)
 {
     focusTiling();
-    return m_strip.focusRight();
+    return m_strip.focusRight(wrap);
 }
 
 void Workspace::focusColumnFirst()
@@ -35,14 +35,14 @@ void Workspace::focusColumnLast()
 
 void Workspace::focusColumnRightOrFirst()
 {
-    if (!focusRight()) {
+    if (!focusRight(false)) {
         focusColumnFirst();
     }
 }
 
 void Workspace::focusColumnLeftOrLast()
 {
-    if (!focusLeft()) {
+    if (!focusLeft(false)) {
         focusColumnLast();
     }
 }

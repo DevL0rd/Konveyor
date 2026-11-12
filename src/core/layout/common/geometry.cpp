@@ -189,6 +189,14 @@ double scrollToReveal(double curX, double viewWidth, double newColX, double newC
     return -(viewWidth - padding - newColWidth);
 }
 
+double nearestPeriodCopy(double x, double reference, double period)
+{
+    if (period <= 0.0) {
+        return x;
+    }
+    return x + std::floor((reference - x) / period + 0.5) * period;
+}
+
 int clampToSizeLimits(int x, int minSize, int maxSize)
 {
     if (maxSize > 0) {

@@ -51,6 +51,7 @@ public:
     const Tile *tileFor(WindowId id) const;
     bool activeTileWantsFullscreen() const;
     bool centersActiveColumn() const;
+    double wrapPeriod() const;
     const StripScroll &viewOffset() const { return m_scroll; }
 
     DropSlot dropSlotAt(QPointF pos, std::optional<Config::ColumnPosition> movingPin) const;
@@ -74,8 +75,8 @@ public:
     bool activateWindow(WindowId id);
     bool animateOpening(WindowId id);
 
-    bool focusLeft();
-    bool focusRight();
+    bool focusLeft(bool wrap);
+    bool focusRight(bool wrap);
     void focusColumnFirst();
     void focusColumnLast();
     void focusColumn(std::size_t index);
@@ -179,6 +180,10 @@ private:
     void reconcileView();
     std::optional<double> overlayViewOffset() const;
     double constrainScrollPosition(double scrollPosition) const;
+    double viewCenter(double scrollPosition) const;
+    double columnXNear(std::size_t idx, double scrollPosition) const;
+    double wrappedSlide(std::size_t idx, double linearSlide) const;
+    std::optional<std::size_t> neighbourIndex(std::size_t idx, bool forward) const;
     static std::optional<std::optional<Config::PresetSize>> ruleWidthFor(const Column &column);
     void animateScroll(std::size_t idx, double newViewOffset);
     void animateScrollWith(std::size_t idx, double newViewOffset, const Config::AnimationParams &config);
@@ -212,14 +217,15 @@ private:
     std::optional<QRectF> rawDropSlotRect(DropSlot position) const;
     std::pair<double, double> inColumnHintGeometry(const Column &column, std::size_t tileIndex) const;
     std::pair<double, double> dndScrollBounds() const;
-    std::size_t furthestColumnInDirection(std::size_t snapColIndex, double snapViewPos, bool forward) const;
-    bool columnStaysInView(std::size_t idx, double snapViewPos, bool forward) const;
+    std::size_t furthestColumnInDirection(std::size_t snapColIndex, double snapColX, double snapViewPos, bool forward) const;
+    bool columnStaysInView(std::size_t idx, double colX, double snapViewPos, bool forward) const;
     double columnPadding(const Column &column, QRectF area) const;
     QRectF areaForMode(WindowMode mode) const;
     struct Snap
     {
         double scrollPosition;
         std::size_t colIndex;
+        double shift = 0.0;
     };
     std::vector<Snap> centeredSnapPoints() const;
     std::vector<Snap> edgeSnapPoints() const;

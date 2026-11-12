@@ -71,7 +71,9 @@ DropSlot ColumnStrip::unpinnedDropSlotAt(QPointF pos) const
     }
 
     const double gaps = m_options->layout.gaps;
-    const double x = pos.x() + scrollPosition() + gaps / 2.0;
+    const double period = wrapPeriod();
+    const double stripX = pos.x() + scrollPosition() + gaps / 2.0;
+    const double x = nearestPeriodCopy(stripX, period / 2.0, period);
     const double y = pos.y() + gaps / 2.0;
     if (x < 0.0) {
         return newColumnAt(0);
@@ -105,7 +107,9 @@ std::optional<QRectF> ColumnStrip::dropSlotRect(DropSlot position) const
                                                     : fitScroll(0.0, 0.0, area->width(), WindowMode::Normal);
         area->moveLeft(area->x() - offset);
     } else {
-        area->moveLeft(area->x() - scrollPosition());
+        const double scroll = scrollPosition();
+        const double mid = area->center().x();
+        area->moveLeft(area->x() + (nearestPeriodCopy(mid, viewCenter(scroll), wrapPeriod()) - mid) - scroll);
     }
     if (position.kind == DropSlot::Kind::NewColumn) {
         const double half = area->width() / 2.0;

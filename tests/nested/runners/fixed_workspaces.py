@@ -22,6 +22,25 @@ def kde_count():
     return int(run_script('print("MARK|" + workspace.desktops.length);')[0])
 
 
+def focused_index():
+    return next(workspace["idx"] for workspace in workspaces() if workspace["is_focused"])
+
+
+def wrap(checks):
+    checks.expect(wait_for(lambda: len(counts()) == 2 and set(counts().values()) == {4}), "both monitors start with four slots")
+    checks.equal(konveyor_action("focus-workspace", "1"), "", "start on the first slot")
+    checks.equal(konveyor_action("focus-workspace-up"), "", "go up from the first slot")
+    checks.expect(wait_for(lambda: focused_index() == 4), "up from the first slot wraps to the last")
+    checks.equal(konveyor_action("focus-workspace-down"), "", "go down from the last slot")
+    checks.expect(wait_for(lambda: focused_index() == 1), "down from the last slot wraps to the first")
+    open_client("Wrap A")
+    checks.equal(konveyor_action("move-window-to-workspace-up"), "", "move the window up from the first slot")
+    checks.expect(wait_for(lambda: focused_index() == 4), "the window and focus wrap to the last slot")
+    run_script(for_window("Wrap A", "w.closeWindow();"))
+    checks.expect(wait_for(lambda: not konveyor_windows()), "the wrap client closes")
+    checks.equal(konveyor_action("focus-workspace", "1"), "", "return to the first slot")
+
+
 def fixed(checks):
     checks.expect(wait_for(lambda: len(counts()) == 2 and set(counts().values()) == {4}), "both monitors start with four slots")
     checks.equal(kde_count(), 4, "KDE has four actual virtual desktops")
@@ -55,7 +74,7 @@ def reload(checks):
 
 
 def main():
-    Checks().run(fixed, reload)
+    Checks().run(wrap, fixed, reload)
 
 
 if __name__ == "__main__":

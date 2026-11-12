@@ -10,7 +10,7 @@ def main():
     from nested import run_runner
 
     return run_runner(HERE / "runners" / "fixed_workspaces.py", timeout=240,
-                      config_kdl='layout { fixed-workspace-count 4; }\nanimations { off; }\n', clients=(), output_count=2)
+                      config_kdl='layout { fixed-workspace-count 4; wrap-workspaces; }\nanimations { off; }\n', clients=(), output_count=2)
 
 
 if __name__ == "__main__":

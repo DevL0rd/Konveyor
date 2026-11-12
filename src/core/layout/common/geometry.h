@@ -42,6 +42,7 @@ GeometryUpdate geometryUpdateFor(
 
 QRectF workAreaWithStruts(QRectF parentArea, double scale, const Config::Struts &struts);
 double scrollToReveal(double curX, double viewWidth, double newColX, double newColWidth, double gaps);
+double nearestPeriodCopy(double x, double reference, double period);
 
 int clampToSizeLimits(int x, int minSize, int maxSize);
 int clampToSizeLimitsAllowZero(int x, int minSize, int maxSize);

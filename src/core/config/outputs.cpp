@@ -11,7 +11,8 @@ namespace
 const QStringList &globalOnlyLayoutNodes()
 {
     static const QStringList names {QStringLiteral("remember-window-sizes"), QStringLiteral("remember-window-positions"),
-        QStringLiteral("float-child-windows"), QStringLiteral("fixed-workspace-count"), QStringLiteral("horizontal-desktops")};
+        QStringLiteral("float-child-windows"), QStringLiteral("fixed-workspace-count"), QStringLiteral("horizontal-desktops"),
+        QStringLiteral("wrap-workspaces")};
     return names;
 }
 

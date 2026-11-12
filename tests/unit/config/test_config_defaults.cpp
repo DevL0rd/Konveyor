@@ -38,10 +38,12 @@ void TestConfigDefaults::defaultLayoutValues()
     QCOMPARE(layout.gaps, 16.0);
     QCOMPARE(layout.centerFocusedColumn, CenterFocusedColumn::Never);
     QCOMPARE(layout.alwaysCenterSingleColumn, false);
+    QCOMPARE(layout.wrapColumns, false);
     QCOMPARE(layout.alwaysExpandSingleColumn, true);
     QCOMPARE(layout.emptyWorkspaceAboveFirst, false);
     QCOMPARE(layout.fixedWorkspaceCount, 0);
     QCOMPARE(layout.horizontalDesktops, false);
+    QCOMPARE(layout.wrapWorkspaces, false);
     QCOMPARE(layout.defaultColumnDisplay, ColumnDisplay::Normal);
     QCOMPARE(layout.presetColumnWidths.size(), 4);
     QCOMPARE(proportionOf(layout.presetColumnWidths.at(0)), 0.25);

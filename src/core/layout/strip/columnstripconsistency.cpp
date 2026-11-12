@@ -132,6 +132,18 @@ QString ColumnStrip::verifyView() const
     const QRectF &area = m_area.workingArea;
     const double viewLeft = targetScrollPosition() + area.x();
     const double viewRight = viewLeft + area.width();
+    if (wrapPeriod() > 0.0) {
+        const double activeX = columnOffset(m_activeColumnIndex);
+        const double activeRight = activeX + m_columns[m_activeColumnIndex].width();
+        if (activeRight < viewLeft - Tolerance || activeX > viewRight + Tolerance) {
+            return QStringLiteral("scrolling: the view %1..%2 left the active column %3..%4")
+                .arg(viewLeft)
+                .arg(viewRight)
+                .arg(activeX)
+                .arg(activeRight);
+        }
+        return {};
+    }
     const double rowRight = columnOffset(m_columns.size() - 1) + m_columns.back().width();
     const bool fits = rowRight + gaps * 2.0 <= area.width();
     const bool aligned

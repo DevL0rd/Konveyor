@@ -81,6 +81,9 @@ void mergeLayoutWorkspaces(Layout &base, const LayoutPart &part)
     if (part.horizontalDesktops) {
         base.horizontalDesktops = *part.horizontalDesktops;
     }
+    if (part.wrapWorkspaces) {
+        base.wrapWorkspaces = *part.wrapWorkspaces;
+    }
     if (part.emptyWorkspaceAboveFirst) {
         base.emptyWorkspaceAboveFirst = *part.emptyWorkspaceAboveFirst;
     }
@@ -101,6 +104,9 @@ void mergeLayoutSizing(Layout &base, const LayoutPart &part)
     }
     if (part.alwaysCenterSingleColumn) {
         base.alwaysCenterSingleColumn = *part.alwaysCenterSingleColumn;
+    }
+    if (part.wrapColumns) {
+        base.wrapColumns = *part.wrapColumns;
     }
     if (part.alwaysExpandSingleColumn) {
         base.alwaysExpandSingleColumn = *part.alwaysExpandSingleColumn;

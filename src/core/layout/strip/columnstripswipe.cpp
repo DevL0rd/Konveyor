@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace Konveyor::Layout
 {
@@ -55,11 +56,11 @@ std::pair<double, double> ColumnStrip::columnSnapPoints(double colX, std::size_t
         = [&](std::optional<double> adjacent) { return centerOnOverflow && adjacent && *adjacent + 3.0 * gaps + colWidth > area.width(); };
     std::optional<double> previousWidth;
     std::optional<double> nextWidth;
-    if (idx > 0) {
-        previousWidth = m_columns[idx - 1].width();
+    if (const std::optional<std::size_t> previous = neighbourIndex(idx, false)) {
+        previousWidth = m_columns[*previous].width();
     }
-    if (idx + 1 < m_columns.size()) {
-        nextWidth = m_columns[idx + 1].width();
+    if (const std::optional<std::size_t> next = neighbourIndex(idx, true)) {
+        nextWidth = m_columns[*next].width();
     }
 
     const double left = overflows(nextWidth) ? center : colX - padding - leftStrut;
@@ -91,12 +92,16 @@ std::vector<ColumnStrip::Snap> ColumnStrip::edgeSnapPoints() const
 {
     const double viewWidth = m_area.viewSize.width();
     const std::size_t lastIndex = m_columns.size() - 1;
-    const double leftmost = columnSnapPoints(0.0, 0).first;
-    const double rightmost = columnSnapPoints(columnOffset(lastIndex), lastIndex).second - viewWidth;
+    const bool wraps = wrapPeriod() > 0.0;
+    const double unbounded = std::numeric_limits<double>::infinity();
+    const double leftmost = wraps ? -unbounded : columnSnapPoints(0.0, 0).first;
+    const double rightmost = wraps ? unbounded : columnSnapPoints(columnOffset(lastIndex), lastIndex).second - viewWidth;
 
     std::vector<Snap> snaps;
-    snaps.push_back({leftmost, 0});
-    snaps.push_back({rightmost, lastIndex});
+    if (!wraps) {
+        snaps.push_back({leftmost, 0});
+        snaps.push_back({rightmost, lastIndex});
+    }
     for (std::size_t idx = 0; idx < m_columns.size(); ++idx) {
         const auto [left, right] = columnSnapPoints(columnOffset(idx), idx);
         if (leftmost < left && left < rightmost) {
@@ -110,10 +115,9 @@ std::vector<ColumnStrip::Snap> ColumnStrip::edgeSnapPoints() const
     return snaps;
 }
 
-bool ColumnStrip::columnStaysInView(std::size_t idx, double snapViewPos, bool forward) const
+bool ColumnStrip::columnStaysInView(std::size_t idx, double colX, double snapViewPos, bool forward) const
 {
     const Column &column = m_columns[idx];
-    const double colX = columnOffset(idx);
     const WindowMode mode = column.sizingMode();
     const bool fullscreen = mode == WindowMode::Fullscreen;
     const QRectF area = areaForMode(mode);
@@ -126,17 +130,21 @@ bool ColumnStrip::columnStaysInView(std::size_t idx, double snapViewPos, bool fo
     return snapViewPos + reach >= colX + column.width() + padding;
 }
 
-std::size_t ColumnStrip::furthestColumnInDirection(std::size_t snapColIndex, double snapViewPos, bool forward) const
+std::size_t ColumnStrip::furthestColumnInDirection(std::size_t snapColIndex, double snapColX, double snapViewPos, bool forward) const
 {
+    const double gaps = m_options->layout.gaps;
     std::size_t result = snapColIndex;
-    const std::size_t count = m_columns.size();
-    for (std::size_t step = 1;; ++step) {
-        const bool exhausted = forward ? snapColIndex + step >= count : snapColIndex < step;
-        const std::size_t idx = forward ? snapColIndex + step : snapColIndex - step;
-        if (exhausted || !columnStaysInView(idx, snapViewPos, forward)) {
+    double colX = snapColX;
+    for (std::size_t step = 1; step < m_columns.size(); ++step) {
+        const std::optional<std::size_t> next = neighbourIndex(result, forward);
+        if (!next) {
             break;
         }
-        result = idx;
+        colX += forward ? m_columns[result].width() + gaps : -(m_columns[*next].width() + gaps);
+        if (!columnStaysInView(*next, colX, snapViewPos, forward)) {
+            break;
+        }
+        result = *next;
     }
     return result;
 }
@@ -174,6 +182,10 @@ std::pair<double, double> ColumnStrip::dndScrollBounds() const
 {
     if (m_columns.empty()) {
         return {0.0, 0.0};
+    }
+    if (wrapPeriod() > 0.0) {
+        const double unbounded = std::numeric_limits<double>::infinity();
+        return {-unbounded, unbounded};
     }
     const std::size_t lastIndex = m_columns.size() - 1;
     const double activeColX = columnOffset(m_activeColumnIndex);
@@ -246,16 +258,18 @@ bool ColumnStrip::endSwipe(std::optional<bool> isTouchpad, std::optional<WindowI
     if (const std::optional<Location> kept = keepActive ? locate(*keepActive) : std::nullopt) {
         newColIndex = kept->column;
     } else if (!centersActiveColumn()) {
-        newColIndex = furthestColumnInDirection(newColIndex, snap.scrollPosition, targetViewOffset >= swipePosition);
+        const double snapColX = columnOffset(newColIndex) + snap.shift;
+        newColIndex = furthestColumnInDirection(newColIndex, snapColX, snap.scrollPosition, targetViewOffset >= swipePosition);
     }
 
-    const double delta = columnOffset(m_activeColumnIndex) - columnOffset(newColIndex);
+    const double newColX = columnXNear(newColIndex, snap.scrollPosition);
+    const double delta = columnOffset(m_activeColumnIndex) - newColX;
     if (m_activeColumnIndex != newColIndex) {
         m_scrollToRestore.reset();
     }
     m_activeColumnIndex = newColIndex;
-    m_scroll.setAnimation(Anim::Animation(m_clock, swipePosition + delta, snap.scrollPosition - columnOffset(newColIndex), velocity,
-        m_options->animations.horizontalViewMovement));
+    m_scroll.setAnimation(Anim::Animation(
+        m_clock, swipePosition + delta, snap.scrollPosition - newColX, velocity, m_options->animations.horizontalViewMovement));
     scrollToColumn(std::nullopt, newColIndex, std::nullopt);
     return true;
 }
@@ -263,9 +277,17 @@ bool ColumnStrip::endSwipe(std::optional<bool> isTouchpad, std::optional<WindowI
 ColumnStrip::Snap ColumnStrip::closestSnapPoint(double targetScrollPosition) const
 {
     const std::vector<Snap> snaps = centersActiveColumn() ? centeredSnapPoints() : edgeSnapPoints();
-    const auto best = std::ranges::min_element(
-        snaps, {}, [targetScrollPosition](const Snap &snap) { return std::abs(snap.scrollPosition - targetScrollPosition); });
-    return *best;
+    const double period = wrapPeriod();
+    Snap best = snaps.front();
+    double bestDistance = std::numeric_limits<double>::infinity();
+    for (const Snap &snap : snaps) {
+        const double position = nearestPeriodCopy(snap.scrollPosition, targetScrollPosition, period);
+        if (const double distance = std::abs(position - targetScrollPosition); distance < bestDistance) {
+            best = {position, snap.colIndex, position - snap.scrollPosition};
+            bestDistance = distance;
+        }
+    }
+    return best;
 }
 
 }

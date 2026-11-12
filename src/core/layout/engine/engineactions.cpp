@@ -97,8 +97,8 @@ namespace
 
 void registerColumnFocusActions(ActionTable &table)
 {
-    addWorkspaceAction(table, "focus-column-left", +[](Workspace &ws) { ws.focusLeft(); });
-    addWorkspaceAction(table, "focus-column-right", +[](Workspace &ws) { ws.focusRight(); });
+    addWorkspaceAction(table, "focus-column-left", +[](Workspace &ws) { ws.focusLeft(true); });
+    addWorkspaceAction(table, "focus-column-right", +[](Workspace &ws) { ws.focusRight(true); });
     addWorkspaceAction(table, "focus-column-first", +[](Workspace &ws) { ws.focusColumnFirst(); });
     addWorkspaceAction(table, "focus-column-last", +[](Workspace &ws) { ws.focusColumnLast(); });
     addWorkspaceAction(table, "focus-column-right-or-first", +[](Workspace &ws) { ws.focusColumnRightOrFirst(); });
@@ -171,15 +171,16 @@ ActionResult focusWindowPrevious(Engine::Private &d)
 ActionResult focusDirectionalOrMonitor(Engine::Private &d, const QString &direction, bool vertical)
 {
     Workspace *workspace = d.activeWorkspace();
-    if (workspace) {
-        const bool handled = vertical ? (direction == QLatin1String("up") ? workspace->focusUp() : workspace->focusDown())
-                                      : (direction == QLatin1String("left") ? workspace->focusLeft() : workspace->focusRight());
-        if (handled) {
-            return {};
-        }
+    const bool left = direction == QLatin1String("left");
+    if (workspace
+        && (vertical ? (direction == QLatin1String("up") ? workspace->focusUp() : workspace->focusDown())
+                     : (left ? workspace->focusLeft(false) : workspace->focusRight(false)))) {
+        return {};
     }
     if (const auto idx = d.monitorInDirection(direction)) {
         d.activeMonitorIndex = *idx;
+    } else if (workspace && !vertical) {
+        left ? workspace->focusLeft(true) : workspace->focusRight(true);
     }
     return {};
 }

@@ -146,6 +146,9 @@ private:
     void ownWorkspace(std::size_t idx);
     void addEmptyWorkspacesAround(std::size_t &workspaceIndex);
     std::optional<std::size_t> previousWorkspaceIndex() const;
+    std::size_t workspaceAbove() const;
+    std::size_t workspaceBelow() const;
+    bool wrapsWorkspaces() const;
     std::size_t resolveAddWorkspace(const MonitorAddTarget &target, AddTarget &workspaceTarget) const;
     double swipeDistance(const WorkspaceSwipe &gesture) const;
     void animateTileBetweenWorkspaces(

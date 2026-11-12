@@ -9,22 +9,28 @@
 namespace Konveyor::Layout
 {
 
-bool ColumnStrip::focusLeft()
+bool ColumnStrip::focusLeft(bool wrap)
 {
-    if (m_activeColumnIndex == 0) {
+    if (m_columns.empty() || (m_activeColumnIndex == 0 && !wrap)) {
         return false;
     }
-    activateColumn(m_activeColumnIndex - 1);
-    return true;
+    const std::optional<std::size_t> target = neighbourIndex(m_activeColumnIndex, false);
+    if (target) {
+        activateColumn(*target);
+    }
+    return target.has_value();
 }
 
-bool ColumnStrip::focusRight()
+bool ColumnStrip::focusRight(bool wrap)
 {
-    if (m_activeColumnIndex + 1 >= m_columns.size()) {
+    if (m_columns.empty() || (m_activeColumnIndex + 1 >= m_columns.size() && !wrap)) {
         return false;
     }
-    activateColumn(m_activeColumnIndex + 1);
-    return true;
+    const std::optional<std::size_t> target = neighbourIndex(m_activeColumnIndex, true);
+    if (target) {
+        activateColumn(*target);
+    }
+    return target.has_value();
 }
 
 void ColumnStrip::focusColumnFirst()
@@ -66,28 +72,28 @@ bool ColumnStrip::focusUp()
 void ColumnStrip::focusDownOrLeft()
 {
     if (!m_columns.empty() && !m_columns[m_activeColumnIndex].focusDown()) {
-        focusLeft();
+        focusLeft(true);
     }
 }
 
 void ColumnStrip::focusDownOrRight()
 {
     if (!m_columns.empty() && !m_columns[m_activeColumnIndex].focusDown()) {
-        focusRight();
+        focusRight(true);
     }
 }
 
 void ColumnStrip::focusUpOrLeft()
 {
     if (!m_columns.empty() && !m_columns[m_activeColumnIndex].focusUp()) {
-        focusLeft();
+        focusLeft(true);
     }
 }
 
 void ColumnStrip::focusUpOrRight()
 {
     if (!m_columns.empty() && !m_columns[m_activeColumnIndex].focusUp()) {
-        focusRight();
+        focusRight(true);
     }
 }
 
@@ -132,9 +138,13 @@ ColumnStrip::VisibleColumns ColumnStrip::fullyVisibleColumns() const
     const double workingX = m_area.workingArea.x();
     const double workingW = m_area.workingArea.width();
     const double gap = m_options->layout.gaps;
-    const std::vector<double> xs = columnOffsets();
+    std::vector<std::pair<double, std::size_t>> order;
+    order.reserve(m_columns.size());
     for (std::size_t idx = 0; idx < m_columns.size(); ++idx) {
-        const double colX = xs[idx];
+        order.emplace_back(columnXNear(idx, viewX), idx);
+    }
+    std::ranges::sort(order);
+    for (const auto &[colX, idx] : order) {
         if (colX < viewX + workingX + gap) {
             continue;
         }
@@ -206,10 +216,10 @@ void ColumnStrip::moveInactiveColumn(std::size_t from, std::size_t requestedInde
     }
     cancelResizeForColumn(m_columns[to]);
     const std::vector<double> after = columnOffsets();
-    for (auto i = static_cast<std::size_t>(first); i < static_cast<std::size_t>(last); ++i) {
-        m_columns[i].slideXFrom(before[i] - after[i]);
-    }
     m_scroll.offset(activeX - after[m_activeColumnIndex]);
+    for (auto i = static_cast<std::size_t>(first); i < static_cast<std::size_t>(last); ++i) {
+        m_columns[i].slideXFrom(wrappedSlide(i, before[i] - after[i]));
+    }
 }
 
 void ColumnStrip::cancelResizeForColumn(Column &column)
@@ -242,16 +252,16 @@ void ColumnStrip::moveColumnTo(std::size_t requestedIndex)
     m_columns.insert(m_columns.begin() + newPos, std::move(column));
 
     m_scroll.offset(-columnOffset(m_activeColumnIndex) + currentColX);
-    m_columns[newIndex].slideXFrom(currentColX - columnOffset(newIndex));
+    m_columns[newIndex].slideXFrom(wrappedSlide(newIndex, currentColX - columnOffset(newIndex)));
 
     const double othersOffset = nextColX - currentColX;
     if (m_activeColumnIndex < newIndex) {
         for (std::size_t i = m_activeColumnIndex; i < newIndex; ++i) {
-            m_columns[i].slideXFrom(othersOffset);
+            m_columns[i].slideXFrom(wrappedSlide(i, othersOffset));
         }
     } else {
         for (std::size_t i = newIndex + 1; i <= m_activeColumnIndex; ++i) {
-            m_columns[i].slideXFrom(-othersOffset);
+            m_columns[i].slideXFrom(wrappedSlide(i, -othersOffset));
         }
     }
     selectColumnWith(newIndex, m_options->animations.windowMovement);

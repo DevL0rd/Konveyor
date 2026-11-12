@@ -54,6 +54,9 @@ void TestSettingsControlsQml::controls_data()
     addControl("workspace quantity",
         {"WorkspacesPage", "Workspaces per monitor", "edited", "[6]", "layout/fixed-workspace-count", R"({"args":[6]})",
             "layout { fixed-workspace-count 4; }\n"});
+    addControl("wrap workspaces",
+        {"WorkspacesPage", "Wrap around at the first and last workspace", "switched", "[true]", "layout/wrap-workspaces", R"({"args":[]})",
+            "layout { fixed-workspace-count 4; }\n"});
     addControl("empty above",
         {"WorkspacesPage", "Keep an empty workspace above the first", "switched", "[true]", "layout/empty-workspace-above-first",
             R"({"args":[]})"});
@@ -150,6 +153,11 @@ void TestSettingsControlsQml::controls_data()
     addControl("center lone off",
         {"LayoutPage", "Center a lone window", "switched", "[false]", "layout/always-center-single-column", "null",
             "layout { always-center-single-column; }\n"});
+    addControl("wrap columns on",
+        {"LayoutPage", "Scroll around past the last column", "switched", "[true]", "layout/wrap-columns", R"({"args":[]})"});
+    addControl("wrap columns off",
+        {"LayoutPage", "Scroll around past the last column", "switched", "[false]", "layout/wrap-columns", R"({"args":[false]})",
+            "layout { wrap-columns; }\n"});
     addControl("expand lone off",
         {"LayoutPage", "Expand a lone window", "switched", "[false]", "layout/always-expand-single-column", R"({"args":[false]})"});
     addControl("expand lone on",

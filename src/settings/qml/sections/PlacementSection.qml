@@ -195,6 +195,19 @@ ColumnLayout {
 
         ScopedRow {
             scope: root
+            key: "wrap-columns"
+            label: "Scroll around past the last column"
+            description: "When the columns don't fit on the screen, show the first column again after the last one, so the row never ends. Focus keys, the wheel and swipes keep going around."
+            iconName: "media-playlist-repeat"
+
+            ScopedSwitch {
+                isOn: root.values["wrap-columns"] === true
+                onSwitched: on => LayoutKeys.writeFlag(SettingsStore, root.scopePath, root.overrideMode, "wrap-columns", on, false)
+            }
+        }
+
+        ScopedRow {
+            scope: root
             key: "always-expand-single-column"
             label: "Expand a lone window"
             description: "When a workspace has only one column, stretch it to fill the screen. It goes back to its own width once another column opens."

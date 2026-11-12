@@ -48,10 +48,24 @@ std::optional<double> ColumnStrip::overlayViewOffset() const
     if (isFullscreen(m_columns[m_activeColumnIndex])) {
         return std::nullopt;
     }
+    const std::size_t count = m_columns.size();
+    const bool wraps = wrapPeriod() > 0.0;
+    const auto columnAt = [&](std::size_t distance, bool forward) -> std::optional<std::size_t> {
+        const std::size_t active = m_activeColumnIndex;
+        const std::size_t linear = forward ? active + distance : active - distance;
+        if (forward ? linear < count : active >= distance) {
+            return linear;
+        }
+        if (!wraps) {
+            return std::nullopt;
+        }
+        return forward ? linear % count : active + count - distance;
+    };
     std::optional<std::size_t> background;
-    for (std::size_t distance = 1; distance < m_columns.size() && !background; ++distance) {
-        for (const std::size_t idx : {m_activeColumnIndex - distance, m_activeColumnIndex + distance}) {
-            if (idx < m_columns.size() && isFullscreen(m_columns[idx])) {
+    for (std::size_t distance = 1; distance < count && !background; ++distance) {
+        for (const bool forward : {false, true}) {
+            const std::optional<std::size_t> idx = columnAt(distance, forward);
+            if (idx && isFullscreen(m_columns[*idx])) {
                 background = idx;
                 break;
             }
@@ -63,13 +77,15 @@ std::optional<double> ColumnStrip::overlayViewOffset() const
     const QRectF area = areaForMode(WindowMode::Normal);
     const double width = m_columns[m_activeColumnIndex].width();
     const double padding = std::clamp((area.width() - width) / 2.0, 0.0, m_options->layout.gaps);
-    const bool overlaysFromRight = m_activeColumnIndex > *background;
+    const double activeMid = columnOffset(m_activeColumnIndex) + width / 2.0;
+    const double backgroundMid = columnOffset(*background) + m_columns[*background].width() / 2.0;
+    const bool overlaysFromRight = nearestPeriodCopy(backgroundMid, activeMid, wrapPeriod()) < activeMid;
     return (overlaysFromRight ? -(area.width() - padding - width) : -padding) - area.x();
 }
 
 double ColumnStrip::constrainScrollPosition(double scrollPosition) const
 {
-    if (centersActiveColumn()) {
+    if (centersActiveColumn() || wrapPeriod() > 0.0) {
         return scrollPosition;
     }
     const double gaps = m_options->layout.gaps;
@@ -117,13 +133,15 @@ double ColumnStrip::centeredScroll(std::optional<double> targetX, double colX, d
 double ColumnStrip::fitScrollForColumn(std::optional<double> targetX, std::size_t idx) const
 {
     const Column &column = m_columns[idx];
-    return fitScroll(targetX, columnOffset(idx), column.width(), column.sizingMode());
+    const double colX = columnXNear(idx, targetX.value_or(targetScrollPosition()));
+    return fitScroll(targetX, colX, column.width(), column.sizingMode());
 }
 
 double ColumnStrip::centeredScrollForColumn(std::optional<double> targetX, std::size_t idx) const
 {
     const Column &column = m_columns[idx];
-    return centeredScroll(targetX, columnOffset(idx), column.width(), column.sizingMode());
+    const double colX = columnXNear(idx, targetX.value_or(targetScrollPosition()));
+    return centeredScroll(targetX, colX, column.width(), column.sizingMode());
 }
 
 double ColumnStrip::overflowScrollForColumn(std::optional<double> targetX, std::size_t idx, std::size_t prevIndex) const
@@ -131,13 +149,10 @@ double ColumnStrip::overflowScrollForColumn(std::optional<double> targetX, std::
     if (prevIndex == idx) {
         return fitScrollForColumn(targetX, idx);
     }
-    const std::size_t sourceIndex = prevIndex > idx ? std::min(idx + 1, m_columns.size() - 1) : idx - 1;
-    const double sourceX = columnOffset(sourceIndex);
-    const double sourceWidth = m_columns[sourceIndex].width();
-    const double targetColX = columnOffset(idx);
-    const double targetWidth = m_columns[idx].width();
-    const double span = sourceX < targetColX ? targetColX - sourceX + targetWidth : sourceX - targetColX + sourceWidth;
-    const double totalWidth = span + m_options->layout.gaps * 2.0;
+    const double prevX = columnOffset(prevIndex);
+    const bool forward = nearestPeriodCopy(columnOffset(idx), prevX, wrapPeriod()) > prevX;
+    const std::size_t sourceIndex = neighbourIndex(idx, !forward).value_or(idx);
+    const double totalWidth = m_columns[sourceIndex].width() + m_columns[idx].width() + m_options->layout.gaps * 3.0;
     if (totalWidth <= m_area.workingArea.width()) {
         return fitScrollForColumn(targetX, idx);
     }
@@ -162,7 +177,8 @@ void ColumnStrip::animateScroll(std::size_t idx, double newViewOffset)
 
 void ColumnStrip::animateScrollWith(std::size_t idx, double newViewOffset, const Config::AnimationParams &config)
 {
-    m_scroll.offset(columnOffset(m_activeColumnIndex) - columnOffset(idx));
+    const double shift = columnOffset(m_activeColumnIndex) - columnOffset(idx);
+    m_scroll.offset(nearestPeriodCopy(shift, newViewOffset - m_scroll.target(), wrapPeriod()));
 
     const double pixel = 1.0 / m_area.scale;
     const double toDiff = newViewOffset - m_scroll.target();

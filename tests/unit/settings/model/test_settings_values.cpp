@@ -166,17 +166,19 @@ animations {
 void TestSettingsValues::layoutDefaults()
 {
     const QVariantMap values = layoutValues(Config::Layout());
-    QCOMPARE(values.size(), 25);
+    QCOMPARE(values.size(), 27);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("never"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("right"));
     QCOMPARE(values.value(QStringLiteral("always-expand-single-column")).toBool(), true);
     QCOMPARE(values.value(QStringLiteral("always-center-single-column")).toBool(), false);
+    QCOMPARE(values.value(QStringLiteral("wrap-columns")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("float-child-windows")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("remember-window-sizes")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("remember-window-positions")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("empty-workspace-above-first")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("fixed-workspace-count")).toInt(), 0);
     QCOMPARE(values.value(QStringLiteral("horizontal-desktops")).toBool(), false);
+    QCOMPARE(values.value(QStringLiteral("wrap-workspaces")).toBool(), false);
     QCOMPARE(values.value(QStringLiteral("default-column-display")).toString(), QStringLiteral("normal"));
     QCOMPARE(values.value(QStringLiteral("new-window-placement")).toString(), QStringLiteral("column"));
     QCOMPARE(values.value(QStringLiteral("tab-indicator")).toMap().size(), 12);
@@ -191,6 +193,7 @@ layout {
     center-focused-column "on-overflow"
     new-column-position "left"
     always-center-single-column
+    wrap-columns
     always-expand-single-column false
     empty-workspace-above-first
     remember-window-sizes
@@ -199,6 +202,7 @@ layout {
     max-rows-per-column 5
     new-window-placement "stack"
     float-child-windows
+    wrap-workspaces
     default-column-display "tabbed"
     preset-column-widths { proportion 0.5; fixed 800; }
     default-column-width { fixed 640; }
@@ -215,8 +219,9 @@ layout {
     QCOMPARE(values.value(QStringLiteral("gaps")).toDouble(), 7.0);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("on-overflow"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("left"));
-    for (const QString &key : {QStringLiteral("always-center-single-column"), QStringLiteral("empty-workspace-above-first"),
-             QStringLiteral("remember-window-sizes"), QStringLiteral("remember-window-positions"), QStringLiteral("float-child-windows")}) {
+    for (const QString &key : {QStringLiteral("always-center-single-column"), QStringLiteral("wrap-columns"),
+             QStringLiteral("empty-workspace-above-first"), QStringLiteral("remember-window-sizes"),
+             QStringLiteral("remember-window-positions"), QStringLiteral("float-child-windows"), QStringLiteral("wrap-workspaces")}) {
         QVERIFY2(values.value(key).toBool(), qPrintable(key));
     }
     QCOMPARE(values.value(QStringLiteral("always-expand-single-column")).toBool(), false);

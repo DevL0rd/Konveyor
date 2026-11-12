@@ -33,6 +33,7 @@ constexpr LayoutNode kLayoutNodes[] = {
     {"center-focused-column \"always\"", Everywhere},
     {"new-column-position \"left\"", Everywhere},
     {"always-center-single-column", Everywhere},
+    {"wrap-columns", Everywhere},
     {"always-expand-single-column false", Everywhere},
     {"default-column-display \"tabbed\"", Everywhere},
     {"focus-ring { off; }", Everywhere},
@@ -49,6 +50,7 @@ constexpr LayoutNode kLayoutNodes[] = {
     {"float-child-windows", Nowhere},
     {"fixed-workspace-count 4", Nowhere},
     {"horizontal-desktops", Nowhere},
+    {"wrap-workspaces", Nowhere},
 };
 
 struct ScopeSpec
