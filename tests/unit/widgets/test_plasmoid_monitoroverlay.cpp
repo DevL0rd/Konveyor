@@ -44,6 +44,17 @@ QList<QObject *> dialogs(const QString &kind)
     return found;
 }
 
+bool allCardsShown()
+{
+    const QList<QObject *> cards = dialogs(QStringLiteral("Overlay"));
+    for (QObject *card : cards) {
+        if (!card->property("readyToShow").toBool() || !card->property("visible").toBool()) {
+            return false;
+        }
+    }
+    return !cards.isEmpty();
+}
+
 QObject *loaded(QObject *dialog)
 {
     const QList<QObject *> children = dialog->property("mainItem").value<QObject *>()->findChildren<QObject *>();
@@ -135,6 +146,31 @@ private Q_SLOTS:
         QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
     }
 
+    void closesThePopupWhenActivationLeavesTheCards()
+    {
+        QObject *overlay = create(1, true);
+        QVERIFY(overlay);
+        QVERIFY(m_harness->deliver(statePath(), targets(game), [overlay] { return overlay->property("targets").toList().size() == 2; }));
+        QTRY_COMPARE(dialogs(QStringLiteral("Overlay")).size(), 2);
+        QTRY_VERIFY(allCardsShown());
+        QTRY_VERIFY(loaded(dialogs(QStringLiteral("Overlay 3")).value(0)) && loaded(dialogs(QStringLiteral("Overlay 4")).value(0)));
+        QObject *first = dialogs(QStringLiteral("Panel 3")).value(0);
+        QObject *second = dialogs(QStringLiteral("Panel 4")).value(0);
+        QVERIFY(first && second);
+        QMetaObject::invokeMethod(loaded(dialogs(QStringLiteral("Overlay 3")).value(0)), "overlayClicked");
+        QTRY_VERIFY(first->property("active").toBool());
+        QMetaObject::invokeMethod(loaded(dialogs(QStringLiteral("Overlay 4")).value(0)), "overlayClicked");
+        QTRY_VERIFY(second->property("active").toBool());
+        QTRY_VERIFY(!first->property("visible").toBool());
+        QWindow elsewhere;
+        elsewhere.resize(100, 100);
+        elsewhere.show();
+        elsewhere.requestActivate();
+        QTRY_VERIFY(elsewhere.isActive());
+        QTRY_VERIFY(!second->property("visible").toBool());
+        QVERIFY2(PlasmoidHarness::messages().isEmpty(), qPrintable(PlasmoidHarness::report()));
+    }
+
     void keepsCardsAndPopupsOpenWhenOtherTargetsChange()
     {
         QObject *overlay = create(1, true);
@@ -146,12 +182,16 @@ private Q_SLOTS:
         QPointer<QObject> card = dialogs(QStringLiteral("Overlay 3")).value(0);
         QPointer<QObject> popup = dialogs(QStringLiteral("Panel 3")).value(0);
         QPointer<QObject> compact = loaded(card);
+        QTRY_VERIFY(allCardsShown());
         QMetaObject::invokeMethod(compact, "overlayClicked");
         QTRY_VERIFY(loaded(popup));
+        QTRY_VERIFY(popup->property("active").toBool());
         QVERIFY(m_harness->deliver(statePath(), targets(game), [overlay] { return overlay->property("targets").toList().size() == 2; }));
         QTRY_COMPARE(dialogs(QStringLiteral("Overlay")).size(), 2);
+        QTRY_VERIFY(allCardsShown());
         QVERIFY(card && popup && compact);
         QVERIFY(popup->property("visible").toBool());
+        QTRY_VERIFY(popup->property("active").toBool());
         QCOMPARE(compact->property("overlayBackgroundOpacity").toDouble(), 0.7);
         QByteArray windowed = game;
         windowed.replace("\"fullscreen\": true", "\"fullscreen\": false");

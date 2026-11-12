@@ -16,6 +16,17 @@ Item {
     readonly property string statePath: String(StandardPaths.writableLocation(StandardPaths.RuntimeLocation)).replace(/^file:\/\//, "") + "/Konveyor-Monitor-Overlay/state.json"
     readonly property real overlayHeight: Math.round(Kirigami.Units.gridUnit * 1.75)
 
+    signal cardDeactivated()
+
+    function cardIsActive() {
+        for (let row = 0; row < cards.count; ++row) {
+            const holder = cards.itemAt(row)
+            if (holder && holder.cardActive())
+                return true
+        }
+        return false
+    }
+
     function readState() {
         if (!active)
             return
@@ -73,6 +84,8 @@ Item {
     }
 
     Repeater {
+        id: cards
+
         model: shownTargets
 
         delegate: Item {
@@ -82,6 +95,7 @@ Item {
             required property int windowId
             required property real windowWidth
             required property bool fullscreen
+            function cardActive() { return card.active }
             width: 0
             height: 0
 
@@ -125,6 +139,7 @@ Item {
                 hideOnWindowDeactivate: false
                 title: "Konveyor Monitor Overlay " + holder.windowId + " " + overlay.slot
                 onDesiredWidthChanged: prepareToShow()
+                onActiveChanged: if (!active) overlay.cardDeactivated()
 
                 mainItem: Item {
                     id: surface
@@ -186,11 +201,20 @@ Item {
                             visible = false
                         }
 
+                        function followActivation() {
+                            if (!hadFocus || !visible || active)
+                                return
+                            if (overlay.cardIsActive())
+                                requestActivate()
+                            else
+                                close()
+                        }
+
                         onActiveChanged: {
                             if (active)
                                 hadFocus = true
-                            else if (hadFocus && visible)
-                                close()
+                            else
+                                followActivation()
                         }
                         onVisibleChanged: if (!visible) hadFocus = false
 
@@ -206,6 +230,11 @@ Item {
                                 active: popup.visible
                                 sourceComponent: overlay.popupContent
                                 onLoaded: if (item && "overlayMode" in item) item.overlayMode = true
+                            }
+
+                            Connections {
+                                target: overlay
+                                function onCardDeactivated() { popup.followActivation() }
                             }
 
                             Connections {
