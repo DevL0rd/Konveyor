@@ -150,6 +150,14 @@ Item {
                     boundsBehavior: Flickable.StopAtBounds
                     QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
 
+                    // Qt 6's Flickable handles wheel and touchpad scrolling on its
+                    // own, which is too slow on Wayland. KDE's ScrollView adds this
+                    // handler for smooth, animated scrolling with touchpad inertia;
+                    // its defaults already follow the system scroll settings.
+                    Kirigami.WheelHandler {
+                        target: listView
+                    }
+
                     section.property: "section"
                     section.criteria: ViewSection.FullString
                     section.delegate: RowLayout {
