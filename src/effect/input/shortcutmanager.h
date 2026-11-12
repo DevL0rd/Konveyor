@@ -34,6 +34,7 @@ public:
 private:
     static QString actionName(const Config::Bind &bind);
     static bool registersWithKde(const Config::Bind &bind);
+    bool heldByUser(const Config::Bind &bind) const;
     static bool keyMatches(const Config::Bind &bind, quint32 keycode, xkb_keymap *keymap, xkb_layout_index_t layout);
     static QList<QKeySequence> keySequences(const Config::Bind &bind);
     void registerKeyBinds(const QList<Config::Bind> &group);
@@ -46,6 +47,7 @@ private:
     QHash<QString, QAction *> m_actions;
     QHash<QString, qint64> m_lastTriggered;
     QList<ReleasedShortcut> m_released;
+    QList<QKeySequence> m_userHeld;
 };
 
 }

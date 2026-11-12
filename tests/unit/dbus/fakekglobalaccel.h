@@ -17,6 +17,7 @@ struct FakeShortcut
 {
     QStringList actionId;
     QList<QKeySequence> keys;
+    QList<QKeySequence> defaults;
 };
 
 inline QDBusArgument &operator<<(QDBusArgument &argument, const FakeShortcut &shortcut)
@@ -30,6 +31,9 @@ inline QDBusArgument &operator<<(QDBusArgument &argument, const FakeShortcut &sh
     }
     argument.endArray();
     argument.beginArray(QMetaType::fromType<int>());
+    for (const QKeySequence &key : shortcut.defaults) {
+        argument << key[0].toCombined();
+    }
     argument.endArray();
     argument.endStructure();
     return argument;
@@ -68,10 +72,12 @@ public:
 
     bool start(const QString &address) { return m_service.start(address); }
 
-    void add(const QStringList &actionId, const QList<QKeySequence> &keys)
+    void add(const QStringList &actionId, const QList<QKeySequence> &keys) { add(actionId, keys, keys); }
+
+    void add(const QStringList &actionId, const QList<QKeySequence> &keys, const QList<QKeySequence> &defaults)
     {
         const QMutexLocker locker(&m_mutex);
-        m_shortcuts.append({actionId, keys});
+        m_shortcuts.append({actionId, keys, defaults});
     }
 
     QList<QKeySequence> keys(const QString &component, const QString &action) const
@@ -128,7 +134,7 @@ private:
         if (FakeShortcut *shortcut = find(actionId.value(0), actionId.value(1))) {
             shortcut->keys = keys;
         } else {
-            m_shortcuts.append({actionId, keys});
+            m_shortcuts.append({actionId, keys, {}});
         }
     }
 

@@ -19,6 +19,7 @@ struct ReleasedShortcut
 class ShortcutConflicts
 {
 public:
+    static QList<QKeySequence> userHeld(const QList<QKeySequence> &wanted, const QString &ownComponent);
     static QList<ReleasedShortcut> takeOver(const QList<QKeySequence> &wanted, const QString &ownComponent);
     static QList<ReleasedShortcut> releaseSuperseded();
     static QList<ReleasedShortcut> restore(const QList<ReleasedShortcut> &released);

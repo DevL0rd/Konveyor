@@ -72,6 +72,26 @@ private Q_SLOTS:
             QList<QKeySequence> {QKeySequence(QStringLiteral("Meta+H"))});
     }
 
+    void takeOverLeavesAKeyTheUserGaveToAnotherAction()
+    {
+        const QKeySequence metaR(QStringLiteral("Meta+R"));
+        const QStringList reboot {QStringLiteral("ksmserver"), QStringLiteral("Reboot Without Confirmation"),
+            QStringLiteral("Session Management"), QStringLiteral("Reboot Without Confirmation")};
+        m_fake->add(reboot, {metaR}, {});
+        m_fake->add({QStringLiteral("org.kde.spectacle.desktop"), QStringLiteral("RecordRegion"), QStringLiteral("Spectacle"),
+                        QStringLiteral("Record Region")},
+            {metaR});
+        FakeKGlobalAccel::settle();
+        const auto before = m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size();
+        QCOMPARE(ShortcutConflicts::userHeld({metaR, metaW, QKeySequence(QStringLiteral("Meta+Y"))}, QStringLiteral("konveyor")),
+            QList<QKeySequence> {metaR});
+        QVERIFY(ShortcutConflicts::takeOver({metaR}, QStringLiteral("konveyor")).isEmpty());
+        FakeKGlobalAccel::settle();
+        QCOMPARE(m_fake->calls(QStringLiteral("setForeignShortcutKeys")).size(), before);
+        QCOMPARE(m_fake->keys(QStringLiteral("ksmserver"), QStringLiteral("Reboot Without Confirmation")), QList<QKeySequence> {metaR});
+        QCOMPARE(m_fake->keys(QStringLiteral("org.kde.spectacle.desktop"), QStringLiteral("RecordRegion")), QList<QKeySequence> {metaR});
+    }
+
     void releaseSupersededFreesEditTiles()
     {
         QVERIFY(ShortcutConflicts::releaseSuperseded().isEmpty());

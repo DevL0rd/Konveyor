@@ -79,6 +79,7 @@ void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
         return;
     }
     unregisterAll();
+    m_userHeld.clear();
     m_binds = binds;
     QList<QKeySequence> wanted;
     for (const Config::Bind &bind : m_binds) {
@@ -86,6 +87,7 @@ void ShortcutManager::setBinds(const QList<Config::Bind> &binds)
             wanted.append(keySequences(bind));
         }
     }
+    m_userHeld = ShortcutConflicts::userHeld(wanted, QStringLiteral("konveyor"));
     ShortcutConflicts::merge(m_released, ShortcutConflicts::load());
     ShortcutConflicts::merge(m_released, ShortcutConflicts::releaseSuperseded());
     ShortcutConflicts::merge(m_released, ShortcutConflicts::takeOver(wanted, QStringLiteral("konveyor")));
@@ -137,7 +139,8 @@ bool ShortcutManager::triggerKeyPosition(
     quint32 keycode, Config::BindModifiers modifiers, bool repeat, xkb_keymap *keymap, xkb_layout_index_t layout)
 {
     for (const Config::Bind &bind : m_binds) {
-        if (bind.trigger != Config::BindTrigger::Key || bind.resolvedModifiers != modifiers || !keyMatches(bind, keycode, keymap, layout)) {
+        if (bind.trigger != Config::BindTrigger::Key || bind.resolvedModifiers != modifiers || !keyMatches(bind, keycode, keymap, layout)
+            || heldByUser(bind)) {
             continue;
         }
         if (!repeat || bind.repeat) {
@@ -161,6 +164,15 @@ bool ShortcutManager::keyMatches(const Config::Bind &bind, quint32 keycode, xkb_
     }
     const std::optional<quint32> typed = Config::keycodeOnLayout(keymap, layout, bind.keysym);
     return (typed ? typed : Config::usKeycode(bind.keysym)) == keycode;
+}
+
+bool ShortcutManager::heldByUser(const Config::Bind &bind) const
+{
+    if (!registersWithKde(bind)) {
+        return false;
+    }
+    const QList<QKeySequence> sequences = keySequences(bind);
+    return std::ranges::all_of(sequences, [this](const QKeySequence &key) { return m_userHeld.contains(key); });
 }
 
 QString ShortcutManager::actionName(const Config::Bind &bind)
@@ -196,7 +208,15 @@ void ShortcutManager::registerKeyBinds(const QList<Config::Bind> &group)
     connect(action, &QAction::triggered, this, [this, bind] { invoke(bind); });
     QList<QKeySequence> sequences;
     for (const Config::Bind &member : group) {
-        sequences.append(keySequences(member));
+        for (const QKeySequence &key : keySequences(member)) {
+            if (!m_userHeld.contains(key)) {
+                sequences.append(key);
+            }
+        }
+    }
+    if (sequences.isEmpty()) {
+        delete action;
+        return;
     }
     KGlobalAccel::self()->setShortcut(action, sequences, KGlobalAccel::NoAutoloading);
     m_actions.insert(name, action);

@@ -33,6 +33,12 @@ KonveyorEffect::KonveyorEffect()
         ++d->bindCount;
         d->lastBindKey = Config::bindKeyLabel(bind);
         d->lastBindAction = bind.action.name;
+        if (Config::bindActsOnPointerOutput(bind)) {
+            const QString output = outputNameAt(KWin::effects->cursorPos());
+            if (!output.isEmpty() && readEngine().focusedOutput() != output) {
+                changeEngine().focusOutput(output);
+            }
+        }
         performAction(bind.action);
     });
     d->engine.setNativeDesktopPresentation(true);

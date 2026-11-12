@@ -77,4 +77,11 @@ QString bindKeyLabel(const Bind &bind)
     return parts.join(QLatin1Char('+'));
 }
 
+bool bindActsOnPointerOutput(const Bind &bind)
+{
+    static const QStringList workspaceSwitches {QStringLiteral("focus-workspace"), QStringLiteral("focus-workspace-down"),
+        QStringLiteral("focus-workspace-up"), QStringLiteral("focus-workspace-previous")};
+    return bind.trigger != BindTrigger::Key || workspaceSwitches.contains(bind.action.name);
+}
+
 }

@@ -31,6 +31,8 @@ private Q_SLOTS:
     void parsesModifiers();
     void labelsEveryModifier_data();
     void labelsEveryModifier();
+    void bindsActOnThePointerOutput_data();
+    void bindsActOnThePointerOutput();
     void parsesMouseTriggers_data();
     void parsesMouseTriggers();
     void parsesScrollTriggers_data();
@@ -111,6 +113,30 @@ void TestConfigBinds::labelsEveryModifier()
     QFETCH(QString, key);
     QFETCH(QString, label);
     QCOMPARE(bindKeyLabel(firstBind(key + QStringLiteral(" { close-window; }"))), label);
+}
+
+void TestConfigBinds::bindsActOnThePointerOutput_data()
+{
+    QTest::addColumn<QString>("bind");
+    QTest::addColumn<bool>("pointer");
+
+    QTest::newRow("workspace by number") << QStringLiteral("Mod+2 { focus-workspace 2; }") << true;
+    QTest::newRow("workspace down") << QStringLiteral("Mod+Page_Down { focus-workspace-down; }") << true;
+    QTest::newRow("workspace up") << QStringLiteral("Mod+Page_Up { focus-workspace-up; }") << true;
+    QTest::newRow("workspace previous") << QStringLiteral("Mod+Tab { focus-workspace-previous; }") << true;
+    QTest::newRow("wheel column scroll") << QStringLiteral("Mod+WheelScrollRight { focus-column-right; }") << true;
+    QTest::newRow("wheel workspace") << QStringLiteral("Mod+WheelScrollDown { focus-workspace-down; }") << true;
+    QTest::newRow("mouse button") << QStringLiteral("Mod+MouseMiddle { close-window; }") << true;
+    QTest::newRow("key column focus") << QStringLiteral("Mod+Left { focus-column-left; }") << false;
+    QTest::newRow("key window move") << QStringLiteral("Mod+Ctrl+Left { move-column-left; }") << false;
+    QTest::newRow("key column to workspace") << QStringLiteral("Mod+Shift+2 { move-column-to-workspace 2; }") << false;
+}
+
+void TestConfigBinds::bindsActOnThePointerOutput()
+{
+    QFETCH(QString, bind);
+    QFETCH(bool, pointer);
+    QCOMPARE(bindActsOnPointerOutput(firstBind(bind)), pointer);
 }
 
 void TestConfigBinds::parsesMouseTriggers_data()

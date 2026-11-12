@@ -74,26 +74,45 @@ bool giveBack(const ReleasedShortcut &shortcut)
     return true;
 }
 
+QList<KGlobalShortcutInfo> foreignHolders(const QKeySequence &key, const QString &ownComponent)
+{
+    QList<KGlobalShortcutInfo> holders = KGlobalAccel::globalShortcutsByKey(key, KGlobalAccel::MatchType::Equal);
+    holders.removeIf([&ownComponent](const KGlobalShortcutInfo &holder) { return holder.componentUniqueName() == ownComponent; });
+    return holders;
+}
+
+bool heldByUser(const QList<KGlobalShortcutInfo> &holders, const QKeySequence &key)
+{
+    return std::ranges::any_of(holders, [&key](const KGlobalShortcutInfo &holder) { return !holder.defaultKeys().contains(key); });
+}
+
+}
+
+QList<QKeySequence> ShortcutConflicts::userHeld(const QList<QKeySequence> &wanted, const QString &ownComponent)
+{
+    QList<QKeySequence> held;
+    for (const QKeySequence &key : wanted) {
+        if (heldByUser(foreignHolders(key, ownComponent), key)) {
+            held.append(key);
+        }
+    }
+    return held;
 }
 
 QList<ReleasedShortcut> ShortcutConflicts::takeOver(const QList<QKeySequence> &wanted, const QString &ownComponent)
 {
     QList<ReleasedShortcut> released;
     for (const QKeySequence &key : wanted) {
-        const QList<KGlobalShortcutInfo> holders = KGlobalAccel::globalShortcutsByKey(key, KGlobalAccel::MatchType::Equal);
-        bool foreignHolder = false;
+        const QList<KGlobalShortcutInfo> holders = foreignHolders(key, ownComponent);
+        if (holders.isEmpty() || heldByUser(holders, key)) {
+            continue;
+        }
         for (const KGlobalShortcutInfo &holder : holders) {
-            if (holder.componentUniqueName() == ownComponent) {
-                continue;
-            }
-            foreignHolder = true;
             merge(released,
                 {{holder.componentUniqueName(), holder.uniqueName(), holder.componentFriendlyName(), holder.friendlyName(),
                     holder.keys()}});
         }
-        if (foreignHolder) {
-            KGlobalAccel::stealShortcutSystemwide(key);
-        }
+        KGlobalAccel::stealShortcutSystemwide(key);
     }
     return released;
 }
