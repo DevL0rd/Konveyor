@@ -117,7 +117,7 @@ add_dependencies(test_cheatsheet_qml konveyor-cheatsheet-viewer)
 add_test(NAME test_cheatsheet_qml COMMAND test_cheatsheet_qml)
 set_tests_properties(test_cheatsheet_qml PROPERTIES LABELS "unit;widgets" ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
-foreach(name test_sysmon_collect test_sysmon_sensors test_sysmon_amdgpu test_sysmon_hardware test_procmon_collect test_procmon_gpu test_procmon_proc test_procmon_icons test_procmon_panel
+foreach(name test_sysmon_collect test_sysmon_sensors test_sysmon_amdgpu test_sysmon_intelgpu test_sysmon_hardware test_procmon_collect test_procmon_gpu test_procmon_proc test_procmon_icons test_procmon_panel
              test_logmon_collect test_routermon_collect test_routermon_modes test_routermon_remote test_collectors test_widget_service test_collector_restart)
     add_test(NAME ${name} COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/unit/widgets/${name}.py)
     set_tests_properties(${name} PROPERTIES LABELS "unit;widgets" ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")

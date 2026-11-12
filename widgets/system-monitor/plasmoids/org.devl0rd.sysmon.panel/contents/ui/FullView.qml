@@ -306,6 +306,7 @@ Item {
                     }
                     PopBar {
                         Layout.fillWidth: true
+                        visible: root.gpu !== null && root.gpu.vram_total > 0
                         label: root.gpu && root.gpu.shared ? i18n("GPU memory") : i18n("VRAM")
                         value: root.gpu ? root.gpu.vram_pct || 0 : 0
                         valueText: root.gpu ? Style.bytes(root.gpu.vram_used) + " / " + Style.bytes(root.gpu.vram_total) : ""
