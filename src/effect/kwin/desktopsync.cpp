@@ -193,7 +193,7 @@ void DesktopSync::applyCurrentDesktops(const QList<Layout::WorkspaceState> &work
         KWin::VirtualDesktop *desktop = desktopAt(workspace.index);
         if (output && desktop && manager()->currentDesktop(output) != desktop) {
             if (m_currentDesktopChangeGuard) {
-                m_currentDesktopChangeGuard(workspace.output, [this, desktop, output] { manager()->setCurrent(desktop, output); });
+                m_currentDesktopChangeGuard(workspace.output, [desktop, output] { manager()->setCurrent(desktop, output); });
             } else {
                 manager()->setCurrent(desktop, output);
             }

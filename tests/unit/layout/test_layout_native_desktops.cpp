@@ -32,6 +32,19 @@ struct NativeWorkspaces
     }
 };
 
+void expectSettledOnSecond(
+    Fixture &fixture, Layout::WindowId first, Layout::WindowId second, const QRectF &firstFrame, const QRectF &secondFrame)
+{
+    QCOMPARE(fixture.state(first).renderFrame, firstFrame);
+    QCOMPARE(fixture.state(first).targetFrame, firstFrame);
+    QCOMPARE(fixture.state(second).renderFrame, secondFrame);
+    QCOMPARE(fixture.state(second).targetFrame, secondFrame);
+    QVERIFY(!fixture.state(first).visible);
+    QVERIFY(fixture.state(second).visible);
+    QCOMPARE(fixture.engine().windowAt(secondFrame.center()), std::optional(second));
+    QCOMPARE(fixture.engine().outputStates().first().transitionProgress, 1.0);
+}
+
 }
 
 class TestLayoutNativeDesktops : public QObject
@@ -64,14 +77,7 @@ private Q_SLOTS:
             fixture.settle();
             for (int step : {0, 50, 4000}) {
                 fixture.advance(step);
-                QCOMPARE(fixture.state(first).renderFrame, firstFrame);
-                QCOMPARE(fixture.state(first).targetFrame, firstFrame);
-                QCOMPARE(fixture.state(second).renderFrame, secondFrame);
-                QCOMPARE(fixture.state(second).targetFrame, secondFrame);
-                QVERIFY(!fixture.state(first).visible);
-                QVERIFY(fixture.state(second).visible);
-                QCOMPARE(fixture.engine().windowAt(secondFrame.center()), std::optional(second));
-                QCOMPARE(fixture.engine().outputStates().first().transitionProgress, 1.0);
+                expectSettledOnSecond(fixture, first, second, firstFrame, secondFrame);
             }
         } else {
             fixture.perform(QStringLiteral("focus-workspace-down"));
@@ -81,12 +87,7 @@ private Q_SLOTS:
             QVERIFY(fixture.state(second).renderFrame.y() != secondFrame.y());
             fixture.advance(4000);
             QVERIFY(!fixture.engine().isWorkspaceTransitioning());
-            QCOMPARE(fixture.state(first).renderFrame, fixture.state(first).targetFrame);
-            QCOMPARE(fixture.state(second).renderFrame, fixture.state(second).targetFrame);
-            QVERIFY(!fixture.state(first).visible);
-            QVERIFY(fixture.state(second).visible);
-            QCOMPARE(fixture.engine().windowAt(secondFrame.center()), std::optional(second));
-            QCOMPARE(fixture.engine().outputStates().first().transitionProgress, 1.0);
+            expectSettledOnSecond(fixture, first, second, firstFrame, secondFrame);
         }
         fixture.setConfig(animatedConfig());
         QCOMPARE(fixture.state(first).targetFrame, firstFrame);

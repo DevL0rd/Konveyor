@@ -1,5 +1,7 @@
 #include "helpers.h"
 
+#include <utility>
+
 using namespace LayoutTest;
 
 namespace
@@ -18,6 +20,33 @@ void addPresentationModes()
     QTest::addColumn<bool>("nativeDesktops");
     QTest::newRow("standalone") << false;
     QTest::newRow("native-desktops") << true;
+}
+
+Config::Config ringConfig(Config::FocusRingTransition transition)
+{
+    Config::Config config = animatedConfig();
+    config.layout.focusRingTransition = transition;
+    config.layout.focusRing.enabled = true;
+    return config;
+}
+
+std::pair<Layout::WindowId, Layout::WindowId> twoWorkspaces(Fixture &fixture)
+{
+    const Layout::WindowId first = fixture.add();
+    fixture.advance(2000);
+    fixture.perform(QStringLiteral("focus-workspace-down"));
+    fixture.advance(4000);
+    const Layout::WindowId second = fixture.add();
+    fixture.perform(QStringLiteral("focus-workspace-up"));
+    fixture.advance(4000);
+    return {first, second};
+}
+
+void expectSwitchSettled(Fixture &fixture, Layout::WindowId first, Layout::WindowId second)
+{
+    QVERIFY(!fixture.engine().isWorkspaceTransitioning());
+    QCOMPARE(fixture.state(first).renderFrame, fixture.state(first).targetFrame);
+    QCOMPARE(fixture.state(second).renderFrame, fixture.state(second).targetFrame);
 }
 
 }
@@ -108,13 +137,7 @@ private Q_SLOTS:
     void keyboardSwitchPaintsItsMotion()
     {
         Fixture fixture(animatedConfig());
-        const auto first = fixture.add();
-        fixture.advance(2000);
-        fixture.perform(QStringLiteral("focus-workspace-down"));
-        fixture.advance(4000);
-        const auto second = fixture.add();
-        fixture.perform(QStringLiteral("focus-workspace-up"));
-        fixture.advance(4000);
+        const auto [first, second] = twoWorkspaces(fixture);
         const QRectF firstSettled = fixture.state(first).targetFrame;
         const QRectF secondSettled = fixture.state(second).targetFrame;
         QCOMPARE(fixture.engine().outputStates().first().transitionProgress, 0.0);
@@ -129,26 +152,15 @@ private Q_SLOTS:
         QVERIFY(progress < 1.0);
 
         fixture.advance(4000);
-        QVERIFY(!fixture.engine().isWorkspaceTransitioning());
-        QCOMPARE(fixture.state(first).renderFrame, fixture.state(first).targetFrame);
-        QCOMPARE(fixture.state(second).renderFrame, fixture.state(second).targetFrame);
+        expectSwitchSettled(fixture, first, second);
         QCOMPARE(fixture.engine().outputStates().first().transitionProgress, 1.0);
         VERIFY_INVARIANTS(fixture);
     }
 
     void heldSwipeCrossfadeFollowsAndReverses()
     {
-        Config::Config config = animatedConfig();
-        config.layout.focusRingTransition = Config::FocusRingTransition::Crossfade;
-        config.layout.focusRing.enabled = true;
-        Fixture fixture(config);
-        const auto first = fixture.add();
-        fixture.advance(2000);
-        fixture.perform(QStringLiteral("focus-workspace-down"));
-        fixture.advance(4000);
-        const auto second = fixture.add();
-        fixture.perform(QStringLiteral("focus-workspace-up"));
-        fixture.advance(4000);
+        Fixture fixture(ringConfig(Config::FocusRingTransition::Crossfade));
+        const auto [first, second] = twoWorkspaces(fixture);
 
         fixture.engine().beginWorkspaceSwipe(QStringLiteral("DP-1"), true);
         fixture.engine().updateWorkspaceSwipe(120.0, fixture.elapsed() + 1, true);
@@ -189,17 +201,8 @@ private Q_SLOTS:
 
     void delayedHidesRingsUntilTheSwitchSettles()
     {
-        Config::Config config = animatedConfig();
-        config.layout.focusRingTransition = Config::FocusRingTransition::Delayed;
-        config.layout.focusRing.enabled = true;
-        Fixture fixture(config);
-        const auto first = fixture.add();
-        fixture.advance(2000);
-        fixture.perform(QStringLiteral("focus-workspace-down"));
-        fixture.advance(4000);
-        const auto second = fixture.add();
-        fixture.perform(QStringLiteral("focus-workspace-up"));
-        fixture.advance(4000);
+        Fixture fixture(ringConfig(Config::FocusRingTransition::Delayed));
+        const auto [first, second] = twoWorkspaces(fixture);
 
         fixture.perform(QStringLiteral("focus-workspace-down"));
         fixture.advance(50);
@@ -216,16 +219,8 @@ private Q_SLOTS:
 
     void rideKeepsBothRingsDuringTheSwitch()
     {
-        Config::Config config = animatedConfig();
-        config.layout.focusRing.enabled = true;
-        Fixture fixture(config);
-        const auto first = fixture.add();
-        fixture.advance(2000);
-        fixture.perform(QStringLiteral("focus-workspace-down"));
-        fixture.advance(4000);
-        const auto second = fixture.add();
-        fixture.perform(QStringLiteral("focus-workspace-up"));
-        fixture.advance(4000);
+        Fixture fixture(ringConfig(Config::FocusRingTransition::Ride));
+        const auto [first, second] = twoWorkspaces(fixture);
 
         fixture.perform(QStringLiteral("focus-workspace-down"));
         fixture.advance(50);

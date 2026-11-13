@@ -221,14 +221,6 @@ void KonveyorEffect::flush()
     }
 }
 
-void KonveyorEffect::updateWindowVisibility(const QList<Layout::WindowState> &states)
-{
-    const WindowVisibilityHold hold = readEngine().isOverviewOpen() ? WindowVisibilityHold::AllWindows
-        : readEngine().isWorkspaceTransitioning()                   ? WindowVisibilityHold::VisibleWindows
-                                                                    : WindowVisibilityHold::None;
-    d->visibility.sync(states, hold);
-}
-
 void KonveyorEffect::acknowledgeSettledModeChanges(const QList<Layout::WindowState> &states)
 {
     for (const Layout::WindowState &state : states) {

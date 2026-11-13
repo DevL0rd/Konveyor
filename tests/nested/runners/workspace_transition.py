@@ -225,18 +225,22 @@ def prepare(checks):
     return scores["A"]
 
 
+def settles_moving_up_once(checks, records, gesture):
+    checks.expect(on_workspace(2), f"the {gesture} settles on the second workspace")
+    y = [sample[1]["A"][1] for sample in records if "A" in sample[1] and -1200 < sample[1]["A"][1] < -50]
+    drops = [later - earlier for earlier, later in zip(y, y[1:])]
+    checks.expect(len(y) > 3, f"the outgoing window was sampled mid-transition ({y})")
+    checks.expect(all(delta <= 2 for delta in drops), f"the outgoing window moves up once without bouncing back ({drops})")
+    checks.expect(y and y[0] - y[-1] >= 250, f"the outgoing window travels up the workspace ({y[0]} -> {y[-1]})")
+
+
 def gesture_moves_once(checks):
     """A gesture switch must not also hand the desktop to KWin Slide."""
     checks.expect(load_config(ring_config("ride")), "the ride config loads again")
     checks.expect(no_slide(), "KWin Slide is idle before the swipe")
     records, seen = gesture_records()
     checks.expect(not slide_seen(seen), f"a gesture switch does not start KWin Slide ({seen})")
-    checks.expect(on_workspace(2), "the swipe settles on the second workspace")
-    y = [sample[1]["A"][1] for sample in records if "A" in sample[1] and -1200 < sample[1]["A"][1] < -50]
-    drops = [later - earlier for earlier, later in zip(y, y[1:])]
-    checks.expect(len(y) > 3, f"the outgoing window was sampled mid-transition ({y})")
-    checks.expect(all(delta <= 2 for delta in drops), f"the outgoing window moves up once without bouncing back ({drops})")
-    checks.expect(y and y[0] - y[-1] >= 250, f"the outgoing window travels up the workspace ({y[0]} -> {y[-1]})")
+    settles_moving_up_once(checks, records, "swipe")
     wait_for(lambda: sample_once()[1]["B"] > 0, 20, 0.2)
     checks.expect(sample_once()[1]["B"] > 0, "the destination window keeps its focus ring after the swipe")
 
@@ -282,12 +286,7 @@ def keyboard_switch_paints_once(checks, full):
     checks.expect(no_slide(), "KWin Slide is idle before the keyboard switch")
     records, seen = keyboard_switch_records()
     checks.expect(not slide_seen(seen), f"a keyboard switch does not start KWin Slide ({seen})")
-    checks.expect(on_workspace(2), "the keyboard switch settles on the second workspace")
-    y = [sample[1]["A"][1] for sample in records if "A" in sample[1] and -1200 < sample[1]["A"][1] < -50]
-    drops = [later - earlier for earlier, later in zip(y, y[1:])]
-    checks.expect(len(y) > 3, f"the outgoing window was sampled mid-transition ({y})")
-    checks.expect(all(delta <= 2 for delta in drops), f"the outgoing window moves up once without bouncing back ({drops})")
-    checks.expect(y and y[0] - y[-1] >= 250, f"the outgoing window travels up the workspace ({y[0]} -> {y[-1]})")
+    settles_moving_up_once(checks, records, "keyboard switch")
     moving = [record for record in records if record[0] > 0.3 and -1200 < record[1].get("A", (0, 0))[1] < -50]
     checks.expect(bool(moving), "the keyboard switch was watched while the workspace was moving")
     checks.expect(all(record[2]["B"] <= full * 0.12 for record in moving),
