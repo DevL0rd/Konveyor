@@ -86,6 +86,32 @@ public Q_SLOTS:
         }
     }
 
+    void SwipeBegin(int fingers)
+    {
+        if (m_device) {
+            Q_EMIT m_device->swipeGestureBegin(fingers, now(), m_device.get());
+        }
+    }
+
+    void SwipeUpdate(double dx, double dy)
+    {
+        if (m_device) {
+            Q_EMIT m_device->swipeGestureUpdate(QPointF(dx, dy), now(), m_device.get());
+        }
+    }
+
+    void SwipeEnd(bool cancel)
+    {
+        if (!m_device) {
+            return;
+        }
+        if (cancel) {
+            Q_EMIT m_device->swipeGestureCancelled(now(), m_device.get());
+        } else {
+            Q_EMIT m_device->swipeGestureEnd(now(), m_device.get());
+        }
+    }
+
     void Pinch(int fingers, double scale, int steps, bool cancel)
     {
         Q_EMIT m_device->pinchGestureBegin(fingers, now(), m_device.get());

@@ -61,6 +61,8 @@ KonveyorEffect::KonveyorEffect()
     connectRegistries();
     connectDesktopSync();
     connectOverviewSync();
+    connect(
+        KWin::effects, &KWin::EffectsHandler::windowDeleted, this, [this](KWin::EffectWindow *window) { d->visibility.forget(window); });
     installInputFilter();
     startDBusService();
     d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
@@ -80,6 +82,11 @@ KonveyorEffect::KonveyorEffect()
 
 KonveyorEffect::~KonveyorEffect()
 {
+    if (KWin::effects && KWin::effects->loadedEffects().isEmpty()) {
+        // Compositor teardown, not a reload: the desktop manager is going away too.
+        d->desktops.setRestoreOnDestruct(false);
+    }
+    d->visibility.release();
     LayoutHandoff::give(d->engine, d->windows, d->hiddenPlacements);
     disconnect(&d->windows, nullptr, this, nullptr);
     disconnect(&d->desktops, nullptr, this, nullptr);
@@ -192,6 +199,7 @@ void KonveyorEffect::flush()
     const QList<Layout::WorkspaceState> workspaces = readEngine().workspaceStates();
     endMoveIntoFullscreen(states);
     updateHomeOutputs(states);
+    updateWindowVisibility(states);
     d->desktops.apply(workspaces, states, d->config.config().layout.horizontalDesktops);
     if (workspaces != d->announcedWorkspaces && d->dbus) {
         d->announcedWorkspaces = workspaces;
@@ -199,6 +207,7 @@ void KonveyorEffect::flush()
     }
     d->fullscreenGuard.update(states);
     d->applier.apply(states);
+    updateWindowVisibility(states);
     acknowledgeSettledModeChanges(states);
     updateDecorations(states);
     updateDropHint(states);

@@ -151,6 +151,32 @@ private Q_SLOTS:
         QVERIFY(!fixture.state(b).focusRing.enabled);
     }
 
+    void unfocusedWindowKeepsTheRingItWoreWhileActive()
+    {
+        Config::Config config = instantConfig();
+        config.layout.focusRing.enabled = true;
+        config.layout.focusRing.width = 6;
+        config.layout.focusRing.activeStyle = QStringLiteral("Ring");
+        config.layout.focusRing.inactiveStyle = QStringLiteral("Quiet");
+        Fixture fixture(config);
+        const auto a = fixture.add(QStringLiteral("a"));
+        const auto b = fixture.add(QStringLiteral("b"));
+        // b owns the focus, so a shows the inactive ring right now.
+        QVERIFY(fixture.state(a).focusRing.enabled);
+        QCOMPARE(fixture.state(a).focusRing.style, QStringLiteral("Quiet"));
+        // A transition can still hold the active ring a wore before it lost the focus.
+        QVERIFY(fixture.state(a).activeFocusRing.enabled);
+        QCOMPARE(fixture.state(a).activeFocusRing.style, QStringLiteral("Ring"));
+        QCOMPARE(fixture.state(a).activeFocusRing.width, 6.0);
+        QVERIFY(fixture.state(b).focusRing.enabled);
+        QCOMPARE(fixture.state(b).focusRing.style, QStringLiteral("Ring"));
+        QCOMPARE(fixture.state(b).activeFocusRing, fixture.state(b).focusRing);
+        fixture.engine().activateWindow(a);
+        QCOMPARE(fixture.state(a).focusRing.style, QStringLiteral("Ring"));
+        QCOMPARE(fixture.state(b).focusRing.style, QStringLiteral("Quiet"));
+        QCOMPARE(fixture.state(b).activeFocusRing.style, QStringLiteral("Ring"));
+    }
+
     void borderRuleWidthChangesTheGeometryOfThatWindowOnly()
     {
         Config::Config config = instantConfig();

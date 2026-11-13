@@ -107,6 +107,11 @@ QVariantMap layoutValues(const Config::Layout &layout)
                 {QStringLiteral("bottom"), layout.struts.bottom},
             }},
         {QStringLiteral("focus-ring"), borderValue(layout.focusRing)},
+        {QStringLiteral("focus-ring-transition"),
+            layout.focusRingTransition == Config::FocusRingTransition::Crossfade
+                ? QStringLiteral("crossfade")
+                : (layout.focusRingTransition == Config::FocusRingTransition::Delayed ? QStringLiteral("delayed")
+                                                                                      : QStringLiteral("ride"))},
         {QStringLiteral("border"), borderValue(layout.border)},
         {QStringLiteral("event-effects"), eventEffectsValue(layout.eventEffects)},
         {QStringLiteral("tab-indicator"), tabIndicatorValue(layout.tabIndicator)},

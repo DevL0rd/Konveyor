@@ -172,7 +172,7 @@ animations {
 void TestSettingsValues::layoutDefaults()
 {
     const QVariantMap values = layoutValues(Config::Layout());
-    QCOMPARE(values.size(), 27);
+    QCOMPARE(values.size(), 28);
     QCOMPARE(values.value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("never"));
     QCOMPARE(values.value(QStringLiteral("new-column-position")).toString(), QStringLiteral("right"));
     QCOMPARE(values.value(QStringLiteral("always-expand-single-column")).toBool(), false);

@@ -5,6 +5,8 @@
 #include <QHash>
 #include <QObject>
 
+#include <functional>
+
 namespace KWin
 {
 class LogicalOutput;
@@ -29,6 +31,11 @@ public:
     void start();
     void apply(const QList<Layout::WorkspaceState> &workspaces, const QList<Layout::WindowState> &windows, bool horizontal);
 
+    using CurrentDesktopChange = std::function<void()>;
+    using CurrentDesktopChangeGuard = std::function<void(const QString &output, const CurrentDesktopChange &change)>;
+    void setCurrentDesktopChangeGuard(CurrentDesktopChangeGuard guard);
+    void setRestoreOnDestruct(bool restore);
+
 Q_SIGNALS:
     void workspaceActivatedByUser(const QString &output, int index);
     void windowMovedToWorkspaceByUser(Layout::WindowId id, int index);
@@ -39,6 +46,7 @@ private:
     void applyRows(bool horizontal);
     void applyNames(const QList<Layout::WorkspaceState> &workspaces);
     void applyCurrentDesktops(const QList<Layout::WorkspaceState> &workspaces);
+    void applyCurrentDesktop(const Layout::WorkspaceState &workspace);
     void applyWindowDesktops(const QList<Layout::WindowState> &windows);
     void watchWindowDesktops(KWin::Window *window, Layout::WindowId id);
     void onCurrentDesktopChanged(KWin::VirtualDesktop *previous, KWin::VirtualDesktop *current, KWin::LogicalOutput *output);
@@ -46,7 +54,9 @@ private:
 
     const WindowRegistry &m_windows;
     const OutputRegistry &m_outputs;
+    CurrentDesktopChangeGuard m_currentDesktopChangeGuard;
     bool m_applying = false;
+    bool m_restoreOnDestruct = true;
     bool m_previousPerOutput = false;
     uint m_previousRows = 1;
     QHash<QString, QString> m_originalNames;

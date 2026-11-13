@@ -104,6 +104,7 @@ public:
     void switchWorkspaceUp();
     void switchWorkspaceDown();
     void switchWorkspace(std::size_t idx);
+    void adoptWorkspace(std::size_t idx);
     void goToWorkspaceOrBack(std::size_t idx);
     void switchWorkspacePrevious();
     void moveWorkspaceDown();
@@ -118,6 +119,7 @@ public:
     double workspaceHeightWithGap() const;
     std::vector<double> workspaceRenderOffsets() const;
     double transitionProgress() const;
+    bool isWorkspaceTransitioning() const { return m_transition.has_value(); }
     bool isWorkspaceGesture() const { return m_transition && m_transition->isGesture(); }
 
     void beginWorkspaceSwipe(bool isTouchpad, bool continueMotion = true);

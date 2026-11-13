@@ -22,12 +22,29 @@ void KonveyorEffect::showKdeOverview(bool open)
         qWarning() << "konveyor: KDE's Overview effect is not loaded, so the overview can't" << (open ? "open" : "close");
         return;
     }
+    if (open) {
+        updateWindowVisibility(readEngine().windowStates());
+    }
     QMetaObject::invokeMethod(overview, open ? "activate" : "deactivate");
+    if (!open) {
+        updateWindowVisibility(readEngine().windowStates());
+    }
+}
+
+void KonveyorEffect::updateWindowVisibility(const QList<Layout::WindowState> &states)
+{
+    const WindowVisibilityHold hold = readEngine().isOverviewOpen() ? WindowVisibilityHold::AllWindows
+        : readEngine().isWorkspaceTransitioning()                   ? WindowVisibilityHold::VisibleWindows
+                                                                    : WindowVisibilityHold::None;
+    d->visibility.sync(states, hold);
 }
 
 void KonveyorEffect::connectOverviewSync()
 {
     connect(KWin::effects, &KWin::EffectsHandler::activeFullScreenEffectChanged, this, [this] {
+        if (d->slideSuppression) {
+            return;
+        }
         const KWin::Effect *overview = kdeOverview();
         const bool shown = overview && KWin::effects->activeFullScreenEffect() == overview;
         if (readEngine().isOverviewOpen() != shown) {

@@ -65,6 +65,8 @@ struct WorkspaceRenderContext
     int index = 0;
     bool onActive = false;
     bool visible = true;
+    // Ring opacity override while a workspace transition runs; negative means none.
+    double ringOpacity = -1.0;
 };
 
 struct Engine::Private
