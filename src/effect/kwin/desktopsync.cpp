@@ -186,18 +186,23 @@ void DesktopSync::applyNames(const QList<Layout::WorkspaceState> &workspaces)
 void DesktopSync::applyCurrentDesktops(const QList<Layout::WorkspaceState> &workspaces)
 {
     for (const Layout::WorkspaceState &workspace : workspaces) {
-        if (!workspace.isActive) {
-            continue;
+        if (workspace.isActive) {
+            applyCurrentDesktop(workspace);
         }
-        KWin::LogicalOutput *output = m_outputs.outputNamed(workspace.output);
-        KWin::VirtualDesktop *desktop = desktopAt(workspace.index);
-        if (output && desktop && manager()->currentDesktop(output) != desktop) {
-            if (m_currentDesktopChangeGuard) {
-                m_currentDesktopChangeGuard(workspace.output, [desktop, output] { manager()->setCurrent(desktop, output); });
-            } else {
-                manager()->setCurrent(desktop, output);
-            }
-        }
+    }
+}
+
+void DesktopSync::applyCurrentDesktop(const Layout::WorkspaceState &workspace)
+{
+    KWin::LogicalOutput *output = m_outputs.outputNamed(workspace.output);
+    KWin::VirtualDesktop *desktop = desktopAt(workspace.index);
+    if (!output || !desktop || manager()->currentDesktop(output) == desktop) {
+        return;
+    }
+    if (m_currentDesktopChangeGuard) {
+        m_currentDesktopChangeGuard(workspace.output, [desktop, output] { manager()->setCurrent(desktop, output); });
+    } else {
+        manager()->setCurrent(desktop, output);
     }
 }
 

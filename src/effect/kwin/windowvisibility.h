@@ -43,6 +43,12 @@ private:
         std::unique_ptr<KWin::EffectWindowVisibleRef> ref;
     };
 
+    using Desired = std::unordered_map<Layout::WindowId, KWin::EffectWindow *>;
+
+    Desired desiredFor(const QList<Layout::WindowState> &states, WindowVisibilityHold hold) const;
+    bool releaseUnwanted(const Desired &desired);
+    bool holdWanted(const Desired &desired);
+
     const WindowRegistry &m_windows;
     std::unordered_map<Layout::WindowId, Held> m_held;
 };

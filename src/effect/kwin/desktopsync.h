@@ -46,6 +46,7 @@ private:
     void applyRows(bool horizontal);
     void applyNames(const QList<Layout::WorkspaceState> &workspaces);
     void applyCurrentDesktops(const QList<Layout::WorkspaceState> &workspaces);
+    void applyCurrentDesktop(const Layout::WorkspaceState &workspace);
     void applyWindowDesktops(const QList<Layout::WindowState> &windows);
     void watchWindowDesktops(KWin::Window *window, Layout::WindowId id);
     void onCurrentDesktopChanged(KWin::VirtualDesktop *previous, KWin::VirtualDesktop *current, KWin::LogicalOutput *output);
