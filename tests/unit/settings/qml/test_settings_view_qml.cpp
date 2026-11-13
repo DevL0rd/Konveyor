@@ -29,7 +29,7 @@ private Q_SLOTS:
         QVERIFY(SettingsHome::read(m_home.configPath()).contains(QStringLiteral("gaps 27")));
     }
 
-    void switchesOffAFlagThatDefaultsToOn()
+    void switchesOnAFlagThatDefaultsToOff()
     {
         QQmlEngine engine;
         QString error;
@@ -38,7 +38,7 @@ private Q_SLOTS:
             "SettingsView {\n"
             "    active: false\n"
             "    function wrapAround(on) { return LayoutKeys.writeFlag(SettingsStore, \"layout\", false, "
-            "\"wrap-columns\", on, true) }\n"
+            "\"wrap-columns\", on, false) }\n"
             "}",
             &error);
         QVERIFY2(view, qPrintable(error));
@@ -46,15 +46,15 @@ private Q_SLOTS:
         QVERIFY(store);
         QSignalSpy saved(store, SIGNAL(saved()));
 
+        QVERIFY(QMetaObject::invokeMethod(view.get(), "wrapAround", Q_ARG(QVariant, true)));
+        QVERIFY(saved.wait(SignalTimeoutMs));
+        QVERIFY(SettingsHome::read(m_home.configPath()).contains(QStringLiteral("wrap-columns")));
+        QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("wrap-columns")).toBool(), true);
+
         QVERIFY(QMetaObject::invokeMethod(view.get(), "wrapAround", Q_ARG(QVariant, false)));
         QVERIFY(saved.wait(SignalTimeoutMs));
         QVERIFY(SettingsHome::read(m_home.configPath()).contains(QStringLiteral("wrap-columns false")));
         QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("wrap-columns")).toBool(), false);
-
-        QVERIFY(QMetaObject::invokeMethod(view.get(), "wrapAround", Q_ARG(QVariant, true)));
-        QVERIFY(saved.wait(SignalTimeoutMs));
-        QVERIFY(!SettingsHome::read(m_home.configPath()).contains(QStringLiteral("wrap-columns false")));
-        QCOMPARE(call<QVariantMap>(store, "scope", QStringLiteral("layout")).value(QStringLiteral("wrap-columns")).toBool(), true);
     }
 
     void incubatesSectionsInTheBackgroundOnce()

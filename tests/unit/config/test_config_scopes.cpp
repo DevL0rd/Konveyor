@@ -33,7 +33,7 @@ constexpr LayoutNode kLayoutNodes[] = {
     {"center-focused-column \"always\"", Everywhere},
     {"new-column-position \"left\"", Everywhere},
     {"always-center-single-column", Everywhere},
-    {"wrap-columns false", Everywhere},
+    {"wrap-columns", Everywhere},
     {"always-expand-single-column", Everywhere},
     {"default-column-display \"tabbed\"", Everywhere},
     {"focus-ring { off; }", Everywhere},

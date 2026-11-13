@@ -9,11 +9,11 @@ LEFT_BUTTON = 0x110
 
 
 def drag_config(hint=None):
-    config = (REPO / "data" / "default-config.kdl").read_text().replace("    wrap-columns true\n", "    wrap-columns false\n", 1)
+    config = (REPO / "data" / "default-config.kdl").read_text()
     if hint is not None:
         config = config.replace("    gaps 16\n", "    gaps 16\n    insert-hint {\n" + hint + "    }\n", 1)
-    if config.count('titlebar-drag "move-window"') != 1 or config.count("wrap-columns false") != 1 or (hint is not None and config.count("insert-hint") != 1):
-        raise RuntimeError("the default config no longer has the titlebar-drag, wrap-columns and gaps lines the drag tests rely on")
+    if config.count('titlebar-drag "move-window"') != 1 or (hint is not None and config.count("insert-hint") != 1):
+        raise RuntimeError("the default config no longer has the titlebar-drag and gaps lines the drag tests rely on")
     return config
 
 

@@ -84,7 +84,7 @@ def settle(checks, message):
 
 
 def scroll_view_title_bars():
-    return default_config(wrapped=False).replace(
+    return default_config().replace(
         'titlebar-drag "move-window"', 'titlebar-drag "scroll-view"'
     )
 

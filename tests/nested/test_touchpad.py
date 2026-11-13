@@ -8,9 +8,9 @@ sys.path.insert(0, str(HERE / "harness"))
 
 
 def main():
-    from nested import run_runner, unwrapped_config
+    from nested import run_runner
 
-    return run_runner(HERE / "runners" / "touchpad.py", timeout=300, config_kdl=unwrapped_config(), global_shortcuts=True, extra_kwinrc="konveyor_test_touchpadEnabled=true")
+    return run_runner(HERE / "runners" / "touchpad.py", timeout=300, global_shortcuts=True, extra_kwinrc="konveyor_test_touchpadEnabled=true")
 
 
 if __name__ == "__main__":

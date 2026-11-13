@@ -179,10 +179,10 @@ void TestSettingsControlsQml::controls_data()
         {"LayoutPage", "Center a lone window", "switched", "[false]", "layout/always-center-single-column", "null",
             "layout { always-center-single-column; }\n"});
     addControl("wrap columns on",
-        {"LayoutPage", "Scroll around past the last column", "switched", "[true]", "layout/wrap-columns", R"({"args":[true]})",
-            "layout { wrap-columns false; }\n"});
+        {"LayoutPage", "Scroll around past the last column", "switched", "[true]", "layout/wrap-columns", R"({"args":[]})"});
     addControl("wrap columns off",
-        {"LayoutPage", "Scroll around past the last column", "switched", "[false]", "layout/wrap-columns", R"({"args":[false]})"});
+        {"LayoutPage", "Scroll around past the last column", "switched", "[false]", "layout/wrap-columns", R"({"args":[false]})",
+            "layout { wrap-columns; }\n"});
     addControl("expand lone on",
         {"LayoutPage", "Expand a lone window", "switched", "[true]", "layout/always-expand-single-column", R"({"args":[]})"});
     addControl("expand lone off",

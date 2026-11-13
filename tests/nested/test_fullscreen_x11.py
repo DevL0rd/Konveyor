@@ -15,10 +15,10 @@ python3 {runner} > "$KONVEYOR_REPORT" 2>&1
 
 
 def main():
-    from nested import run_script, unwrapped_config
+    from nested import run_script
 
     return run_script(SCRIPT.format(clients=HERE / "harness" / "clients.py", game=HERE / "clients" / "x11-game.py",
-                                    runner=HERE / "runners" / "fullscreen_x11.py"), timeout=240, config_kdl=unwrapped_config(), xwayland=True)
+                                    runner=HERE / "runners" / "fullscreen_x11.py"), timeout=240, xwayland=True)
 
 
 if __name__ == "__main__":

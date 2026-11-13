@@ -70,7 +70,6 @@ private Q_SLOTS:
     void movingIntoAPinnedSlotDoesNothingAndDoesNotAnimate()
     {
         Config::Config config = leftConfig(Config::Config {});
-        config.layout.wrapColumns = false;
         Fixture fixture(config);
         const auto pinned = fixture.add(QStringLiteral("pinned"));
         const auto other = fixture.add(QStringLiteral("a"));

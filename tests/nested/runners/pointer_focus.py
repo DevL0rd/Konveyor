@@ -37,7 +37,7 @@ def warp_modes(checks):
     modes = {"off": "", "nearest": "    warp-mouse-to-focus\n", "center-xy": '    warp-mouse-to-focus mode="center-xy"\n',
              "center-xy-always": '    warp-mouse-to-focus mode="center-xy-always"\n'}
     for mode, line in modes.items():
-        checks.expect(load_config(default_config(wrapped=False).replace(WARP, line)), f"warp mode {mode} loads")
+        checks.expect(load_config(default_config().replace(WARP, line)), f"warp mode {mode} loads")
         checks.expect(focus("focus-column-first", "A"), "A is focused at the start of the row")
         move(*POINTER_OVER_B)
         checks.expect(focus("focus-column-right", "B"), "focus moves to B under the pointer")
@@ -51,33 +51,33 @@ def warp_modes(checks):
                           f"nearest: the pointer moves sideways just onto A ({cursor()}, over {window_under_pointer()}, A at {frame('A')})")
         else:
             checks.expect(wait_for(lambda: cursor() == center("A"), 5), f"{mode}: the pointer jumps to the middle of A ({cursor()} vs {center('A')})")
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def warp_from_outside_the_frame(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace(WARP, "    warp-mouse-to-focus\n")), "warp-mouse-to-focus loads")
+    checks.expect(load_config(default_config().replace(WARP, "    warp-mouse-to-focus\n")), "warp-mouse-to-focus loads")
     for label, start in (("left of", (100, 300)), ("above", (1400, 5)), ("below", (1400, 1075))):
         checks.expect(focus("focus-column-first", "A"), "A is focused")
         move(*start)
         checks.expect(focus("focus-column-right", "B"), f"focus moves to B with the pointer {label} it")
         checks.expect(wait_for(lambda: window_under_pointer() == "B", 5), f"the pointer was brought onto B from {label} it ({cursor()})")
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def focus_follows_mouse(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     checks.expect(focus("focus-column-first", "A"), "A is focused")
     move(*POINTER_OVER_B)
     checks.expect(wait_for(lambda: active_title() == "B", 5), f"hovering B focuses it ({active_title()})")
     move(*center("A"))
     checks.expect(wait_for(lambda: active_title() == "A", 5), f"hovering A focuses it again ({active_title()})")
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
     move(*POINTER_OVER_B)
     checks.expect(not wait_for(lambda: active_title() == "B", 2), "without focus-follows-mouse hovering B leaves focus on A")
 
 
 def popup_over_tiled_window(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     checks.expect(focus("focus-column-right", "B"), "B is focused")
     x, y, width, height = frame("A")
     inside = (round(x + width / 2), round(y + height / 2))
@@ -90,11 +90,11 @@ def popup_over_tiled_window(checks):
         checks.expect(not wait_for(lambda: active_title() != "B", 2), f"hovering a popup over A keeps focus on B ({active_title()})")
     finally:
         popup.terminate()
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def override_redirect_menu_over_tiled_window(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     checks.expect(focus("focus-column-first", "A"), "A is focused")
     checks.expect(focus("focus-column-right", "B"), "B is focused")
     popup = subprocess.Popen(["python3", str(CLIENTS / "x11-types.py"), "X-Menu:POPUP_MENU:override"])
@@ -105,11 +105,11 @@ def override_redirect_menu_over_tiled_window(checks):
         checks.expect(not wait_for(lambda: active_title() != "B", 2), f"hovering an override-redirect menu over A keeps focus on B ({active_title()})")
     finally:
         popup.terminate()
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def applet_popup_over_tiled_window(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     checks.expect(focus("focus-column-first", "A"), "A is focused")
     popup = subprocess.Popen(["qml6", str(CLIENTS / "applet-popup-client.qml"), "--", "100", "100"])
     try:
@@ -119,11 +119,11 @@ def applet_popup_over_tiled_window(checks):
         checks.expect(not wait_for(lambda: active_title() == "A", 2), f"hovering an applet popup over A leaves the popup focused ({active_title()})")
     finally:
         popup.terminate()
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def applet_popup_reached_across_tiled_window(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     checks.expect(focus("focus-column-first", "A"), "A is focused")
     popup = subprocess.Popen(["qml6", str(CLIENTS / "applet-popup-client.qml"), "--", "0", "0"])
     try:
@@ -137,7 +137,7 @@ def applet_popup_reached_across_tiled_window(checks):
         checks.expect(not wait_for(lambda: "Qml Runtime" not in kwin_titles() or active_title() != "Qml Runtime", 2), f"sweeping across A to reach the popup keeps the popup ({active_title()})")
     finally:
         popup.terminate()
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def window_geometry(title):
@@ -180,17 +180,17 @@ def narrow_columns():
 
 def hovering_with_nothing_active(checks):
     narrow_columns()
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     target = shown_windows()[0]
     run_script("workspace.activeWindow = null;")
     checks.expect(wait_for(lambda: active_title() == "none"), "no window is active")
     move(*center(target))
     checks.expect(wait_for(lambda: active_title() == target, 10), f"hovering {target} focuses it although nothing was active ({active_title()})")
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def hovered_window_closed_or_focused_before_the_delay(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     first, second = shown_windows()[:2]
     activate(first)
     move(*center(second))
@@ -204,7 +204,7 @@ def hovered_window_closed_or_focused_before_the_delay(checks):
     move(*center(third))
     activate(third)
     checks.expect(not wait_for(lambda: active_title() != third, 2), f"the pending hover does not take focus back ({active_title()})")
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def hover_other_window(checks, hovered, expected_active, message):
@@ -214,7 +214,7 @@ def hover_other_window(checks, hovered, expected_active, message):
 
 
 def windows_that_are_not_shown_above_the_target(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     checks.expect(focus("focus-column-first", "A"), "A is focused")
     run_script(for_window("A", "w.keepAbove = true; w.minimized = true;"))
     checks.expect(wait_for(lambda: window_minimized("A") and active_title() != "A"), "A is minimized but still above the others")
@@ -229,11 +229,11 @@ def windows_that_are_not_shown_above_the_target(checks):
     checks.expect(wait_for(lambda: active_title() in ("A", "C")), "a window on the first workspace is active")
     target = "A" if active_title() == "C" else "C"
     hover_other_window(checks, target, target, f"a window on another desktop above {target} does not stop hovering it focusing it")
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def wayland_popup_over_neighbour(checks):
-    checks.expect(load_config(default_config(wrapped=False).replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
+    checks.expect(load_config(default_config().replace("    // focus-follows-mouse\n", "    focus-follows-mouse\n")), "focus-follows-mouse loads")
     checks.expect(focus("focus-column-first", "A"), "A is focused")
     x, y, width, height = frame("A")
     origin = (round(x + width - 20), round(y + 100))
@@ -243,7 +243,7 @@ def wayland_popup_over_neighbour(checks):
     inside = (round(frame("B")[0] + 40), round(py + ph / 2))
     move(*inside)
     checks.expect(not wait_for(lambda: active_title() != "A", 3), f"hovering the popup over B keeps focus on A ({active_title()})")
-    load_config(default_config(wrapped=False))
+    load_config(default_config())
 
 
 def main():
