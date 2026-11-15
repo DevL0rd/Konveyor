@@ -84,14 +84,9 @@ OverviewGeometry computeOverviewGeometry(const OverviewGeometryInput &input)
     const int active = std::clamp(input.activeWorkspace, 0, std::max(0, int(geometry.cards.size()) - 1));
     QPointF desired = geometry.contentBounds.center() - QPointF(input.viewSize.width() * 0.5, input.viewSize.height() * 0.5);
     if (!geometry.cards.isEmpty()) {
-        desired.setY(geometry.cards[active].center().y() - input.viewSize.height() * 0.5);
+        desired = geometry.cards[active].center() - QPointF(input.viewSize.width() * 0.5, input.viewSize.height() * 0.5);
     }
-    if (!input.focus.isNull()) {
-        const double focusY
-            = geometry.cards.isEmpty() ? input.focus.y() * geometry.scale : geometry.cards[active].top() + input.focus.y() * geometry.scale;
-        desired = QPointF(input.focus.x() * geometry.scale - input.viewSize.width() * 0.5, focusY - input.viewSize.height() * 0.5);
-    }
-    geometry.camera = clampOverviewCamera(geometry.contentBounds, input.viewSize, desired);
+    geometry.camera = desired;
     return geometry;
 }
 

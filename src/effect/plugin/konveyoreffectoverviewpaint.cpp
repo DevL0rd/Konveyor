@@ -26,8 +26,9 @@ namespace
 
 constexpr unsigned kThumbnailMask = static_cast<unsigned>(KWin::Effect::PAINT_WINDOW_OPAQUE)
     | static_cast<unsigned>(KWin::Effect::PAINT_WINDOW_TRANSLUCENT) | static_cast<unsigned>(KWin::Effect::PAINT_WINDOW_TRANSFORMED);
-constexpr double kCardOutlineAlpha = 0.35;
-constexpr double kEdgeAlpha = 0.8;
+constexpr double kCardOutlineAlpha = 0.18;
+constexpr double kEdgeAlpha = 0.6;
+const QColor kCardFillColor(24, 26, 32);
 
 KWin::Region deviceClip(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &deviceRegion,
     const QRectF &logicalArea)
@@ -76,7 +77,7 @@ void fillRects(const QList<QRectF> &rects, const QColor &color, const KWin::Rend
     buffer->reset();
     buffer->setVertices(vertices);
     glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     buffer->render(scissor, GL_TRIANGLES, true);
     glDisable(GL_BLEND);
 }
@@ -148,6 +149,21 @@ QList<QRectF> selectedOutlineRects(const Layout::OverviewPaintView &paint, doubl
     return rects;
 }
 
+QColor resolveFocusRingColor(const Config::Border &focusRing, const AccentColor &accent)
+{
+    const Config::Paint &paint = focusRing.active;
+    if (paint.source != Config::ColorSource::Explicit) {
+        return accent.colorFor(paint.source);
+    }
+    if (paint.color.isValid()) {
+        return paint.color;
+    }
+    if (paint.gradient) {
+        return paint.gradient->from;
+    }
+    return accent.colorFor(Config::ColorSource::SystemAccent);
+}
+
 QList<QRectF> edgeRects(const Layout::OverviewPaintView &paint)
 {
     QList<QRectF> rects;
@@ -180,20 +196,22 @@ void KonveyorEffect::paintOverview(const KWin::RenderTarget &renderTarget, const
 
     const double scale = view.outputGeometry.height();
     const double cardThickness = std::max(1.0, scale * 0.0015);
-    const double windowThickness = std::max(2.0, scale * 0.004);
+    const Config::Border &focusRing = d->config.config().layout.focusRing;
+    const double ringWidth = focusRing.enabled ? focusRing.width : 3.0;
+    const double windowThickness = std::max(2.0, std::max(ringWidth, scale * 0.0035));
+    const QColor focusRingColor = resolveFocusRingColor(focusRing, d->accent);
 
     fillRects({workArea}, withAlpha(Qt::black, paint.scrimOpacity * Layout::kOverviewScrimAlpha), renderTarget, viewport, scissor);
     for (const Layout::OverviewPaintCard &card : paint.cards) {
-        fillRects({card.rect}, withAlpha(Qt::white, card.opacity), renderTarget, viewport, scissor);
+        fillRects({card.rect}, withAlpha(kCardFillColor, card.opacity), renderTarget, viewport, scissor);
     }
     for (const Layout::OverviewPaintWindow &window : paint.windows) {
         drawThumbnail(d->windows, d->drawingOverviewThumbnail, window, renderTarget, viewport, scissor, workArea);
     }
     fillRects(
         cardOutlineRects(paint, cardThickness), withAlpha(Qt::white, kCardOutlineAlpha * paint.blend), renderTarget, viewport, scissor);
-    fillRects(selectedOutlineRects(paint, windowThickness),
-        withAlpha(d->accent.colorFor(Config::ColorSource::SystemAccent), Layout::kOverviewOutlineAlpha * paint.blend), renderTarget,
-        viewport, scissor);
+    fillRects(selectedOutlineRects(paint, windowThickness), withAlpha(focusRingColor, Layout::kOverviewOutlineAlpha * paint.blend),
+        renderTarget, viewport, scissor);
     fillRects(edgeRects(paint), withAlpha(Qt::white, kEdgeAlpha * paint.blend), renderTarget, viewport, scissor);
 }
 

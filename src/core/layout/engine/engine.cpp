@@ -276,6 +276,9 @@ void Engine::Private::setOverviewState(bool open)
     overviewOpen = open;
     for (Monitor &monitor : monitors) {
         monitor.overviewOpen = open;
+        for (Workspace &workspace : monitor.workspaces()) {
+            workspace.setOverviewOpen(open);
+        }
     }
     if (!open) {
         overview.selected.reset();
@@ -285,6 +288,9 @@ void Engine::Private::setOverviewState(bool open)
         overview.reorderOutput.clear();
         overview.drop.reset();
         overview.press.reset();
+        overview.cameraYAnimations.clear();
+        overview.verticalScrollAccum = 0.0;
+        overview.horizontalScrollAccum = 0.0;
     }
     if (!config.overview.enabled) {
         overview.progressAnimation.reset();
@@ -316,7 +322,7 @@ void Engine::tickAnimations()
 bool Engine::isAnimating() const
 {
     const bool dragAnimating = d->windowDrag && d->windowDrag->tile && d->windowDrag->tile->isAnimating();
-    return d->edgeScrolling || d->overview.progressAnimation.has_value() || dragAnimating
+    return d->edgeScrolling || d->overview.progressAnimation.has_value() || !d->overview.cameraYAnimations.isEmpty() || dragAnimating
         || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
 }
 

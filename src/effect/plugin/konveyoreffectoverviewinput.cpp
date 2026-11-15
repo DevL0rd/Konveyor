@@ -56,6 +56,7 @@ bool KonveyorEffect::overviewInputActive() const
 bool KonveyorEffect::handleOverviewAxis(
     const QPointF &position, Qt::Orientation orientation, qreal delta, qint32 deltaV120, bool finger, Qt::KeyboardModifiers modifiers)
 {
+    Q_UNUSED(finger);
     if (!overviewInputActive()) {
         return false;
     }
@@ -64,11 +65,8 @@ bool KonveyorEffect::handleOverviewAxis(
         return true;
     }
     const bool shift = modifiers.testFlag(Qt::ShiftModifier);
-    const QPointF pan = Layout::overviewPanDelta(orientation, delta, deltaV120, finger, shift);
-    if (!pan.isNull()) {
-        changeEngine().overviewPan(output, pan);
-        KWin::effects->addRepaintFull();
-    }
+    changeEngine().overviewScroll(output, orientation, delta, deltaV120, shift);
+    KWin::effects->addRepaintFull();
     return true;
 }
 
@@ -93,7 +91,9 @@ bool KonveyorEffect::handleOverviewMotion(const QPointF &position)
     if (!overviewInputActive()) {
         return false;
     }
-    if (changeEngine().overviewPointerMoved(position)) {
+    const bool dragging = readEngine().overviewPointerActive();
+    const bool changed = dragging ? changeEngine().overviewPointerMoved(position) : d->engine.overviewHover(position);
+    if (changed) {
         KWin::effects->addRepaintFull();
     }
     return true;
@@ -108,7 +108,9 @@ bool KonveyorEffect::handleOverviewKey(int key, bool pressed, Qt::KeyboardModifi
         return true;
     }
     if (key == Qt::Key_Escape) {
-        changeEngine().setOverviewOpen(false);
+        if (!changeEngine().overviewActivateSelected()) {
+            changeEngine().setOverviewOpen(false);
+        }
     } else if (const auto direction = directionOf(key)) {
         changeEngine().overviewMoveSelection(*direction);
     } else if (key == Qt::Key_Tab || key == Qt::Key_Backtab) {

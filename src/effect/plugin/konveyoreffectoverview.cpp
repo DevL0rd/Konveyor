@@ -39,9 +39,9 @@ void KonveyorEffect::showKdeOverview(bool open)
 
 void KonveyorEffect::updateWindowVisibility(const QList<Layout::WindowState> &states)
 {
-    const WindowVisibilityHold hold = readEngine().isOverviewOpen() ? WindowVisibilityHold::AllWindows
-        : readEngine().isWorkspaceTransitioning()                   ? WindowVisibilityHold::VisibleWindows
-                                                                    : WindowVisibilityHold::None;
+    const WindowVisibilityHold hold = (readEngine().isOverviewOpen() || overviewPaintActive()) ? WindowVisibilityHold::AllWindows
+        : readEngine().isWorkspaceTransitioning()                                            ? WindowVisibilityHold::VisibleWindows
+                                                                                             : WindowVisibilityHold::None;
     d->visibility.sync(states, hold);
 }
 

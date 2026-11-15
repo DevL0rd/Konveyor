@@ -12,8 +12,12 @@ namespace Konveyor
 
 void KonveyorEffect::prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data)
 {
-    if (spillHome(w->window()) || isDragged(w->window())) {
+    const bool overviewWindow = overviewPaintActive() && d->windows.idOf(w->window());
+    if (spillHome(w->window()) || isDragged(w->window()) || overviewWindow) {
         data.setTranslucent();
+        if (overviewWindow) {
+            data.mask |= PAINT_WINDOW_TRANSFORMED;
+        }
     }
     KWin::Effect::prePaintWindow(view, w, data);
 }
@@ -45,6 +49,9 @@ PaintWindowResult KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTa
 
 void KonveyorEffect::prePaintScreen(KWin::ScreenPrePaintData &data)
 {
+    if (overviewPaintActive()) {
+        data.mask |= PAINT_SCREEN_TRANSFORMED | PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS;
+    }
     KWin::Effect::prePaintScreen(data);
 }
 
@@ -87,6 +94,9 @@ void KonveyorEffect::postPaintScreen()
 {
     d->decorations.scheduleBorderFrames();
     KWin::Effect::postPaintScreen();
+    if (overviewPaintActive() && d->animating) {
+        KWin::effects->addRepaintFull();
+    }
 }
 
 }

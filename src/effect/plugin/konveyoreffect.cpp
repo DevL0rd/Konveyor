@@ -277,6 +277,10 @@ void KonveyorEffect::updateDecorations(const QList<Layout::WindowState> &states)
 
 void KonveyorEffect::updateDropHint(const QList<Layout::WindowState> &states)
 {
+    if (overviewPaintActive() || readEngine().isOverviewOpen()) {
+        d->decorations.hideDropHint();
+        return;
+    }
     const std::optional<Layout::WindowId> moving = readEngine().movingWindow();
     const QList<Layout::OutputState> outputs = readEngine().outputStates();
     const auto hinted = std::ranges::find_if(outputs, [](const Layout::OutputState &output) { return output.dropHint.has_value(); });
@@ -294,6 +298,13 @@ void KonveyorEffect::updateDropHint(const QList<Layout::WindowState> &states)
 
 void KonveyorEffect::updateDraggedOpacity(const QList<Layout::WindowState> &states)
 {
+    if (overviewPaintActive() || readEngine().isOverviewOpen()) {
+        if (d->draggedOpacity) {
+            setDragFade(d->windows.windowOf(d->draggedOpacity->first), std::nullopt);
+            d->draggedOpacity.reset();
+        }
+        return;
+    }
     const std::optional<Layout::WindowId> moving = readEngine().movingWindow();
     const auto state = std::ranges::find_if(states, [&moving](const Layout::WindowState &each) { return each.id == moving; });
     const std::optional<std::pair<Layout::WindowId, double>> wanted

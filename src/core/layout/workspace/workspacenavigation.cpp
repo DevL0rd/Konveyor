@@ -21,6 +21,12 @@ bool Workspace::focusRight(bool wrap)
     return m_strip.focusRight(wrap);
 }
 
+bool Workspace::panView(double delta)
+{
+    focusTiling();
+    return m_strip.panView(delta);
+}
+
 void Workspace::focusColumnFirst()
 {
     focusTiling();

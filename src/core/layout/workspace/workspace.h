@@ -113,6 +113,8 @@ public:
 
     bool focusLeft(bool wrap);
     bool focusRight(bool wrap);
+    bool panView(double delta);
+    void setOverviewOpen(bool open) { m_strip.setOverviewOpen(open); }
     void focusColumnFirst();
     void focusColumnLast();
     void focusColumnRightOrFirst();

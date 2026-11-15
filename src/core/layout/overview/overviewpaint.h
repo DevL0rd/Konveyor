@@ -10,12 +10,12 @@ namespace Konveyor::Layout
 {
 
 // Style knobs the painter applies on top of the geometry plan.
-inline constexpr double kOverviewScrimAlpha = 0.45;
-inline constexpr double kOverviewCardAlpha = 0.28;
-inline constexpr double kOverviewCardActiveAlpha = 0.42;
-inline constexpr double kOverviewCardHoverAlpha = 0.55;
-inline constexpr double kOverviewCardDraggedAlpha = 0.18;
-inline constexpr double kOverviewOutlineAlpha = 0.9;
+inline constexpr double kOverviewScrimAlpha = 0.18;
+inline constexpr double kOverviewCardAlpha = 0.14;
+inline constexpr double kOverviewCardActiveAlpha = 0.24;
+inline constexpr double kOverviewCardHoverAlpha = 0.34;
+inline constexpr double kOverviewCardDraggedAlpha = 0.10;
+inline constexpr double kOverviewOutlineAlpha = 0.95;
 
 struct OverviewPaintCard
 {

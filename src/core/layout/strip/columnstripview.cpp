@@ -31,7 +31,7 @@ double ColumnStrip::targetScrollPosition() const
 
 void ColumnStrip::reconcileView()
 {
-    if (m_columns.empty() || m_scroll.isSwiping() || m_resize) {
+    if (m_columns.empty() || m_scroll.isSwiping() || m_resize || m_overviewPanned) {
         return;
     }
     const Column &active = m_columns[m_activeColumnIndex];

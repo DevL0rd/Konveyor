@@ -1,6 +1,8 @@
 #include "layout/engine/engineprivate.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
 namespace Konveyor::Layout
 {
@@ -53,8 +55,126 @@ void Engine::overviewPan(const QString &output, const QPointF &delta)
     if (view == views.end()) {
         return;
     }
+    const QRectF bounds = view->contentBounds.united(QRectF(view->camera, view->outputGeometry.size()));
     const QPointF moved = view->camera + delta;
-    d->overview.cameras.insert(output, clampOverviewCamera(view->contentBounds, view->outputGeometry.size(), moved));
+    d->overview.cameras.insert(output, clampOverviewCamera(bounds, view->outputGeometry.size(), moved));
+}
+
+std::optional<WindowId> Engine::Private::centeredOverviewWindow(const QString &output) const
+{
+    const QList<OverviewView> views = overviewViews();
+    const OverviewView *view = viewAt(views, output);
+    if (!view) {
+        return std::nullopt;
+    }
+    const QPointF center = view->outputGeometry.center();
+    const int activeWorkspace = view->activeWorkspace + 1;
+    std::optional<WindowId> best;
+    double bestDist = std::numeric_limits<double>::max();
+    for (const OverviewWindow &window : view->windows) {
+        if (window.workspaceIndex != activeWorkspace) {
+            continue;
+        }
+        const QPointF diff = window.rect.center() - center;
+        const double dist = diff.x() * diff.x() + diff.y() * diff.y();
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = window.id;
+        }
+    }
+    if (best) {
+        return best;
+    }
+    for (const OverviewWindow &window : view->windows) {
+        const QPointF diff = window.rect.center() - center;
+        const double dist = diff.x() * diff.x() + diff.y() * diff.y();
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = window.id;
+        }
+    }
+    return best;
+}
+
+void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift)
+{
+    if (!d->builtinOverviewOpen()) {
+        return;
+    }
+    Monitor *monitor = d->monitorByName(output);
+    if (!monitor) {
+        return;
+    }
+    const double units = deltaV120 != 0 ? static_cast<double>(deltaV120) : delta * 8.0;
+    if (units == 0.0) {
+        return;
+    }
+    const bool horizontal = orientation == Qt::Horizontal || shift;
+    bool changed = false;
+    bool workspaceChanged = false;
+    double beforeCameraY = 0.0;
+    if (!horizontal) {
+        const QList<OverviewView> beforeViews = d->overviewViews();
+        if (const OverviewView *beforeView = viewAt(beforeViews, output)) {
+            beforeCameraY = beforeView->camera.y();
+        }
+        d->overview.verticalScrollAccum += units;
+        while (std::abs(d->overview.verticalScrollAccum) >= 120.0) {
+            const int step = d->overview.verticalScrollAccum > 0.0 ? 1 : -1;
+            d->overview.verticalScrollAccum -= step * 120.0;
+            const std::size_t before = monitor->activeWorkspaceIndex();
+            if (step > 0) {
+                monitor->switchWorkspaceDown();
+            } else {
+                monitor->switchWorkspaceUp();
+            }
+            if (monitor->activeWorkspaceIndex() != before) {
+                workspaceChanged = true;
+                changed = true;
+            }
+        }
+    } else if (d->config.animations.enabled) {
+        constexpr double kHorizontalPanPerNotch = 140.0;
+        const double panDelta = (units / 120.0) * kHorizontalPanPerNotch;
+        changed = monitor->activeWorkspace().panView(panDelta);
+    } else {
+        d->overview.horizontalScrollAccum += units;
+        while (std::abs(d->overview.horizontalScrollAccum) >= 120.0) {
+            const int step = d->overview.horizontalScrollAccum > 0.0 ? 1 : -1;
+            d->overview.horizontalScrollAccum -= step * 120.0;
+            Workspace &workspace = monitor->activeWorkspace();
+            const bool moved
+                = step > 0 ? workspace.focusRight(d->config.layout.wrapColumns) : workspace.focusLeft(d->config.layout.wrapColumns);
+            changed = changed || moved;
+        }
+    }
+    if (!changed) {
+        return;
+    }
+    d->overview.cameras.remove(output);
+    if (workspaceChanged) {
+        d->overview.cameraYAnimations.remove(output);
+        if (d->config.animations.enabled) {
+            const QList<OverviewView> afterViews = d->overviewViews();
+            if (const OverviewView *afterView = viewAt(afterViews, output)) {
+                const double afterCameraY = afterView->camera.y();
+                if (!qFuzzyCompare(beforeCameraY, afterCameraY)) {
+                    d->overview.cameraYAnimations.insert(
+                        output, Anim::Animation(d->clock, beforeCameraY, afterCameraY, 0.0, d->config.animations.workspaceSwitch));
+                }
+            }
+        }
+    }
+    std::optional<WindowId> next = horizontal && d->config.animations.enabled ? d->centeredOverviewWindow(output)
+                                                                               : monitor->activeWorkspace().activeWindow();
+    if (!next) {
+        next = d->centeredOverviewWindow(output);
+    }
+    d->overview.selected = next;
+    if (const auto index = d->monitorIndexByName(output)) {
+        d->activeMonitorIndex = *index;
+    }
+    d->refresh();
 }
 
 std::optional<WindowId> Engine::overviewSelectedWindow() const
@@ -101,7 +221,8 @@ void Engine::Private::revealOverviewSelection()
             }
             const QRectF local = window.rect.translated(-view.outputGeometry.topLeft());
             const QRectF target = local.translated(view.camera);
-            overview.cameras.insert(view.output, overviewRevealCamera(view.contentBounds, view.outputGeometry.size(), view.camera, target));
+            const QRectF bounds = view.contentBounds.united(QRectF(view.camera, view.outputGeometry.size()));
+            overview.cameras.insert(view.output, overviewRevealCamera(bounds, view.outputGeometry.size(), view.camera, target));
             return;
         }
     }
@@ -186,6 +307,13 @@ void Engine::Private::startOverviewAnimation(bool open)
 
 void Engine::Private::tickOverview()
 {
+    for (auto it = overview.cameraYAnimations.begin(); it != overview.cameraYAnimations.end();) {
+        if (it->isFinished()) {
+            it = overview.cameraYAnimations.erase(it);
+        } else {
+            ++it;
+        }
+    }
     if (!overview.progressAnimation) {
         return;
     }
@@ -197,6 +325,7 @@ void Engine::Private::tickOverview()
             overview.dragWindow.reset();
             overview.reorderFrom = -1;
             overview.reorderOutput.clear();
+            overview.cameraYAnimations.clear();
         }
         return;
     }
@@ -206,6 +335,7 @@ void Engine::Private::tickOverview()
 void Engine::Private::seedOverviewCamera()
 {
     overview.cameras.clear();
+    overview.cameraYAnimations.clear();
     const Workspace *workspace = activeWorkspace();
     overview.selected = focused ? focused : (workspace ? workspace->activeWindow() : std::nullopt);
 }
@@ -313,7 +443,17 @@ OverviewView Engine::Private::overviewView(
     const OverviewGeometry geometry = computeOverviewGeometry(input);
     view.scale = geometry.scale;
     view.contentBounds = geometry.contentBounds;
-    view.camera = clampOverviewCamera(geometry.contentBounds, input.viewSize, overview.cameras.value(view.output, geometry.camera));
+    const auto camIt = overview.cameras.constFind(view.output);
+    if (camIt != overview.cameras.constEnd()) {
+        const QRectF bounds = geometry.contentBounds.united(QRectF(geometry.camera, input.viewSize));
+        view.camera = clampOverviewCamera(bounds, input.viewSize, *camIt);
+    } else {
+        view.camera = geometry.camera;
+    }
+    const auto animIt = overview.cameraYAnimations.constFind(view.output);
+    if (animIt != overview.cameraYAnimations.constEnd()) {
+        view.camera.setY(animIt->valueWithoutOvershoot());
+    }
     view.offscreen = overviewOffscreenSides(geometry.contentBounds, overviewViewport(view.camera, input.viewSize));
     for (const QRectF &card : std::as_const(geometry.cards)) {
         view.workspaceRects.append(card.translated(origin - view.camera));

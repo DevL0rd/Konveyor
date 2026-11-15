@@ -343,6 +343,7 @@ public:
     QList<OverviewView> overviewViews() const;
     void setOverviewReserved(const QString &output, const QMarginsF &reserved);
     void overviewPan(const QString &output, const QPointF &delta);
+    void overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift);
     std::optional<WindowId> overviewSelectedWindow() const;
     void overviewSelectWindow(std::optional<WindowId> id);
     bool overviewActivateSelected();
@@ -358,6 +359,7 @@ public:
     // far enough, and release either activates or finishes the drag.
     void overviewPointerPressed(const QPointF &globalPos);
     bool overviewPointerMoved(const QPointF &globalPos);
+    bool overviewHover(const QPointF &globalPos);
     void overviewPointerReleased();
     bool overviewPointerActive() const;
     Anim::Duration timeUntilStartupEnds() const;

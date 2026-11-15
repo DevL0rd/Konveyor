@@ -72,6 +72,9 @@ private Q_SLOTS:
     void motionWithoutPressIsIgnored();
     void pointerDoesNothingWhenClosed();
     void pressUsesTheOutputUnderThePointer();
+    void verticalScrollStepsWorkspacesAndSelectsCenteredWindow();
+    void horizontalScrollMovesColumnsAndUpdatesSelection();
+    void hoverSelectsWindowAndToggleExitFocusesSelection();
 };
 
 void TestOverviewPointer::panDeltaFollowsOrientationAndShift()
@@ -252,6 +255,58 @@ void TestOverviewPointer::pressUsesTheOutputUnderThePointer()
     QCOMPARE(fixture.engine().focusedWindow(), std::optional(there));
     QCOMPARE(fixture.state(there).output, QStringLiteral("HDMI-A-1"));
     VERIFY_INVARIANTS(fixture);
+}
+
+void TestOverviewPointer::verticalScrollStepsWorkspacesAndSelectsCenteredWindow()
+{
+    Scene scene;
+    scene.open();
+    const Layout::OverviewView before = scene.fixture.engine().overviewViews().first();
+    QCOMPARE(before.activeWorkspace, 0);
+
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 120, false);
+    const Layout::OverviewView down = scene.fixture.engine().overviewViews().first();
+    QCOMPARE(down.activeWorkspace, 1);
+    QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.c));
+
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, -15.0, -120, false);
+    const Layout::OverviewView up = scene.fixture.engine().overviewViews().first();
+    QCOMPARE(up.activeWorkspace, 0);
+    QVERIFY(scene.fixture.engine().overviewSelectedWindow().has_value());
+    VERIFY_INVARIANTS(scene.fixture);
+}
+
+void TestOverviewPointer::horizontalScrollMovesColumnsAndUpdatesSelection()
+{
+    Scene scene;
+    scene.open();
+    scene.fixture.engine().overviewSelectWindow(scene.b);
+    QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.b));
+
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, -15.0, -120, false);
+    QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.a));
+
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, 15.0, 120, false);
+    QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.b));
+    VERIFY_INVARIANTS(scene.fixture);
+}
+
+void TestOverviewPointer::hoverSelectsWindowAndToggleExitFocusesSelection()
+{
+    Scene scene;
+    scene.open();
+    const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
+    const auto winA = windowFor(view, scene.a);
+    QVERIFY(winA);
+
+    QVERIFY(scene.fixture.engine().overviewHover(winA->rect.center()));
+    QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.a));
+
+    scene.fixture.perform(QStringLiteral("toggle-overview"));
+    scene.fixture.settle();
+    QVERIFY(!scene.fixture.engine().isOverviewOpen());
+    QCOMPARE(scene.fixture.engine().focusedWindow(), std::optional(scene.a));
+    VERIFY_INVARIANTS(scene.fixture);
 }
 
 QTEST_MAIN(TestOverviewPointer)

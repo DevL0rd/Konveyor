@@ -77,6 +77,13 @@ public:
 
     bool focusLeft(bool wrap);
     bool focusRight(bool wrap);
+    bool panView(double delta);
+    void setOverviewOpen(bool open)
+    {
+        if (!open) {
+            m_overviewPanned = false;
+        }
+    }
     void focusColumnFirst();
     void focusColumnLast();
     void focusColumn(std::size_t index);
@@ -251,6 +258,7 @@ private:
 
     std::optional<ReturnColumn> m_returnColumnOnClose;
     std::optional<double> m_scrollToRestore;
+    bool m_overviewPanned = false;
     AreaInfo m_area;
     Anim::Clock m_clock;
     OptionsPtr m_options;

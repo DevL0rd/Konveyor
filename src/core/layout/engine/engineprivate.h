@@ -91,6 +91,7 @@ struct OverviewRuntime
     std::optional<Anim::Animation> progressAnimation;
     double progress = 0.0;
     QHash<QString, QPointF> cameras;
+    QHash<QString, Anim::Animation> cameraYAnimations;
     QHash<QString, QMarginsF> reserved;
     std::optional<WindowId> selected;
     std::optional<WindowId> dragWindow;
@@ -102,6 +103,8 @@ struct OverviewRuntime
     int reorderFrom = -1;
     int reorderTo = -1;
     std::optional<OverviewPress> press;
+    double verticalScrollAccum = 0.0;
+    double horizontalScrollAccum = 0.0;
 };
 
 struct Engine::Private
@@ -146,6 +149,7 @@ struct Engine::Private
     void tickOverview();
     void seedOverviewCamera();
     void revealOverviewSelection();
+    std::optional<WindowId> centeredOverviewWindow(const QString &output) const;
     void updateOverviewDrop();
     void clearOverviewDrag();
 

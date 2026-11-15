@@ -84,6 +84,29 @@ void Engine::overviewPointerPressed(const QPointF &globalPos)
     setOverviewOpen(false);
 }
 
+bool Engine::overviewHover(const QPointF &globalPos)
+{
+    if (!d->builtinOverviewOpen() || d->overview.press) {
+        return false;
+    }
+    const QList<OverviewView> views = d->overviewViews();
+    const OverviewView *view = viewWithPoint(views, globalPos);
+    if (!view) {
+        return false;
+    }
+    std::optional<WindowId> target;
+    if (const OverviewWindow *window = windowAtPoint(*view, globalPos)) {
+        target = window->id;
+    } else {
+        target = d->centeredOverviewWindow(view->output);
+    }
+    if (d->overview.selected == target) {
+        return false;
+    }
+    d->overview.selected = target;
+    return true;
+}
+
 bool Engine::overviewPointerMoved(const QPointF &globalPos)
 {
     if (!d->overview.press) {
