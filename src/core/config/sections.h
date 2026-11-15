@@ -47,6 +47,7 @@ void decodeAnimations(const Kdl::Node &node, Animations &animations);
 void decodeGestures(const Kdl::Node &node, Gestures &gestures);
 void decodeInput(const Kdl::Node &node, Input &input);
 void decodePeekDesktop(const Kdl::Node &node, PeekDesktop &peek);
+void decodeOverview(const Kdl::Node &node, Overview &overview);
 void decodeOutput(LoadContext &context, const Kdl::Node &node);
 void decodeMonitorProfile(LoadContext &context, const Kdl::Node &node);
 void decodeWorkspace(LoadContext &context, const Kdl::Node &node);

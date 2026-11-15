@@ -121,12 +121,12 @@ bool KonveyorEffect::placedBefore(KWin::Window *first, KWin::Window *second) con
 
 bool KonveyorEffect::isActive() const
 {
-    return d->animating || d->draggedOpacity || d->decorations.paintsBorders() || hasSpill();
+    return d->animating || d->draggedOpacity || d->decorations.paintsBorders() || hasSpill() || overviewPaintActive();
 }
 
 bool KonveyorEffect::blocksDirectScanout() const
 {
-    return d->animating;
+    return d->animating || overviewPaintActive();
 }
 
 std::optional<QRectF> KonveyorEffect::spillHome(KWin::Window *window) const
@@ -178,8 +178,12 @@ const Layout::Engine &KonveyorEffect::readEngine() const
 
 void KonveyorEffect::stepAnimations()
 {
+    const bool wasOverview = overviewPaintActive();
     changeEngine().tickAnimations();
     flush();
+    if (wasOverview || overviewPaintActive()) {
+        KWin::effects->addRepaintFull();
+    }
     if (!d->animating) {
         d->animationTimer.stop();
     }
@@ -215,6 +219,11 @@ void KonveyorEffect::flush()
     d->fullscreenShade.update(states);
     applyFocusRequest();
     d->plasmaShell.update(states, d->outputs.orderedNames());
+    const bool overviewVisible = overviewPaintActive();
+    if (overviewVisible != d->overviewVisible) {
+        d->overviewVisible = overviewVisible;
+        KWin::effects->addRepaintFull();
+    }
     d->animating = stepPeek() || readEngine().isAnimating();
     if (d->animating && !d->animationTimer.isActive()) {
         d->animationTimer.start();

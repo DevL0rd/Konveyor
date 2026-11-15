@@ -17,6 +17,9 @@ KWin::Effect *kdeOverview()
 
 void KonveyorEffect::showKdeOverview(bool open)
 {
+    if (readEngine().isOverviewEnabled()) {
+        return;
+    }
     KWin::Effect *overview = kdeOverview();
     if (!overview) {
         qWarning() << "konveyor: KDE's Overview effect is not loaded, so the overview can't" << (open ? "open" : "close");
@@ -42,7 +45,7 @@ void KonveyorEffect::updateWindowVisibility(const QList<Layout::WindowState> &st
 void KonveyorEffect::connectOverviewSync()
 {
     connect(KWin::effects, &KWin::EffectsHandler::activeFullScreenEffectChanged, this, [this] {
-        if (d->slideSuppression) {
+        if (d->slideSuppression || readEngine().isOverviewEnabled()) {
             return;
         }
         const KWin::Effect *overview = kdeOverview();

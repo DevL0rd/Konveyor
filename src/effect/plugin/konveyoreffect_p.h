@@ -168,6 +168,7 @@ struct KonveyorEffect::Private
     LayoutHandoff handoff;
     bool animating = false;
     bool slideSuppression = false;
+    bool overviewVisible = false;
 
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;

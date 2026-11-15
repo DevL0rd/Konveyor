@@ -68,6 +68,11 @@ void KonveyorEffect::installInputFilter()
         },
         [this](int key, bool pressed, Qt::KeyboardModifiers modifiers) { return handlePeekKey(key, pressed, modifiers); },
         [this](bool used) { return handlePeekPointer(used); },
+        [this](const QPointF &position, Qt::Orientation orientation, qreal delta, qint32 deltaV120, bool finger,
+            Qt::KeyboardModifiers modifiers) { return handleOverviewAxis(position, orientation, delta, deltaV120, finger, modifiers); },
+        [this](const QPointF &position, Qt::MouseButton button, bool pressed) { return handleOverviewButton(position, button, pressed); },
+        [this](const QPointF &position) { return handleOverviewMotion(position); },
+        [this](int key, bool pressed, Qt::KeyboardModifiers modifiers) { return handleOverviewKey(key, pressed, modifiers); },
     });
     d->axisInput = std::make_unique<AxisFilter>(pointerBind);
     d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {

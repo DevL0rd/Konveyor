@@ -47,6 +47,8 @@ public:
     bool isActive() const override;
     bool borderActivated(KWin::ElectricBorder border) override;
     void prePaintScreen(KWin::ScreenPrePaintData &data) override;
+    [[nodiscard]] bool paintScreen(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, int mask,
+        const KWin::Region &deviceRegion, KWin::LogicalOutput *screen) override;
     void postPaintScreen() override;
     void prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data) override;
     PaintWindowResult paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,
@@ -100,6 +102,15 @@ private:
     void decidePendingTouchMove(qint64 timestampMs);
     void showKdeOverview(bool open);
     void connectOverviewSync();
+    bool overviewPaintActive() const;
+    bool overviewInputActive() const;
+    bool handleOverviewAxis(
+        const QPointF &position, Qt::Orientation orientation, qreal delta, qint32 deltaV120, bool finger, Qt::KeyboardModifiers modifiers);
+    bool handleOverviewButton(const QPointF &position, Qt::MouseButton button, bool pressed);
+    bool handleOverviewMotion(const QPointF &position);
+    bool handleOverviewKey(int key, bool pressed, Qt::KeyboardModifiers modifiers);
+    void paintOverview(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &deviceRegion,
+        const Layout::OverviewView &view, const QRectF &workArea);
     void updateWindowVisibility(const QList<Layout::WindowState> &states);
     void followActiveWindow();
     void followActiveWindowAfterClose();

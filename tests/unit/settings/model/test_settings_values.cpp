@@ -47,10 +47,12 @@ private:
 void TestSettingsValues::globalDefaults()
 {
     const QVariantMap values = globalValues(Config::Config());
-    QCOMPARE(values.size(), 30);
+    QCOMPARE(values.size(), 31);
     for (const QString &key : flagKeys()) {
         QVERIFY2(values.value(key).typeId() == QMetaType::Bool && !values.value(key).toBool(), qPrintable(key));
     }
+    QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
+        (QVariantMap {{QStringLiteral("enabled"), false}, {QStringLiteral("minimum-scale"), 0.3}, {QStringLiteral("card-gap"), 0.08}}));
     QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(true));
     QCOMPARE(values.value(QStringLiteral("input/warp-mouse-to-focus/mode")).toString(), QString());
     QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("move-window"));
@@ -72,6 +74,7 @@ hide-desktop-widgets
 fill-panels-on-maximize
 disable-minimize
 experiments { prevent-fullscreen-minimize; prevent-fullscreen-exit; peek-desktop { delay-ms 450; }; }
+overview { enabled; minimum-scale 0.5; card-gap 0.2; }
 config-notification { disable-failed; }
 input {
     focus-follows-mouse
@@ -124,6 +127,8 @@ gestures {
             {QStringLiteral("monitor-edges"), QStringLiteral("all")}}));
     QCOMPARE(values.value(QStringLiteral("experiments/peek-desktop")).toMap(),
         (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("delay-ms"), 450}}));
+    QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
+        (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("minimum-scale"), 0.5}, {QStringLiteral("card-gap"), 0.2}}));
     const QVariantMap touchpad = values.value(QStringLiteral("gestures/touchpad")).toMap();
     QCOMPARE(touchpad.value(QStringLiteral("swipe-fingers")).toInt(), 4);
     QCOMPARE(touchpad.value(QStringLiteral("pinch-fingers")).toInt(), 3);

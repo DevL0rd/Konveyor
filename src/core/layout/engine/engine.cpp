@@ -83,6 +83,9 @@ void Engine::setConfig(const Config::Config &config)
     }
     const QList<Config::NamedWorkspace> previousNamed = d->config.workspaces;
     d->config = config;
+    if (!d->config.overview.enabled && d->overviewOpen) {
+        d->setOverviewState(false);
+    }
     d->forgetRemovedWorkspaceNames(previousNamed);
     d->applyOptions();
     d->applyNamedWorkspaceLayouts();
@@ -259,6 +262,9 @@ void Engine::setOverviewOpen(bool open)
     if (d->overviewOpen == open) {
         return;
     }
+    if (!open) {
+        overviewCancelDrag();
+    }
     d->setOverviewState(open);
     if (d->hooks.setOverviewOpen) {
         d->hooks.setOverviewOpen(open);
@@ -271,6 +277,24 @@ void Engine::Private::setOverviewState(bool open)
     for (Monitor &monitor : monitors) {
         monitor.overviewOpen = open;
     }
+    if (!open) {
+        overview.selected.reset();
+        overview.dragWindow.reset();
+        overview.reorderFrom = -1;
+        overview.reorderTo = -1;
+        overview.reorderOutput.clear();
+        overview.drop.reset();
+        overview.press.reset();
+    }
+    if (!config.overview.enabled) {
+        overview.progressAnimation.reset();
+        overview.progress = open ? 1.0 : 0.0;
+        return;
+    }
+    if (open) {
+        seedOverviewCamera();
+    }
+    startOverviewAnimation(open);
 }
 
 void Engine::tickAnimations()
@@ -285,13 +309,15 @@ void Engine::tickAnimations()
     if (d->windowDrag && d->windowDrag->tile) {
         d->windowDrag->tile->tickAnimations();
     }
+    d->tickOverview();
     d->refresh();
 }
 
 bool Engine::isAnimating() const
 {
     const bool dragAnimating = d->windowDrag && d->windowDrag->tile && d->windowDrag->tile->isAnimating();
-    return d->edgeScrolling || dragAnimating || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
+    return d->edgeScrolling || d->overview.progressAnimation.has_value() || dragAnimating
+        || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
 }
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area)

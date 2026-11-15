@@ -398,3 +398,9 @@ audio-beat-threshold 1.4
 // Konveyor experiment: uncomment to hold Meta on its own and fade every other window on that screen, so files can be
 // dragged to and from the desktop. The focused window stays and slides aside when the pointer leaves it.
 // experiments { peek-desktop { on; delay-ms 300; } }
+
+// Konveyor extension: uncomment to replace KDE's overview with Konveyor's Niri-style overview. Every workspace on every
+// monitor is drawn in place, the wheel pans both ways (Shift+wheel for horizontal), and windows can be dragged between
+// workspaces. minimum-scale is the smallest a window may get; card-gap is the gap between workspace cards as a fraction
+// of the output height.
+// overview { enabled true; minimum-scale 0.3; card-gap 0.08; }

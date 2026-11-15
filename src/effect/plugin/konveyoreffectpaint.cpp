@@ -5,6 +5,8 @@
 
 #include <QScopeGuard>
 
+#include <algorithm>
+
 namespace Konveyor
 {
 
@@ -19,6 +21,9 @@ void KonveyorEffect::prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *
 PaintWindowResult KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport,
     KWin::EffectWindow *w, int mask, const KWin::Region &deviceRegion, KWin::WindowPaintData &data)
 {
+    if (overviewPaintActive() && d->windows.idOf(w->window())) {
+        return PaintWindowResult(true);
+    }
     const std::optional<QRectF> home = spillHome(w->window());
     const KWin::Region clipped = home ? deviceRegion & viewport.mapToDeviceCoordinatesAligned(KWin::RectF(*home)) : deviceRegion;
     if (clipped.isEmpty()) {
@@ -38,6 +43,24 @@ PaintWindowResult KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTa
 void KonveyorEffect::prePaintScreen(KWin::ScreenPrePaintData &data)
 {
     KWin::Effect::prePaintScreen(data);
+}
+
+bool KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, int mask,
+    const KWin::Region &deviceRegion, KWin::LogicalOutput *screen)
+{
+    if (!overviewPaintActive() || !screen) {
+        return KWin::Effect::paintScreen(renderTarget, viewport, mask, deviceRegion, screen);
+    }
+    const QList<Layout::OverviewView> views = readEngine().overviewViews();
+    const auto view = std::ranges::find(views, screen->name(), &Layout::OverviewView::output);
+    if (view == views.end()) {
+        return KWin::Effect::paintScreen(renderTarget, viewport, mask, deviceRegion, screen);
+    }
+    if (!KWin::Effect::paintScreen(renderTarget, viewport, mask, deviceRegion, screen)) {
+        return false;
+    }
+    paintOverview(renderTarget, viewport, deviceRegion, *view, KWin::effects->clientArea(KWin::MaximizeArea, screen));
+    return true;
 }
 
 void KonveyorEffect::postPaintScreen()

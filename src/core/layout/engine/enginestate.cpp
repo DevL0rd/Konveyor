@@ -167,15 +167,14 @@ WindowState buildMovedWindowState(const Tile &tile, const Workspace &workspace, 
 
 }
 
-QList<WindowState> Engine::windowStates() const
+QList<WindowState> Engine::Private::windowStates() const
 {
     QList<WindowState> states;
-    for (std::size_t monitorIndex = 0; monitorIndex < d->monitors.size(); ++monitorIndex) {
-        const Monitor &monitor = d->monitors[monitorIndex];
-        const std::vector<double> renderOffsets = d->workspaceRenderOffsets(monitor);
-        const bool workspaceMotion = d->usesWorkspaceMotion(monitor);
+    for (const Monitor &monitor : monitors) {
+        const std::vector<double> renderOffsets = workspaceRenderOffsets(monitor);
+        const bool workspaceMotion = usesWorkspaceMotion(monitor);
         const double heightWithGap = monitor.workspaceHeightWithGap();
-        const QPointF origin = d->originOf(monitor.outputName());
+        const QPointF origin = originOf(monitor.outputName());
         const double viewHeight = monitor.area().viewSize.height();
         for (std::size_t idx = 0; idx < monitor.workspaces().size(); ++idx) {
             const Workspace &workspace = monitor.workspaces()[idx];
@@ -191,11 +190,16 @@ QList<WindowState> Engine::windowStates() const
             const double distance = qAbs(monitor.transitionProgress() - static_cast<double>(idx));
             const bool riding = monitor.isWorkspaceTransitioning() && distance < 1.0;
             context.ringOpacity = riding ? workspaceRingOpacity(monitor.options()->layout.focusRingTransition, distance) : -1.0;
-            d->appendWorkspaceStates(states, workspace, context);
+            appendWorkspaceStates(states, workspace, context);
         }
     }
-    d->appendMovedWindowState(states);
+    appendMovedWindowState(states);
     return states;
+}
+
+QList<WindowState> Engine::windowStates() const
+{
+    return d->windowStates();
 }
 
 void Engine::Private::appendMovedWindowState(QList<WindowState> &states) const

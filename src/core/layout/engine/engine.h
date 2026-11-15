@@ -3,6 +3,8 @@
 #include "anim/duration.h"
 #include "config/types.h"
 #include "layout/engine/windowmemory.h"
+#include "layout/overview/overviewgeometry.h"
+#include "layout/overview/overviewinput.h"
 
 #include <QList>
 #include <QPointF>
@@ -208,6 +210,37 @@ struct OutputState
     bool operator==(const OutputState &) const = default;
 };
 
+struct OverviewWindow
+{
+    WindowId id = 0;
+    int workspaceIndex = 0;
+    QRectF rect;
+    bool selected = false;
+    bool focused = false;
+    bool operator==(const OverviewWindow &) const = default;
+};
+
+struct OverviewView
+{
+    QString output;
+    QRectF outputGeometry;
+    double scale = 1.0;
+    // Output-local offset of the visible content window.
+    QPointF camera;
+    QRectF contentBounds;
+    QList<QRectF> workspaceRects;
+    QList<OverviewWindow> windows;
+    int activeWorkspace = 0;
+    QMarginsF reserved;
+    QList<OverviewSide> offscreen;
+    // Index of the card being reordered, or -1.
+    int draggedWorkspace = -1;
+    // Index of the card under the pointer while a drag is running, or -1.
+    int dropWorkspace = -1;
+    std::optional<WindowId> draggedWindow;
+    bool operator==(const OverviewView &) const = default;
+};
+
 // How strongly a workspace's focused window shows its ring while the workspace
 // sits `distance` workspaces away from the live visible position.
 double workspaceRingOpacity(Config::FocusRingTransition mode, double distance);
@@ -305,6 +338,28 @@ public:
     bool isWorkspaceTransitioning() const;
     bool isWorkspaceTransitioning(const QString &output) const;
     bool isOverviewOpen() const;
+    bool isOverviewEnabled() const;
+    double overviewProgress() const;
+    QList<OverviewView> overviewViews() const;
+    void setOverviewReserved(const QString &output, const QMarginsF &reserved);
+    void overviewPan(const QString &output, const QPointF &delta);
+    std::optional<WindowId> overviewSelectedWindow() const;
+    void overviewSelectWindow(std::optional<WindowId> id);
+    bool overviewActivateSelected();
+    void overviewMoveSelection(OverviewDirection direction);
+    void overviewCycleSelection(bool forward);
+    void overviewBeginWindowDrag(WindowId id, const QString &output, const QPointF &globalPos);
+    void overviewBeginWorkspaceDrag(const QString &output, int workspaceIndex);
+    void overviewUpdateDrag(const QPointF &globalPos);
+    void overviewEndDrag();
+    void overviewCancelDrag();
+    // Pointer gestures inside the built-in overview. Press picks the window or
+    // workspace under the pointer, move starts a drag once the pointer travels
+    // far enough, and release either activates or finishes the drag.
+    void overviewPointerPressed(const QPointF &globalPos);
+    bool overviewPointerMoved(const QPointF &globalPos);
+    void overviewPointerReleased();
+    bool overviewPointerActive() const;
     Anim::Duration timeUntilStartupEnds() const;
     void refreshRules();
     void setOverviewOpen(bool open);

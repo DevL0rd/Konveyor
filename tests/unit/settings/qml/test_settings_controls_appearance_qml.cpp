@@ -164,6 +164,14 @@ void TestSettingsControlsAppearanceQml::controls_data()
     addControl("five tap",
         {"TouchPage", "Tap with 5 fingers", "chosen", R"(["cycle-width"])", "gestures/touchpad/five-finger-tap",
             R"({"args":["cycle-width"]})"});
+    addControl("overview on",
+        {"OverviewPage", "Use Konveyor's overview instead of KDE's", "switched", "[true]", "overview/enabled", R"({"args":[]})"});
+    addControl("overview off",
+        {"OverviewPage", "Use Konveyor's overview instead of KDE's", "switched", "[false]", "overview/enabled", "null",
+            "overview { enabled; }\n"});
+    addControl(
+        "overview scale", {"OverviewPage", "Smallest window scale", "edited", "[0.46]", "overview/minimum-scale", R"({"args":[0.46]})"});
+    addControl("overview gap", {"OverviewPage", "Space between workspaces", "edited", "[0.22]", "overview/card-gap", R"({"args":[0.22]})"});
 }
 
 QTEST_MAIN(TestSettingsControlsAppearanceQml)

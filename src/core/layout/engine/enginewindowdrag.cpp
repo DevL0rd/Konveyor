@@ -118,7 +118,12 @@ void Engine::Private::updateDropHint()
         return;
     }
     const QPointF local = windowDrag->pointerPos;
-    const Monitor::InsertTarget insertTarget = monitor->insertTargetAt(local, usesWorkspaceMotion(*monitor));
+    Monitor::InsertTarget insertTarget = monitor->insertTargetAt(local, usesWorkspaceMotion(*monitor));
+    QPointF dropPoint = local;
+    if (overview.drop && monitor->indexOfWorkspace(overview.drop->workspace)) {
+        insertTarget = {DropWorkspace {true, overview.drop->workspace, 0}, 0.0};
+        dropPoint = overview.drop->local;
+    }
     DropHint hint;
     hint.workspace = insertTarget.workspace;
     if (windowDrag->isFloating) {
@@ -126,7 +131,7 @@ void Engine::Private::updateDropHint()
     } else if (insertTarget.workspace.existing) {
         const auto idx = monitor->indexOfWorkspace(insertTarget.workspace.id);
         hint.position = idx ? monitor->workspaces()[*idx].tiledDropSlotAt(
-                                  local - QPointF(0.0, insertTarget.workspaceY), windowDrag->tile->window().rules().columnPosition)
+                                  dropPoint - QPointF(0.0, insertTarget.workspaceY), windowDrag->tile->window().rules().columnPosition)
                             : DropSlot();
     }
     monitor->dropHint = hint;
@@ -313,7 +318,11 @@ void Engine::Private::interactiveMoveFinish()
         activeMonitorIndex = *idx;
     }
     if (Monitor *monitor = activeMonitor()) {
-        dropInteractiveTile(*monitor, monitor->insertTargetAt(windowDrag->pointerPos, usesWorkspaceMotion(*monitor)));
+        Monitor::InsertTarget target = monitor->insertTargetAt(windowDrag->pointerPos, usesWorkspaceMotion(*monitor));
+        if (overview.drop && monitor->indexOfWorkspace(overview.drop->workspace)) {
+            target = {DropWorkspace {true, overview.drop->workspace, 0}, 0.0};
+        }
+        dropInteractiveTile(*monitor, target);
     }
     windowDrag.reset();
 }

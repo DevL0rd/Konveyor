@@ -69,6 +69,41 @@ struct WorkspaceRenderContext
     double ringOpacity = -1.0;
 };
 
+struct OverviewDrop
+{
+    WorkspaceId workspace = 0;
+    // Pointer position inside the target workspace, in workspace-local logical units.
+    QPointF local;
+};
+
+struct OverviewPress
+{
+    WindowId window = 0;
+    QString output;
+    // Zero-based card index, or -1 when the press landed on a window.
+    int workspaceIndex = -1;
+    QPointF origin;
+    bool dragging = false;
+};
+
+struct OverviewRuntime
+{
+    std::optional<Anim::Animation> progressAnimation;
+    double progress = 0.0;
+    QHash<QString, QPointF> cameras;
+    QHash<QString, QMarginsF> reserved;
+    std::optional<WindowId> selected;
+    std::optional<WindowId> dragWindow;
+    QString dragOutput;
+    QPointF dragPointerRatio;
+    QPointF dragPos;
+    std::optional<OverviewDrop> drop;
+    QString reorderOutput;
+    int reorderFrom = -1;
+    int reorderTo = -1;
+    std::optional<OverviewPress> press;
+};
+
 struct Engine::Private
 {
     Private(Anim::Clock &clock, Hooks hooks);
@@ -94,6 +129,7 @@ struct Engine::Private
     QString switchGestureOutput;
     std::optional<WindowId> resizeWindow;
     bool overviewOpen = false;
+    OverviewRuntime overview;
     bool nativeDesktopPresentation = false;
     Anim::Duration startupTime;
     bool rulesAtStartup = true;
@@ -105,6 +141,13 @@ struct Engine::Private
     bool usesWorkspaceMotion(const Monitor &monitor) const;
     std::vector<double> workspaceRenderOffsets(const Monitor &monitor) const;
     void setOverviewState(bool open);
+    bool builtinOverviewOpen() const { return config.overview.enabled && overviewOpen; }
+    void startOverviewAnimation(bool open);
+    void tickOverview();
+    void seedOverviewCamera();
+    void revealOverviewSelection();
+    void updateOverviewDrop();
+    void clearOverviewDrag();
 
     Monitor *activeMonitor();
     Workspace *activeWorkspace();
@@ -178,6 +221,15 @@ struct Engine::Private
     void moveAllWindowsToMonitor(std::size_t monitorIndex);
 
     void appendWorkspaceStates(QList<WindowState> &states, const Workspace &workspace, const WorkspaceRenderContext &context) const;
+    QList<WindowState> windowStates() const;
+    QList<OverviewView> overviewViews() const;
+    OverviewView overviewView(const Monitor &monitor, const QHash<WorkspaceId, QList<WindowState>> &byWorkspace,
+        const std::optional<WindowState> &draggedState) const;
+    OverviewGeometryInput overviewGeometryInput(const Monitor &monitor, int activeWorkspace,
+        const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &origin, QList<QList<WindowId>> &ids) const;
+    void appendOverviewWindows(OverviewView &view, const Monitor &monitor, const OverviewGeometry &geometry,
+        const QList<QList<WindowId>> &ids, const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &origin) const;
+    void appendOverviewDragWindow(OverviewView &view, const WindowState &draggedState, double scale) const;
     std::optional<QRectF> dropHintRect(const Monitor &monitor) const;
     void appendMovedWindowState(QList<WindowState> &states) const;
     QString checkWindowPlacement() const;
