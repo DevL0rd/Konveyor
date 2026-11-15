@@ -47,8 +47,13 @@ public:
     bool isActive() const override;
     bool borderActivated(KWin::ElectricBorder border) override;
     void prePaintScreen(KWin::ScreenPrePaintData &data) override;
+#ifdef KONVEYOR_KWIN_PAINTSCREEN_BOOL
     [[nodiscard]] bool paintScreen(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, int mask,
         const KWin::Region &deviceRegion, KWin::LogicalOutput *screen) override;
+#else
+    void paintScreen(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, int mask,
+        const KWin::Region &deviceRegion, KWin::LogicalOutput *screen) override;
+#endif
     void postPaintScreen() override;
     void prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data) override;
     PaintWindowResult paintWindow(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::EffectWindow *w,

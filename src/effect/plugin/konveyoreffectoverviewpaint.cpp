@@ -93,8 +93,8 @@ void appendOutline(QList<QRectF> &rects, const QRectF &rect, double thickness)
     rects.append(QRectF(rect.right() - inner, rect.top() + inner, inner, std::max(0.0, rect.height() - 2.0 * inner)));
 }
 
-void drawThumbnail(const WindowRegistry &windows, const Layout::OverviewPaintWindow &painted, const KWin::RenderTarget &renderTarget,
-    const KWin::RenderViewport &viewport, const QRectF &workArea)
+void drawThumbnail(const WindowRegistry &windows, bool &drawingThumbnail, const Layout::OverviewPaintWindow &painted,
+    const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &scissor, const QRectF &workArea)
 {
     if (painted.opacity <= 0.0) {
         return;
@@ -109,14 +109,19 @@ void drawThumbnail(const WindowRegistry &windows, const Layout::OverviewPaintWin
     KWin::Rect logicalRegion;
     KWin::Effect::setPositionTransformations(
         data, logicalRegion, effectWindow, KWin::Rect(painted.rect.toAlignedRect()), Qt::KeepAspectRatio);
-    KWin::Region region {KWin::Rect(logicalRegion)};
-    region &= KWin::Rect(workArea.toAlignedRect());
-    if (region.isEmpty()) {
+    logicalRegion &= KWin::Rect(workArea.toAlignedRect());
+    if (logicalRegion.isEmpty()) {
         return;
     }
-    if (!KWin::effects->drawWindow(renderTarget, viewport, effectWindow, static_cast<int>(kThumbnailMask), region, data)) {
+    const KWin::Region deviceRegion = viewport.mapToDeviceCoordinatesAligned(KWin::Region(logicalRegion)) & scissor;
+    if (deviceRegion.isEmpty()) {
         return;
     }
+    drawingThumbnail = true;
+    const bool paintedOk
+        = KWin::effects->drawWindow(renderTarget, viewport, effectWindow, static_cast<int>(kThumbnailMask), deviceRegion, data);
+    Q_UNUSED(paintedOk);
+    drawingThumbnail = false;
 }
 
 QList<QRectF> cardOutlineRects(const Layout::OverviewPaintView &paint, double thickness)
@@ -178,7 +183,7 @@ void KonveyorEffect::paintOverview(const KWin::RenderTarget &renderTarget, const
         fillRects({card.rect}, withAlpha(Qt::white, card.opacity), renderTarget, viewport, scissor);
     }
     for (const Layout::OverviewPaintWindow &window : paint.windows) {
-        drawThumbnail(d->windows, window, renderTarget, viewport, workArea);
+        drawThumbnail(d->windows, d->drawingOverviewThumbnail, window, renderTarget, viewport, scissor, workArea);
     }
     fillRects(
         cardOutlineRects(paint, cardThickness), withAlpha(Qt::white, kCardOutlineAlpha * paint.blend), renderTarget, viewport, scissor);

@@ -18,6 +18,9 @@ KWin::Effect *kdeOverview()
 void KonveyorEffect::showKdeOverview(bool open)
 {
     if (readEngine().isOverviewEnabled()) {
+        updateWindowVisibility(readEngine().windowStates());
+        scheduleFlush();
+        KWin::effects->addRepaintFull();
         return;
     }
     KWin::Effect *overview = kdeOverview();
