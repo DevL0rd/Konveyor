@@ -30,6 +30,11 @@ void decodeOverview(const Kdl::Node &node, Overview &overview)
         checkFraction(child, QStringLiteral("card-gap"), value, 0.0, 0.5);
         overview.cardGap = value;
     });
+    table.insert(QStringLiteral("offscreen-indicators"), [&overview](const Kdl::Node &child) {
+        overview.offscreenIndicators = keywordArgument(child, {QStringLiteral("chevrons"), QStringLiteral("off")}) == 0
+            ? OverviewIndicators::Chevrons
+            : OverviewIndicators::Off;
+    });
     decodeChildren(node, table);
 }
 

@@ -52,7 +52,8 @@ void TestSettingsValues::globalDefaults()
         QVERIFY2(values.value(key).typeId() == QMetaType::Bool && !values.value(key).toBool(), qPrintable(key));
     }
     QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
-        (QVariantMap {{QStringLiteral("enabled"), false}, {QStringLiteral("minimum-scale"), 0.3}, {QStringLiteral("card-gap"), 0.08}}));
+        (QVariantMap {{QStringLiteral("enabled"), false}, {QStringLiteral("minimum-scale"), 0.3}, {QStringLiteral("card-gap"), 0.08},
+            {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")}}));
     QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(true));
     QCOMPARE(values.value(QStringLiteral("input/warp-mouse-to-focus/mode")).toString(), QString());
     QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("move-window"));
@@ -128,7 +129,8 @@ gestures {
     QCOMPARE(values.value(QStringLiteral("experiments/peek-desktop")).toMap(),
         (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("delay-ms"), 450}}));
     QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
-        (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("minimum-scale"), 0.5}, {QStringLiteral("card-gap"), 0.2}}));
+        (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("minimum-scale"), 0.5}, {QStringLiteral("card-gap"), 0.2},
+            {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")}}));
     const QVariantMap touchpad = values.value(QStringLiteral("gestures/touchpad")).toMap();
     QCOMPARE(touchpad.value(QStringLiteral("swipe-fingers")).toInt(), 4);
     QCOMPARE(touchpad.value(QStringLiteral("pinch-fingers")).toInt(), 3);

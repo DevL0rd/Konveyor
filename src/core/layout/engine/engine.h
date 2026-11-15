@@ -215,6 +215,7 @@ struct OverviewWindow
     WindowId id = 0;
     int workspaceIndex = 0;
     QRectF rect;
+    std::optional<QRectF> normalRect;
     bool selected = false;
     bool focused = false;
     bool operator==(const OverviewWindow &) const = default;
@@ -238,6 +239,8 @@ struct OverviewView
     // Index of the card under the pointer while a drag is running, or -1.
     int dropWorkspace = -1;
     std::optional<WindowId> draggedWindow;
+    std::optional<QRectF> dropHintRect;
+    QList<int> workspaceIndices;
     bool operator==(const OverviewView &) const = default;
 };
 
@@ -341,6 +344,7 @@ public:
     bool isOverviewEnabled() const;
     double overviewProgress() const;
     QList<OverviewView> overviewViews() const;
+    std::optional<OverviewView> overviewView(const QString &output) const;
     void setOverviewReserved(const QString &output, const QMarginsF &reserved);
     void overviewPan(const QString &output, const QPointF &delta);
     void overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift);

@@ -25,15 +25,18 @@ void TestOverviewDrag::windowDragShowsGhostOnTheTargetCard()
     Scene scene;
     const Layout::OverviewView view = scene.openView();
     QVERIFY(windowFor(view, scene.b));
-    QCOMPARE(view.workspaceRects.size(), 3);
+    QCOMPARE(view.workspaceRects.size(), 2);
 
     scene.grab(scene.b, view);
     QCOMPARE(scene.fixture.engine().movingWindow(), std::optional(scene.b));
-    scene.fixture.engine().overviewUpdateDrag(view.workspaceRects[1].center());
+    const Layout::OverviewView revealed = scene.fixture.engine().overviewViews().first();
+    QCOMPARE(revealed.workspaceRects.size(), 3);
+    scene.fixture.engine().overviewUpdateDrag(revealed.workspaceRects[1].center());
 
     const Layout::OverviewView during = scene.fixture.engine().overviewViews().first();
     QCOMPARE(during.draggedWindow, std::optional(scene.b));
     QCOMPARE(during.dropWorkspace, 1);
+    QVERIFY(during.dropHintRect.has_value());
     const auto ghost = windowFor(during, scene.b);
     QVERIFY(ghost);
     QCOMPARE(ghost->workspaceIndex, 2);
@@ -68,10 +71,11 @@ void TestOverviewDrag::windowDropOnBlankCardCreatesTheWorkspace()
     QVERIFY(before.size() >= 3);
     const Layout::WorkspaceId blank = before.last().id;
     const Layout::OverviewView view = scene.openView();
-    const int blankCard = static_cast<int>(view.workspaceRects.size()) - 1;
 
     scene.grab(scene.b, view);
-    scene.fixture.engine().overviewUpdateDrag(view.workspaceRects[blankCard].center());
+    const Layout::OverviewView revealed = scene.fixture.engine().overviewViews().first();
+    const int blankCard = static_cast<int>(revealed.workspaceRects.size()) - 1;
+    scene.fixture.engine().overviewUpdateDrag(revealed.workspaceRects[blankCard].center());
     scene.finish();
 
     QCOMPARE(scene.fixture.state(scene.b).workspace, blank);

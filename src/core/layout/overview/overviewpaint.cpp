@@ -18,21 +18,22 @@ QRectF workArea(const OverviewView &view)
     return view.outputGeometry.adjusted(view.reserved.left(), view.reserved.top(), -view.reserved.right(), -view.reserved.bottom());
 }
 
-QRectF edgeRect(OverviewSide side, const QRectF &area, double thickness)
+QRectF edgeRect(OverviewSide side, const QRectF &area, double span, double margin)
 {
-    const double inset = thickness * 2.0;
-    const double length = std::max(0.0, area.height() - 2.0 * inset);
-    switch (side) {
-    case OverviewSide::Left:
-        return QRectF(area.left() + inset, area.top() + inset, thickness, length);
-    case OverviewSide::Right:
-        return QRectF(area.right() - inset - thickness, area.top() + inset, thickness, length);
-    case OverviewSide::Top:
-        return QRectF(area.left() + inset, area.top() + inset, std::max(0.0, area.width() - 2.0 * inset), thickness);
-    case OverviewSide::Bottom:
-        return QRectF(area.left() + inset, area.bottom() - inset - thickness, std::max(0.0, area.width() - 2.0 * inset), thickness);
-    }
-    return {};
+    const QPointF center = [&]() {
+        switch (side) {
+        case OverviewSide::Left:
+            return QPointF(area.left() + margin, area.center().y());
+        case OverviewSide::Right:
+            return QPointF(area.right() - margin, area.center().y());
+        case OverviewSide::Top:
+            return QPointF(area.center().x(), area.top() + margin);
+        case OverviewSide::Bottom:
+            return QPointF(area.center().x(), area.bottom() - margin);
+        }
+        return QPointF();
+    }();
+    return QRectF(center.x() - span, center.y() - span, span * 2.0, span * 2.0);
 }
 
 double cardOpacity(const OverviewPaintCard &card)
@@ -74,17 +75,21 @@ QRectF overviewOutlineRect(const QRectF &windowRect, double thickness)
     return windowRect.adjusted(-thickness, -thickness, thickness, thickness);
 }
 
-QList<OverviewPaintEdge> overviewPaintEdges(const OverviewView &view)
+QList<OverviewPaintEdge> overviewPaintEdges(const OverviewView &view, Config::OverviewIndicators indicators)
 {
     QList<OverviewPaintEdge> edges;
+    if (indicators == Config::OverviewIndicators::Off) {
+        return edges;
+    }
     const QRectF area = workArea(view);
     if (area.isEmpty()) {
         return edges;
     }
     const double basis = std::min(area.width(), area.height());
-    const double thickness = std::clamp(basis * kEdgeRatio, kEdgeMinimum, kEdgeMaximum);
+    const double span = std::clamp(basis * 0.018, 12.0, 24.0);
+    const double margin = span + 16.0;
     for (const OverviewSide side : view.offscreen) {
-        const QRectF rect = edgeRect(side, area, thickness);
+        const QRectF rect = edgeRect(side, area, span, margin);
         if (!rect.isEmpty()) {
             edges.append({side, rect});
         }
@@ -92,7 +97,8 @@ QList<OverviewPaintEdge> overviewPaintEdges(const OverviewView &view)
     return edges;
 }
 
-OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNormalFrames &normalFrames, double progress)
+OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNormalFrames &normalFrames, double progress,
+    Config::OverviewIndicators indicators)
 {
     OverviewPaintView paint;
     paint.blend = overviewPaintBlend(progress);
@@ -121,6 +127,8 @@ OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNorm
         const auto normal = normalFrames.constFind(window.id);
         if (normal != normalFrames.constEnd()) {
             painted.rect = overviewPaintRect(*normal, window.rect, paint.blend);
+        } else if (window.normalRect) {
+            painted.rect = overviewPaintRect(*window.normalRect, window.rect, paint.blend);
         } else {
             painted.rect = window.rect;
             painted.opacity = painted.dragging ? 1.0 : paint.blend;
@@ -128,7 +136,10 @@ OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNorm
         paint.windows.append(painted);
     }
 
-    paint.edges = overviewPaintEdges(view);
+    paint.edges = overviewPaintEdges(view, indicators);
+    if (view.dropHintRect) {
+        paint.dropHintRect = view.dropHintRect;
+    }
     return paint;
 }
 

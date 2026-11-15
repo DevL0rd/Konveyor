@@ -168,6 +168,9 @@ void TestOverviewState::camerasSeedOnEachOutputsActiveWorkspace()
     const auto laptop = fixture.add(QStringLiteral("laptop"));
     fixture.engine().focusOutput(QStringLiteral("HDMI-A-1"));
     fixture.add(QStringLiteral("external"));
+    fixture.perform(QStringLiteral("focus-workspace-down"));
+    fixture.add(QStringLiteral("external-two"));
+    fixture.perform(QStringLiteral("focus-workspace-up"));
     fixture.engine().focusOutput(QStringLiteral("DP-1"));
     QCOMPARE(fixture.state(laptop).output, QStringLiteral("DP-1"));
 

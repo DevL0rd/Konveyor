@@ -81,6 +81,9 @@ bool KonveyorEffect::handleOverviewButton(const QPointF &position, Qt::MouseButt
         } else {
             changeEngine().overviewPointerReleased();
         }
+        if (KWin::effects && KWin::effects->isMouseInterception()) {
+            KWin::effects->defineCursor(readEngine().overviewPointerActive() ? Qt::ClosedHandCursor : Qt::ArrowCursor);
+        }
         KWin::effects->addRepaintFull();
     }
     return true;
@@ -91,8 +94,14 @@ bool KonveyorEffect::handleOverviewMotion(const QPointF &position)
     if (!overviewInputActive()) {
         return false;
     }
-    const bool dragging = readEngine().overviewPointerActive();
-    const bool changed = dragging ? changeEngine().overviewPointerMoved(position) : d->engine.overviewHover(position);
+    const bool wasDragging = readEngine().overviewPointerActive();
+    const bool changed = wasDragging ? changeEngine().overviewPointerMoved(position) : d->engine.overviewHover(position);
+    if (KWin::effects && KWin::effects->isMouseInterception()) {
+        const bool isDragging = readEngine().overviewPointerActive();
+        if (isDragging != wasDragging) {
+            KWin::effects->defineCursor(isDragging ? Qt::ClosedHandCursor : Qt::ArrowCursor);
+        }
+    }
     if (changed) {
         KWin::effects->addRepaintFull();
     }

@@ -53,6 +53,7 @@ struct OverviewPaintView
     QList<OverviewPaintCard> cards;
     QList<OverviewPaintWindow> windows;
     QList<OverviewPaintEdge> edges;
+    std::optional<QRectF> dropHintRect;
     bool operator==(const OverviewPaintView &) const = default;
 };
 
@@ -62,7 +63,9 @@ using OverviewNormalFrames = QHash<WindowId, QRectF>;
 double overviewPaintBlend(double progress);
 QRectF overviewPaintRect(const QRectF &from, const QRectF &to, double blend);
 QRectF overviewOutlineRect(const QRectF &windowRect, double thickness);
-QList<OverviewPaintEdge> overviewPaintEdges(const OverviewView &view);
-OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNormalFrames &normalFrames, double progress);
+QList<OverviewPaintEdge> overviewPaintEdges(
+    const OverviewView &view, Config::OverviewIndicators indicators = Config::OverviewIndicators::Chevrons);
+OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNormalFrames &normalFrames, double progress,
+    Config::OverviewIndicators indicators = Config::OverviewIndicators::Chevrons);
 
 }

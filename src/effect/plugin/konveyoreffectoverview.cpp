@@ -18,6 +18,15 @@ KWin::Effect *kdeOverview()
 void KonveyorEffect::showKdeOverview(bool open)
 {
     if (readEngine().isOverviewEnabled()) {
+        if (open) {
+            if (KWin::effects) {
+                KWin::effects->startMouseInterception(this, Qt::ArrowCursor);
+            }
+        } else {
+            if (KWin::effects && KWin::effects->isMouseInterception()) {
+                KWin::effects->stopMouseInterception(this);
+            }
+        }
         updateWindowVisibility(readEngine().windowStates());
         scheduleFlush();
         KWin::effects->addRepaintFull();

@@ -75,7 +75,10 @@ void Engine::overviewPointerPressed(const QPointF &globalPos)
         return;
     }
     if (const std::optional<int> card = cardAtPoint(*view, globalPos)) {
-        press.workspaceIndex = *card;
+        press.workspaceIndex = (!view->workspaceIndices.isEmpty() && *card < view->workspaceIndices.size())
+            ? view->workspaceIndices[*card]
+            : *card;
+        press.cardIndex = *card;
         d->overview.press = press;
         return;
     }
@@ -89,16 +92,23 @@ bool Engine::overviewHover(const QPointF &globalPos)
     if (!d->builtinOverviewOpen() || d->overview.press) {
         return false;
     }
-    const QList<OverviewView> views = d->overviewViews();
-    const OverviewView *view = viewWithPoint(views, globalPos);
-    if (!view) {
+    std::optional<OverviewView> singleView;
+    for (const Monitor &monitor : d->monitors) {
+        const OutputInfo info = d->outputInfos.value(monitor.outputName());
+        const QRectF geometry = info.geometry.isValid() ? info.geometry : QRectF(QPointF(), monitor.area().viewSize);
+        if (geometry.contains(globalPos)) {
+            singleView = d->overviewView(monitor.outputName());
+            break;
+        }
+    }
+    if (!singleView) {
         return false;
     }
     std::optional<WindowId> target;
-    if (const OverviewWindow *window = windowAtPoint(*view, globalPos)) {
+    if (const OverviewWindow *window = windowAtPoint(*singleView, globalPos)) {
         target = window->id;
     } else {
-        target = d->centeredOverviewWindow(view->output);
+        target = d->centeredOverviewWindow(*singleView);
     }
     if (d->overview.selected == target) {
         return false;
@@ -126,7 +136,7 @@ bool Engine::overviewPointerMoved(const QPointF &globalPos)
         if (press.window) {
             overviewBeginWindowDrag(press.window, press.output, press.origin);
         } else {
-            overviewBeginWorkspaceDrag(press.output, press.workspaceIndex);
+            overviewBeginWorkspaceDrag(press.output, press.cardIndex >= 0 ? press.cardIndex : press.workspaceIndex);
         }
     }
     overviewUpdateDrag(globalPos);

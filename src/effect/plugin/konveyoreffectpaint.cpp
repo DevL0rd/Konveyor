@@ -62,9 +62,8 @@ bool KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
     if (!overviewPaintActive() || !screen) {
         return KWin::Effect::paintScreen(renderTarget, viewport, mask, deviceRegion, screen);
     }
-    const QList<Layout::OverviewView> views = readEngine().overviewViews();
-    const auto view = std::ranges::find(views, screen->name(), &Layout::OverviewView::output);
-    if (view == views.end()) {
+    const std::optional<Layout::OverviewView> view = readEngine().overviewView(screen->name());
+    if (!view) {
         return KWin::Effect::paintScreen(renderTarget, viewport, mask, deviceRegion, screen);
     }
     if (!KWin::Effect::paintScreen(renderTarget, viewport, mask, deviceRegion, screen)) {
@@ -81,9 +80,8 @@ void KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
     if (!overviewPaintActive() || !screen) {
         return;
     }
-    const QList<Layout::OverviewView> views = readEngine().overviewViews();
-    const auto view = std::ranges::find(views, screen->name(), &Layout::OverviewView::output);
-    if (view == views.end()) {
+    const std::optional<Layout::OverviewView> view = readEngine().overviewView(screen->name());
+    if (!view) {
         return;
     }
     paintOverview(renderTarget, viewport, deviceRegion, *view, KWin::effects->clientArea(KWin::MaximizeArea, screen));

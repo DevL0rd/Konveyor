@@ -136,10 +136,10 @@ void TestOverviewPointer::pressOnCardSwitchesWorkspace()
     Scene scene;
     scene.open();
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
-    QCOMPARE(view.workspaceRects.size(), 3);
+    QCOMPARE(view.workspaceRects.size(), 2);
 
     QVERIFY(!view.workspaceRects[1].contains(windowFor(view, scene.a)->rect.center()));
-    scene.fixture.engine().overviewPointerPressed(view.workspaceRects[1].center());
+    scene.fixture.engine().overviewPointerPressed(view.workspaceRects[1].topLeft() + QPointF(10, 10));
     QVERIFY(scene.fixture.engine().overviewPointerActive());
     scene.fixture.engine().overviewPointerReleased();
 
@@ -175,7 +175,9 @@ void TestOverviewPointer::travelStartsAWindowDragAndDropMovesIt()
     QVERIFY(source);
 
     scene.fixture.engine().overviewPointerPressed(source->rect.center());
-    QVERIFY(scene.fixture.engine().overviewPointerMoved(view.workspaceRects[1].center()));
+    QVERIFY(scene.fixture.engine().overviewPointerMoved(source->rect.center() + QPointF(0, 10)));
+    const Layout::OverviewView during = scene.fixture.engine().overviewViews().first();
+    QVERIFY(scene.fixture.engine().overviewPointerMoved(during.workspaceRects[1].center()));
     QCOMPARE(scene.fixture.engine().movingWindow(), std::optional(scene.b));
     QCOMPARE(scene.fixture.engine().overviewViews().first().draggedWindow, std::optional(scene.b));
 

@@ -82,6 +82,7 @@ struct OverviewPress
     QString output;
     // Zero-based card index, or -1 when the press landed on a window.
     int workspaceIndex = -1;
+    int cardIndex = -1;
     QPointF origin;
     bool dragging = false;
 };
@@ -149,7 +150,7 @@ struct Engine::Private
     void tickOverview();
     void seedOverviewCamera();
     void revealOverviewSelection();
-    std::optional<WindowId> centeredOverviewWindow(const QString &output) const;
+    std::optional<WindowId> centeredOverviewWindow(const OverviewView &view) const;
     void updateOverviewDrop();
     void clearOverviewDrag();
 
@@ -227,12 +228,15 @@ struct Engine::Private
     void appendWorkspaceStates(QList<WindowState> &states, const Workspace &workspace, const WorkspaceRenderContext &context) const;
     QList<WindowState> windowStates() const;
     QList<OverviewView> overviewViews() const;
+    std::optional<OverviewView> overviewView(const QString &output) const;
     OverviewView overviewView(const Monitor &monitor, const QHash<WorkspaceId, QList<WindowState>> &byWorkspace,
         const std::optional<WindowState> &draggedState) const;
     OverviewGeometryInput overviewGeometryInput(const Monitor &monitor, int activeWorkspace,
-        const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &origin, QList<QList<WindowId>> &ids) const;
+        const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &origin, QList<QList<WindowId>> &ids,
+        const std::vector<std::size_t> &wsIndices) const;
     void appendOverviewWindows(OverviewView &view, const Monitor &monitor, const OverviewGeometry &geometry,
-        const QList<QList<WindowId>> &ids, const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &origin) const;
+        const QList<QList<WindowId>> &ids, const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &origin,
+        const std::vector<std::size_t> &wsIndices) const;
     void appendOverviewDragWindow(OverviewView &view, const WindowState &draggedState, double scale) const;
     std::optional<QRectF> dropHintRect(const Monitor &monitor) const;
     void appendMovedWindowState(QList<WindowState> &states) const;

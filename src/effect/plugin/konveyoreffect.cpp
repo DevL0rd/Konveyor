@@ -82,6 +82,9 @@ KonveyorEffect::KonveyorEffect()
 
 KonveyorEffect::~KonveyorEffect()
 {
+    if (KWin::effects && KWin::effects->isMouseInterception()) {
+        KWin::effects->stopMouseInterception(this);
+    }
     if (KWin::effects && KWin::effects->loadedEffects().isEmpty()) {
         // Compositor teardown, not a reload: the desktop manager is going away too.
         d->desktops.setRestoreOnDestruct(false);
@@ -203,7 +206,6 @@ void KonveyorEffect::flush()
     const QList<Layout::WorkspaceState> workspaces = readEngine().workspaceStates();
     endMoveIntoFullscreen(states);
     updateHomeOutputs(states);
-    updateWindowVisibility(states);
     d->desktops.apply(workspaces, states, d->config.config().layout.horizontalDesktops);
     if (workspaces != d->announcedWorkspaces && d->dbus) {
         d->announcedWorkspaces = workspaces;

@@ -82,12 +82,17 @@ void Engine::Private::updateOverviewDrop()
     if (card < 0) {
         card = overviewNearestCardIndex(cards, local);
     }
-    if (card < 0 || static_cast<std::size_t>(card) >= monitor->workspaces().size()) {
+    if (card < 0 || (view->workspaceIndices.isEmpty() && static_cast<std::size_t>(card) >= monitor->workspaces().size())
+        || (!view->workspaceIndices.isEmpty() && card >= view->workspaceIndices.size())) {
+        return;
+    }
+    const int realWorkspace = !view->workspaceIndices.isEmpty() ? view->workspaceIndices[card] : card;
+    if (realWorkspace < 0 || static_cast<std::size_t>(realWorkspace) >= monitor->workspaces().size()) {
         return;
     }
 
     overview.drop
-        = OverviewDrop {monitor->workspaces()[card].id(), (overview.dragPos - view->workspaceRects[card].topLeft()) / view->scale};
+        = OverviewDrop {monitor->workspaces()[realWorkspace].id(), (overview.dragPos - view->workspaceRects[card].topLeft()) / view->scale};
     windowDrag->pointerPos = overview.drop->local;
     windowDrag->output = overview.dragOutput;
     windowDrag->lastPointer = overview.dragPos;
@@ -182,7 +187,16 @@ void Engine::overviewEndDrag()
         }
         endWindowDrag();
     } else if (d->overview.reorderFrom >= 0) {
-        reorderWorkspace(d->monitors, d->overview.reorderOutput, d->overview.reorderFrom, d->overview.reorderTo);
+        const QList<OverviewView> views = d->overviewViews();
+        const OverviewView *view = viewAt(views, d->overview.reorderOutput);
+        if (view && !view->workspaceIndices.isEmpty() && d->overview.reorderFrom < view->workspaceIndices.size()
+            && d->overview.reorderTo < view->workspaceIndices.size()) {
+            const int realFrom = view->workspaceIndices[d->overview.reorderFrom];
+            const int realTo = view->workspaceIndices[d->overview.reorderTo];
+            reorderWorkspace(d->monitors, d->overview.reorderOutput, realFrom, realTo);
+        } else {
+            reorderWorkspace(d->monitors, d->overview.reorderOutput, d->overview.reorderFrom, d->overview.reorderTo);
+        }
     }
     d->clearOverviewDrag();
     d->refresh();

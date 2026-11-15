@@ -172,7 +172,7 @@ bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
 {
     m_modifiers.sync(event->modifiers);
     if (m_handlers.overviewMotion(event->position)) {
-        return false;
+        return true;
     }
     m_handlers.pointerMoved(event->position, event->timestamp.count() / 1000);
     return false;

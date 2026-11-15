@@ -51,8 +51,8 @@ void TestOverviewViews::oneOutputPaintsEveryWindow()
     QCOMPARE(views.size(), 1);
     QCOMPARE(views[0].output, QStringLiteral("DP-1"));
     QCOMPARE(views[0].outputGeometry, QRectF(0, 0, 1920, 1080));
-    // The monitor keeps a trailing blank workspace below the occupied one.
-    QCOMPARE(views[0].workspaceRects.size(), 2);
+    // Dynamic trailing empty workspaces are hidden while idle.
+    QCOMPARE(views[0].workspaceRects.size(), 1);
     QCOMPARE(views[0].windows.size(), 2);
     QVERIFY(containsWindow(views[0], a));
     QVERIFY(containsWindow(views[0], b));
@@ -101,14 +101,14 @@ void TestOverviewViews::blankWorkspaceStillGetsACard()
     fixture.engine().setOverviewOpen(true);
     const QList<Layout::OverviewView> views = fixture.engine().overviewViews();
     QCOMPARE(views.size(), 1);
-    QCOMPARE(views[0].workspaceRects.size(), 3);
+    QCOMPARE(views[0].workspaceRects.size(), 2);
     QCOMPARE(views[0].windows.size(), 1);
     QCOMPARE(views[0].windows[0].id, a);
     QCOMPARE(views[0].windows[0].workspaceIndex, 1);
     QCOMPARE(views[0].activeWorkspace, 0);
     QVERIFY(views[0].workspaceRects[0] != views[0].workspaceRects[1]);
-    // The last card is the monitor's trailing empty workspace.
-    QVERIFY(std::ranges::none_of(views[0].windows, [](const Layout::OverviewWindow &window) { return window.workspaceIndex == 3; }));
+    // The named blank card is shown, while the trailing unnamed empty workspace is hidden.
+    QVERIFY(std::ranges::none_of(views[0].windows, [](const Layout::OverviewWindow &window) { return window.workspaceIndex == 2; }));
 }
 
 void TestOverviewViews::selectionFollowsFocus()

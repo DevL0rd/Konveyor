@@ -26,6 +26,7 @@ void TestConfigOverview::defaults()
     QCOMPARE(overview.enabled, false);
     QCOMPARE(overview.minimumScale, 0.3);
     QCOMPARE(overview.cardGap, 0.08);
+    QCOMPARE(overview.offscreenIndicators, OverviewIndicators::Chevrons);
 }
 
 void TestConfigOverview::parsesValues()
@@ -35,12 +36,14 @@ void TestConfigOverview::parsesValues()
             enabled true
             minimum-scale 0.45
             card-gap 0.12
+            offscreen-indicators "off"
         }
     )"))
                                   .overview;
     QCOMPARE(overview.enabled, true);
     QCOMPARE(overview.minimumScale, 0.45);
     QCOMPARE(overview.cardGap, 0.12);
+    QCOMPARE(overview.offscreenIndicators, OverviewIndicators::Off);
 }
 
 void TestConfigOverview::bareFlag()
