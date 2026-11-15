@@ -118,9 +118,13 @@ void drawThumbnail(const WindowRegistry &windows, bool &drawingThumbnail, const 
         return;
     }
     drawingThumbnail = true;
+#ifdef KONVEYOR_KWIN_PAINTSCREEN_BOOL
     const bool paintedOk
         = KWin::effects->drawWindow(renderTarget, viewport, effectWindow, static_cast<int>(kThumbnailMask), deviceRegion, data);
     Q_UNUSED(paintedOk);
+#else
+    KWin::effects->drawWindow(renderTarget, viewport, effectWindow, static_cast<int>(kThumbnailMask), deviceRegion, data);
+#endif
     drawingThumbnail = false;
 }
 
