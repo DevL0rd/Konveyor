@@ -31,6 +31,12 @@ PaintWindowResult KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTa
     if (overviewPaintActive() && d->windows.idOf(w->window())) {
         return PaintWindowResult(true);
     }
+    if (overviewPaintActive() && !d->drawingKontrolPanel && w->window()->resourceClass() == QLatin1String("konveyor-kontrol-panel")) {
+        return PaintWindowResult(true);
+    }
+    if (overviewPaintActive() && (w->isPopupWindow() || w->isMenu())) {
+        return PaintWindowResult(true);
+    }
     const std::optional<QRectF> home = spillHome(w->window());
     const KWin::Region clipped = home ? deviceRegion & viewport.mapToDeviceCoordinatesAligned(KWin::RectF(*home)) : deviceRegion;
     if (clipped.isEmpty()) {
@@ -70,6 +76,18 @@ bool KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
         return false;
     }
     paintOverview(renderTarget, viewport, deviceRegion, *view, KWin::effects->clientArea(KWin::MaximizeArea, screen));
+    if (d->config.config().overview.allowKontrolPanel && !d->kontrolPanelWindows.isEmpty()) {
+        d->drawingKontrolPanel = true;
+        const auto resetDrawing = qScopeGuard([this] { d->drawingKontrolPanel = false; });
+        for (KWin::Window *panelWindow : std::as_const(d->kontrolPanelWindows)) {
+            if (KWin::EffectWindow *effectWindow = KWin::effects->findWindow(panelWindow->internalId())) {
+                KWin::WindowPaintData data;
+                constexpr int maskAll = PAINT_WINDOW_OPAQUE | PAINT_WINDOW_TRANSLUCENT;
+                const auto ok = KWin::effects->drawWindow(renderTarget, viewport, effectWindow, maskAll, deviceRegion, data);
+                Q_UNUSED(ok);
+            }
+        }
+    }
     return true;
 }
 #else
@@ -85,6 +103,17 @@ void KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
         return;
     }
     paintOverview(renderTarget, viewport, deviceRegion, *view, KWin::effects->clientArea(KWin::MaximizeArea, screen));
+    if (d->config.config().overview.allowKontrolPanel && !d->kontrolPanelWindows.isEmpty()) {
+        d->drawingKontrolPanel = true;
+        const auto resetDrawing = qScopeGuard([this] { d->drawingKontrolPanel = false; });
+        for (KWin::Window *panelWindow : std::as_const(d->kontrolPanelWindows)) {
+            if (KWin::EffectWindow *effectWindow = KWin::effects->findWindow(panelWindow->internalId())) {
+                KWin::WindowPaintData data;
+                constexpr int maskAll = PAINT_WINDOW_OPAQUE | PAINT_WINDOW_TRANSLUCENT;
+                KWin::effects->drawWindow(renderTarget, viewport, effectWindow, maskAll, deviceRegion, data);
+            }
+        }
+    }
 }
 #endif
 

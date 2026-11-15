@@ -170,6 +170,8 @@ struct KonveyorEffect::Private
     bool slideSuppression = false;
     bool overviewVisible = false;
     bool drawingOverviewThumbnail = false;
+    bool drawingKontrolPanel = false;
+    QList<KWin::Window *> kontrolPanelWindows;
 
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;

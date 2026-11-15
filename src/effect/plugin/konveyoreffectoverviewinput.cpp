@@ -50,7 +50,7 @@ std::optional<Layout::OverviewDirection> directionOf(int key)
 bool KonveyorEffect::overviewInputActive() const
 {
     const Layout::Engine &engine = readEngine();
-    return engine.isOverviewEnabled() && engine.isOverviewOpen();
+    return engine.isOverviewEnabled() && engine.isOverviewOpen() && d->kontrolPanelWindows.isEmpty();
 }
 
 bool KonveyorEffect::handleOverviewAxis(

@@ -267,11 +267,13 @@ void TestOverviewPointer::verticalScrollStepsWorkspacesAndSelectsCenteredWindow(
     QCOMPARE(before.activeWorkspace, 0);
 
     scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 120, false);
+    QCOMPARE(scene.fixture.engine().overviewViews().first().activeWorkspace, 0);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 120, false);
     const Layout::OverviewView down = scene.fixture.engine().overviewViews().first();
     QCOMPARE(down.activeWorkspace, 1);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.c));
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, -15.0, -120, false);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, -30.0, -240, false);
     const Layout::OverviewView up = scene.fixture.engine().overviewViews().first();
     QCOMPARE(up.activeWorkspace, 0);
     QVERIFY(scene.fixture.engine().overviewSelectedWindow().has_value());
@@ -285,10 +287,10 @@ void TestOverviewPointer::horizontalScrollMovesColumnsAndUpdatesSelection()
     scene.fixture.engine().overviewSelectWindow(scene.b);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.b));
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, -15.0, -120, false);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, -30.0, -240, false);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.a));
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, 15.0, 120, false);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, 30.0, 240, false);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.b));
     VERIFY_INVARIANTS(scene.fixture);
 }

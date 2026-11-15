@@ -1,5 +1,7 @@
 #include "plugin/konveyoreffect_p.h"
 
+#include <workspace.h>
+
 #include <QMetaObject>
 
 namespace Konveyor
@@ -19,7 +21,14 @@ void KonveyorEffect::showKdeOverview(bool open)
 {
     if (readEngine().isOverviewEnabled()) {
         if (open) {
-            if (KWin::effects) {
+            if (KWin::workspace()) {
+                for (KWin::Window *window : KWin::workspace()->windows()) {
+                    if (window && !window->isDeleted() && (window->isPopupWindow() || window->isMenu())) {
+                        window->popupDone();
+                    }
+                }
+            }
+            if (KWin::effects && d->kontrolPanelWindows.isEmpty()) {
                 KWin::effects->startMouseInterception(this, Qt::ArrowCursor);
             }
         } else {

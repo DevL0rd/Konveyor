@@ -27,6 +27,8 @@ void TestConfigOverview::defaults()
     QCOMPARE(overview.minimumScale, 0.3);
     QCOMPARE(overview.cardGap, 0.08);
     QCOMPARE(overview.offscreenIndicators, OverviewIndicators::Chevrons);
+    QCOMPARE(overview.allowKontrolPanel, false);
+    QCOMPARE(overview.scrollSpeed, 0.5);
 }
 
 void TestConfigOverview::parsesValues()
@@ -37,6 +39,8 @@ void TestConfigOverview::parsesValues()
             minimum-scale 0.45
             card-gap 0.12
             offscreen-indicators "off"
+            allow-kontrol-panel true
+            scroll-speed 0.8
         }
     )"))
                                   .overview;
@@ -44,6 +48,8 @@ void TestConfigOverview::parsesValues()
     QCOMPARE(overview.minimumScale, 0.45);
     QCOMPARE(overview.cardGap, 0.12);
     QCOMPARE(overview.offscreenIndicators, OverviewIndicators::Off);
+    QCOMPARE(overview.allowKontrolPanel, true);
+    QCOMPARE(overview.scrollSpeed, 0.8);
 }
 
 void TestConfigOverview::bareFlag()

@@ -61,8 +61,29 @@ KonveyorEffect::KonveyorEffect()
     connectRegistries();
     connectDesktopSync();
     connectOverviewSync();
-    connect(
-        KWin::effects, &KWin::EffectsHandler::windowDeleted, this, [this](KWin::EffectWindow *window) { d->visibility.forget(window); });
+    connect(KWin::workspace(), &KWin::Workspace::windowAdded, this, [this](KWin::Window *window) {
+        if (!window || window->resourceClass() != QLatin1String("konveyor-kontrol-panel")) {
+            return;
+        }
+        if (readEngine().isOverviewOpen() && !d->config.config().overview.allowKontrolPanel) {
+            window->closeWindow();
+            return;
+        }
+        if (!d->kontrolPanelWindows.contains(window)) {
+            d->kontrolPanelWindows.append(window);
+        }
+        if (KWin::effects && KWin::effects->isMouseInterception()) {
+            KWin::effects->stopMouseInterception(this);
+        }
+    });
+    connect(KWin::effects, &KWin::EffectsHandler::windowDeleted, this, [this](KWin::EffectWindow *window) {
+        d->visibility.forget(window);
+        if (window && d->kontrolPanelWindows.removeAll(window->window()) > 0) {
+            if (d->kontrolPanelWindows.isEmpty() && overviewInputActive() && KWin::effects && !KWin::effects->isMouseInterception()) {
+                KWin::effects->startMouseInterception(this, Qt::ArrowCursor);
+            }
+        }
+    });
     installInputFilter();
     startDBusService();
     d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
@@ -387,7 +408,11 @@ Layout::Hooks KonveyorEffect::makeHooks()
         }
     };
     hooks.spawn = [](const QString &command) { QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), command}); };
-    hooks.runWidgetTool = [](const QString &name, const QStringList &arguments) {
+    hooks.runWidgetTool = [this](const QString &name, const QStringList &arguments) {
+        if (name == QLatin1String("kontrol-panel") && readEngine().isOverviewOpen()
+            && !d->config.config().overview.allowKontrolPanel) {
+            return;
+        }
         if (const auto started = Tools::startWidgetTool(name, arguments); !started) {
             qWarning().noquote() << "konveyor:" << started.error();
             sendNotification(QStringLiteral("Konveyor: could not open %1").arg(name), started.error());

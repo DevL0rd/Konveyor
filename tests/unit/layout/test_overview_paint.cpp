@@ -50,6 +50,7 @@ private Q_SLOTS:
     void draggedWindowStaysOpaque();
     void edgesFollowOffscreenSides();
     void edgesSkipAnEmptyWorkArea();
+    void zoomsWindowsFromOutputCenter();
 };
 
 void TestOverviewPaint::blendClampsProgress()
@@ -172,6 +173,22 @@ void TestOverviewPaint::edgesSkipAnEmptyWorkArea()
     view.outputGeometry = QRectF(0, 0, 100, 40);
     view.reserved = QMarginsF(0, 40, 0, 0);
     QVERIFY(Layout::overviewPaintEdges(view).isEmpty());
+}
+
+void TestOverviewPaint::zoomsWindowsFromOutputCenter()
+{
+    Layout::OverviewView view = sampleView();
+    view.outputGeometry = QRectF(0, 0, 1000, 600);
+    view.scale = 0.5;
+    Layout::OverviewWindow win = window(1, QRectF(300, 200, 400, 200), 1);
+    win.normalRect = QRectF(100, 100, 800, 400);
+    view.windows = {win};
+
+    const Layout::OverviewPaintView half = Layout::overviewPaintView(view, {}, 0.5);
+    QCOMPARE(half.windows.size(), 1);
+    // At progress 0.5, scale = 0.75, zoom factor = 0.75 / 0.5 = 1.5 around center (500, 300).
+    QCOMPARE(half.windows[0].rect, QRectF(200, 150, 600, 300));
+    QCOMPARE(half.windows[0].opacity, 1.0);
 }
 
 QTEST_MAIN(TestOverviewPaint)

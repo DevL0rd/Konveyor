@@ -50,6 +50,11 @@ double cardOpacity(const OverviewPaintCard &card)
     return kOverviewCardAlpha;
 }
 
+QRectF zoomRect(const QRectF &rect, const QPointF &pivot, double factor)
+{
+    return QRectF(pivot + (rect.topLeft() - pivot) * factor, rect.size() * factor);
+}
+
 }
 
 double overviewPaintBlend(double progress)
@@ -118,6 +123,9 @@ OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNorm
         paint.cards.append(card);
     }
 
+    const double zoom = view.scale > 0.0 ? (1.0 + (view.scale - 1.0) * paint.blend) / view.scale : 1.0;
+    const QPointF pivot = view.outputGeometry.center();
+
     for (const OverviewWindow &window : view.windows) {
         OverviewPaintWindow painted;
         painted.id = window.id;
@@ -127,11 +135,13 @@ OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNorm
         const auto normal = normalFrames.constFind(window.id);
         if (normal != normalFrames.constEnd()) {
             painted.rect = overviewPaintRect(*normal, window.rect, paint.blend);
-        } else if (window.normalRect) {
-            painted.rect = overviewPaintRect(*window.normalRect, window.rect, paint.blend);
-        } else {
+        } else if (painted.dragging) {
             painted.rect = window.rect;
-            painted.opacity = painted.dragging ? 1.0 : paint.blend;
+        } else if (window.normalRect) {
+            painted.rect = zoomRect(window.rect, pivot, zoom);
+        } else {
+            painted.rect = zoomRect(window.rect, pivot, zoom);
+            painted.opacity = paint.blend;
         }
         paint.windows.append(painted);
     }

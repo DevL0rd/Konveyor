@@ -104,7 +104,9 @@ void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, 
     if (!monitor) {
         return;
     }
-    const double units = deltaV120 != 0 ? static_cast<double>(deltaV120) : delta * 8.0;
+    const double speed = std::clamp(d->config.overview.scrollSpeed, 0.05, 5.0);
+    const double rawUnits = deltaV120 != 0 ? static_cast<double>(deltaV120) : delta * 8.0;
+    const double units = rawUnits * speed;
     if (units == 0.0) {
         return;
     }
