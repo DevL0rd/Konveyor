@@ -138,8 +138,8 @@ void TestOverviewState::selectionIsSeededFromFocusAndCleared()
     pair.fixture.engine().setOverviewOpen(false);
     QVERIFY(!pair.fixture.engine().overviewSelectedWindow());
 
-    fixture.engine().setOverviewOpen(true);
-    QCOMPARE(fixture.engine().overviewSelectedWindow(), std::optional(b));
+    pair.fixture.engine().setOverviewOpen(true);
+    QCOMPARE(pair.fixture.engine().overviewSelectedWindow(), std::optional(pair.b));
 }
 
 void TestOverviewState::selectionSurvivesUnknownWindows()
