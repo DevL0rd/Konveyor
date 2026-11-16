@@ -37,11 +37,6 @@ void decodeOverview(const Kdl::Node &node, Overview &overview)
     });
     table.insert(QStringLiteral("allow-kontrol-panel"),
         [&overview](const Kdl::Node &child) { overview.allowKontrolPanel = flagArgument(child); });
-    table.insert(QStringLiteral("scroll-speed"), [&overview](const Kdl::Node &child) {
-        const double value = numberArgument(child, Range {0, 5});
-        checkFraction(child, QStringLiteral("scroll-speed"), value, 0.1, 2.0);
-        overview.scrollSpeed = value;
-    });
     decodeChildren(node, table);
 }
 

@@ -5,10 +5,13 @@
 #include <core/colorspace.h>
 #include <core/rendertarget.h>
 #include <core/renderviewport.h>
+#include <cursor.h>
+#include <cursorsource.h>
 #include <effect/effecthandler.h>
 #include <effect/effectwindow.h>
 #include <opengl/glshader.h>
 #include <opengl/glshadermanager.h>
+#include <opengl/gltexture.h>
 #include <opengl/glvertexbuffer.h>
 #include <window.h>
 
@@ -212,6 +215,13 @@ QList<QRectF> selectedOutlineRects(const Layout::OverviewPaintView &paint, doubl
             appendOutline(rects, Layout::overviewOutlineRect(window.rect, thickness), thickness);
         }
     }
+    if (rects.isEmpty()) {
+        for (const Layout::OverviewPaintCard &card : paint.cards) {
+            if (card.empty && card.active) {
+                appendOutline(rects, Layout::overviewOutlineRect(card.rect, thickness), thickness);
+            }
+        }
+    }
     return rects;
 }
 
@@ -286,6 +296,40 @@ void KonveyorEffect::paintOverview(const KWin::RenderTarget &renderTarget, const
     fillRects(selectedOutlineRects(paint, windowThickness), withAlpha(focusRingColor, Layout::kOverviewOutlineAlpha * paint.blend),
         renderTarget, viewport, scissor);
     fillChevrons(paint.edges, withAlpha(Qt::white, kEdgeAlpha * paint.blend), renderTarget, viewport, scissor);
+
+    if (KWin::Cursor *cursor = KWin::Cursors::self() ? KWin::Cursors::self()->currentCursor() : nullptr) {
+        if (KWin::CursorSource *source = cursor->source(); source && !source->isBlank()) {
+            const QRectF cursorRect(cursor->pos() - cursor->hotspot(), source->size());
+            if (cursorRect.intersects(view.outputGeometry)) {
+                if (auto *shapeSource = qobject_cast<KWin::ShapeCursorSource *>(source)) {
+                    const QImage image = shapeSource->image();
+                    if (!image.isNull()) {
+                        if (!d->overviewCursorTexture || d->overviewCursorCacheKey != image.cacheKey()) {
+                            d->overviewCursorTexture = KWin::GLTexture::upload(image);
+                            d->overviewCursorCacheKey = image.cacheKey();
+                        }
+                        if (d->overviewCursorTexture) {
+                            const KWin::Region cursorScissor = deviceClip(renderTarget, viewport, deviceRegion, view.outputGeometry);
+                            if (!cursorScissor.isEmpty()) {
+                                QMatrix4x4 mvp = viewport.projectionMatrix();
+                                mvp.translate(cursorRect.x() * viewport.scale(), cursorRect.y() * viewport.scale());
+                                KWin::ShaderBinder binder(
+                                    KWin::ShaderTrait::MapTexture | KWin::ShaderTrait::TransformColorspace);
+                                KWin::GLShader *shader = binder.shader();
+                                shader->setUniform(KWin::GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
+                                shader->setColorspaceUniforms(
+                                    KWin::ColorDescription::sRGB, renderTarget.colorDescription(), KWin::RenderingIntent::Perceptual);
+                                glEnable(GL_BLEND);
+                                glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                                d->overviewCursorTexture->render(cursorScissor, cursorRect.size() * viewport.scale(), true);
+                                glDisable(GL_BLEND);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 }

@@ -53,7 +53,8 @@ void TestOverviewDrag::windowDropMovesItToTheTargetWorkspace()
     const Layout::OverviewView view = scene.openView();
 
     scene.grab(scene.b, view);
-    scene.fixture.engine().overviewUpdateDrag(view.workspaceRects[1].center());
+    const Layout::OverviewView revealed = scene.fixture.engine().overviewViews().first();
+    scene.fixture.engine().overviewUpdateDrag(revealed.workspaceRects[1].center());
     scene.finish();
 
     QCOMPARE(scene.fixture.state(scene.b).workspace, target);

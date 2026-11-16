@@ -84,19 +84,10 @@ std::optional<WindowId> Engine::Private::centeredOverviewWindow(const OverviewVi
     if (best) {
         return best;
     }
-    for (const OverviewWindow &window : view.windows) {
-        const QPointF diff = window.rect.center() - center;
-        const double dist = diff.x() * diff.x() + diff.y() * diff.y();
-        if (dist < bestDist) {
-            bestDist = dist;
-            best = window.id;
-        }
-    }
     return best;
 }
 
-void Engine::overviewScroll(
-    const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift, bool finger)
+void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift)
 {
     if (!d->builtinOverviewOpen()) {
         return;
@@ -106,10 +97,7 @@ void Engine::overviewScroll(
         return;
     }
     const bool horizontal = orientation == Qt::Horizontal || shift;
-    const double speed = std::clamp(d->config.overview.scrollSpeed, 0.05, 5.0);
-    const double deviceScale = finger ? (horizontal ? 0.75 : 0.25) : 1.0;
-    const double rawUnits = deltaV120 != 0 ? static_cast<double>(deltaV120) : delta * 8.0;
-    const double units = rawUnits * speed * deviceScale;
+    const double units = deltaV120 != 0 ? static_cast<double>(deltaV120) : delta * 8.0;
     if (units == 0.0) {
         return;
     }

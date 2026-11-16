@@ -106,6 +106,8 @@ struct OverviewRuntime
     std::optional<OverviewPress> press;
     double verticalScrollAccum = 0.0;
     double horizontalScrollAccum = 0.0;
+    std::optional<Anim::Duration> lastHorizontalEdgeStep;
+    std::optional<Anim::Duration> lastVerticalEdgeStep;
 };
 
 struct Engine::Private

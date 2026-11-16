@@ -109,8 +109,7 @@ QVariantMap globalValues(const Config::Config &config)
                 {QStringLiteral("offscreen-indicators"),
                     config.overview.offscreenIndicators == Config::OverviewIndicators::Chevrons ? QStringLiteral("chevrons")
                                                                                                 : QStringLiteral("off")},
-                {QStringLiteral("allow-kontrol-panel"), config.overview.allowKontrolPanel},
-                {QStringLiteral("scroll-speed"), config.overview.scrollSpeed}}},
+                {QStringLiteral("allow-kontrol-panel"), config.overview.allowKontrolPanel}}},
         {QStringLiteral("config-notification/disable-failed"), config.configNotificationDisableFailed},
         {QStringLiteral("input/focus-follows-mouse"), input.focusFollowsMouse},
         {QStringLiteral("input/warp-mouse-to-focus"), input.warpMouseToFocus},

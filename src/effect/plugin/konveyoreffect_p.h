@@ -2,6 +2,8 @@
 
 #include "plugin/konveyoreffect.h"
 
+#include <opengl/gltexture.h>
+
 #include "dbus/dbusservice.h"
 #include "decorations/accentcolor.h"
 #include "decorations/decorationlayer.h"
@@ -172,6 +174,8 @@ struct KonveyorEffect::Private
     bool drawingOverviewThumbnail = false;
     bool drawingKontrolPanel = false;
     QList<KWin::Window *> kontrolPanelWindows;
+    qint64 overviewCursorCacheKey = 0;
+    std::unique_ptr<KWin::GLTexture> overviewCursorTexture;
 
     QSet<KWin::ElectricBorder> reservedCorners;
     double dragOrigin = 0;

@@ -347,8 +347,7 @@ public:
     std::optional<OverviewView> overviewView(const QString &output) const;
     void setOverviewReserved(const QString &output, const QMarginsF &reserved);
     void overviewPan(const QString &output, const QPointF &delta);
-    void overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift,
-        bool finger = false);
+    void overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift);
     void overviewNavigate(OverviewDirection direction);
     std::optional<WindowId> overviewSelectedWindow() const;
     void overviewSelectWindow(std::optional<WindowId> id);

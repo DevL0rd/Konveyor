@@ -79,20 +79,5 @@ SettingsPage {
             isOn: page.overview["allow-kontrol-panel"] === true
             onSwitched: on => SettingsStore.setFlag("overview/allow-kontrol-panel", on)
         }
-
-        SliderRow {
-            label: "Scroll speed"
-            description: "How fast scrolling moves through workspaces and panned columns in the overview."
-            resetPaths: ["overview/scroll-speed"]
-            enabled: page.overview.enabled === true
-            from: 0.1
-            to: 2.0
-            stepSize: 0.05
-            decimals: 2
-            lowLabel: "Slow"
-            highLabel: "Fast"
-            value: page.overview["scroll-speed"] !== undefined ? page.overview["scroll-speed"] : 0.5
-            onEdited: value => SettingsStore.setValue("overview/scroll-speed", [Math.round(value * 100) / 100])
-        }
     }
 }
