@@ -18,13 +18,16 @@ namespace
 
 constexpr auto Service = "org.devl0rd.ProcessMonitor.FrameTelemetry";
 constexpr auto Path = "/FrameTelemetry";
-constexpr auto FrameMember = "Frame";
+constexpr auto FrameMember = "FrameBatch";
+constexpr int FlushIntervalMs = 200;
 
 }
 
 TelemetryEffect::TelemetryEffect()
 {
     m_clock.start();
+    m_flushTimer.setInterval(FlushIntervalMs);
+    connect(&m_flushTimer, &QTimer::timeout, this, &TelemetryEffect::flush);
     connect(KWin::effects, &KWin::EffectsHandler::windowAdded, this, &TelemetryEffect::track);
     connect(KWin::effects, &KWin::EffectsHandler::windowDeleted, this, [this](KWin::EffectWindow *window) { m_rates.remove(window); });
     for (KWin::EffectWindow *window : KWin::effects->stackingOrder()) {
@@ -39,6 +42,9 @@ TelemetryEffect::TelemetryEffect()
     connect(m_subscriberWatcher, &QDBusServiceWatcher::serviceUnregistered, this, [this](const QString &service) {
         m_subscribers.remove(service);
         m_subscriberWatcher->removeWatchedService(service);
+        if (m_subscribers.isEmpty()) {
+            m_flushTimer.stop();
+        }
     });
     m_registered = objectRegistered && bus.registerService(QString::fromLatin1(Service));
     if (!m_registered && objectRegistered) {
@@ -96,24 +102,53 @@ void TelemetryEffect::Watch(const QString &pidsJson)
         if (m_subscribers.remove(subscriber)) {
             m_subscriberWatcher->removeWatchedService(subscriber);
         }
+        if (m_subscribers.isEmpty()) {
+            m_flushTimer.stop();
+        }
         return;
     }
     if (!m_subscribers.contains(subscriber)) {
         m_subscriberWatcher->addWatchedService(subscriber);
     }
-    m_subscribers.insert(subscriber, std::move(watched));
+    Subscriber &entry = m_subscribers[subscriber];
+    entry.pids = std::move(watched);
+    for (auto it = entry.pending.begin(); it != entry.pending.end();) {
+        it = entry.pids.contains(it.key()) ? std::next(it) : entry.pending.erase(it);
+    }
+    if (!m_flushTimer.isActive()) {
+        m_flushTimer.start();
+    }
 }
 
-void TelemetryEffect::emitFrame(qint64 pid, double frametime)
+void TelemetryEffect::recordFrame(qint64 pid, double frametime)
+{
+    const qint64 number = ++m_frameNumber;
+    for (Subscriber &subscriber : m_subscribers) {
+        if (subscriber.pids.contains(pid)) {
+            subscriber.pending[pid].append({number, frametime});
+        }
+    }
+}
+
+void TelemetryEffect::flush()
 {
     QDBusConnection bus = QDBusConnection::sessionBus();
-    for (auto it = m_subscribers.constBegin(); it != m_subscribers.constEnd(); ++it) {
-        if (!it.value().contains(pid)) {
+    for (auto it = m_subscribers.begin(); it != m_subscribers.end(); ++it) {
+        if (it->pending.isEmpty()) {
             continue;
         }
+        QJsonArray batch;
+        for (auto pending = it->pending.constBegin(); pending != it->pending.constEnd(); ++pending) {
+            QJsonArray frames;
+            for (const auto &[number, frametime] : pending.value()) {
+                frames.append(QJsonArray {number, frametime});
+            }
+            batch.append(QJsonObject {{QStringLiteral("pid"), pending.key()}, {QStringLiteral("frames"), frames}});
+        }
+        it->pending.clear();
         QDBusMessage signal = QDBusMessage::createTargetedSignal(
             it.key(), QString::fromLatin1(Path), QString::fromLatin1(Service), QString::fromLatin1(FrameMember));
-        signal << pid << frametime;
+        signal << QString::fromUtf8(QJsonDocument(batch).toJson(QJsonDocument::Compact));
         bus.send(signal);
     }
 }
@@ -128,7 +163,7 @@ void TelemetryEffect::track(KWin::EffectWindow *window)
         const qint64 pid = window->pid();
         const std::optional<double> frametime = m_rates[window].addFrame(m_clock.nsecsElapsed());
         if (frametime && !m_subscribers.isEmpty()) {
-            emitFrame(pid, *frametime);
+            recordFrame(pid, *frametime);
         }
     });
 }

@@ -9,6 +9,8 @@
 #include <QElapsedTimer>
 #include <QHash>
 #include <QSet>
+#include <QTimer>
+#include <QVector>
 
 namespace KWin
 {
@@ -34,12 +36,20 @@ public Q_SLOTS:
     Q_SCRIPTABLE void Watch(const QString &pidsJson);
 
 private:
-    void emitFrame(qint64 pid, double frametime);
+    struct Subscriber {
+        QSet<qint64> pids;
+        QHash<qint64, QVector<QPair<qint64, double>>> pending;
+    };
+
+    void recordFrame(qint64 pid, double frametime);
+    void flush();
     void track(KWin::EffectWindow *window);
 
     QElapsedTimer m_clock;
     QHash<KWin::EffectWindow *, FrameRateTracker> m_rates;
-    QHash<QString, QSet<qint64>> m_subscribers;
+    QHash<QString, Subscriber> m_subscribers;
+    QTimer m_flushTimer;
+    qint64 m_frameNumber = 0;
     QDBusServiceWatcher *m_subscriberWatcher = nullptr;
     bool m_registered = false;
 };
