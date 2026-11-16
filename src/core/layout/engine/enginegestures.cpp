@@ -144,17 +144,18 @@ void Engine::Private::edgeScrollAt(Monitor &monitor, QPointF local)
         const double edgeY = std::clamp(workArea.height() * 0.08, 60.0, 120.0);
         const Anim::Duration now = clock.rawNow();
 
+        const std::size_t wsCount = monitor.workspaces().size();
+        const std::size_t activeWs = monitor.activeWorkspaceIndex();
+
         double verticalProximity = 0.0;
         int stepY = 0;
-        if (overview.dragPos.y() < workArea.top() + edgeY && view->offscreen.contains(OverviewSide::Top)) {
+        if (overview.dragPos.y() < workArea.top() + edgeY && activeWs > 0) {
             stepY = -1;
             verticalProximity = std::clamp((workArea.top() + edgeY - overview.dragPos.y()) / edgeY, 0.0, 1.0);
-        } else if (overview.dragPos.y() > workArea.bottom() - edgeY && view->offscreen.contains(OverviewSide::Bottom)) {
+        } else if (overview.dragPos.y() > workArea.bottom() - edgeY && activeWs + 1 < wsCount) {
             stepY = 1;
             verticalProximity = std::clamp((overview.dragPos.y() - (workArea.bottom() - edgeY)) / edgeY, 0.0, 1.0);
         }
-        const std::size_t wsCount = monitor.workspaces().size();
-        const std::size_t activeWs = monitor.activeWorkspaceIndex();
         const std::size_t remainingWorkspaces
             = stepY < 0 ? activeWs : (stepY > 0 && activeWs + 1 < wsCount ? wsCount - 1 - activeWs : 0);
         if (stepY == 0 || remainingWorkspaces == 0) {
@@ -164,7 +165,7 @@ void Engine::Private::edgeScrollAt(Monitor &monitor, QPointF local)
             const double speedFactor = std::clamp(0.65 * verticalProximity + 0.35 * verticalProximity * offscreenBoost, 0.0, 1.0);
             const auto interval = std::chrono::milliseconds(static_cast<int>(std::lerp(480.0, 180.0, speedFactor)));
             const bool ready = !overview.lastVerticalEdgeStep || (now - *overview.lastVerticalEdgeStep >= interval);
-            if (!overview.cameraYAnimations.contains(view->output) && ready) {
+            if (ready) {
                 const double beforeCameraY = view->camera.y();
                 const std::size_t beforeIdx = monitor.activeWorkspaceIndex();
                 if (stepY < 0) {
@@ -176,6 +177,7 @@ void Engine::Private::edgeScrollAt(Monitor &monitor, QPointF local)
                     overview.lastVerticalEdgeStep = now;
                     overview.cameras.remove(view->output);
                     if (config.animations.enabled) {
+                        overview.cameraYAnimations.remove(view->output);
                         if (const std::optional<OverviewView> afterView = overviewView(view->output)) {
                             const double afterCameraY = afterView->camera.y();
                             if (!qFuzzyCompare(beforeCameraY, afterCameraY)) {
@@ -183,6 +185,8 @@ void Engine::Private::edgeScrollAt(Monitor &monitor, QPointF local)
                                     Anim::Animation(clock, beforeCameraY, afterCameraY, 0.0, config.animations.workspaceSwitch));
                             }
                         }
+                    } else {
+                        overview.cameraYAnimations.remove(view->output);
                     }
                     updateOverviewDrop();
                 }

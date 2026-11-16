@@ -87,44 +87,8 @@ void Engine::Private::updateOverviewDrop()
         return;
     }
 
-    const QRectF hoveredCardRect = view->workspaceRects[card];
-    const double hysteresis = hoveredCardRect.height() * 0.20;
-    const bool insideTargetBody
-        = overview.dragPos.y() >= hoveredCardRect.top() + hysteresis && overview.dragPos.y() <= hoveredCardRect.bottom() - hysteresis;
-    const bool cooldownPassed
-        = !overview.lastVerticalEdgeStep || (clock.rawNow() - *overview.lastVerticalEdgeStep >= std::chrono::milliseconds(450));
-    std::optional<OverviewView> activeView = view;
-    if (static_cast<std::size_t>(realWorkspace) != monitor->activeWorkspaceIndex()
-        && !overview.cameraYAnimations.contains(overview.dragOutput) && insideTargetBody && cooldownPassed) {
-        const double beforeCameraY = view->camera.y();
-        monitor->switchWorkspace(static_cast<std::size_t>(realWorkspace));
-        overview.lastVerticalEdgeStep = clock.rawNow();
-        overview.cameras.remove(overview.dragOutput);
-        if (const std::optional<OverviewView> afterView = overviewView(overview.dragOutput)) {
-            if (config.animations.enabled) {
-                const double afterCameraY = afterView->camera.y();
-                if (!qFuzzyCompare(beforeCameraY, afterCameraY)) {
-                    overview.cameraYAnimations.insert(overview.dragOutput,
-                        Anim::Animation(clock, beforeCameraY, afterCameraY, 0.0, config.animations.workspaceSwitch));
-                }
-            }
-            activeView = afterView;
-        }
-    }
-
-    int dropCard = card;
-    if (activeView && !activeView->workspaceIndices.isEmpty()) {
-        const auto it = std::ranges::find(activeView->workspaceIndices, realWorkspace);
-        if (it != activeView->workspaceIndices.end()) {
-            dropCard = static_cast<int>(std::distance(activeView->workspaceIndices.begin(), it));
-        }
-    }
-    const QRectF cardRect = (activeView && dropCard >= 0 && dropCard < activeView->workspaceRects.size())
-        ? activeView->workspaceRects[dropCard]
-        : view->workspaceRects[card];
-    const double scale = activeView ? activeView->scale : view->scale;
-
-    overview.drop = OverviewDrop {monitor->workspaces()[realWorkspace].id(), (overview.dragPos - cardRect.topLeft()) / scale};
+    overview.drop
+        = OverviewDrop {monitor->workspaces()[realWorkspace].id(), (overview.dragPos - view->workspaceRects[card].topLeft()) / view->scale};
     windowDrag->pointerPos = overview.drop->local;
     windowDrag->output = overview.dragOutput;
     windowDrag->lastPointer = overview.dragPos;
