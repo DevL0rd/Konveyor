@@ -24,6 +24,7 @@ struct OverviewPaintCard
     bool active = false;
     bool hovered = false;
     bool dragged = false;
+    bool empty = false;
     double opacity = 0.0;
     bool operator==(const OverviewPaintCard &) const = default;
 };

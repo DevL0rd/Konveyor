@@ -7,6 +7,9 @@ bool KonveyorEffect::routeGesture(bool consumed)
 {
     if (consumed) {
         changeEngine();
+        if (overviewPaintActive()) {
+            KWin::effects->addRepaintFull();
+        }
     }
     return consumed;
 }

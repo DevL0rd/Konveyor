@@ -78,6 +78,7 @@ public:
     bool focusLeft(bool wrap);
     bool focusRight(bool wrap);
     bool panView(double delta);
+    bool overviewPanned() const { return m_overviewPanned; }
     void setOverviewOpen(bool open)
     {
         if (!open) {

@@ -119,6 +119,9 @@ OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNorm
         card.active = card.index == view.activeWorkspace;
         card.hovered = card.index == view.dropWorkspace;
         card.dragged = card.index == view.draggedWorkspace;
+        const int realIdx = index < view.workspaceIndices.size() ? view.workspaceIndices.at(index) : static_cast<int>(index);
+        card.empty = std::ranges::none_of(
+            view.windows, [realIdx](const OverviewWindow &window) { return window.workspaceIndex == realIdx + 1; });
         card.opacity = cardOpacity(card) * paint.blend;
         paint.cards.append(card);
     }

@@ -54,17 +54,20 @@ SettingsPage {
             onEdited: value => SettingsStore.setValue("overview/card-gap", [Math.round(value * 100) / 100])
         }
 
-        ChoiceRow {
+        SettingRow {
             label: "Offscreen indicators"
             description: "Show chevrons along screen edges when content extends beyond the view, or hide indicators completely."
             resetPaths: ["overview/offscreen-indicators"]
             enabled: page.overview.enabled === true
-            model: [
-                { value: "chevrons", label: "Chevrons" },
-                { value: "off", label: "Off" }
-            ]
-            value: page.overview["offscreen-indicators"] || "chevrons"
-            onChosen: choice => SettingsStore.setValue("overview/offscreen-indicators", [choice])
+
+            Segmented {
+                options: [
+                    { value: "chevrons", label: "Chevrons" },
+                    { value: "off", label: "Off" }
+                ]
+                currentValue: page.overview["offscreen-indicators"] || "chevrons"
+                onChosen: value => SettingsStore.setValue("overview/offscreen-indicators", [value])
+            }
         }
 
         SwitchRow {

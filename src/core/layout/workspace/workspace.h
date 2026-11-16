@@ -114,6 +114,7 @@ public:
     bool focusLeft(bool wrap);
     bool focusRight(bool wrap);
     bool panView(double delta);
+    bool overviewPanned() const { return m_strip.overviewPanned(); }
     void setOverviewOpen(bool open) { m_strip.setOverviewOpen(open); }
     void focusColumnFirst();
     void focusColumnLast();

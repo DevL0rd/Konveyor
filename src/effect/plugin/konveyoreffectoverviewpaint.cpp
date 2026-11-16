@@ -255,13 +255,24 @@ void KonveyorEffect::paintOverview(const KWin::RenderTarget &renderTarget, const
     const QColor focusRingColor = resolveFocusRingColor(focusRing, d->accent);
 
     fillRects({workArea}, withAlpha(Qt::black, paint.scrimOpacity * Layout::kOverviewScrimAlpha), renderTarget, viewport, scissor);
+    QList<QRectF> plusRects;
     for (const Layout::OverviewPaintCard &card : paint.cards) {
         if (!card.rect.intersects(workArea)) {
             continue;
         }
-        if (card.hovered || card.dragged) {
+        if (card.empty || card.hovered || card.dragged) {
             fillRects({card.rect}, withAlpha(kCardFillColor, card.opacity), renderTarget, viewport, scissor);
         }
+        if (card.empty) {
+            const double arm = std::clamp(card.rect.height() * 0.08, 12.0, 28.0);
+            const double thickness = std::clamp(arm * 0.16, 2.5, 4.0);
+            const QPointF center = card.rect.center();
+            plusRects.append(QRectF(center.x() - arm, center.y() - thickness * 0.5, arm * 2.0, thickness));
+            plusRects.append(QRectF(center.x() - thickness * 0.5, center.y() - arm, thickness, arm * 2.0));
+        }
+    }
+    if (!plusRects.isEmpty()) {
+        fillRects(plusRects, withAlpha(Qt::white, 0.55 * paint.blend), renderTarget, viewport, scissor);
     }
     if (paint.dropHintRect && paint.dropHintRect->intersects(workArea)) {
         fillRects({*paint.dropHintRect}, withAlpha(focusRingColor, 0.22 * paint.blend), renderTarget, viewport, scissor);

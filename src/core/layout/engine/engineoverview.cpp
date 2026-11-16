@@ -95,7 +95,8 @@ std::optional<WindowId> Engine::Private::centeredOverviewWindow(const OverviewVi
     return best;
 }
 
-void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift)
+void Engine::overviewScroll(
+    const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift, bool finger)
 {
     if (!d->builtinOverviewOpen()) {
         return;
@@ -105,8 +106,9 @@ void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, 
         return;
     }
     const double speed = std::clamp(d->config.overview.scrollSpeed, 0.05, 5.0);
+    const double deviceScale = finger ? 0.25 : 1.0;
     const double rawUnits = deltaV120 != 0 ? static_cast<double>(deltaV120) : delta * 8.0;
-    const double units = rawUnits * speed;
+    const double units = rawUnits * speed * deviceScale;
     if (units == 0.0) {
         return;
     }
@@ -169,9 +171,14 @@ void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, 
             }
         }
     }
-    std::optional<WindowId> next = horizontal && d->config.animations.enabled
-        ? (afterView ? d->centeredOverviewWindow(*afterView) : std::nullopt)
-        : monitor->activeWorkspace().activeWindow();
+    std::optional<WindowId> next;
+    if (horizontal && d->config.animations.enabled) {
+        next = afterView ? d->centeredOverviewWindow(*afterView) : std::nullopt;
+    } else if (workspaceChanged && monitor->activeWorkspace().overviewPanned()) {
+        next = afterView ? d->centeredOverviewWindow(*afterView) : std::nullopt;
+    } else {
+        next = monitor->activeWorkspace().activeWindow();
+    }
     if (!next && afterView) {
         next = d->centeredOverviewWindow(*afterView);
     }
@@ -179,6 +186,69 @@ void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, 
     if (const auto index = d->monitorIndexByName(output)) {
         d->activeMonitorIndex = *index;
     }
+    d->refresh();
+}
+
+void Engine::overviewNavigate(OverviewDirection direction)
+{
+    if (!d->builtinOverviewOpen()) {
+        return;
+    }
+    Monitor *monitor = d->activeMonitor();
+    if (!monitor) {
+        return;
+    }
+    const QString output = monitor->outputName();
+    const bool vertical = direction == OverviewDirection::Up || direction == OverviewDirection::Down;
+    double beforeCameraY = 0.0;
+    bool workspaceChanged = false;
+    bool changed = false;
+
+    if (vertical) {
+        if (d->config.animations.enabled) {
+            if (const std::optional<OverviewView> beforeView = d->overviewView(output)) {
+                beforeCameraY = beforeView->camera.y();
+            }
+        }
+        const std::size_t before = monitor->activeWorkspaceIndex();
+        if (direction == OverviewDirection::Down) {
+            monitor->switchWorkspaceDown();
+        } else {
+            monitor->switchWorkspaceUp();
+        }
+        workspaceChanged = monitor->activeWorkspaceIndex() != before;
+        changed = workspaceChanged;
+    } else {
+        Workspace &workspace = monitor->activeWorkspace();
+        changed = direction == OverviewDirection::Right ? workspace.focusRight(d->config.layout.wrapColumns)
+                                                        : workspace.focusLeft(d->config.layout.wrapColumns);
+    }
+
+    if (!changed) {
+        return;
+    }
+    d->overview.cameras.remove(output);
+    const std::optional<OverviewView> afterView = (workspaceChanged && d->config.animations.enabled)
+            || !monitor->activeWorkspace().activeWindow() || (vertical && monitor->activeWorkspace().overviewPanned())
+        ? d->overviewView(output)
+        : std::nullopt;
+    if (workspaceChanged) {
+        d->overview.cameraYAnimations.remove(output);
+        if (d->config.animations.enabled && afterView) {
+            const double afterCameraY = afterView->camera.y();
+            if (!qFuzzyCompare(beforeCameraY, afterCameraY)) {
+                d->overview.cameraYAnimations.insert(
+                    output, Anim::Animation(d->clock, beforeCameraY, afterCameraY, 0.0, d->config.animations.workspaceSwitch));
+            }
+        }
+    }
+    std::optional<WindowId> next = vertical && monitor->activeWorkspace().overviewPanned()
+        ? (afterView ? d->centeredOverviewWindow(*afterView) : std::nullopt)
+        : monitor->activeWorkspace().activeWindow();
+    if (!next && afterView) {
+        next = d->centeredOverviewWindow(*afterView);
+    }
+    d->overview.selected = next;
     d->refresh();
 }
 

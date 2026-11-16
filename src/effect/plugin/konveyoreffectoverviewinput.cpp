@@ -56,7 +56,6 @@ bool KonveyorEffect::overviewInputActive() const
 bool KonveyorEffect::handleOverviewAxis(
     const QPointF &position, Qt::Orientation orientation, qreal delta, qint32 deltaV120, bool finger, Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(finger);
     if (!overviewInputActive()) {
         return false;
     }
@@ -65,7 +64,7 @@ bool KonveyorEffect::handleOverviewAxis(
         return true;
     }
     const bool shift = modifiers.testFlag(Qt::ShiftModifier);
-    changeEngine().overviewScroll(output, orientation, delta, deltaV120, shift);
+    changeEngine().overviewScroll(output, orientation, delta, deltaV120, shift, finger);
     KWin::effects->addRepaintFull();
     return true;
 }
@@ -121,7 +120,7 @@ bool KonveyorEffect::handleOverviewKey(int key, bool pressed, Qt::KeyboardModifi
             changeEngine().setOverviewOpen(false);
         }
     } else if (const auto direction = directionOf(key)) {
-        changeEngine().overviewMoveSelection(*direction);
+        changeEngine().overviewNavigate(*direction);
     } else if (key == Qt::Key_Tab || key == Qt::Key_Backtab) {
         const bool backward = key == Qt::Key_Backtab || modifiers.testFlag(Qt::ShiftModifier);
         changeEngine().overviewCycleSelection(!backward);

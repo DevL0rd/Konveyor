@@ -29,6 +29,19 @@ void Engine::updateSwipe(double delta, qint64 timestampMs, bool isTouchpad)
 {
     if (Workspace *workspace = d->viewGestureWorkspace ? d->workspaceById(*d->viewGestureWorkspace) : nullptr) {
         workspace->updateSwipe(delta, timestampOf(timestampMs), isTouchpad);
+        if (d->builtinOverviewOpen()) {
+            for (const Monitor &monitor : d->monitors) {
+                for (const Workspace &ws : monitor.workspaces()) {
+                    if (ws.id() == workspace->id()) {
+                        d->overview.cameras.remove(monitor.outputName());
+                        if (const std::optional<OverviewView> view = d->overviewView(monitor.outputName())) {
+                            d->overview.selected = d->centeredOverviewWindow(*view);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -36,6 +49,9 @@ void Engine::endSwipe(std::optional<bool> isTouchpad, std::optional<WindowId> ke
 {
     if (Workspace *workspace = d->viewGestureWorkspace ? d->workspaceById(*d->viewGestureWorkspace) : nullptr) {
         workspace->endSwipe(isTouchpad, keepActive);
+        if (d->builtinOverviewOpen()) {
+            d->overview.selected = workspace->activeWindow();
+        }
     }
     d->viewGestureWorkspace.reset();
     d->refresh();
@@ -48,20 +64,41 @@ void Engine::beginWorkspaceSwipe(const QString &output, bool isTouchpad)
         return;
     }
     d->switchGestureOutput = output;
+    if (d->builtinOverviewOpen()) {
+        d->overview.verticalScrollAccum = 0.0;
+        return;
+    }
     monitor->beginWorkspaceSwipe(isTouchpad, d->usesWorkspaceMotion(*monitor));
 }
 
 void Engine::updateWorkspaceSwipe(double delta, qint64 timestampMs, bool isTouchpad)
 {
-    if (Monitor *monitor = d->monitorByName(d->switchGestureOutput)) {
-        monitor->updateWorkspaceSwipe(delta, timestampOf(timestampMs), isTouchpad);
+    Monitor *monitor = d->monitorByName(d->switchGestureOutput);
+    if (!monitor) {
+        return;
     }
+    if (d->builtinOverviewOpen()) {
+        constexpr double kSwipeStep = 80.0;
+        const double speed = std::clamp(d->config.overview.scrollSpeed, 0.05, 5.0);
+        d->overview.verticalScrollAccum += delta * speed;
+        while (std::abs(d->overview.verticalScrollAccum) >= kSwipeStep) {
+            const int step = d->overview.verticalScrollAccum > 0.0 ? 1 : -1;
+            d->overview.verticalScrollAccum -= step * kSwipeStep;
+            overviewNavigate(step > 0 ? OverviewDirection::Down : OverviewDirection::Up);
+        }
+        return;
+    }
+    monitor->updateWorkspaceSwipe(delta, timestampOf(timestampMs), isTouchpad);
 }
 
 void Engine::endWorkspaceSwipe(std::optional<bool> isTouchpad)
 {
     if (Monitor *monitor = d->monitorByName(d->switchGestureOutput)) {
-        monitor->endWorkspaceSwipe(isTouchpad);
+        if (d->builtinOverviewOpen()) {
+            d->overview.verticalScrollAccum = 0.0;
+        } else {
+            monitor->endWorkspaceSwipe(isTouchpad);
+        }
     }
     d->switchGestureOutput.clear();
     d->refresh();
