@@ -5,6 +5,7 @@
 #include <effect/effect.h>
 
 #include <QDBusContext>
+#include <QDBusServiceWatcher>
 #include <QElapsedTimer>
 #include <QHash>
 #include <QSet>
@@ -32,15 +33,14 @@ public Q_SLOTS:
     Q_SCRIPTABLE QString Frames() const;
     Q_SCRIPTABLE void Watch(const QString &pidsJson);
 
-Q_SIGNALS:
-    Q_SCRIPTABLE void Frame(qint64 pid, double frametime);
-
 private:
+    void emitFrame(qint64 pid, double frametime);
     void track(KWin::EffectWindow *window);
 
     QElapsedTimer m_clock;
     QHash<KWin::EffectWindow *, FrameRateTracker> m_rates;
-    QSet<qint64> m_watchedPids;
+    QHash<QString, QSet<qint64>> m_subscribers;
+    QDBusServiceWatcher *m_subscriberWatcher = nullptr;
     bool m_registered = false;
 };
 

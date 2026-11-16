@@ -47,6 +47,8 @@ def frame_rates(checks):
     lines = watch_signals(f"type='signal',interface='{SERVICE}',member='Frame'", lambda: telemetry().Watch(json.dumps([pid])),
                           lambda seen: signalled(seen, pid))
     checks.expect(signalled(lines, pid), "Watch starts Frame signals for the process")
+    headers = [line for line in lines if line.startswith("signal ") and "member=Frame" in line]
+    checks.expect(bool(headers) and all("destination=:" in line for line in headers), "Frame signals go only to the process that called Watch")
 
 
 def bad_requests(checks):
