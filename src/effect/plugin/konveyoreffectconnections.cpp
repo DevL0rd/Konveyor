@@ -241,6 +241,9 @@ void KonveyorEffect::connectDragAndDrop()
     connect(KWin::waylandServer(), &KWin::WaylandServer::lockStateChanged, this, [this] {
         if (KWin::waylandServer()->isScreenLocked()) {
             runPeekStep(d->peekKey.reset());
+            if (readEngine().isOverviewOpen()) {
+                changeEngine().setOverviewOpen(false);
+            }
         }
     });
 }
