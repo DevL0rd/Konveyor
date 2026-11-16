@@ -105,14 +105,14 @@ void Engine::overviewScroll(
     if (!monitor) {
         return;
     }
+    const bool horizontal = orientation == Qt::Horizontal || shift;
     const double speed = std::clamp(d->config.overview.scrollSpeed, 0.05, 5.0);
-    const double deviceScale = finger ? 0.25 : 1.0;
+    const double deviceScale = finger ? (horizontal ? 0.75 : 0.25) : 1.0;
     const double rawUnits = deltaV120 != 0 ? static_cast<double>(deltaV120) : delta * 8.0;
     const double units = rawUnits * speed * deviceScale;
     if (units == 0.0) {
         return;
     }
-    const bool horizontal = orientation == Qt::Horizontal || shift;
     bool changed = false;
     bool workspaceChanged = false;
     double beforeCameraY = 0.0;
@@ -137,10 +137,6 @@ void Engine::overviewScroll(
                 changed = true;
             }
         }
-    } else if (d->config.animations.enabled) {
-        constexpr double kHorizontalPanPerNotch = 140.0;
-        const double panDelta = (units / 120.0) * kHorizontalPanPerNotch;
-        changed = monitor->activeWorkspace().panView(panDelta);
     } else {
         d->overview.horizontalScrollAccum += units;
         while (std::abs(d->overview.horizontalScrollAccum) >= 120.0) {
@@ -157,8 +153,8 @@ void Engine::overviewScroll(
     }
     d->overview.cameras.remove(output);
     const std::optional<OverviewView> afterView
-        = (workspaceChanged && d->config.animations.enabled) || (horizontal && d->config.animations.enabled)
-            || !monitor->activeWorkspace().activeWindow()
+        = (workspaceChanged && d->config.animations.enabled) || !monitor->activeWorkspace().activeWindow()
+            || (workspaceChanged && monitor->activeWorkspace().overviewPanned())
         ? d->overviewView(output)
         : std::nullopt;
     if (workspaceChanged) {
@@ -171,14 +167,9 @@ void Engine::overviewScroll(
             }
         }
     }
-    std::optional<WindowId> next;
-    if (horizontal && d->config.animations.enabled) {
-        next = afterView ? d->centeredOverviewWindow(*afterView) : std::nullopt;
-    } else if (workspaceChanged && monitor->activeWorkspace().overviewPanned()) {
-        next = afterView ? d->centeredOverviewWindow(*afterView) : std::nullopt;
-    } else {
-        next = monitor->activeWorkspace().activeWindow();
-    }
+    std::optional<WindowId> next = (workspaceChanged && monitor->activeWorkspace().overviewPanned())
+        ? (afterView ? d->centeredOverviewWindow(*afterView) : std::nullopt)
+        : monitor->activeWorkspace().activeWindow();
     if (!next && afterView) {
         next = d->centeredOverviewWindow(*afterView);
     }
