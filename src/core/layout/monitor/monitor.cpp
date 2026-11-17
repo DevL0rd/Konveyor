@@ -139,29 +139,6 @@ bool Monitor::isAnimating() const
     return std::ranges::any_of(m_workspaces, &Workspace::isAnimating);
 }
 
-QString Monitor::checkConsistency() const
-{
-    if (m_workspaces.empty()) {
-        return QStringLiteral("monitor: must have at least one workspace");
-    }
-    if (m_activeWorkspaceIndex >= m_workspaces.size()) {
-        return QStringLiteral("monitor: active workspace index out of range");
-    }
-    if (m_options->layout.fixedWorkspaceCount == 0 && m_workspaces.back().isOccupiedOrNamed()) {
-        return QStringLiteral("monitor: the last workspace must be empty");
-    }
-    if (m_options->layout.fixedWorkspaceCount == 0 && m_options->layout.emptyWorkspaceAboveFirst && m_workspaces.size() > 1
-        && m_workspaces[0].isOccupiedOrNamed()) {
-        return QStringLiteral("monitor: the first workspace must be empty");
-    }
-    for (const Workspace &workspace : m_workspaces) {
-        if (const QString error = workspace.checkConsistency(); !error.isEmpty()) {
-            return error;
-        }
-    }
-    return {};
-}
-
 bool Monitor::hasWindow(WindowId id) const
 {
     return workspaceOfWindow(id).has_value();

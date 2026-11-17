@@ -190,9 +190,10 @@ public:
     void endResize(std::optional<WindowId> window);
 
     void refresh(bool isActive);
-    QString checkConsistency() const;
 
 private:
+    friend struct ConsistencyCheck;
+
     enum class FloatingFocus
     {
         No,

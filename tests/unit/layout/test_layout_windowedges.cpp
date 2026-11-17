@@ -1,3 +1,5 @@
+#include "../anim/manualclock.h"
+#include "consistency.h"
 #include "helpers.h"
 
 using namespace LayoutTest;
@@ -168,13 +170,13 @@ private Q_SLOTS:
 
     void enginesWithoutOutputsStillRateWindows()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Layout::Engine engine(clock);
         engine.setConfig(instantConfig());
         QVERIFY(engine.wantsWindow(makeWindow(QStringLiteral("a"))));
         engine.addWindow(1, makeWindow(QStringLiteral("a")), QString(), Layout::ActivationPolicy::Focus);
         QVERIFY(engine.hasWindow(1));
-        QCOMPARE(engine.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(engine), QString());
     }
 };
 

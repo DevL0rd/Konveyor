@@ -49,32 +49,18 @@ Motion motionOf(const Spring &spring)
     return motion;
 }
 
-struct Sample
-{
-    double position;
-    double velocity;
-};
-
-Sample sample(const Spring &spring, double t)
+double oscillate(const Spring &spring, double t)
 {
     const Motion m = motionOf(spring);
     const double envelope = std::exp(-m.beta * t);
     const double b = (m.beta * m.x0 + m.v0);
     if (m.regime == Regime::CriticallyDamped) {
-        return {spring.to + envelope * (m.x0 + b * t), envelope * (m.v0 - m.beta * b * t)};
+        return spring.to + envelope * (m.x0 + b * t);
     }
     const bool under = m.regime == Regime::Underdamped;
     const double even = under ? std::cos(m.omega * t) : std::cosh(m.omega * t);
     const double odd = under ? std::sin(m.omega * t) : std::sinh(m.omega * t);
-    const double sign = under ? -1.0 : 1.0;
-    const double position = spring.to + envelope * (m.x0 * even + (b / m.omega) * odd);
-    const double velocity = envelope * (m.v0 * even + (sign * m.x0 * m.omega - m.beta * b / m.omega) * odd);
-    return {position, velocity};
-}
-
-double oscillate(const Spring &spring, double t)
-{
-    return sample(spring, t).position;
+    return spring.to + envelope * (m.x0 * even + (b / m.omega) * odd);
 }
 
 std::optional<Duration> trivialDuration(const Spring &spring)
@@ -138,11 +124,6 @@ SpringParams::SpringParams(double dampingRatio, double stiffness, double epsilon
 double Spring::valueAt(Duration t) const
 {
     return oscillate(*this, toSeconds(t));
-}
-
-double Spring::velocityAt(Duration t) const
-{
-    return sample(*this, toSeconds(t)).velocity;
 }
 
 Duration Spring::duration() const

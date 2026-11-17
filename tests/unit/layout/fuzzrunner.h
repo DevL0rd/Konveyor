@@ -1,5 +1,6 @@
 #pragma once
 
+#include "consistency.h"
 #include "fuzzgestures.h"
 
 #include <QMap>
@@ -53,7 +54,7 @@ public:
     {
         for (qsizetype i = 0; i < events.size(); ++i) {
             apply(events.at(i));
-            QString error = m_gestures.holdsDrag() ? m_fixture.engine().checkConsistency() : m_fixture.invariants();
+            QString error = m_gestures.holdsDrag() ? Layout::ConsistencyCheck::of(m_fixture.engine()) : m_fixture.invariants();
             error = error.isEmpty() ? checkStates(m_fixture.engine().windowStates()) : error;
             if (!error.isEmpty()) {
                 return {i, error};

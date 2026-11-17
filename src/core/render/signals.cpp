@@ -182,13 +182,6 @@ void SignalBus::setAudio(quint64 window, const AudioFrame &audio)
     }
 }
 
-void SignalBus::setOnEveryWindow(Signal signal, float amount)
-{
-    for (quint64 window : windowsWanting(signal)) {
-        set(window, signal, amount);
-    }
-}
-
 void SignalBus::advance(double seconds)
 {
     const double step = std::clamp(seconds - m_lastSeconds, 0.0, kLongestStep);
@@ -222,25 +215,6 @@ void SignalBus::setWantedEverywhere(SignalClient client, const SignalSet &wanted
     SignalSet &claim = m_everywhere[static_cast<std::size_t>(client)];
     if (claim != wanted) {
         claim = wanted;
-        wantedChanged();
-    }
-}
-
-void SignalBus::clearWanted(SignalClient client)
-{
-    const auto index = static_cast<std::size_t>(client);
-    for (auto &[window, claims] : m_claims) {
-        claims[index].reset();
-    }
-    std::erase_if(m_claims, [](const auto &entry) { return entry.second[0].none() && entry.second[1].none(); });
-    m_everywhere[index].reset();
-    wantedChanged();
-}
-
-void SignalBus::remove(quint64 window)
-{
-    m_frames.erase(window);
-    if (m_claims.erase(window) > 0) {
         wantedChanged();
     }
 }

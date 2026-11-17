@@ -1,9 +1,7 @@
-#include "anim/animation.h"
-#include "anim/defaults.h"
+#include "config/sections.h"
 
 #include <QTest>
 
-using namespace std::chrono_literals;
 using Konveyor::Config::AnimationParams;
 using Konveyor::Config::Animations;
 using Konveyor::Config::EasingCurve;
@@ -25,19 +23,19 @@ AnimationParams fetchParams()
         {"window-movement", &Animations::windowMovement},
         {"window-resize", &Animations::windowResize},
     };
-    return Konveyor::Anim::defaultAnimations().*members.value(member);
+    return Konveyor::Config::defaultAnimations().*members.value(member);
 }
 
 }
 
-class TestDefaults : public QObject
+class TestConfigAnimationDefaults : public QObject
 {
     Q_OBJECT
 
 private Q_SLOTS:
     void global()
     {
-        const Animations animations = Konveyor::Anim::defaultAnimations();
+        const Animations animations = Konveyor::Config::defaultAnimations();
         QVERIFY(animations.enabled);
         QCOMPARE(animations.slowdown, 1.0);
     }
@@ -80,11 +78,8 @@ private Q_SLOTS:
         const auto &easing = std::get<EasingParams>(params.kind);
         QCOMPARE(easing.durationMs, 150.0);
         QCOMPARE(easing.curve, curve);
-
-        const Konveyor::Anim::Animation animation(Konveyor::Anim::Clock::frozenAt(0ms), 0, 1, 0, params);
-        QCOMPARE(animation.duration(), Konveyor::Anim::Duration(150ms));
     }
 };
 
-QTEST_GUILESS_MAIN(TestDefaults)
-#include "test_defaults.moc"
+QTEST_GUILESS_MAIN(TestConfigAnimationDefaults)
+#include "test_config_animation_defaults.moc"

@@ -1,3 +1,5 @@
+#include "../anim/manualclock.h"
+#include "consistency.h"
 #include "fuzzevents.h"
 
 using namespace LayoutTest;
@@ -20,7 +22,7 @@ QString sweep(Layout::Engine &engine, Fixture *fixture, std::optional<Layout::Wi
         if (fixture) {
             fixture->settle();
         }
-        const QString error = engine.checkConsistency();
+        const QString error = Layout::ConsistencyCheck::of(engine);
         if (!error.isEmpty()) {
             return QStringLiteral("%1: %2").arg(name, error);
         }
@@ -37,7 +39,7 @@ class TestLayoutActionSweeps : public QObject
 private Q_SLOTS:
     void everyActionIsHarmlessWithoutOutputs()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Layout::Engine engine(clock);
         engine.setConfig(instantConfig());
         for (quint32 seed = 1; seed <= 3; ++seed) {

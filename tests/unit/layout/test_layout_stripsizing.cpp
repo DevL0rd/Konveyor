@@ -1,3 +1,4 @@
+#include "consistency.h"
 #include "striphelpers.h"
 
 using namespace LayoutTest;
@@ -30,7 +31,7 @@ private Q_SLOTS:
         QVERIFY(kit.strip.columns().at(1).data.front().height.isAuto());
         kit.strip.toggleWindowWidth(std::nullopt, true, false);
         kit.strip.toggleWindowHeight(std::nullopt, true);
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
     }
 
     void sizingAnUnknownWindowDoesNothing()
@@ -131,7 +132,7 @@ private Q_SLOTS:
         QVERIFY(kit.strip.beginResize(second, topLeft));
         QVERIFY(kit.strip.updateResize(second, QPointF(-20, -20)));
         kit.strip.endResize(second);
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
     }
 
     void endingAResizeOnAnotherColumnKeepsTheView()

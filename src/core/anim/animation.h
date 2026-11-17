@@ -33,14 +33,12 @@ public:
     double valueWithoutOvershoot() const;
 
     double to() const;
-    double from() const;
-    Duration startTime() const;
-    Duration endTime() const;
-    Duration duration() const;
 
     void offset(double offset);
 
 private:
+    friend struct AnimationInspector;
+
     struct Easing
     {
         Curve curve;

@@ -65,11 +65,6 @@ bool isInputSignal(Signal signal)
         || signal == Signal::Keypress;
 }
 
-bool isViewSignal(Signal signal)
-{
-    return (signal >= Signal::ViewSpeed && signal <= Signal::ViewDirection) || signal == Signal::ViewStep;
-}
-
 SignalSource sourceOf(Signal signal)
 {
     switch (signal) {

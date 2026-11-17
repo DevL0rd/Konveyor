@@ -70,13 +70,10 @@ public:
     void set(quint64 window, Signal signal, float amount);
     void fire(quint64 window, Signal signal, const SignalPoint &at = {});
     void setAudio(quint64 window, const AudioFrame &audio);
-    void setOnEveryWindow(Signal signal, float amount);
     void advance(double seconds);
 
     void setWanted(SignalClient client, quint64 window, const SignalSet &wanted);
     void setWantedEverywhere(SignalClient client, const SignalSet &wanted);
-    void clearWanted(SignalClient client);
-    void remove(quint64 window);
 
     bool wanted(quint64 window, Signal signal) const;
     SignalSet wantedAnywhere() const;

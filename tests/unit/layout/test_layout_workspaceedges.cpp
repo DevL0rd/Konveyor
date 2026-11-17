@@ -1,3 +1,4 @@
+#include "consistency.h"
 #include "striphelpers.h"
 
 using namespace LayoutTest;
@@ -39,7 +40,7 @@ private Q_SLOTS:
         Layout::Workspace &workspace = kit.monitor.workspaces().front();
         workspace.addTile(kit.makeTile(), tileRequest(Layout::AddTarget::besideWindow(999), Layout::Activation::Always, true));
         QCOMPARE(workspace.floating().tiles().size(), std::size_t(1));
-        QCOMPARE(workspace.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(workspace), QString());
     }
 
     void floatingTilesOpenBesideTiledWindows()
@@ -52,7 +53,7 @@ private Q_SLOTS:
         workspace.addTile(kit.makeTile(), tileRequest(Layout::AddTarget::besideWindow(anchor), Layout::Activation::Always, true));
         QCOMPARE(workspace.floating().tiles().size(), std::size_t(1));
         QVERIFY(workspace.isFloatingFocused());
-        QCOMPARE(workspace.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(workspace), QString());
     }
 
     void columnsCanOpenWithoutTakingFocus()
@@ -183,7 +184,7 @@ private Q_SLOTS:
         workspace.scrolling().tileFor(id)->window().commit(QSizeF(1280, 720));
         workspace.updateWindow(id);
         workspace.setFullscreen(id, false);
-        QCOMPARE(workspace.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(workspace), QString());
     }
 };
 

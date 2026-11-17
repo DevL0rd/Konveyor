@@ -101,20 +101,9 @@ private Q_SLOTS:
         QFETCH(Case, springCase);
         const Spring spring = makeSpring(springCase, 0.0001);
         QCOMPARE_LE(std::abs(spring.valueAt(Duration::zero()) - springCase.from), 1e-12);
-        QCOMPARE_LE(std::abs(spring.velocityAt(Duration::zero()) - springCase.velocity), 1e-9);
-    }
-
-    void velocityMatchesDerivative_data() { addCases(); }
-
-    void velocityMatchesDerivative()
-    {
-        QFETCH(Case, springCase);
-        const Spring spring = makeSpring(springCase, 0.0001);
         const Duration step = 1us;
-        for (const Duration t : {Duration(3ms), Duration(40ms), Duration(120ms)}) {
-            const double derivative = (spring.valueAt(t + step) - spring.valueAt(t - step)) / 2e-6;
-            QCOMPARE_LE(std::abs(spring.velocityAt(t) - derivative), 1e-4 * std::max(1.0, std::abs(derivative)));
-        }
+        const double velocity = (spring.valueAt(step) - spring.valueAt(-step)) / 2e-6;
+        QCOMPARE_LE(std::abs(velocity - springCase.velocity), 1e-4 * std::max(1.0, std::abs(springCase.velocity)));
     }
 
     void satisfiesEquationOfMotion_data() { addCases(); }
@@ -123,10 +112,12 @@ private Q_SLOTS:
     {
         QFETCH(Case, springCase);
         const Spring spring = makeSpring(springCase, 0.0001);
-        const Duration step = 1us;
+        const Duration step = 100us;
+        const double h = 1e-4;
         for (const Duration t : {Duration(5ms), Duration(60ms), Duration(200ms)}) {
-            const double acceleration = (spring.velocityAt(t + step) - spring.velocityAt(t - step)) / 2e-6;
-            const double force = -spring.params.stiffness * (spring.valueAt(t) - spring.to) - spring.params.damping * spring.velocityAt(t);
+            const double velocity = (spring.valueAt(t + step) - spring.valueAt(t - step)) / (2 * h);
+            const double acceleration = (spring.valueAt(t + step) - 2 * spring.valueAt(t) + spring.valueAt(t - step)) / (h * h);
+            const double force = -spring.params.stiffness * (spring.valueAt(t) - spring.to) - spring.params.damping * velocity;
             QCOMPARE_LE(std::abs(acceleration - force), 1e-3 * std::max(1.0, std::abs(force)));
         }
     }

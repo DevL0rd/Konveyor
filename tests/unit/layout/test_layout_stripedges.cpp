@@ -1,3 +1,5 @@
+#include "../anim/manualclock.h"
+#include "consistency.h"
 #include "striphelpers.h"
 
 using namespace LayoutTest;
@@ -14,7 +16,7 @@ private Q_SLOTS:
         QCOMPARE(idle.current(), 5.0);
         QVERIFY(idle.isIdle());
 
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Config::AnimationParams params = linearAnimationConfig().animations.horizontalViewMovement;
         Layout::StripScroll animated;
         animated.setAnimation(Konveyor::Anim::Animation(clock, 0.0, 100.0, 0.0, params));
@@ -60,7 +62,7 @@ private Q_SLOTS:
         column.updateWindow(id + 100);
         column.activateWindow(id + 100);
         QVERIFY(!column.animateOpening(id + 100));
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
     }
 
     void columnsReportSlidesAsAnimations()
@@ -119,7 +121,7 @@ private Q_SLOTS:
         kit.addPinned(Config::ColumnPosition::Start, false);
         QCOMPARE(kit.strip.columns().front().tiles.front().id(), second + 1);
         QCOMPARE(kit.strip.activeTile()->id(), first);
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
     }
 
     void pinsMovingPastTheActiveColumnKeepItActive()
@@ -133,7 +135,7 @@ private Q_SLOTS:
         QCOMPARE(kit.strip.activeTile()->id(), first);
         kit.strip.placeColumnsWithinPins();
         QCOMPARE(kit.strip.activeTile()->id(), first);
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
     }
 
     void expellingFromAColumnRightOfTheActiveOne()
@@ -178,7 +180,7 @@ private Q_SLOTS:
         kit.strip.moveColumnToIndex(2, 99);
         kit.strip.centerWindow(std::nullopt);
         kit.strip.updateWindow(99);
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
     }
 
     void movingAnInactiveColumnByWindow()
@@ -189,7 +191,7 @@ private Q_SLOTS:
         kit.addColumn();
         kit.strip.moveColumnToIndex(3, first);
         QCOMPARE(kit.strip.columns().back().tiles.front().id(), first);
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
     }
 
     void tabbedColumnsHitTestTheirTabs()
@@ -235,7 +237,7 @@ private Q_SLOTS:
         to.maxRowsPerColumn = 2;
         kit.strip.reflowForLayout(from, to);
         QVERIFY(kit.strip.columns().size() < 5);
-        QCOMPARE(kit.strip.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.strip), QString());
         kit.strip.reflowForLayout(to, from);
         QCOMPARE(kit.strip.columns().size(), std::size_t(5));
     }

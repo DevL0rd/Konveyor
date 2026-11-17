@@ -1,3 +1,4 @@
+#include "../anim/manualclock.h"
 #include "helpers.h"
 
 using namespace LayoutTest;
@@ -286,7 +287,7 @@ private Q_SLOTS:
 
     void workAreaOffsetsTheLayout()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Layout::Engine engine(clock);
         engine.setConfig(instantConfig());
         Layout::OutputInfo info = makeOutput(QStringLiteral("DP-1"), QRectF(0, 0, 1920, 1080));

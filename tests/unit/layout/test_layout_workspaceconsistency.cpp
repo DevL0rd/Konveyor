@@ -1,3 +1,4 @@
+#include "consistency.h"
 #include "striphelpers.h"
 
 using namespace LayoutTest;
@@ -10,7 +11,7 @@ private Q_SLOTS:
     void emptyWorkspaceIsConsistent()
     {
         MonitorKit kit;
-        QCOMPARE(kit.monitor.workspaces().front().checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor.workspaces().front()), QString());
     }
 
     void reportsTilingProblems()
@@ -18,7 +19,7 @@ private Q_SLOTS:
         MonitorKit kit;
         kit.add(0);
         kit.monitor.workspaces().front().scrolling().columns().front().activeTileIndex = 4;
-        QVERIFY(kit.monitor.workspaces().front().checkConsistency().contains(QStringLiteral("active tile index out of range")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.monitor.workspaces().front()).contains(QStringLiteral("active tile index out of range")));
     }
 
     void reportsFloatingProblems()
@@ -26,7 +27,7 @@ private Q_SLOTS:
         MonitorKit kit;
         Layout::Workspace &workspace = kit.monitor.workspaces().front();
         workspace.floating().tiles().push_back(kit.makeTile());
-        QVERIFY(workspace.checkConsistency().contains(QStringLiteral("tiles and data must have the same length")));
+        QVERIFY(Layout::ConsistencyCheck::of(workspace).contains(QStringLiteral("tiles and data must have the same length")));
     }
 };
 

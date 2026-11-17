@@ -296,17 +296,4 @@ PresetExtent measureFloatingPreset(const Config::PresetSize &preset, double view
     return {false, std::round(std::get<Config::Fixed>(preset).value)};
 }
 
-double borderExtent(const Config::Border &border)
-{
-    return border.enabled ? border.width * 2.0 : 0.0;
-}
-
-QSize maxWindowBounds(const Config::Border &border, QSizeF workingAreaSize, QSizeF reservedSize, double gaps)
-{
-    const double extent = borderExtent(border);
-    const double w = std::max(workingAreaSize.width() - gaps * 2.0 - reservedSize.width() - extent, 1.0);
-    const double h = std::max(workingAreaSize.height() - gaps * 2.0 - reservedSize.height() - extent, 1.0);
-    return {floorToInt(w), floorToInt(h)};
-}
-
 }

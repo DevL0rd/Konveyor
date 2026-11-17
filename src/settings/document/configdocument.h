@@ -21,8 +21,6 @@ class ConfigDocument
 public:
     explicit ConfigDocument(const QString &text = QString());
 
-    static void failEditsAfter(std::optional<int> successfulEdits);
-
     QString text() const;
 
     const Kdl::Node *find(const QString &path) const;

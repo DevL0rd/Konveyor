@@ -55,11 +55,6 @@ Curve Curve::fromConfig(const Config::EasingParams &params)
     return Curve(params.curve, std::move(bezier));
 }
 
-Config::EasingCurve Curve::kind() const
-{
-    return m_kind;
-}
-
 double Curve::y(double x) const
 {
     if (m_kind == Config::EasingCurve::EaseOutExpo) {

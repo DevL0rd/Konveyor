@@ -56,7 +56,4 @@ QRectF parkedFrame(QRectF frame, QRectF home, const QList<QRectF> &outputs);
 PresetExtent measurePreset(const Config::PresetSize &preset, const Options &options, double viewSize, double reservedSize);
 PresetExtent measureFloatingPreset(const Config::PresetSize &preset, double viewSize);
 
-double borderExtent(const Config::Border &border);
-QSize maxWindowBounds(const Config::Border &border, QSizeF workingAreaSize, QSizeF reservedSize, double gaps);
-
 }

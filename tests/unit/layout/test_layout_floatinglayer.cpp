@@ -1,3 +1,4 @@
+#include "consistency.h"
 #include "striphelpers.h"
 
 #include <cmath>
@@ -205,7 +206,7 @@ private Q_SLOTS:
         const Layout::WindowId childId = tile.id();
         kit.layer.insertAbove(parent, std::move(tile), true);
         QCOMPARE(kit.layer.tiles().front().id(), childId);
-        QCOMPARE(kit.layer.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.layer), QString());
     }
 
     void unrelatedWindowsOpenDirectlyAboveTheirSibling()
@@ -261,18 +262,18 @@ private Q_SLOTS:
         FloatKit kit;
         kit.add();
         kit.add();
-        QCOMPARE(kit.layer.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.layer), QString());
         FloatKit empty;
-        QCOMPARE(empty.layer.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(empty.layer), QString());
     }
 
     void rejectsInvalidScale()
     {
         FloatKit kit;
         kit.layer.updateConfig(kit.area.size(), kit.area, 0.0, kit.options);
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("scale must be positive and finite")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("scale must be positive and finite")));
         kit.layer.updateConfig(kit.area.size(), kit.area, std::numeric_limits<double>::infinity(), kit.options);
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("scale must be positive and finite")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("scale must be positive and finite")));
     }
 
     void rejectsTilesWithoutData()
@@ -280,7 +281,7 @@ private Q_SLOTS:
         FloatKit kit;
         kit.add();
         kit.layer.tiles().push_back(kit.makeTile());
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("tiles and data must have the same length")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("tiles and data must have the same length")));
     }
 
     void rejectsMissingActiveWindow()
@@ -288,7 +289,7 @@ private Q_SLOTS:
         FloatKit kit;
         kit.add();
         kit.layer.tiles().front() = kit.makeTile();
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("active window must be present in tiles")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("active window must be present in tiles")));
     }
 
     void rejectsResizeOfMissingWindow()
@@ -300,7 +301,7 @@ private Q_SLOTS:
         std::erase_if(kit.layer.tiles(), [first](const Layout::Tile &tile) { return tile.id() == first; });
         kit.layer.tiles().push_back(kit.makeTile());
         QCOMPARE(kit.layer.activeWindow(), std::optional(second));
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("interactive resize window must be present in tiles")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("interactive resize window must be present in tiles")));
     }
 
     void rejectsMaximizedWindows()
@@ -308,7 +309,7 @@ private Q_SLOTS:
         FloatKit kit;
         const Layout::WindowId id = kit.add();
         kit.layer.tileFor(id)->window().requestSize(QSize(100, 100), Layout::WindowMode::Maximized, false);
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("cannot be maximized or fullscreen")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("cannot be maximized or fullscreen")));
     }
 
     void rejectsExpansionExemptions()
@@ -316,7 +317,7 @@ private Q_SLOTS:
         FloatKit kit;
         const Layout::WindowId id = kit.add();
         kit.layer.tileFor(id)->window().setExpansionForceResizable(true);
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("keeps the size exemption of an expanded column")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("keeps the size exemption of an expanded column")));
     }
 
     void rejectsWindowsOutsideTheirLimits()
@@ -326,15 +327,15 @@ private Q_SLOTS:
         Layout::WindowProperties tooBig = makeWindow();
         tooBig.minSize = QSizeF(5000, 100);
         kit.layer.tileFor(id)->window().setProperties(tooBig);
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("outside its minimum or maximum size")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("outside its minimum or maximum size")));
         Layout::WindowProperties tooSmall = makeWindow();
         tooSmall.maxSize = QSizeF(50, 50);
         kit.layer.tileFor(id)->window().setProperties(tooSmall);
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("outside its minimum or maximum size")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("outside its minimum or maximum size")));
         Layout::WindowProperties tooShort = makeWindow();
         tooShort.minSize = QSizeF(0, 5000);
         kit.layer.tileFor(id)->window().setProperties(tooShort);
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("outside its minimum or maximum size")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("outside its minimum or maximum size")));
     }
 
     void rejectsStaleTileData()
@@ -342,7 +343,7 @@ private Q_SLOTS:
         FloatKit kit;
         const Layout::WindowId id = kit.add();
         kit.layer.tileFor(id)->window().commit(QSizeF(700, 500));
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("tile data must be up to date")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("tile data must be up to date")));
     }
 
     void rejectsChildrenBelowTheirParents()
@@ -352,9 +353,9 @@ private Q_SLOTS:
         Layout::WindowProperties child = makeWindow();
         child.parent = parent;
         kit.add(child);
-        QCOMPARE(kit.layer.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.layer), QString());
         std::swap(kit.layer.tiles().at(0), kit.layer.tiles().at(1));
-        QVERIFY(kit.layer.checkConsistency().contains(QStringLiteral("children must be stacked above parents")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.layer).contains(QStringLiteral("children must be stacked above parents")));
     }
 
     void raisingAParentKeepsNestedChildrenAbove()
@@ -376,7 +377,7 @@ private Q_SLOTS:
         QVERIFY(indexOf(grandchild) < indexOf(child));
         QVERIFY(indexOf(child) < indexOf(root));
         QVERIFY(indexOf(root) < indexOf(unrelated));
-        QCOMPARE(kit.layer.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.layer), QString());
     }
 };
 
