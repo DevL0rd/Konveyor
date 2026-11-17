@@ -22,6 +22,18 @@ def swipe(fingers, dx=0, dy=0, steps=30, cancel=False):
     call("Swipe", fingers, float(dx), float(dy), steps, cancel)
 
 
+def swipe_begin(fingers):
+    call("SwipeBegin", fingers)
+
+
+def swipe_update(dx=0, dy=0):
+    call("SwipeUpdate", float(dx), float(dy))
+
+
+def swipe_end(cancel=False):
+    call("SwipeEnd", cancel)
+
+
 def pinch(fingers, scale, steps=20, cancel=False):
     call("Pinch", fingers, float(scale), steps, cancel)
 
