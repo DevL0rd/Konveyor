@@ -77,23 +77,30 @@ const Kdl::Node *namedStyle(const ConfigDocument &document, const QString &name)
     return nullptr;
 }
 
+bool copyNode(ConfigDocument &document, const QString &path, const Kdl::Node &node)
+{
+    return document.setNode(path, nodeToVariant(node)).has_value();
+}
+
 bool copyShippedChild(ConfigDocument &document, const ConfigDocument &shipped, const QString &child)
 {
     const QString path = QString(ringPath) + QLatin1Char('/') + child;
     const Kdl::Node *node = shipped.find(path);
-    return node && document.setNode(path, nodeToVariant(*node));
+    return node && copyNode(document, path, *node);
 }
 
 bool addStateStyle(ConfigDocument &document, const ConfigDocument &shipped, const StateDefault &state)
 {
     const QString child = state.state + QStringLiteral("-style");
-    const std::optional<QString> name = stringArgument(shipped.find(QString(ringPath) + QLatin1Char('/') + child));
+    const QString childPath = QString(ringPath) + QLatin1Char('/') + child;
+    const Kdl::Node *shippedChild = shipped.find(childPath);
+    const std::optional<QString> name = stringArgument(shippedChild);
     const Kdl::Node *ring = document.find(ringPath);
     const Kdl::Node *style = name ? namedStyle(shipped, *name) : nullptr;
     if (!style || ring->child(child) || !keepsOldColor(*ring, state) || namedStyle(document, *name)) {
         return true;
     }
-    return copyShippedChild(document, shipped, child) && document.append(QString(), nodeToVariant(*style));
+    return copyNode(document, childPath, *shippedChild) && document.append(QString(), nodeToVariant(*style));
 }
 
 std::expected<QString, QString> validated(const ConfigDocument &document, const QString &fileName, const QString &original)

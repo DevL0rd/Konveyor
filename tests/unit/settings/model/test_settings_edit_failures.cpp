@@ -74,6 +74,7 @@ private Q_SLOTS:
     void aFailedRuleWriteIsReported();
     void failedBorderMigrationKeepsTheConfig();
     void failedBindEditsAreSkipped();
+    void widthsThatAreNotTheOldDefaultStay();
 };
 
 void TestSettingsEditFailures::aFailingEditLeavesTheDocumentAlone()
@@ -128,6 +129,24 @@ void TestSettingsEditFailures::failedBorderMigrationKeepsTheConfig()
     QString writable = shippedRing;
     writable.replace(QStringLiteral("1e999"), QStringLiteral("2"));
     QVERIFY(migrated(migrateBorderDefaults(oldRing, configFile, writable)) != oldRing);
+    QString unwritableStyle = writable;
+    unwritableStyle.replace(QStringLiteral("border-style \"Glow\" {\n    layer \"gradient\""),
+        QStringLiteral("border-style \"Glow\" {\n    layer \"gradient\" 1e999"));
+    QVERIFY(unwritableStyle != writable);
+    QCOMPARE(migrated(migrateBorderDefaults(oldRing, configFile, unwritableStyle)), oldRing);
+}
+
+void TestSettingsEditFailures::widthsThatAreNotTheOldDefaultStay()
+{
+    QString writable = shippedRing;
+    writable.replace(QStringLiteral("1e999"), QStringLiteral("2"));
+    for (const QString &width : {QStringLiteral("width \"4\""), QStringLiteral("width 4 4"), QStringLiteral("width 3")}) {
+        const QString ring
+            = QStringLiteral("layout {\n    focus-ring {\n        %1\n        inactive-color \"#505050\"\n    }\n}\n").arg(width);
+        const QString result = migrated(migrateBorderDefaults(ring, configFile, writable));
+        QVERIFY2(result.contains(width), qPrintable(result));
+        QVERIFY2(!result.contains(QStringLiteral("width 2")), qPrintable(result));
+    }
 }
 
 void TestSettingsEditFailures::failedBindEditsAreSkipped()
