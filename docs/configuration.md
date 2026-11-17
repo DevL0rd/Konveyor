@@ -331,7 +331,7 @@ overview {
 }
 ```
 
-The overview is off by default, so `toggle-overview`, the pinch and the hot corners keep opening KDE's overview. With `enabled true`, they open Konveyor's instead. The wheel pans vertically, Shift+wheel pans horizontally, and two fingers on a touchpad pan in both directions; `touchpad-scroll-speed-x` and `touchpad-scroll-speed-y` tune how far a swipe goes on each axis. Drag a window to another card to move it there, drag a card by its top strip to reorder workspaces, and use the arrow keys plus Enter to choose a window. Escape closes. Settings → Overview turns it on and sets the touchpad speeds.
+The overview is off by default, so `toggle-overview`, the pinch and the hot corners keep opening KDE's overview. With `enabled true`, they open Konveyor's instead. The wheel pans vertically, Shift+wheel pans horizontally, and two fingers on a touchpad pan in both directions; `touchpad-scroll-speed-x` and `touchpad-scroll-speed-y` tune how far a swipe goes on each axis. Drag a window to another card to move it there, drag a card by its top strip to reorder workspaces, and use the arrow keys plus Enter to choose a window. Escape closes. Settings → Overview turns it on, sets the touchpad speeds, and picks the shortcut that opens the overview.
 
 ## Scripting
 

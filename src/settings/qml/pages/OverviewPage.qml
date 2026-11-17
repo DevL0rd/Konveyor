@@ -1,6 +1,9 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls as QQC2
+import org.kde.kirigami as Kirigami
 import "../components"
+import org.kde.konveyor.components
 import org.kde.konveyor.settings
 
 SettingsPage {
@@ -9,6 +12,10 @@ SettingsPage {
     title: "Overview"
 
     readonly property var overview: SettingsStore.values["overview"] || ({})
+    readonly property string modKey: SettingsStore.values["input/mod-key"] || "Super"
+    readonly property var binds: SettingsStore.revision >= 0 ? (SettingsStore.node("binds").children || []) : []
+    readonly property var overviewBind: binds.find(bind => bind.children && bind.children.length
+        && bind.children[0].name === "toggle-overview") || null
 
     CardHeader {
         title: "Konveyor overview"
@@ -22,6 +29,41 @@ SettingsPage {
             resetPaths: ["overview/enabled"]
             isOn: page.overview.enabled === true
             onSwitched: on => SettingsStore.setFlag("overview/enabled", on)
+        }
+
+        SettingRow {
+            label: "Open the overview"
+            description: "The shortcut that opens and closes the overview. With Konveyor's overview off, the same shortcut opens KDE's overview instead."
+            iconName: "preferences-desktop-keyboard-shortcut"
+
+            RowLayout {
+                spacing: Kirigami.Units.largeSpacing
+
+                KeyCaps {
+                    visible: page.overviewBind !== null
+                    keyName: page.overviewBind ? page.overviewBind.name : ""
+                    modKey: page.modKey
+                }
+
+                QQC2.Label {
+                    visible: page.overviewBind === null
+                    text: "Not bound"
+                    opacity: 0.7
+                }
+
+                QQC2.Button {
+                    text: page.overviewBind === null ? "Set shortcut…" : "Change…"
+                    onClicked: editor.item.openFor(page.overviewBind)
+                }
+
+                QQC2.ToolButton {
+                    visible: page.overviewBind !== null
+                    icon.name: "edit-delete"
+                    display: QQC2.AbstractButton.IconOnly
+                    text: "Clear the overview shortcut"
+                    onClicked: SettingsStore.remove("binds/" + page.overviewBind.name)
+                }
+            }
         }
 
         SliderRow {
@@ -108,6 +150,15 @@ SettingsPage {
             enabled: page.overview.enabled === true
             isOn: page.overview["allow-kontrol-panel"] === true
             onSwitched: on => SettingsStore.setFlag("overview/allow-kontrol-panel", on)
+        }
+    }
+
+    LaterSection {
+        id: editor
+        sourceComponent: BindEditorDialog {
+            modKey: page.modKey
+            binds: page.binds
+            fixedAction: "toggle-overview"
         }
     }
 }
