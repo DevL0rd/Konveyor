@@ -33,7 +33,7 @@ def watch_error(argument):
 
 
 def signalled(lines, pid):
-    return any(line.startswith("int64") and line.split()[-1] == str(pid) for line in lines)
+    return any(line.strip().startswith("string") and f'"pid":{pid},' in line for line in lines)
 
 
 def frame_rates(checks):
@@ -44,9 +44,11 @@ def frame_rates(checks):
     checks.expect(entry is not None, f"Frames reports the animated client ({frames()})")
     if entry:
         checks.expect(entry["fps"] > 0 and entry["frametime"] > 0 and 0 < entry["fps_low"] <= entry["fps"], f"the frame rate is plausible ({entry})")
-    lines = watch_signals(f"type='signal',interface='{SERVICE}',member='Frame'", lambda: telemetry().Watch(json.dumps([pid])),
+    lines = watch_signals(f"type='signal',interface='{SERVICE}',member='FrameBatch'", lambda: telemetry().Watch(json.dumps([pid])),
                           lambda seen: signalled(seen, pid))
-    checks.expect(signalled(lines, pid), "Watch starts Frame signals for the process")
+    checks.expect(signalled(lines, pid), "Watch starts FrameBatch signals for the process")
+    headers = [line for line in lines if line.startswith("signal ") and "member=FrameBatch" in line]
+    checks.expect(bool(headers) and all("destination=:" in line for line in headers), "FrameBatch signals go only to the process that called Watch")
 
 
 def bad_requests(checks):
@@ -63,8 +65,8 @@ def unwatch_stops_signals(checks):
     pid = spinner_pid()
     telemetry().Watch(json.dumps([pid]))
     telemetry().Watch("[]")
-    lines = watch_signals(f"type='signal',interface='{SERVICE}',member='Frame'", lambda: None, lambda seen: signalled(seen, pid), timeout=3)
-    checks.expect(not signalled(lines, pid), "after Watch([]) no Frame signals arrive for the animating window")
+    lines = watch_signals(f"type='signal',interface='{SERVICE}',member='FrameBatch'", lambda: None, lambda seen: signalled(seen, pid), timeout=3)
+    checks.expect(not signalled(lines, pid), "after Watch([]) no FrameBatch signals arrive for the animating window")
 
 
 def service_registered():

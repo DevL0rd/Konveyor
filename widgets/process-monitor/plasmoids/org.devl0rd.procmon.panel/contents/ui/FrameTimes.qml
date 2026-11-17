@@ -76,8 +76,10 @@ Item {
         path: "/FrameTelemetry"
         iface: "org.devl0rd.ProcessMonitor.FrameTelemetry"
 
-        function dbusFrame(pid, frametime) {
-            frameTimes.recordFrametime(Number(pid), Number(frametime))
+        function dbusFrameBatch(batch) {
+            for (const entry of JSON.parse(String(batch)))
+                for (const frame of entry.frames)
+                    frameTimes.recordFrametime(Number(entry.pid), Number(frame[1]))
         }
     }
 }

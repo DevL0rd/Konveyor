@@ -123,10 +123,8 @@ private Q_SLOTS:
         QVERIFY(watcher);
         QCOMPARE(watcher->service, QStringLiteral("org.devl0rd.ProcessMonitor.FrameTelemetry"));
         QVERIFY(watcher->enabled);
-        for (const QVariant &frametime : {QVariant(7.5), QVariant(0), QVariant(2500), QVariant(8)}) {
-            QMetaObject::invokeMethod(watcher, "dbusFrame", Q_ARG(QVariant, 200), Q_ARG(QVariant, frametime));
-        }
-        QMetaObject::invokeMethod(watcher, "dbusFrame", Q_ARG(QVariant, 0), Q_ARG(QVariant, 5));
+        QMetaObject::invokeMethod(watcher, "dbusFrameBatch",
+            Q_ARG(QVariant, QStringLiteral("[{\"pid\":200,\"frames\":[[1,7.5],[2,0],[3,2500],[4,8]]},{\"pid\":0,\"frames\":[[5,5]]}]")));
         QCOMPARE(harness->eval(QStringLiteral("frametimesFor(200)")).toList(), (QVariantList {7.5, 8}));
         QCOMPARE(harness->eval(QStringLiteral("frametimesFor(999)")).toList(), QVariantList());
         harness->unload();
