@@ -54,6 +54,36 @@ SettingsPage {
             onEdited: value => SettingsStore.setValue("overview/card-gap", [Math.round(value * 100) / 100])
         }
 
+        SliderRow {
+            label: "Touchpad speed across"
+            description: "How far a two-finger sideways swipe moves the overview. Mouse wheels keep their own speed."
+            resetPaths: ["overview/touchpad-scroll-speed-x"]
+            enabled: page.overview.enabled === true
+            from: 0.05
+            to: 2.0
+            stepSize: 0.05
+            decimals: 2
+            lowLabel: "Slow"
+            highLabel: "Fast"
+            value: page.overview["touchpad-scroll-speed-x"] || 0
+            onEdited: value => SettingsStore.setValue("overview/touchpad-scroll-speed-x", [Math.round(value * 100) / 100])
+        }
+
+        SliderRow {
+            label: "Touchpad speed up and down"
+            description: "How far a two-finger vertical swipe moves the overview. Lower values make it easier to stop on a workspace. Mouse wheels keep their own speed."
+            resetPaths: ["overview/touchpad-scroll-speed-y"]
+            enabled: page.overview.enabled === true
+            from: 0.05
+            to: 2.0
+            stepSize: 0.05
+            decimals: 2
+            lowLabel: "Slow"
+            highLabel: "Fast"
+            value: page.overview["touchpad-scroll-speed-y"] || 0
+            onEdited: value => SettingsStore.setValue("overview/touchpad-scroll-speed-y", [Math.round(value * 100) / 100])
+        }
+
         SettingRow {
             label: "Offscreen indicators"
             description: "Show chevrons along screen edges when content extends beyond the view, or hide indicators completely."

@@ -172,6 +172,10 @@ void TestSettingsControlsAppearanceQml::controls_data()
     addControl(
         "overview scale", {"OverviewPage", "Smallest window scale", "edited", "[0.46]", "overview/minimum-scale", R"({"args":[0.46]})"});
     addControl("overview gap", {"OverviewPage", "Space between workspaces", "edited", "[0.22]", "overview/card-gap", R"({"args":[0.22]})"});
+    addControl("overview touchpad speed x",
+        {"OverviewPage", "Touchpad speed across", "edited", "[0.35]", "overview/touchpad-scroll-speed-x", R"({"args":[0.35]})"});
+    addControl("overview touchpad speed y",
+        {"OverviewPage", "Touchpad speed up and down", "edited", "[0.35]", "overview/touchpad-scroll-speed-y", R"({"args":[0.35]})"});
 }
 
 QTEST_MAIN(TestSettingsControlsAppearanceQml)

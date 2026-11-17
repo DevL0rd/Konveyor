@@ -56,7 +56,6 @@ bool KonveyorEffect::overviewInputActive() const
 bool KonveyorEffect::handleOverviewAxis(
     const QPointF &position, Qt::Orientation orientation, qreal delta, qint32 deltaV120, bool finger, Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(finger);
     if (!overviewInputActive()) {
         return false;
     }
@@ -65,7 +64,7 @@ bool KonveyorEffect::handleOverviewAxis(
         return true;
     }
     const bool shift = modifiers.testFlag(Qt::ShiftModifier);
-    changeEngine().overviewScroll(output, orientation, delta, deltaV120, shift);
+    changeEngine().overviewScroll(output, orientation, delta, deltaV120, shift, finger, position);
     KWin::effects->addRepaintFull();
     return true;
 }

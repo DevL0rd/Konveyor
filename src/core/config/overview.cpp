@@ -37,6 +37,16 @@ void decodeOverview(const Kdl::Node &node, Overview &overview)
     });
     table.insert(QStringLiteral("allow-kontrol-panel"),
         [&overview](const Kdl::Node &child) { overview.allowKontrolPanel = flagArgument(child); });
+    table.insert(QStringLiteral("touchpad-scroll-speed-x"), [&overview](const Kdl::Node &child) {
+        const double value = numberArgument(child, Range {0, 5});
+        checkFraction(child, QStringLiteral("touchpad-scroll-speed-x"), value, 0.05, 2.0);
+        overview.touchpadScrollSpeedX = value;
+    });
+    table.insert(QStringLiteral("touchpad-scroll-speed-y"), [&overview](const Kdl::Node &child) {
+        const double value = numberArgument(child, Range {0, 5});
+        checkFraction(child, QStringLiteral("touchpad-scroll-speed-y"), value, 0.05, 2.0);
+        overview.touchpadScrollSpeedY = value;
+    });
     decodeChildren(node, table);
 }
 

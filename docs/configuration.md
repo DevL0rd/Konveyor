@@ -325,10 +325,13 @@ overview {
     minimum-scale 0.3
     // Gap between workspace cards, as a fraction of the output height. 0 to 0.5.
     card-gap 0.08
+    // How far two-finger touchpad swipes pan, per axis. 0.05 to 2. The mouse wheel keeps its own speed.
+    touchpad-scroll-speed-x 1.0
+    touchpad-scroll-speed-y 0.1
 }
 ```
 
-The overview is off by default, so `toggle-overview`, the pinch and the hot corners keep opening KDE's overview. With `enabled true`, they open Konveyor's instead. The wheel pans vertically, Shift+wheel pans horizontally, and two fingers on a touchpad pan in both directions. Drag a window to another card to move it there, drag a card by its top strip to reorder workspaces, and use the arrow keys plus Enter to choose a window. Escape closes. Settings → Overview turns it on, with **Smallest window scale** and **Space between workspaces** below it.
+The overview is off by default, so `toggle-overview`, the pinch and the hot corners keep opening KDE's overview. With `enabled true`, they open Konveyor's instead. The wheel pans vertically, Shift+wheel pans horizontally, and two fingers on a touchpad pan in both directions; `touchpad-scroll-speed-x` and `touchpad-scroll-speed-y` tune how far a swipe goes on each axis. Drag a window to another card to move it there, drag a card by its top strip to reorder workspaces, and use the arrow keys plus Enter to choose a window. Escape closes. Settings → Overview turns it on and sets the touchpad speeds.
 
 ## Scripting
 

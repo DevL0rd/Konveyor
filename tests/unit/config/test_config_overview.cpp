@@ -28,6 +28,8 @@ void TestConfigOverview::defaults()
     QCOMPARE(overview.cardGap, 0.08);
     QCOMPARE(overview.offscreenIndicators, OverviewIndicators::Chevrons);
     QCOMPARE(overview.allowKontrolPanel, false);
+    QCOMPARE(overview.touchpadScrollSpeedX, 1.0);
+    QCOMPARE(overview.touchpadScrollSpeedY, 0.1);
 }
 
 void TestConfigOverview::parsesValues()
@@ -39,6 +41,8 @@ void TestConfigOverview::parsesValues()
             card-gap 0.12
             offscreen-indicators "off"
             allow-kontrol-panel true
+            touchpad-scroll-speed-x 0.8
+            touchpad-scroll-speed-y 0.2
         }
     )"))
                                   .overview;
@@ -47,6 +51,8 @@ void TestConfigOverview::parsesValues()
     QCOMPARE(overview.cardGap, 0.12);
     QCOMPARE(overview.offscreenIndicators, OverviewIndicators::Off);
     QCOMPARE(overview.allowKontrolPanel, true);
+    QCOMPARE(overview.touchpadScrollSpeedX, 0.8);
+    QCOMPARE(overview.touchpadScrollSpeedY, 0.2);
 }
 
 void TestConfigOverview::bareFlag()
@@ -69,6 +75,10 @@ void TestConfigOverview::rejectsOutOfRangeValues_data()
                                      << QStringLiteral("value must be between 0 and 1");
     QTest::newRow("gap too large") << QStringLiteral("overview { card-gap 0.75; }") << QStringLiteral("card-gap must be between 0 and 0.5");
     QTest::newRow("negative gap") << QStringLiteral("overview { card-gap -0.1; }") << QStringLiteral("value must be between 0 and 1");
+    QTest::newRow("scroll x too small") << QStringLiteral("overview { touchpad-scroll-speed-x 0.01; }")
+                                        << QStringLiteral("touchpad-scroll-speed-x must be between 0.05 and 2");
+    QTest::newRow("scroll y too large") << QStringLiteral("overview { touchpad-scroll-speed-y 3; }")
+                                        << QStringLiteral("touchpad-scroll-speed-y must be between 0.05 and 2");
 }
 
 void TestConfigOverview::rejectsOutOfRangeValues()

@@ -74,6 +74,8 @@ private Q_SLOTS:
     void pressUsesTheOutputUnderThePointer();
     void verticalScrollStepsWorkspacesAndSelectsCenteredWindow();
     void horizontalScrollMovesColumnsAndUpdatesSelection();
+    void horizontalScrollTargetsTheWorkspaceUnderThePointer();
+    void touchpadScrollAccumulatesSmallDeltas();
     void hoverSelectsWindowAndToggleExitFocusesSelection();
 };
 
@@ -290,6 +292,61 @@ void TestOverviewPointer::horizontalScrollMovesColumnsAndUpdatesSelection()
 
     scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, 15.0, 120, false);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.b));
+    VERIFY_INVARIANTS(scene.fixture);
+}
+
+void TestOverviewPointer::horizontalScrollTargetsTheWorkspaceUnderThePointer()
+{
+    struct LowerRow
+    {
+        Fixture fixture {overviewConfig()};
+        Layout::WindowId top = fixture.add(QStringLiteral("top"));
+        Layout::WindowId left = addBelow(QStringLiteral("left"));
+        Layout::WindowId right = fixture.add(QStringLiteral("right"));
+
+        Layout::WindowId addBelow(const QString &appId)
+        {
+            fixture.perform(QStringLiteral("focus-workspace-down"));
+            return fixture.add(appId);
+        }
+
+        void open()
+        {
+            fixture.perform(QStringLiteral("focus-workspace-up"));
+            fixture.engine().setOverviewOpen(true);
+        }
+    } scene;
+
+    scene.open();
+    const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
+    QCOMPARE(view.workspaceRects.size(), 2);
+    QCOMPARE(view.activeWorkspace, 0);
+    const auto hovered = windowFor(view, scene.left);
+    QVERIFY(hovered);
+    QCOMPARE(hovered->workspaceIndex, 2);
+
+    scene.fixture.engine().overviewScroll(
+        QStringLiteral("DP-1"), Qt::Horizontal, -15.0, -120, false, false, hovered->rect.center());
+
+    const Layout::OverviewView after = scene.fixture.engine().overviewViews().first();
+    QCOMPARE(after.activeWorkspace, 0);
+    QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.left));
+    VERIFY_INVARIANTS(scene.fixture);
+}
+
+void TestOverviewPointer::touchpadScrollAccumulatesSmallDeltas()
+{
+    Scene scene;
+    scene.open();
+    QCOMPARE(scene.fixture.engine().overviewViews().first().activeWorkspace, 0);
+
+    for (int step = 0; step < 9; ++step) {
+        scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 0, false, true, QPointF());
+    }
+    QCOMPARE(scene.fixture.engine().overviewViews().first().activeWorkspace, 0);
+
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 0, false, true, QPointF());
+    QCOMPARE(scene.fixture.engine().overviewViews().first().activeWorkspace, 1);
     VERIFY_INVARIANTS(scene.fixture);
 }
 

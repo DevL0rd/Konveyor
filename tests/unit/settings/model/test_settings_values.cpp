@@ -54,7 +54,8 @@ void TestSettingsValues::globalDefaults()
     QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
         (QVariantMap {{QStringLiteral("enabled"), false}, {QStringLiteral("minimum-scale"), 0.3}, {QStringLiteral("card-gap"), 0.08},
             {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")},
-            {QStringLiteral("allow-kontrol-panel"), false}}));
+            {QStringLiteral("allow-kontrol-panel"), false}, {QStringLiteral("touchpad-scroll-speed-x"), 1.0},
+            {QStringLiteral("touchpad-scroll-speed-y"), 0.1}}));
     QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(true));
     QCOMPARE(values.value(QStringLiteral("input/warp-mouse-to-focus/mode")).toString(), QString());
     QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("move-window"));
@@ -132,7 +133,8 @@ gestures {
     QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
         (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("minimum-scale"), 0.5}, {QStringLiteral("card-gap"), 0.2},
             {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")},
-            {QStringLiteral("allow-kontrol-panel"), false}}));
+            {QStringLiteral("allow-kontrol-panel"), false}, {QStringLiteral("touchpad-scroll-speed-x"), 1.0},
+            {QStringLiteral("touchpad-scroll-speed-y"), 0.1}}));
     const QVariantMap touchpad = values.value(QStringLiteral("gestures/touchpad")).toMap();
     QCOMPARE(touchpad.value(QStringLiteral("swipe-fingers")).toInt(), 4);
     QCOMPARE(touchpad.value(QStringLiteral("pinch-fingers")).toInt(), 3);
