@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import re
 import subprocess
 import sys
 import time
@@ -33,7 +34,7 @@ def watch_error(argument):
 
 
 def signalled(lines, pid):
-    return any(line.strip().startswith("string") and f'"pid":{pid},' in line for line in lines)
+    return any(line.strip().startswith("string") and re.search(f'"pid":{pid}[,}}]', line) for line in lines)
 
 
 def frame_rates(checks):

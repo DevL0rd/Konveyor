@@ -86,10 +86,10 @@ public:
         const EffectiveWindowRules &rules) const;
 
     void refresh(bool isActive);
-    QString checkConsistency() const;
-    QString verifyTile(std::size_t index) const;
 
 private:
+    friend struct ConsistencyCheck;
+
     std::optional<std::size_t> indexOf(WindowId id) const;
     std::optional<std::size_t> targetIndex(std::optional<WindowId> window) const;
     void insertTile(std::size_t idx, Tile tile, bool activate);

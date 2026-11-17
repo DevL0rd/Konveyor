@@ -77,29 +77,50 @@ const Kdl::Node *namedStyle(const ConfigDocument &document, const QString &name)
     return nullptr;
 }
 
+bool copyNode(ConfigDocument &document, const QString &path, const Kdl::Node &node)
+{
+    return document.setNode(path, nodeToVariant(node)).has_value();
+}
+
 bool copyShippedChild(ConfigDocument &document, const ConfigDocument &shipped, const QString &child)
 {
     const QString path = QString(ringPath) + QLatin1Char('/') + child;
     const Kdl::Node *node = shipped.find(path);
-    return node && document.setNode(path, nodeToVariant(*node));
+    return node && copyNode(document, path, *node);
 }
 
 bool addStateStyle(ConfigDocument &document, const ConfigDocument &shipped, const StateDefault &state)
 {
     const QString child = state.state + QStringLiteral("-style");
-    const std::optional<QString> name = stringArgument(shipped.find(QString(ringPath) + QLatin1Char('/') + child));
+    const QString childPath = QString(ringPath) + QLatin1Char('/') + child;
+    const Kdl::Node *shippedChild = shipped.find(childPath);
+    const std::optional<QString> name = stringArgument(shippedChild);
     const Kdl::Node *ring = document.find(ringPath);
     const Kdl::Node *style = name ? namedStyle(shipped, *name) : nullptr;
     if (!style || ring->child(child) || !keepsOldColor(*ring, state) || namedStyle(document, *name)) {
         return true;
     }
-    return copyShippedChild(document, shipped, child) && document.append(QString(), nodeToVariant(*style));
+    return copyNode(document, childPath, *shippedChild) && document.append(QString(), nodeToVariant(*style));
 }
 
-bool dropOldInactiveColor(ConfigDocument &document)
+std::expected<QString, QString> validated(const ConfigDocument &document, const QString &fileName, const QString &original)
+{
+    return Config::loadString(document.text(), fileName) ? document.text() : original;
+}
+
+template<typename Edit> EditResult each(const QStringList &paths, const Edit &edit)
+{
+    EditResult result {QString()};
+    for (const QString &path : paths) {
+        result = result.and_then([&](const QString &) { return edit(path); });
+    }
+    return result;
+}
+
+EditResult dropOldInactiveColor(ConfigDocument &document)
 {
     const QString path = QString(ringPath) + QStringLiteral("/inactive-color");
-    return stringArgument(document.find(path)) != QString(oldInactiveColor) || document.remove(path).has_value();
+    return stringArgument(document.find(path)) != QString(oldInactiveColor) ? EditResult {QString()} : document.remove(path);
 }
 
 QVariantMap fireOnFocus()
@@ -136,29 +157,30 @@ QStringList heatLayerPaths(const ConfigDocument &document)
         [](const Kdl::Node &layer) { return stringArgument(&layer) == QStringLiteral("heat"); });
 }
 
-bool rewriteHeatChildren(ConfigDocument &document, const QString &path)
+EditResult rewriteHeatChildren(ConfigDocument &document, const QString &path)
 {
     QString signal = QStringLiteral("audio.level");
+    EditResult result {QString()};
     for (int index = 0; const Kdl::Node *drive = document.find(path + QStringLiteral("/drive#") + QString::number(index)); ++index) {
         if (!drive->arguments.isEmpty() && drive->arguments.first().toString() == QStringLiteral("position")
             && drive->arguments.size() == 2) {
             signal = drive->arguments.at(1).toString();
-            if (!document.remove(path + QStringLiteral("/drive#") + QString::number(index))) {
-                return false;
-            }
+            result = document.remove(path + QStringLiteral("/drive#") + QString::number(index));
             break;
         }
     }
     for (const QString &gone : {QStringLiteral("position"), QStringLiteral("baseline")}) {
-        if (document.find(path + QLatin1Char('/') + gone) && !document.remove(path + QLatin1Char('/') + gone)) {
-            return false;
+        if (document.find(path + QLatin1Char('/') + gone)) {
+            result = result.and_then([&](const QString &) { return document.remove(path + QLatin1Char('/') + gone); });
         }
     }
     const QVariantMap stillGradient {{QStringLiteral("name"), QStringLiteral("speed")}, {QStringLiteral("args"), QVariantList {0}}};
     const QVariantMap mix {{QStringLiteral("name"), QStringLiteral("drive")},
         {QStringLiteral("args"), QVariantList {QStringLiteral("color-mix"), signal}},
         {QStringLiteral("props"), QVariantMap {{QStringLiteral("amount"), 1.0}, {QStringLiteral("smooth"), 0.15}}}};
-    return document.append(path, stillGradient) && document.append(path, mix);
+    return result.and_then([&](const QString &) { return document.append(path, stillGradient); }).and_then([&](const QString &) {
+        return document.append(path, mix);
+    });
 }
 
 QStringList idleRipplePaths(const ConfigDocument &document, const QString &name)
@@ -183,26 +205,21 @@ std::expected<QString, QString> migrateFocusEffects(const QString &text, const Q
     if (!active) {
         return text;
     }
-    for (const QString &path : idleRipplePaths(document, *active)) {
-        if (!document.append(path, fireOnFocus())) {
-            return text;
-        }
-    }
-    return Config::loadString(document.text(), fileName) ? document.text() : text;
+    return each(idleRipplePaths(document, *active), [&](const QString &path) {
+        return document.append(path, fireOnFocus());
+    }).and_then([&](const QString &) { return validated(document, fileName, text); });
 }
 
 std::expected<QString, QString> migrateHeatLayers(const QString &text, const QString &fileName, const QString &)
 {
     ConfigDocument document(text);
-    for (const QString &path : heatLayerPaths(document)) {
-        if (!document.setNode(path,
+    return each(heatLayerPaths(document), [&](const QString &path) {
+        return document
+            .setNode(path,
                 {{QStringLiteral("name"), QStringLiteral("layer")}, {QStringLiteral("args"), QVariantList {QStringLiteral("gradient")}},
                     {QStringLiteral("props"), QVariantMap {}}})
-            || !rewriteHeatChildren(document, path)) {
-            return text;
-        }
-    }
-    return Config::loadString(document.text(), fileName) ? document.text() : text;
+            .and_then([&](const QString &) { return rewriteHeatChildren(document, path); });
+    }).and_then([&](const QString &) { return validated(document, fileName, text); });
 }
 
 std::expected<QString, QString> migrateBorderDefaults(const QString &text, const QString &fileName, const QString &defaults)
@@ -216,17 +233,18 @@ std::expected<QString, QString> migrateBorderDefaults(const QString &text, const
     if (!ring) {
         return text;
     }
-    bool edited = dropOldInactiveColor(document);
-    ring = document.find(ringPath);
-    const bool activeUntouched = !ring->child(QStringLiteral("active-style")) && keepsOldColor(*ring, stateDefaults().first());
-    edited = edited && (!hasOldWidth(*ring) || copyShippedChild(document, shipped, QStringLiteral("width")));
-    for (const StateDefault &state : stateDefaults()) {
-        edited = edited && ((state.needsUntouchedActive && !activeUntouched) || addStateStyle(document, shipped, state));
-    }
-    if (!edited || !Config::loadString(document.text(), fileName)) {
-        return text;
-    }
-    return document.text();
+    return dropOldInactiveColor(document).and_then([&](const QString &) -> std::expected<QString, QString> {
+        ring = document.find(ringPath);
+        const bool activeUntouched = !ring->child(QStringLiteral("active-style")) && keepsOldColor(*ring, stateDefaults().first());
+        bool edited = !hasOldWidth(*ring) || copyShippedChild(document, shipped, QStringLiteral("width"));
+        for (const StateDefault &state : stateDefaults()) {
+            edited = edited && ((state.needsUntouchedActive && !activeUntouched) || addStateStyle(document, shipped, state));
+        }
+        if (!edited || !Config::loadString(document.text(), fileName)) {
+            return text;
+        }
+        return document.text();
+    });
 }
 
 }

@@ -1,4 +1,6 @@
+#include "../anim/manualclock.h"
 #include "actionhelpers.h"
+#include "consistency.h"
 
 #include <cmath>
 
@@ -99,7 +101,7 @@ private Q_SLOTS:
 
     void windowsOpenedBeforeTheFirstOutputGetTheDefaultWidth()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Layout::Engine engine(clock);
         engine.setConfig(instantConfig());
         for (const Layout::WindowId id : {1, 2}) {
@@ -108,7 +110,7 @@ private Q_SLOTS:
         engine.addOutput(makeOutput(Laptop, QRectF(0, 0, 1920, 1080)));
         QCOMPARE(engine.windowState(1)->targetFrame.width(), 936.0);
         QCOMPARE(engine.windowState(2)->targetFrame.width(), 936.0);
-        QCOMPARE(engine.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(engine), QString());
     }
 
     void replugKeepsTheActiveWorkspaceOfTheOutput()

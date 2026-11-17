@@ -187,26 +187,6 @@ double Animation::to() const
     return m_to;
 }
 
-double Animation::from() const
-{
-    return m_from;
-}
-
-Duration Animation::startTime() const
-{
-    return m_startTime;
-}
-
-Duration Animation::endTime() const
-{
-    return saturatingAdd(m_startTime, m_duration);
-}
-
-Duration Animation::duration() const
-{
-    return m_duration;
-}
-
 void Animation::offset(double offset)
 {
     m_from += offset;

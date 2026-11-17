@@ -25,7 +25,6 @@ struct Spring
     SpringParams params;
 
     double valueAt(Duration t) const;
-    double velocityAt(Duration t) const;
     Duration duration() const;
     std::optional<Duration> timeToTarget() const;
 };

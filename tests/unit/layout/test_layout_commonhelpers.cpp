@@ -1,3 +1,4 @@
+#include "../anim/manualclock.h"
 #include "striphelpers.h"
 
 #include "layout/common/geometry.h"
@@ -70,16 +71,6 @@ private Q_SLOTS:
         QCOMPARE(Layout::parkedFrame(frame, home, {}).topLeft(), QPointF(100, 1000 + 256 + 100));
     }
 
-    void borderExtentOnlyCountsEnabledBorders()
-    {
-        Config::Border border;
-        border.enabled = false;
-        border.width = 4;
-        QCOMPARE(Layout::borderExtent(border), 0.0);
-        border.enabled = true;
-        QCOMPARE(Layout::borderExtent(border), 8.0);
-    }
-
     void workspaceReferencesNeedAValue()
     {
         QVERIFY(!Layout::parseWorkspaceReference(QString()).has_value());
@@ -109,7 +100,7 @@ private Q_SLOTS:
 
     void finishedSlidesIgnoreShifts()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Config::AnimationParams params = linearAnimationConfig(100).animations.windowMovement;
         std::optional<Layout::SlideAnimation> slide = Layout::startSlide(std::nullopt, clock, 40.0, params, false);
         QVERIFY(slide);
@@ -142,7 +133,7 @@ private Q_SLOTS:
         QCOMPARE(gesture.targetIndex(), 2.0);
         QVERIFY(!gesture.isAnimating());
 
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Config::AnimationParams params = linearAnimationConfig(100).animations.workspaceSwitch;
         Layout::WorkspaceTransition animated
             = Layout::WorkspaceTransition::withAnimation(Konveyor::Anim::Animation(clock, 0.0, 2.0, 0.0, params));

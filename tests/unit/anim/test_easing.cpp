@@ -136,7 +136,6 @@ private Q_SLOTS:
     void bezierKindWithoutControlPointsIsLinear()
     {
         const Curve curve(EasingCurve::CubicBezier);
-        QCOMPARE(curve.kind(), EasingCurve::CubicBezier);
         QCOMPARE(curve.y(0.3), 0.3);
     }
 
@@ -149,7 +148,6 @@ private Q_SLOTS:
         params.x2 = 0.25;
         params.y2 = 1.0;
         const Curve curve = Curve::fromConfig(params);
-        QCOMPARE(curve.kind(), EasingCurve::CubicBezier);
         QCOMPARE(curve.y(0.4), (Controls {0.25, 0.1, 0.25, 1.0}).curve().y(0.4));
 
         params.curve = EasingCurve::EaseOutQuad;

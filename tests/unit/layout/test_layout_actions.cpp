@@ -1,3 +1,4 @@
+#include "../anim/manualclock.h"
 #include "helpers.h"
 
 #include <functional>
@@ -202,7 +203,7 @@ private Q_SLOTS:
 
     void closeWindowUsesHook()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         QList<Layout::WindowId> closed;
         Layout::Hooks hooks;
         hooks.closeWindow = [&closed](Layout::WindowId id) { closed.append(id); };
@@ -216,7 +217,7 @@ private Q_SLOTS:
 
     void compositorActionsAreForwarded()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         QStringList forwarded;
         QStringList spawned;
         Layout::Hooks hooks;
@@ -242,7 +243,7 @@ private Q_SLOTS:
 
     void focusTaskbarItemUsesHook()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         QList<quint64> requested;
         Layout::Hooks hooks;
         hooks.focusTaskbarItem = [&requested](quint64 number) { requested.append(number); };
@@ -256,7 +257,7 @@ private Q_SLOTS:
 
     void overviewHooksAreCalled()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         int toggles = 0;
         QList<bool> opened;
         Layout::Hooks hooks;

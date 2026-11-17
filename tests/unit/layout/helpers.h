@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../anim/manualclock.h"
 #include "anim/clock.h"
 #include "client.h"
+#include "consistency.h"
 #include "layout/engine/engine.h"
 #include "outputs.h"
 #include "tilechecks.h"
@@ -17,6 +19,7 @@ namespace LayoutTest
 
 using Konveyor::Anim::Clock;
 using Konveyor::Anim::Duration;
+using Konveyor::Anim::ManualClock;
 namespace Config = Konveyor::Config;
 
 inline Layout::WindowProperties makeWindow(const QString &appId = {}, const QString &title = {}, QSizeF size = QSizeF(100, 100))
@@ -102,7 +105,7 @@ class Fixture
 {
 public:
     explicit Fixture(const Config::Config &config = instantConfig(), QRectF geometry = QRectF(0, 0, 1920, 1080), Layout::Hooks hooks = {})
-        : m_clock(Clock::frozenAt(Duration::zero()))
+        : m_clock(Duration::zero())
         , m_engine(m_clock, std::move(hooks))
     {
         m_engine.setConfig(config);
@@ -121,7 +124,7 @@ public:
     Fixture &operator=(const Fixture &) = delete;
 
     Layout::Engine &engine() { return m_engine; }
-    Clock &clock() { return m_clock; }
+    ManualClock &clock() { return m_clock; }
 
     void setConfig(const Config::Config &config)
     {
@@ -272,7 +275,7 @@ public:
 
     QString invariants()
     {
-        const QString error = m_engine.checkConsistency();
+        const QString error = Layout::ConsistencyCheck::of(m_engine);
         return error.isEmpty() ? tileProblems(m_engine) : error;
     }
 
@@ -287,7 +290,7 @@ private:
         }
     }
 
-    Clock m_clock;
+    ManualClock m_clock;
     Layout::Engine m_engine;
     ClientPool m_clients;
     Layout::WindowId m_nextId = 0;

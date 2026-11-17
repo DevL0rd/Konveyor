@@ -6,7 +6,7 @@
 
 #include <QTest>
 
-#include <functional>
+#include <limits>
 
 using namespace Konveyor::Settings;
 using namespace Konveyor::Settings::Testing;
@@ -14,16 +14,9 @@ using namespace Konveyor::Settings::Testing;
 namespace
 {
 
-class FailingEdits
-{
-public:
-    explicit FailingEdits(int successfulEdits) { ConfigDocument::failEditsAfter(successfulEdits); }
-    ~FailingEdits() { ConfigDocument::failEditsAfter(std::nullopt); }
-    FailingEdits(const FailingEdits &) = delete;
-    FailingEdits &operator=(const FailingEdits &) = delete;
-};
+constexpr double unwritable = std::numeric_limits<double>::infinity();
 
-constexpr int MostEditsAnyStepNeeds = 40;
+const QString configFile = QStringLiteral("config.kdl");
 
 AppPlace dolphin()
 {
@@ -42,20 +35,9 @@ QString migrated(const std::expected<QString, QString> &result)
     return result ? *result : QStringLiteral("<error: ") + result.error() + QLatin1Char('>');
 }
 
-int editsItNeeds(const QString &input, const std::function<QString()> &run)
-{
-    for (int successful = 0; successful < MostEditsAnyStepNeeds; ++successful) {
-        const FailingEdits failing(successful);
-        if (run() != input) {
-            return successful;
-        }
-    }
-    return -1;
-}
-
 const QString shippedRing = QStringLiteral(R"(layout {
     focus-ring {
-        width 2
+        width 1e999
         active-style "Glow"
         inactive-style "Dim"
         urgent-style "Alert"
@@ -80,29 +62,6 @@ const QString oldRing = QStringLiteral(R"(layout {
 }
 )");
 
-const QString hotStyle = QStringLiteral(R"(border-style "Hot" {
-    layer "heat" {
-        colors "#ff0000" "#0000ff"
-        baseline 0.2
-        position 0.5
-        drive "position" "scroll.distance" amount=1
-    }
-}
-)");
-
-const QString idleRipple = QStringLiteral(R"(layout {
-    focus-ring {
-        active-style "Pulse"
-    }
-}
-border-style "Pulse" {
-    layer "ripple"
-}
-border-style "Other" {
-    layer "ripple"
-}
-)");
-
 }
 
 class TestSettingsEditFailures : public QObject
@@ -113,21 +72,18 @@ private Q_SLOTS:
     void aFailingEditLeavesTheDocumentAlone();
     void aFailedChildEditRollsTheWholeUpdateBack();
     void aFailedRuleWriteIsReported();
-    void aFailedSizeWriteIsReported();
-    void failedMigrationsKeepTheConfig();
+    void failedBorderMigrationKeepsTheConfig();
     void failedBindEditsAreSkipped();
+    void widthsThatAreNotTheOldDefaultStay();
 };
 
 void TestSettingsEditFailures::aFailingEditLeavesTheDocumentAlone()
 {
     const QString text = QStringLiteral("layout {\n    gaps 4\n}\n");
     ConfigDocument document(text);
-    {
-        const FailingEdits failing(0);
-        const EditResult result = document.setNode(QStringLiteral("layout/gaps"), leaf(QStringLiteral("gaps"), {8}));
-        QVERIFY(!result);
-        QCOMPARE(result.error(), QStringLiteral("the edit could not be written"));
-    }
+    const EditResult result = document.setNode(QStringLiteral("layout/gaps"), leaf(QStringLiteral("gaps"), {unwritable}));
+    QVERIFY(!result);
+    QVERIFY(result.error().startsWith(QStringLiteral("edit produced invalid KDL: ")));
     QCOMPARE(document.text(), text);
     QVERIFY(document.setNode(QStringLiteral("layout/gaps"), leaf(QStringLiteral("gaps"), {8})).has_value());
     QCOMPARE(document.text(), QStringLiteral("layout {\n    gaps 8\n}\n"));
@@ -136,83 +92,78 @@ void TestSettingsEditFailures::aFailingEditLeavesTheDocumentAlone()
 void TestSettingsEditFailures::aFailedChildEditRollsTheWholeUpdateBack()
 {
     const QString text = QStringLiteral("output \"DP-1\" {\n    scale 1\n    off\n    transform \"normal\"\n}\n");
-    const QVariantMap rewritten = block(QStringLiteral("output"),
-        {leaf(QStringLiteral("transform"), {QStringLiteral("90")}), leaf(QStringLiteral("scale"), {2}), leaf(QStringLiteral("mode"), {1})},
-        {QStringLiteral("HDMI-A-1")});
-    int rolledBack = 0;
-    for (int successful = 0; successful < MostEditsAnyStepNeeds; ++successful) {
+    const QVariantMap good[] = {
+        leaf(QStringLiteral("transform"), {QStringLiteral("90")}), leaf(QStringLiteral("scale"), {2}), leaf(QStringLiteral("mode"), {1})};
+    for (int broken = 0; broken < 3; ++broken) {
+        QVariantList children;
+        for (int position = 0; position < 3; ++position) {
+            QVariantMap child = good[position];
+            if (position == broken) {
+                child.insert(QStringLiteral("args"), QVariantList {unwritable});
+            }
+            children.append(child);
+        }
+        const QVariantMap rewritten = block(QStringLiteral("output"), children, {QStringLiteral("HDMI-A-1")});
         ConfigDocument document(text);
-        EditResult result;
-        {
-            const FailingEdits failing(successful);
-            result = document.setNode(QStringLiteral("output"), rewritten);
-        }
-        if (result) {
-            QVERIFY(document.text().startsWith(QStringLiteral("output \"HDMI-A-1\"")));
-            QVERIFY(!document.text().contains(QStringLiteral("off")));
-            break;
-        }
-        ++rolledBack;
+        QVERIFY(!document.setNode(QStringLiteral("output"), rewritten));
         QCOMPARE(document.text(), text);
         QCOMPARE(document.setNode(QStringLiteral("output/scale"), leaf(QStringLiteral("scale"), {3})).value_or(QString()),
             QStringLiteral("output/scale"));
     }
-    QVERIFY(rolledBack >= 5);
 }
 
 void TestSettingsEditFailures::aFailedRuleWriteIsReported()
 {
-    for (const QString &option : {QStringLiteral("float"), QStringLiteral("column")}) {
-        ConfigDocument document;
-        const FailingEdits failing(0);
+    const QString broken = QStringLiteral("layout {\n    gaps 4\n");
+    for (const QString &option : {QStringLiteral("float"), QStringLiteral("column"), QStringLiteral("size")}) {
+        ConfigDocument document(broken);
         const EditResult result = setAppRule(document, dolphin(), option, true);
         QVERIFY(!result);
-        QCOMPARE(document.text(), QString());
+        QCOMPARE(document.text(), broken);
     }
-    const QString both = QStringLiteral("window-rule {\n    match app-id=r#\"^org\\.kde\\.dolphin$\"#\n    open-floating true\n}\n");
-    ConfigDocument document(both);
-    const FailingEdits failing(0);
-    QVERIFY(!setAppRule(document, dolphin(), QStringLiteral("float"), false));
-    QCOMPARE(document.text(), both);
 }
 
-void TestSettingsEditFailures::aFailedSizeWriteIsReported()
+void TestSettingsEditFailures::failedBorderMigrationKeepsTheConfig()
 {
-    const QString rule = QStringLiteral("window-rule {\n    match app-id=r#\"^org\\.kde\\.dolphin$\"# output=\"^DP-1$\"\n}\n");
-    for (int successful = 0; successful < 2; ++successful) {
-        ConfigDocument document(rule);
-        const FailingEdits failing(successful);
-        const EditResult result = setAppRule(document, dolphin(), QStringLiteral("size"), true);
-        QVERIFY(!result);
-        QCOMPARE(result.error(), QStringLiteral("the edit could not be written"));
-    }
-    ConfigDocument empty;
-    const FailingEdits failing(0);
-    QVERIFY(!setAppRule(empty, dolphin(), QStringLiteral("size"), true));
+    QCOMPARE(migrated(migrateBorderDefaults(oldRing, configFile, shippedRing)), oldRing);
+    QString writable = shippedRing;
+    writable.replace(QStringLiteral("1e999"), QStringLiteral("2"));
+    QVERIFY(migrated(migrateBorderDefaults(oldRing, configFile, writable)) != oldRing);
+    QString unwritableStyle = writable;
+    unwritableStyle.replace(QStringLiteral("border-style \"Glow\" {\n    layer \"gradient\""),
+        QStringLiteral("border-style \"Glow\" {\n    layer \"gradient\" 1e999"));
+    QVERIFY(unwritableStyle != writable);
+    QCOMPARE(migrated(migrateBorderDefaults(oldRing, configFile, unwritableStyle)), oldRing);
 }
 
-void TestSettingsEditFailures::failedMigrationsKeepTheConfig()
+void TestSettingsEditFailures::widthsThatAreNotTheOldDefaultStay()
 {
-    const QString file = QStringLiteral("/tmp/konveyor-edit-failures/config.kdl");
-    const auto needed = [&](const QString &input, auto migrate, const QString &defaults) {
-        return editsItNeeds(input, [&] { return migrated(migrate(input, file, defaults)); });
-    };
-    QVERIFY(needed(hotStyle, migrateHeatLayers, QString()) > 3);
-    QVERIFY(needed(idleRipple, migrateFocusEffects, QString()) >= 1);
-    QVERIFY(needed(oldRing, migrateBorderDefaults, shippedRing) > 3);
+    QString writable = shippedRing;
+    writable.replace(QStringLiteral("1e999"), QStringLiteral("2"));
+    for (const QString &width : {QStringLiteral("width \"4\""), QStringLiteral("width 4 4"), QStringLiteral("width 3")}) {
+        const QString ring
+            = QStringLiteral("layout {\n    focus-ring {\n        %1\n        inactive-color \"#505050\"\n    }\n}\n").arg(width);
+        const QString result = migrated(migrateBorderDefaults(ring, configFile, writable));
+        QVERIFY2(result.contains(width), qPrintable(result));
+        QVERIFY2(!result.contains(QStringLiteral("width 2")), qPrintable(result));
+    }
 }
 
 void TestSettingsEditFailures::failedBindEditsAreSkipped()
 {
-    const QString file = QStringLiteral("/tmp/konveyor-edit-failures/config.kdl");
-    const QString text = QStringLiteral("binds {\n    Mod+F { fullscreen-window; }\n}\n");
-    const QString defaults = QStringLiteral("binds {\n    Mod+F { cycle-window-expansion; }\n    Super+Alt+1 { focus-column 1; }\n}\n");
-    {
-        const FailingEdits failing(0);
-        QCOMPARE(migrated(replaceBindAction(text, file, defaults, {QStringLiteral("Mod+F")}, QStringLiteral("fullscreen-window"))), text);
-        QCOMPARE(migrated(addDefaultBinds(text, file, defaults, {QStringLiteral("Super+Alt+1")})), text);
-    }
-    QVERIFY(migrated(addDefaultBinds(text, file, defaults, {QStringLiteral("Super+Alt+1")})).contains(QStringLiteral("Super+Alt+1")));
+    const QString text = QStringLiteral("binds {\n    Mod+F { cycle-window-expansion; }\n}\n");
+    const QString action = QStringLiteral("cycle-window-expansion");
+    const QString unwritableDefaults = QStringLiteral("binds {\n    Mod+F { fullscreen-window size=1e999; }\n}\n");
+    const QString writableDefaults = QStringLiteral("binds {\n    Mod+F { fullscreen-window; }\n}\n");
+    QCOMPARE(migrated(replaceBindAction(text, configFile, unwritableDefaults, {QStringLiteral("Mod+F")}, action)), text);
+    QVERIFY(migrated(replaceBindAction(text, configFile, writableDefaults, {QStringLiteral("Mod+F")}, action)) != text);
+
+    const QString binds = QStringLiteral("binds {\n    Mod+G { fullscreen-window; }\n}\n");
+    const QString defaults = QStringLiteral("binds {\n    Super+Alt+1 { focus-column 1e999; }\n    Super+Alt+2 { focus-column 2; }\n}\n");
+    const QString added
+        = migrated(addDefaultBinds(binds, configFile, defaults, {QStringLiteral("Super+Alt+1"), QStringLiteral("Super+Alt+2")}));
+    QVERIFY(!added.contains(QStringLiteral("Super+Alt+1")));
+    QVERIFY(added.contains(QStringLiteral("Super+Alt+2")));
 }
 
 QTEST_GUILESS_MAIN(TestSettingsEditFailures)

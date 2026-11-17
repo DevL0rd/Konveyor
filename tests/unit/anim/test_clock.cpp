@@ -1,10 +1,12 @@
 #include "anim/clock.h"
+#include "manualclock.h"
 
 #include <QTest>
 
 using namespace std::chrono_literals;
 using Konveyor::Anim::Clock;
 using Konveyor::Anim::Duration;
+using Konveyor::Anim::ManualClock;
 
 class TestClock : public QObject
 {
@@ -13,7 +15,7 @@ class TestClock : public QObject
 private Q_SLOTS:
     void frozenClock()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         QCOMPARE(clock.now(), Duration::zero());
         clock.setRawNow(100ms);
         QCOMPARE(clock.now(), Duration(100ms));
@@ -23,7 +25,7 @@ private Q_SLOTS:
 
     void rateChange()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         clock.setRate(0.5);
 
         clock.setRawNow(100ms);
@@ -46,7 +48,7 @@ private Q_SLOTS:
 
     void rewindSaturatesAtZero()
     {
-        Clock clock = Clock::frozenAt(100ms);
+        ManualClock clock = ManualClock(100ms);
         clock.setRate(2.0);
         clock.setRawNow(Duration::zero());
         QCOMPARE(clock.now(), Duration::zero());
@@ -54,7 +56,7 @@ private Q_SLOTS:
 
     void rateIsClamped()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         clock.setRate(-1.0);
         QCOMPARE(clock.rate(), 0.0);
         clock.setRate(5000.0);
@@ -63,7 +65,7 @@ private Q_SLOTS:
 
     void zeroRateFreezesTime()
     {
-        Clock clock = Clock::frozenAt(10ms);
+        ManualClock clock = ManualClock(10ms);
         clock.setRate(0.0);
         clock.setRawNow(500ms);
         QCOMPARE(clock.now(), Duration(10ms));
@@ -98,14 +100,15 @@ private Q_SLOTS:
 
     void copiesShareState()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
-        Clock copy = clock;
+        ManualClock clock = ManualClock(Duration::zero());
+        ManualClock copy = clock;
         copy.setRawNow(42ms);
         copy.setSkipAnimations(true);
         QCOMPARE(clock.now(), Duration(42ms));
         QVERIFY(clock.skipsAnimations());
-        QVERIFY(clock == copy);
-        QVERIFY(!(clock == Clock::frozenAt(Duration::zero())));
+        const ManualClock other = ManualClock(Duration::zero());
+        QCOMPARE(other.now(), Duration::zero());
+        QVERIFY(!other.skipsAnimations());
     }
 
     void applyConfigSlowdown_data()
@@ -125,7 +128,7 @@ private Q_SLOTS:
         QFETCH(double, rate);
         Konveyor::Config::Animations config;
         config.slowdown = slowdown;
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         clock.applyConfig(config);
         QCOMPARE(clock.rate(), rate);
         QVERIFY(!clock.skipsAnimations());
@@ -135,7 +138,7 @@ private Q_SLOTS:
     {
         Konveyor::Config::Animations config;
         config.enabled = false;
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         clock.applyConfig(config);
         QVERIFY(clock.skipsAnimations());
         config.enabled = true;

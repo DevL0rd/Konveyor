@@ -111,7 +111,6 @@ void TestAudioSignals::nothingIsCapturedWithoutALookupOrAWantedSignal()
     QCOMPARE(m_bus.frame(kPlaying).value(Signal::AudioLevel), 0.0F);
 
     captured.setWindowLookup([](quint64) -> std::optional<CapturedWindow> { return CapturedWindow {{getpid(), {}}, false}; });
-    m_bus.clearWanted(SignalClient::Borders);
     SignalSet unrelated;
     unrelated.set(static_cast<std::size_t>(Signal::Click));
     m_bus.setWanted(SignalClient::Borders, kPlaying, unrelated);

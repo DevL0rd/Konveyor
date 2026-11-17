@@ -34,8 +34,7 @@ TelemetryEffect::TelemetryEffect()
         track(window);
     }
     QDBusConnection bus = QDBusConnection::sessionBus();
-    const bool objectRegistered = bus.registerObject(
-        QString::fromLatin1(Path), this, QDBusConnection::ExportScriptableSlots);
+    const bool objectRegistered = bus.registerObject(QString::fromLatin1(Path), this, QDBusConnection::ExportScriptableSlots);
     m_subscriberWatcher = new QDBusServiceWatcher(this);
     m_subscriberWatcher->setConnection(bus);
     m_subscriberWatcher->setWatchMode(QDBusServiceWatcher::WatchForUnregistration);

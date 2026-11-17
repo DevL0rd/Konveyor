@@ -158,12 +158,10 @@ public:
     void endResize(std::optional<WindowId> window);
 
     void refresh(bool isActive);
-    QString checkConsistency() const;
-    QString verifyArea() const;
-    QString verifyColumns() const;
-    QString verifyView() const;
 
 private:
+    friend struct ConsistencyCheck;
+
     void stackLooseColumns(std::size_t maxRows);
     std::size_t stackRun(const std::vector<quint64> &run, std::size_t maxRows);
     void unstackPlacementColumns(const std::optional<Config::PresetSize> &width);

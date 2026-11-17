@@ -140,11 +140,20 @@ if [[ $STAGE == all || $STAGE == xunused ]]; then
     step "unused functions (xunused)"
     command -v xunused >/dev/null || { echo "xunused is not installed: https://github.com/mgehre/xunused"; exit 1; }
     mapfile -t all_sources < <(git ls-files --cached --others --exclude-standard -- 'src/*.cpp' 'tests/*.cpp')
+    mapfile -t src_sources < <(git ls-files --cached --others --exclude-standard -- 'src/*.cpp')
+    production_db="$CLANG_BUILD_DIR/xunused-production"
+    mkdir -p "$production_db"
+    python3 tools/xunused_production_db.py "$CLANG_BUILD_DIR/compile_commands.json" "$production_db/compile_commands.json" "$PWD" "$(realpath "$CLANG_BUILD_DIR")"
+    resource_dir=$(clang -print-resource-dir)
     xunused_status=0
-    xunused_output=$(xunused -p "$CLANG_BUILD_DIR" --extra-arg=-resource-dir="$(clang -print-resource-dir)" "${all_sources[@]}" 2>&1) || xunused_status=$?
-    unused=$(grep -E "warning: Function|Failed to run" <<<"$xunused_output" || true)
+    production_output=$(xunused -p "$production_db" --extra-arg=-resource-dir="$resource_dir" "${src_sources[@]}" 2>&1) || xunused_status=$?
+    test_output=$(xunused -p "$CLANG_BUILD_DIR" --extra-arg=-resource-dir="$resource_dir" "${all_sources[@]}" 2>&1) || xunused_status=$?
+    unused=$({
+        grep -E "warning: Function|Failed to run" <<<"$production_output"
+        grep -E "warning: Function|Failed to run" <<<"$test_output" | grep -F "$PWD/tests/"
+    } || true)
     if [[ -n $unused || $xunused_status -ne 0 ]]; then
-        echo "${unused:-$xunused_output}"
+        echo "${unused:-$production_output$test_output}"
         exit 1
     fi
 fi

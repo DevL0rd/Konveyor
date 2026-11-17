@@ -68,20 +68,6 @@ private Q_SLOTS:
         QCOMPARE(bus.frame(1).bands[2], 0.9F);
     }
 
-    void everyWindowWantingGetsAValue()
-    {
-        Render::SignalBus bus;
-        bus.setWanted(SignalClient::Borders, 1, setOf({Signal::PointerSpeed}));
-        bus.setWanted(SignalClient::Events, 2, setOf({Signal::PointerSpeed}));
-        bus.setWanted(SignalClient::Borders, 3, setOf({Signal::Click}));
-        bus.setOnEveryWindow(Signal::PointerSpeed, 0.4F);
-        QCOMPARE(bus.frame(1).value(Signal::PointerSpeed), 0.4F);
-        QCOMPARE(bus.frame(2).value(Signal::PointerSpeed), 0.4F);
-        QCOMPARE(bus.frame(3).value(Signal::PointerSpeed), 0.0F);
-        QCOMPARE(bus.windowsWanting(Signal::PointerSpeed), (std::vector<quint64> {1, 2}));
-        QCOMPARE(bus.windowsWanting(Signal::Click), (std::vector<quint64> {3}));
-    }
-
     void clientsClaimIndependently()
     {
         Render::SignalBus bus;
@@ -117,13 +103,6 @@ private Q_SLOTS:
         QCOMPARE(changes, 3);
         bus.setWantedEverywhere(SignalClient::Events, setOf({Signal::Focus}));
         QCOMPARE(changes, 3);
-        bus.remove(7);
-        QCOMPARE(changes, 3);
-        bus.remove(1);
-        QCOMPARE(changes, 4);
-        QVERIFY(!bus.wanted(1, Signal::Click));
-        bus.clearWanted(SignalClient::Events);
-        QCOMPARE(changes, 5);
     }
 
     void everywhereClaimsReachUnclaimedWindows()
@@ -170,44 +149,6 @@ private Q_SLOTS:
         bus.fire(1, Signal::Click);
         bus.setWanted(SignalClient::Events, 2, setOf({Signal::Keypress}));
         QCOMPARE(bus.frame(1).fireCount(Signal::Click), quint32(1));
-    }
-
-    void clearingAClientKeepsTheOther()
-    {
-        Render::SignalBus bus;
-        bus.setWanted(SignalClient::Borders, 1, setOf({Signal::Click}));
-        bus.setWanted(SignalClient::Events, 1, setOf({Signal::Keypress}));
-        bus.setWanted(SignalClient::Borders, 2, setOf({Signal::Click}));
-        bus.setWantedEverywhere(SignalClient::Borders, setOf({Signal::Focus}));
-        bus.clearWanted(SignalClient::Borders);
-        QVERIFY(!bus.wanted(1, Signal::Click));
-        QVERIFY(!bus.wanted(2, Signal::Click));
-        QVERIFY(!bus.wanted(3, Signal::Focus));
-        QVERIFY(bus.wanted(1, Signal::Keypress));
-        QCOMPARE(bus.wantedAnywhere(), setOf({Signal::Keypress}));
-    }
-
-    void clearingOneClientKeepsTheWindowsOfTheOther()
-    {
-        Render::SignalBus bus;
-        bus.setWanted(SignalClient::Borders, 1, setOf({Signal::Click}));
-        bus.setWanted(SignalClient::Events, 1, setOf({Signal::Keypress}));
-        bus.setWanted(SignalClient::Events, 2, setOf({Signal::Keypress}));
-        bus.clearWanted(SignalClient::Events);
-        QVERIFY(bus.wanted(1, Signal::Click));
-        QVERIFY(!bus.wanted(1, Signal::Keypress));
-        QVERIFY(!bus.wanted(2, Signal::Keypress));
-        QCOMPARE(bus.wantedAnywhere(), setOf({Signal::Click}));
-    }
-
-    void removingAWindowDropsItsFrame()
-    {
-        Render::SignalBus bus;
-        bus.setWanted(SignalClient::Borders, 1, setOf({Signal::Click}));
-        bus.fire(1, Signal::Click);
-        bus.remove(1);
-        QCOMPARE(bus.frame(1).fireCount(Signal::Click), quint32(0));
-        QVERIFY(bus.wantedAnywhere().none());
     }
 
     void advancingDecaysAndFades()

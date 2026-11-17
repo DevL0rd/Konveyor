@@ -19,9 +19,8 @@ Duration scaled(Duration duration, double rate)
 
 struct Clock::State
 {
-    explicit State(TimeSource timeSource, std::optional<Duration> initialTime)
+    explicit State(TimeSource timeSource)
         : source(std::move(timeSource))
-        , time(initialTime)
     {
         currentTime = unadjustedNow();
         lastSeenTime = currentTime;
@@ -68,17 +67,8 @@ Clock::Clock()
 { }
 
 Clock::Clock(TimeSource source)
-    : m_state(std::make_shared<State>(std::move(source), std::nullopt))
+    : m_state(std::make_shared<State>(std::move(source)))
 { }
-
-Clock::Clock(std::shared_ptr<State> state)
-    : m_state(std::move(state))
-{ }
-
-Clock Clock::frozenAt(Duration time)
-{
-    return Clock(std::make_shared<State>(monotonicTime, time));
-}
 
 Duration Clock::now() const
 {
@@ -88,11 +78,6 @@ Duration Clock::now() const
 Duration Clock::rawNow() const
 {
     return m_state->unadjustedNow();
-}
-
-void Clock::setRawNow(Duration time)
-{
-    m_state->time = time;
 }
 
 void Clock::clear()
@@ -124,11 +109,6 @@ void Clock::applyConfig(const Config::Animations &config)
 {
     setRate(1.0 / std::max(config.slowdown, 0.001));
     setSkipAnimations(!config.enabled);
-}
-
-bool Clock::operator==(const Clock &other) const
-{
-    return m_state == other.m_state;
 }
 
 }

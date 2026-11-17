@@ -1,4 +1,6 @@
 #include "anim/animation.h"
+#include "animationinspector.h"
+#include "manualclock.h"
 
 #include <QTest>
 
@@ -6,9 +8,11 @@
 
 using namespace std::chrono_literals;
 using Konveyor::Anim::Animation;
+using Konveyor::Anim::AnimationInspector;
 using Konveyor::Anim::Clock;
 using Konveyor::Anim::Curve;
 using Konveyor::Anim::Duration;
+using Konveyor::Anim::ManualClock;
 using Konveyor::Anim::Spring;
 using Konveyor::Anim::SpringParams;
 using Konveyor::Config::AnimationParams;
@@ -64,9 +68,9 @@ class TestAnimation : public QObject
 private Q_SLOTS:
     void easingFollowsCurve()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Animation animation(clock, 0, 100, 0, easingConfig(150, EasingCurve::EaseOutExpo));
-        QCOMPARE(animation.duration(), Duration(150ms));
+        QCOMPARE(AnimationInspector::duration(animation), Duration(150ms));
         QCOMPARE(animation.value(), 0.0);
         clock.setRawNow(75ms);
         QCOMPARE_LE(std::abs(animation.value() - (1.0 - std::pow(2.0, -5.0)) * 100.0), 1e-9);
@@ -75,28 +79,28 @@ private Q_SLOTS:
         clock.setRawNow(150ms);
         QVERIFY(animation.isFinished());
         QCOMPARE(animation.value(), 100.0);
-        QCOMPARE(animation.endTime(), Duration(150ms));
+        QCOMPARE(AnimationInspector::endTime(animation), Duration(150ms));
     }
 
     void springMatchesReference()
     {
-        Clock clock = Clock::frozenAt(10ms);
+        ManualClock clock = ManualClock(10ms);
         const Animation animation(clock, 0, 1, 0, defaultSpring());
         const Spring spring = referenceSpring(0, 1, 0);
-        QCOMPARE(animation.startTime(), Duration(10ms));
-        QCOMPARE(animation.duration(), spring.duration());
+        QCOMPARE(AnimationInspector::startTime(animation), Duration(10ms));
+        QCOMPARE(AnimationInspector::duration(animation), spring.duration());
         QCOMPARE(animation.valueAt(10ms), 0.0);
         QCOMPARE(animation.valueAt(110ms), spring.valueAt(100ms));
-        QCOMPARE(animation.valueAt(animation.endTime()), 1.0);
-        clock.setRawNow(animation.endTime() - 1ns);
+        QCOMPARE(animation.valueAt(AnimationInspector::endTime(animation)), 1.0);
+        clock.setRawNow(AnimationInspector::endTime(animation) - 1ns);
         QVERIFY(!animation.isFinished());
-        clock.setRawNow(animation.endTime());
+        clock.setRawNow(AnimationInspector::endTime(animation));
         QVERIFY(animation.isFinished());
     }
 
     void clampedValueStopsAtTarget()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Animation animation(clock, 0, 1, 0, springConfig(0.6, 1000, 0.001));
         const Spring spring {0, 1, 0, SpringParams(0.6, 1000, 0.001)};
         clock.setRawNow(*spring.timeToTarget() + 20ms);
@@ -123,10 +127,11 @@ private Q_SLOTS:
         QFETCH(AnimationParams, config);
         Konveyor::Config::Animations animations;
         animations.slowdown = slowdown;
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         clock.applyConfig(animations);
         const Animation animation(clock, 0, 1, 0, config);
-        const Duration scaled = secondsToDuration(std::chrono::duration<double>(animation.duration()).count() * slowdown);
+        const Duration scaled
+            = secondsToDuration(std::chrono::duration<double>(AnimationInspector::duration(animation)).count() * slowdown);
         clock.setRawNow(scaled - 1ms);
         QVERIFY(!animation.isFinished());
         QVERIFY(animation.value() < 1.0);
@@ -137,9 +142,9 @@ private Q_SLOTS:
 
     void disabledParamsCompleteInstantly()
     {
-        Clock clock = Clock::frozenAt(5ms);
+        ManualClock clock = ManualClock(5ms);
         const Animation animation(clock, 0, 1, 0, disabled(defaultSpring()));
-        QCOMPARE(animation.duration(), Duration::zero());
+        QCOMPARE(AnimationInspector::duration(animation), Duration::zero());
         QVERIFY(animation.isFinished());
         QVERIFY(animation.hasReachedTarget());
         QCOMPARE(animation.value(), 0.0);
@@ -147,14 +152,14 @@ private Q_SLOTS:
         QCOMPARE(animation.value(), 1.0);
 
         const Animation retargeted = animation.retargeted(10, 20, 0);
-        QCOMPARE(retargeted.from(), 0.0);
+        QCOMPARE(AnimationInspector::from(retargeted), 0.0);
         QCOMPARE(retargeted.to(), 1.0);
-        QCOMPARE(retargeted.startTime(), Duration(5ms));
+        QCOMPARE(AnimationInspector::startTime(retargeted), Duration(5ms));
     }
 
     void clockCompleteInstantly()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Animation animation(clock, 0, 1, 0, defaultSpring());
         clock.setSkipAnimations(true);
         QVERIFY(animation.isFinished());
@@ -175,20 +180,22 @@ private Q_SLOTS:
     void velocityContinuityOnRetarget()
     {
         QFETCH(double, rate);
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         clock.setRate(rate);
         const Animation first(clock, 0, 100, 0, defaultSpring());
         clock.setRawNow(Duration(std::llround(50e6 / rate)));
         const Duration elapsed = clock.now();
         const double position = first.value();
-        const double gestureVelocity = referenceSpring(0, 100, 0).velocityAt(elapsed) * rate;
+        const Duration step = 1us;
+        const double gestureVelocity
+            = (referenceSpring(0, 100, 0).valueAt(elapsed + step) - referenceSpring(0, 100, 0).valueAt(elapsed - step)) / 2e-6 * rate;
 
         const Animation second(clock, position, 300, gestureVelocity, defaultSpring());
-        QCOMPARE(second.startTime(), elapsed);
+        QCOMPARE(AnimationInspector::startTime(second), elapsed);
         QCOMPARE(second.value(), position);
 
         const Spring expected = referenceSpring(position, 300, gestureVelocity / rate);
-        QCOMPARE(second.duration(), expected.duration());
+        QCOMPARE(AnimationInspector::duration(second), expected.duration());
         QCOMPARE(second.valueAt(elapsed + 30ms), expected.valueAt(30ms));
 
         const double slope = (second.valueAt(elapsed + 1us) - first.valueAt(elapsed - 1us)) / 2e-6;
@@ -197,66 +204,66 @@ private Q_SLOTS:
 
     void restartedEasingKeepsDurationAndCurve()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Animation animation(clock, 0, 1, 0, easingConfig(150, EasingCurve::EaseOutQuad));
         clock.setRawNow(40ms);
         const Animation retargeted = animation.retargeted(5, 10, 0);
-        QCOMPARE(retargeted.startTime(), Duration(40ms));
-        QCOMPARE(retargeted.duration(), Duration(150ms));
+        QCOMPARE(AnimationInspector::startTime(retargeted), Duration(40ms));
+        QCOMPARE(AnimationInspector::duration(retargeted), Duration(150ms));
         QCOMPARE(retargeted.valueAt(115ms), 5.0 + 5.0 * 0.75);
     }
 
     void restartedSpringKeepsParamsAndStoredVelocity()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Animation animation(clock, 0, 1, 2.0, defaultSpring());
         clock.setRawNow(40ms);
         const Animation retargeted = animation.retargeted(10, 20, 999.0);
         const Spring expected = referenceSpring(10, 20, 2.0);
-        QCOMPARE(retargeted.duration(), expected.duration());
+        QCOMPARE(AnimationInspector::duration(retargeted), expected.duration());
         QCOMPARE(retargeted.valueAt(60ms), expected.valueAt(20ms));
     }
 
     void replaceConfigKeepsStartTime()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Animation animation(clock, 0, 1, 0, easingConfig(150, EasingCurve::Linear));
         clock.setRawNow(50ms);
         animation.applyParams(defaultSpring());
-        QCOMPARE(animation.startTime(), Duration::zero());
-        QCOMPARE(animation.duration(), referenceSpring(0, 1, 0).duration());
+        QCOMPARE(AnimationInspector::startTime(animation), Duration::zero());
+        QCOMPARE(AnimationInspector::duration(animation), referenceSpring(0, 1, 0).duration());
         QCOMPARE(animation.value(), referenceSpring(0, 1, 0).valueAt(50ms));
 
         animation.applyParams(disabled(defaultSpring()));
-        QCOMPARE(animation.duration(), Duration::zero());
+        QCOMPARE(AnimationInspector::duration(animation), Duration::zero());
         QVERIFY(animation.isFinished());
     }
 
     void offsetShiftsSpring()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Animation animation(clock, 0, 100, 0, defaultSpring());
         clock.setRawNow(30ms);
         const double before = animation.value();
         animation.offset(50);
-        QCOMPARE(animation.from(), 50.0);
+        QCOMPARE(AnimationInspector::from(animation), 50.0);
         QCOMPARE(animation.to(), 150.0);
         QCOMPARE_LE(std::abs(animation.value() - (before + 50.0)), 1e-9);
     }
 
     void offsetShiftsEasingWithoutSpringState()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Animation animation = Animation::ease(clock, 2, 4, 0, 100ms, Curve(EasingCurve::Linear));
         animation.offset(10);
-        QCOMPARE(animation.from(), 12.0);
+        QCOMPARE(AnimationInspector::from(animation), 12.0);
         QCOMPARE(animation.to(), 14.0);
         QCOMPARE(animation.valueAt(50ms), 13.0);
     }
 
     void descendingSpringStaysBetweenItsEndpoints()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Animation animation(clock, 100, 0, 0, springConfig(0.2, 800, 0.0001));
         clock.setRawNow(30ms);
         const double value = animation.value();
@@ -268,7 +275,7 @@ private Q_SLOTS:
 
     void valueWithoutOvershootFollowsTheSpringUntilTheTarget()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         Animation animation(clock, 0, 1, 0, defaultSpring());
         clock.setRawNow(5ms);
         QCOMPARE(animation.valueWithoutOvershoot(), animation.value());
@@ -278,32 +285,36 @@ private Q_SLOTS:
 
     void easeFactoryIgnoresVelocity()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const Animation animation = Animation::ease(clock, 2, 4, 1000, 100ms, Curve(EasingCurve::Linear));
         QCOMPARE(animation.valueAt(25ms), 2.5);
     }
 
     void decelerationFollowsExponentialDecay()
     {
-        Clock clock = Clock::frozenAt(Duration::zero());
+        ManualClock clock = ManualClock(Duration::zero());
         const double rate = 0.997;
         const double velocity = 1000.0;
         const Animation animation = Animation::decelerate(clock, 10, velocity, rate, 0.5);
         const double coeff = 1000.0 * std::log(rate);
         QCOMPARE_LE(std::abs(animation.to() - (10.0 - velocity / coeff)), 1e-9);
-        QCOMPARE_LE(std::abs((animation.duration() - secondsToDuration(std::log(-coeff * 0.5 / velocity) / coeff)).count()), 1);
+        QCOMPARE_LE(
+            std::abs((AnimationInspector::duration(animation) - secondsToDuration(std::log(-coeff * 0.5 / velocity) / coeff)).count()), 1);
         QCOMPARE_LE(std::abs(animation.valueAt(100ms) - (10.0 + (std::pow(rate, 100.0) - 1.0) / coeff * velocity)), 1e-9);
 
         const Animation retargeted = animation.retargeted(-4, 0, 0);
-        QCOMPARE(retargeted.from(), -4.0);
+        QCOMPARE(AnimationInspector::from(retargeted), -4.0);
         const double threshold = 0.001;
-        QCOMPARE_LE(std::abs((retargeted.duration() - secondsToDuration(std::log(-coeff * threshold / velocity) / coeff)).count()), 1);
+        QCOMPARE_LE(
+            std::abs(
+                (AnimationInspector::duration(retargeted) - secondsToDuration(std::log(-coeff * threshold / velocity) / coeff)).count()),
+            1);
     }
 
     void stationaryDecelerationIsDone()
     {
-        const Animation animation = Animation::decelerate(Clock::frozenAt(Duration::zero()), 3, 0, 0.99, 0.5);
-        QCOMPARE(animation.duration(), Duration::zero());
+        const Animation animation = Animation::decelerate(ManualClock(Duration::zero()), 3, 0, 0.99, 0.5);
+        QCOMPARE(AnimationInspector::duration(animation), Duration::zero());
         QCOMPARE(animation.to(), 3.0);
         QVERIFY(animation.isFinished());
     }

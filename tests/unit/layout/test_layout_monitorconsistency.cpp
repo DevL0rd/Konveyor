@@ -1,3 +1,4 @@
+#include "consistency.h"
 #include "striphelpers.h"
 
 using namespace LayoutTest;
@@ -10,16 +11,16 @@ private Q_SLOTS:
     void freshMonitorIsConsistent()
     {
         MonitorKit kit;
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
         kit.add(0);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void rejectsMonitorWithoutWorkspaces()
     {
         MonitorKit kit;
         kit.monitor.workspaces().clear();
-        QVERIFY(kit.monitor.checkConsistency().contains(QStringLiteral("must have at least one workspace")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.monitor).contains(QStringLiteral("must have at least one workspace")));
     }
 
     void rejectsActiveWorkspaceOutOfRange()
@@ -31,7 +32,7 @@ private Q_SLOTS:
         kit.monitor.workspaces().pop_back();
         kit.monitor.workspaces().pop_back();
         kit.monitor.workspaces().emplace_back(kit.area, kit.clock, kit.options, std::nullopt);
-        QVERIFY(kit.monitor.checkConsistency().contains(QStringLiteral("active workspace index out of range")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.monitor).contains(QStringLiteral("active workspace index out of range")));
     }
 
     void rejectsOccupiedLastWorkspace()
@@ -39,7 +40,7 @@ private Q_SLOTS:
         MonitorKit kit;
         kit.add(0);
         std::swap(kit.monitor.workspaces().at(0), kit.monitor.workspaces().at(1));
-        QVERIFY(kit.monitor.checkConsistency().contains(QStringLiteral("the last workspace must be empty")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.monitor).contains(QStringLiteral("the last workspace must be empty")));
     }
 
     void rejectsOccupiedFirstWorkspaceWhenAnEmptyOneIsKeptAbove()
@@ -50,9 +51,9 @@ private Q_SLOTS:
         kit.add(0);
         kit.monitor.switchWorkspace(1);
         kit.add(1);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
         std::swap(kit.monitor.workspaces().at(0), kit.monitor.workspaces().at(1));
-        QVERIFY(kit.monitor.checkConsistency().contains(QStringLiteral("the first workspace must be empty")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.monitor).contains(QStringLiteral("the first workspace must be empty")));
     }
 
     void reportsWorkspaceProblems()
@@ -60,7 +61,7 @@ private Q_SLOTS:
         MonitorKit kit;
         kit.add(0);
         kit.monitor.workspaces().front().scrolling().columns().front().tiles.clear();
-        QVERIFY(kit.monitor.checkConsistency().contains(QStringLiteral("columns must not be empty")));
+        QVERIFY(Layout::ConsistencyCheck::of(kit.monitor).contains(QStringLiteral("columns must not be empty")));
     }
 
     void fixedWorkspacesMayEndOccupied()
@@ -69,7 +70,7 @@ private Q_SLOTS:
         config.layout.fixedWorkspaceCount = 2;
         MonitorKit kit(config);
         kit.add(1);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 };
 

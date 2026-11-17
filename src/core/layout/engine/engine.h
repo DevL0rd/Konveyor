@@ -372,11 +372,11 @@ public:
     void refreshRules();
     void setOverviewOpen(bool open);
 
-    QString checkConsistency() const;
-
     struct Private;
 
 private:
+    friend struct ConsistencyCheck;
+
     std::unique_ptr<Private> d;
 };
 

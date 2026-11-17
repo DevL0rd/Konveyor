@@ -1,3 +1,4 @@
+#include "consistency.h"
 #include "striphelpers.h"
 
 using namespace LayoutTest;
@@ -93,7 +94,7 @@ private Q_SLOTS:
         kit.add(0);
         kit.monitor.moveToWorkspace(999, 1, Layout::Activation::Always);
         QCOMPARE(kit.monitor.workspaces().size(), std::size_t(2));
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void movingTheOnlyWindowAwayDropsItsWorkspace()
@@ -105,7 +106,7 @@ private Q_SLOTS:
         kit.monitor.moveToWorkspace(id, 1, Layout::Activation::Never);
         kit.monitor.tickAnimations();
         QVERIFY(kit.monitor.hasWindow(id));
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void movingColumnsNeedsAnActiveColumn()
@@ -114,7 +115,7 @@ private Q_SLOTS:
         kit.add(0);
         kit.monitor.switchWorkspace(1);
         kit.monitor.moveColumnToWorkspace(0, true);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
         QVERIFY(kit.monitor.workspaceOfWindow(1).has_value());
     }
 
@@ -124,9 +125,9 @@ private Q_SLOTS:
         kit.add(0);
         kit.monitor.switchWorkspace(0);
         kit.monitor.moveWorkspaceDown();
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
         kit.monitor.moveWorkspaceUp();
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void movingWorkspacesByIndexKeepsTheActiveOne()
@@ -145,7 +146,7 @@ private Q_SLOTS:
         QCOMPARE(kit.monitor.activeWorkspace().id(), active);
         kit.monitor.moveWorkspaceToIndex(2, 0);
         QCOMPARE(kit.monitor.activeWorkspace().id(), active);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void movingWorkspacesWithAnEmptyOneAboveKeepsItFirst()
@@ -155,11 +156,11 @@ private Q_SLOTS:
         kit.monitor.switchWorkspace(1);
         kit.add(1);
         kit.monitor.moveWorkspaceToIndex(1, 2);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
         kit.monitor.moveWorkspaceToIndex(2, 1);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
         kit.monitor.moveWorkspaceToIndex(0, 2);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void dropTargetsCoverTheSpaceAroundWorkspaces()
@@ -201,7 +202,7 @@ private Q_SLOTS:
         if (height > kit.area.viewSize.height()) {
             QVERIFY(!between.workspace.existing);
         }
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void removingFixedWorkspacesBeforeTheActiveOneShiftsIt()
@@ -211,7 +212,7 @@ private Q_SLOTS:
         kit.monitor.switchWorkspace(2);
         Layout::Workspace extra(kit.area, kit.clock, kit.options, std::nullopt);
         kit.monitor.insertWorkspace(std::move(extra), 3, false);
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void takingEveryFixedWorkspaceLeavesAnEmptyOne()
@@ -231,7 +232,7 @@ private Q_SLOTS:
         QCOMPARE(taken.size(), std::size_t(1));
         QCOMPARE(taken.front().id(), homed);
         QVERIFY(!kit.monitor.workspaces().empty());
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 
     void clearingTheNameOfAnUnknownWorkspaceFails()
@@ -249,7 +250,7 @@ private Q_SLOTS:
         const Layout::WorkspaceId occupied = kit.monitor.workspaces().at(1).id();
         QVERIFY(kit.monitor.indexOfWorkspace(occupied).has_value());
         kit.monitor.pruneWorkspaces();
-        QCOMPARE(kit.monitor.checkConsistency(), QString());
+        QCOMPARE(Layout::ConsistencyCheck::of(kit.monitor), QString());
     }
 };
 

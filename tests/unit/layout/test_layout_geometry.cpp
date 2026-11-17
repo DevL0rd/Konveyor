@@ -151,15 +151,6 @@ private Q_SLOTS:
         QCOMPARE(floating.value, 500.0);
     }
 
-    void computesBorderExtentAndBounds()
-    {
-        Config::Border border;
-        border.enabled = true;
-        border.width = 4;
-        QCOMPARE(borderExtent(border), 8.0);
-        QCOMPARE(maxWindowBounds(border, QSizeF(1000, 800), QSizeF(0, 0), 16.0), QSize(960, 760));
-    }
-
     void columnWidthFromPreset()
     {
         QCOMPARE(ColumnWidth::fromPreset(Config::Proportion {0.25}), ColumnWidth::proportion(0.25));

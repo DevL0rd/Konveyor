@@ -242,8 +242,6 @@ struct Engine::Private
     void appendOverviewDragWindow(OverviewView &view, const WindowState &draggedState, double scale) const;
     std::optional<QRectF> dropHintRect(const Monitor &monitor) const;
     void appendMovedWindowState(QList<WindowState> &states) const;
-    QString checkWindowPlacement() const;
-    QString checkViews() const;
 
     void beginInteractiveMoving(const QString &output);
     void stopEdgeScroll();

@@ -14,7 +14,6 @@ public:
 
     static Curve fromConfig(const Config::EasingParams &params);
 
-    Config::EasingCurve kind() const;
     double y(double x) const;
 
 private:

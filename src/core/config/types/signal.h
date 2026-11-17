@@ -55,7 +55,6 @@ QStringList signalNames();
 bool isImpulse(Signal signal);
 bool isAudioSignal(Signal signal);
 bool isInputSignal(Signal signal);
-bool isViewSignal(Signal signal);
 SignalSource sourceOf(Signal signal);
 bool anyAudioSignal(const SignalSet &set);
 bool anyInputSignal(const SignalSet &set);

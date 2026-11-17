@@ -36,7 +36,8 @@ public Q_SLOTS:
     Q_SCRIPTABLE void Watch(const QString &pidsJson);
 
 private:
-    struct Subscriber {
+    struct Subscriber
+    {
         QSet<qint64> pids;
         QHash<qint64, QVector<QPair<qint64, double>>> pending;
     };

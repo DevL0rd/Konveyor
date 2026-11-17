@@ -139,9 +139,9 @@ public:
     std::optional<DropHint> dropHint;
     bool overviewOpen = false;
 
-    QString checkConsistency() const;
-
 private:
+    friend struct ConsistencyCheck;
+
     void maintainFixedWorkspaces();
     void applyOptions();
     void shiftForInsertion(std::size_t idx);

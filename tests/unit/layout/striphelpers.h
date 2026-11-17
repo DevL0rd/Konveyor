@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../anim/manualclock.h"
 #include "helpers.h"
 #include "layout/floating/floatinglayer.h"
 #include "layout/monitor/monitor.h"
@@ -11,7 +12,7 @@ namespace LayoutTest
 
 struct StripKit
 {
-    Clock clock = Clock::frozenAt(Duration::zero());
+    ManualClock clock = ManualClock(Duration::zero());
     Layout::OptionsPtr options;
     QSizeF viewSize;
     double scaleFactor;
@@ -66,7 +67,7 @@ struct StripKit
 
 struct FloatKit
 {
-    Clock clock = Clock::frozenAt(Duration::zero());
+    ManualClock clock = ManualClock(Duration::zero());
     Layout::OptionsPtr options;
     QRectF area;
     Layout::FloatingLayer layer;
@@ -99,7 +100,7 @@ struct FloatKit
 
 struct MonitorKit
 {
-    Clock clock = Clock::frozenAt(Duration::zero());
+    ManualClock clock = ManualClock(Duration::zero());
     Layout::OptionsPtr options;
     Layout::OutputArea area;
     Layout::Monitor monitor;
