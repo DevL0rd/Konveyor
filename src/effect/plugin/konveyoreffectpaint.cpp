@@ -88,6 +88,7 @@ bool KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
             }
         }
     }
+    paintOverviewCursor(renderTarget, viewport, deviceRegion, *view);
     return true;
 }
 #else
@@ -114,6 +115,7 @@ void KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
             }
         }
     }
+    paintOverviewCursor(renderTarget, viewport, deviceRegion, *view);
 }
 #endif
 

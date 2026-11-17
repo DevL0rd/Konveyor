@@ -116,6 +116,8 @@ private:
     bool handleOverviewKey(int key, bool pressed, Qt::KeyboardModifiers modifiers);
     void paintOverview(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &deviceRegion,
         const Layout::OverviewView &view, const QRectF &workArea);
+    void paintOverviewCursor(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport,
+        const KWin::Region &deviceRegion, const Layout::OverviewView &view);
     void updateWindowVisibility(const QList<Layout::WindowState> &states);
     void followActiveWindow();
     void followActiveWindowAfterClose();

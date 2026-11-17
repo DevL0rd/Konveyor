@@ -296,7 +296,11 @@ void KonveyorEffect::paintOverview(const KWin::RenderTarget &renderTarget, const
     fillRects(selectedOutlineRects(paint, windowThickness), withAlpha(focusRingColor, Layout::kOverviewOutlineAlpha * paint.blend),
         renderTarget, viewport, scissor);
     fillChevrons(paint.edges, withAlpha(Qt::white, kEdgeAlpha * paint.blend), renderTarget, viewport, scissor);
+}
 
+void KonveyorEffect::paintOverviewCursor(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport,
+    const KWin::Region &deviceRegion, const Layout::OverviewView &view)
+{
     if (KWin::Cursor *cursor = KWin::Cursors::self() ? KWin::Cursors::self()->currentCursor() : nullptr) {
         if (KWin::CursorSource *source = cursor->source(); source && !source->isBlank()) {
             const QRectF cursorRect(cursor->pos() - cursor->hotspot(), source->size());
