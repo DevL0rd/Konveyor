@@ -23,6 +23,7 @@ private Q_SLOTS:
     void oneOutputPaintsEveryWindow();
     void twoOutputsGetSeparateViews();
     void blankWorkspaceStillGetsACard();
+    void activeHiddenEmptyWorkspaceMapsToTheNearestCard();
     void selectionFollowsFocus();
     void panOnlyMovesItsOwnOutput();
     void reservedInsetsOnlyShrinkTheirOutput();
@@ -109,6 +110,22 @@ void TestOverviewViews::blankWorkspaceStillGetsACard()
     QVERIFY(views[0].workspaceRects[0] != views[0].workspaceRects[1]);
     // The named blank card is shown, while the trailing unnamed empty workspace is hidden.
     QVERIFY(std::ranges::none_of(views[0].windows, [](const Layout::OverviewWindow &window) { return window.workspaceIndex == 2; }));
+}
+
+void TestOverviewViews::activeHiddenEmptyWorkspaceMapsToTheNearestCard()
+{
+    Fixture fixture(overviewConfig());
+    const auto a = fixture.add(QStringLiteral("a"));
+    QVERIFY(fixture.perform(QStringLiteral("focus-workspace-down")).ok);
+
+    fixture.engine().setOverviewOpen(true);
+    const QList<Layout::OverviewView> views = fixture.engine().overviewViews();
+    QCOMPARE(views.size(), 1);
+    // The active workspace is the idle trailing empty one, which stays hidden.
+    QCOMPARE(views[0].workspaceRects.size(), 1);
+    QCOMPARE(views[0].activeWorkspace, 0);
+    QVERIFY(containsWindow(views[0], a));
+    VERIFY_INVARIANTS(fixture);
 }
 
 void TestOverviewViews::selectionFollowsFocus()

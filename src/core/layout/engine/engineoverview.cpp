@@ -67,7 +67,10 @@ void Engine::overviewPan(const QString &output, const QPointF &delta)
 std::optional<WindowId> Engine::Private::centeredOverviewWindow(const OverviewView &view) const
 {
     const QPointF center = view.outputGeometry.center();
-    const int activeWorkspace = view.activeWorkspace + 1;
+    const int activeReal = view.activeWorkspace >= 0 && view.activeWorkspace < view.workspaceIndices.size()
+        ? view.workspaceIndices.at(view.activeWorkspace)
+        : view.activeWorkspace;
+    const int activeWorkspace = activeReal + 1;
     std::optional<WindowId> best;
     double bestDist = std::numeric_limits<double>::max();
     for (const OverviewWindow &window : view.windows) {
@@ -481,7 +484,7 @@ std::vector<std::size_t> visibleOverviewWorkspaces(const Monitor &monitor, bool 
     for (std::size_t idx = 0; idx < count; ++idx) {
         const Workspace &ws = monitor.workspaces()[idx];
         const bool isOccupiedOrNamed = ws.isOccupiedOrNamed();
-        if (dynamic && !dragging && !isOccupiedOrNamed && idx != active) {
+        if (dynamic && !dragging && !isOccupiedOrNamed) {
             if (emptyAbove && idx == 0) {
                 continue;
             }
@@ -583,7 +586,15 @@ OverviewView Engine::Private::overviewView(
         view.workspaceIndices.append(static_cast<int>(idx));
     }
     const auto activeIt = std::find(wsIndices.begin(), wsIndices.end(), monitor.activeWorkspaceIndex());
-    view.activeWorkspace = activeIt != wsIndices.end() ? static_cast<int>(std::distance(wsIndices.begin(), activeIt)) : 0;
+    if (activeIt != wsIndices.end()) {
+        view.activeWorkspace = static_cast<int>(std::distance(wsIndices.begin(), activeIt));
+    } else if (!wsIndices.empty()) {
+        // The active workspace is hidden (an idle empty edge workspace); keep the
+        // nearest visible card active so the camera and selection stay put.
+        view.activeWorkspace = monitor.activeWorkspaceIndex() < wsIndices.front() ? 0 : static_cast<int>(wsIndices.size()) - 1;
+    } else {
+        view.activeWorkspace = 0;
+    }
 
     QList<QList<WindowId>> ids;
     const OverviewGeometryInput input = overviewGeometryInput(monitor, view.activeWorkspace, byWorkspace, origin, ids, wsIndices);
