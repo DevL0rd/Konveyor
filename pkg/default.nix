@@ -121,13 +121,16 @@ stdenv.mkDerivation rec {
     # hardlinks and break the lib-staging `cp`s below (same inode). `-RL` gives
     # each staged file its own inode and dereferences any symlinks.
     cp -RL "${srcPath}/widgets/." "$WIDGETS_DIR/"
-    # Copy Plasma-Shared submodule to the output's widgets directory
-    mkdir -p "$WIDGETS_DIR/shared"
-    chmod u+w "$WIDGETS_DIR/shared"
-    cp -RL "${plasmaShared}" "$WIDGETS_DIR/shared/common"
     # Sources come from the read-only Nix store; make the staged copy writable
-    # so the lib-staging steps below can rearrange files inside it.
+    # before copying Plasma-Shared into it or rearranging files below.
     chmod -R u+w "$WIDGETS_DIR"
+
+    # Copy the Plasma-Shared contents, not the directory itself. The `/.` and
+    # trailing slash are important: without them cp would create
+    # `shared/common/<store-name>/` and the QML staging helpers would not find
+    # any shared QML/JS files.
+    mkdir -p "$WIDGETS_DIR/shared/common"
+    cp -RL "${plasmaShared}/." "$WIDGETS_DIR/shared/common/"
     find "$WIDGETS_DIR" -name .git -prune -exec rm -rf {} +
 
     stage_lib_into() {
@@ -219,15 +222,16 @@ stdenv.mkDerivation rec {
     patchShebangs --build "$out/share/konveyor/widgets"
   '';
 
+  # These are passed in by the flake and are available at evaluation time.
+  # Reading `$out/share/konveyor/plugin-id` here would be wrong: `$out` is a
+  # shell variable, not a Nix path.
   passthru = {
-    # pluginId and telemetryPluginId are computed at build time and available in the output
-    pluginId = lib.readFile "$out/share/konveyor/plugin-id";
-    telemetryPluginId = lib.readFile "$out/share/konveyor/telemetry-plugin-id";
+    inherit pluginId telemetryPluginId;
   };
 
   meta = with lib; {
     description = "KWin tiling window manager with Plasma widgets";
-    homepage = "https://github.com/DevL0rd/Konveyor";
+    homepage = "https://github.com/sunnysamantara/Konveyor";
     license = licenses.gpl3Plus;
     platforms = platforms.linux;
     mainProgram = "konveyor";

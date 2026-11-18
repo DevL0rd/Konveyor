@@ -1,27 +1,27 @@
-{ lib, pkgs, config, osConfig, ... }:
+{ lib, pkgs, config, konveyorPackage ? null, ... }@args:
 
 let
   cfg = config.programs.konveyor;
-  enable = cfg.enable;
 
-  konveyor = pkgs.konveyor;
+  # `osConfig` only exists when home-manager runs as a NixOS module. Using
+  # `@args` keeps the module usable in standalone home-manager configurations.
+  osConfig = args.osConfig or { };
+  nixosWidgetsEnabled = osConfig.programs.konveyor.enableWidgets or false;
+
+  konveyor = cfg.package;
   widgets = "${konveyor}/share/konveyor/widgets";
   pluginId = konveyor.passthru.pluginId;
   telemetryPluginId = konveyor.passthru.telemetryPluginId;
   konveyorPanel = "${widgets}/portals/kontrol-panel";
 
-  # The shipped config is the documented baseline. The only change is the
-  # cheatsheet bind: Meta+K is already Launch Konsole, so move Konveyor's
-  # overlay to Meta+Shift+P (free in both Konveyor and KDE; Meta+Shift+K is
-  # taken by Konveyor's focus-monitor-up). Nix owns this file; GUI edits are
-  # replaced on switch.
-  defaultConfig = builtins.readFile "${konveyor}/share/konveyor/default-config.kdl";
-  configKdl = pkgs.writeText "konveyor-config.kdl" (
-    lib.replaceStrings
-      [ "Mod+K hotkey-overlay-title=\"Show Shortcut Cheatsheet\" { show-hotkey-overlay; }" ]
-      [ "Mod+Shift+P hotkey-overlay-title=\"Show Shortcut Cheatsheet\" { show-hotkey-overlay; }" ]
-      defaultConfig
-  );
+  # The shipped config is the documented baseline. Users can supply their own
+  # with `configKdl`; by default it is seeded once and then owned by the user
+  # (and by Konveyor's UI), not replaced on every switch.
+  defaultConfigSource =
+    if cfg.configKdl != null then
+      cfg.configKdl
+    else
+      "${konveyor}/share/konveyor/default-config.kdl";
 
   routerExample = builtins.fromJSON (builtins.readFile "${widgets}/router-monitor/config.example.json");
   portalExample = builtins.fromJSON (builtins.readFile "${widgets}/portals/config.example.json");
@@ -116,49 +116,134 @@ let
       }
     ) commandPaths
   );
+
+  # Seed once, never overwrite: this is what lets users edit settings in
+  # Konveyor's own UI and have those edits survive later switches.
+  seedFile = path: mode: source: ''
+    if [ ! -e "$HOME/${path}" ]; then
+      run ${pkgs.coreutils}/bin/install -m ${toString mode} ${source} "$HOME/${path}"
+    fi
+  '';
 in
 {
   options.programs.konveyor = {
-    enable = lib.mkEnableOption "Konveyor widgets, services and panel integration";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = nixosWidgetsEnabled;
+      defaultText = lib.literalExpression "osConfig.programs.konveyor.enableWidgets or false";
+      description = ''
+        Enable Konveyor widgets, user services and desktop entries. When used
+        as a NixOS module together with `programs.konveyor.enable`, this
+        follows `programs.konveyor.enableWidgets` automatically.
+      '';
+    };
+
+    package = lib.mkOption {
+      type = lib.types.nullOr lib.types.package;
+      default = konveyorPackage;
+      defaultText = lib.literalExpression "inputs.konveyor.packages.<system>.konveyor";
+      description = "The Konveyor package whose widgets and binaries are wired up.";
+    };
+
+    configKdl = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = ''
+        Optional `config.kdl` source. When null, the package's shipped default
+        is used. It is seeded once unless `manageConfig` is true.
+      '';
+    };
+
+    manageConfig = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        If true, Nix owns `~/.config/konveyor/config.kdl` and replaces UI edits
+        on every switch. If false (default), the file is seeded once and then
+        left to the user/Konveyor UI.
+      '';
+    };
+
+    manageKwinPlugin = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Declaratively enable the versioned KWin effect plugins in `kwinrc`.
+        Disable this if you prefer toggling the effect from System Settings.
+      '';
+    };
+
+    manageShortcuts = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Declaratively own `kglobalshortcutsrc` entries for the Kontrol Panel
+        and the Games page. Disabled by default so shortcuts remain editable
+        from KDE's UI.
+      '';
+    };
+
+    enableServices = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Install the konveyor-widgets and konveyor-kontrol-panel user services.";
+    };
+
+    enableSycoca = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Refresh the KDE desktop-file cache on activation.";
+    };
+
+    extraPackages = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      default = [ ];
+      description = "Extra packages to add alongside Konveyor and its helper tools.";
+    };
   };
 
-  config = lib.mkIf enable {
-    # Ensure we're only enabled if the NixOS feature is on
-    # (This is enforced by the NixOS module setting enableWidgets = true)
+  config = lib.mkIf (cfg.enable && cfg.package != null) {
     assertions = [
-      { assertion = osConfig.programs.konveyor.enableWidgets or false; message = "NixOS module programs.konveyor.enableWidgets must be true"; }
+      {
+        assertion =
+          (cfg.package.passthru or { }) ? pluginId
+          && (cfg.package.passthru or { }) ? telemetryPluginId;
+        message = ''
+          The Konveyor package must expose passthru.pluginId and
+          passthru.telemetryPluginId. Use the package from this flake or
+          provide one with the same passthru values.
+        '';
+      }
     ];
 
-    home.packages = with pkgs; [
-      konveyor
-      jq # screen-rotate
-      glib # gdbus, used by the portal helper scripts
-      kdePackages.libkscreen # kscreen-doctor
-      openssh # router monitor
-      curl # router speed test
-      iputils # ping
-    ];
+    home.packages =
+      with pkgs;
+      [
+        konveyor
+        jq # screen-rotate
+        glib # gdbus, used by the portal helper scripts
+        kdePackages.libkscreen # kscreen-doctor
+        openssh # router monitor
+        curl # router speed test
+        iputils # ping
+      ]
+      ++ cfg.extraPackages;
 
     # KWin loads the versioned effect names; also disable the unversioned
     # upstream names so an old install cannot load a stale ABI-mismatched .so.
-    programs.plasma.configFile."kwinrc".Plugins = {
-      "konveyor_effectEnabled" = false;
-      "${pluginId}Enabled" = true;
-      "process_monitor_telemetryEnabled" = false;
-      "${telemetryPluginId}Enabled" = true;
+    programs.plasma.configFile."kwinrc" = lib.mkIf cfg.manageKwinPlugin {
+      Plugins = {
+        "konveyor_effectEnabled" = false;
+        "${pluginId}Enabled" = true;
+        "process_monitor_telemetryEnabled" = false;
+        "${telemetryPluginId}Enabled" = true;
+      };
     };
 
-    # Upstream frees Meta/Alt+F1 from Plasma's launcher and Meta+G from KWin's
-    # Grid View before taking them for the Kontrol Panel. Do the same
-    # declaratively. Launch Konsole keeps Meta+K; Konveyor's cheatsheet moved
-    # to Meta+Shift+P in config.kdl.
-    #
-    # Written through configFile rather than `programs.plasma.shortcuts` so
-    # these keys can be marked immutable ([$i]): KGlobalAccel rewrites
-    # kglobalshortcutsrc from its in-memory action registry on logout/relogin
-    # and otherwise restores the old bindings, leaving colliding shortcuts
-    # and a dead Kontrol Panel toggle after every restart.
-    programs.plasma.configFile."kglobalshortcutsrc" = {
+    # Opt-in because these keys are user-owned in KDE's Shortcuts UI. When
+    # enabled, immutable entries are used because KGlobalAccel rewrites
+    # kglobalshortcutsrc from its in-memory registry on logout/relogin.
+    programs.plasma.configFile."kglobalshortcutsrc" = lib.mkIf cfg.manageShortcuts {
       plasmashell."activate application launcher" = {
         value = "none,,";
         immutable = true;
@@ -174,47 +259,51 @@ in
       "services/org.devl0rd.portal.launcher.games.desktop"._launch = "Meta+G";
     };
 
-    xdg.configFile."konveyor/config.kdl".source = configKdl;
+    xdg.configFile = lib.mkIf cfg.manageConfig {
+      "konveyor/config.kdl".source = defaultConfigSource;
+    };
 
     # Home Manager's user units use the systemd section layout (Unit/Service/
     # Install), not NixOS' description/serviceConfig shorthand. Widgets read
     # their collectors' snapshots via QML XHR; QML_XHR_ALLOW_FILE_READ is set
-    # globally by the NixOS feature and repeated here so the collectors also
-    # work in a Plasma session started outside PAM.
-    systemd.user.services.konveyor-widgets = {
-      Unit = {
-        Description = "Konveyor widget collectors";
-        After = [ "graphical-session.target" ];
+    # globally by the NixOS module and repeated here so collectors also work
+    # in a Plasma session started outside PAM.
+    systemd.user.services = lib.mkIf cfg.enableServices {
+      konveyor-widgets = {
+        Unit = {
+          Description = "Konveyor widget collectors";
+          After = [ "graphical-session.target" ];
+        };
+        Service = {
+          Type = "simple";
+          ExecStart = "${widgets}/service/konveyor-widgets";
+          Restart = "always";
+          RestartSec = 3;
+          Nice = 19;
+          Environment = [ "QML_XHR_ALLOW_FILE_READ=1" ];
+        };
+        Install = {
+          WantedBy = [ "default.target" ];
+        };
       };
-      Service = {
-        Type = "simple";
-        ExecStart = "${widgets}/service/konveyor-widgets";
-        Restart = "always";
-        RestartSec = 3;
-        Nice = 19;
-        Environment = [ "QML_XHR_ALLOW_FILE_READ=1" ];
-      };
-      Install = {
-        WantedBy = [ "default.target" ];
-      };
-    };
 
-    systemd.user.services.konveyor-kontrol-panel = {
-      Unit = {
-        Description = "Konveyor Kontrol Panel";
-        PartOf = [ "graphical-session.target" ];
-        After = [ "graphical-session.target" ];
-      };
-      Service = {
-        Type = "dbus";
-        BusName = "org.devl0rd.KontrolPanel";
-        ExecStart = "${konveyor}/bin/konveyor-kontrol-panel ${konveyorPanel}";
-        Environment = [ "QML_XHR_ALLOW_FILE_READ=1" ];
-        Restart = "on-failure";
-        RestartSec = 2;
-      };
-      Install = {
-        WantedBy = [ "graphical-session.target" ];
+      konveyor-kontrol-panel = {
+        Unit = {
+          Description = "Konveyor Kontrol Panel";
+          PartOf = [ "graphical-session.target" ];
+          After = [ "graphical-session.target" ];
+        };
+        Service = {
+          Type = "dbus";
+          BusName = "org.devl0rd.KontrolPanel";
+          ExecStart = "${konveyor}/bin/konveyor-kontrol-panel ${konveyorPanel}";
+          Environment = [ "QML_XHR_ALLOW_FILE_READ=1" ];
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+        Install = {
+          WantedBy = [ "graphical-session.target" ];
+        };
       };
     };
 
@@ -264,7 +353,7 @@ in
         "${konveyor}/share/konveyor/desktop-containment/org.kde.desktopcontainment";
     };
 
-    home.activation.konveyorWidgetConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    home.activation.konveyorSeedConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       run ${pkgs.coreutils}/bin/mkdir -p \
         "$HOME/.config/Linux-System-Monitor" \
         "$HOME/.config/Linux-Process-Mon" \
@@ -272,38 +361,21 @@ in
         "$HOME/.config/Plasma-App-Portal" \
         "$HOME/.config/konveyor"
 
-      if [ ! -e "$HOME/.config/Linux-System-Monitor/config.json" ]; then
-        run ${pkgs.coreutils}/bin/install -m 644 \
-          ${pkgs.writeText "konveyor-sysmon-config.json" (builtins.readFile "${widgets}/system-monitor/config.example.json")} \
-          "$HOME/.config/Linux-System-Monitor/config.json"
-      fi
-      if [ ! -e "$HOME/.config/Linux-Process-Mon/config.json" ]; then
-        run ${pkgs.coreutils}/bin/install -m 644 \
-          ${pkgs.writeText "konveyor-procmon-config.json" (builtins.readFile "${widgets}/process-monitor/config.example.json")} \
-          "$HOME/.config/Linux-Process-Mon/config.json"
-      fi
-      if [ ! -e "$HOME/.config/Linux-Router-Monitor/config.json" ]; then
-        run ${pkgs.coreutils}/bin/install -m 600 ${routerSeed} \
-          "$HOME/.config/Linux-Router-Monitor/config.json"
-      fi
-      if [ ! -e "$HOME/.config/Plasma-App-Portal/config.json" ]; then
-        run ${pkgs.coreutils}/bin/install -m 600 ${portalSeed} \
-          "$HOME/.config/Plasma-App-Portal/config.json"
-      fi
-      if [ ! -e "$HOME/.config/konveyor/kontrolpanelrc" ]; then
-        run ${pkgs.coreutils}/bin/install -m 644 ${kontrolPanelSeed} \
-          "$HOME/.config/konveyor/kontrolpanelrc"
-      fi
-      if [ ! -e "$HOME/.config/konveyor/taskbarrc" ]; then
-        run ${pkgs.coreutils}/bin/install -m 644 ${taskbarSeed} \
-          "$HOME/.config/konveyor/taskbarrc"
-      fi
+      ${lib.optionalString (!cfg.manageConfig) (seedFile ".config/konveyor/config.kdl" 644 defaultConfigSource)}
+      ${seedFile ".config/Linux-System-Monitor/config.json" 644 "${widgets}/system-monitor/config.example.json"}
+      ${seedFile ".config/Linux-Process-Mon/config.json" 644 "${widgets}/process-monitor/config.example.json"}
+      ${seedFile ".config/Linux-Router-Monitor/config.json" 600 routerSeed}
+      ${seedFile ".config/Plasma-App-Portal/config.json" 600 portalSeed}
+      ${seedFile ".config/konveyor/kontrolpanelrc" 644 kontrolPanelSeed}
+      ${seedFile ".config/konveyor/taskbarrc" 644 taskbarSeed}
     '';
 
     # Make the new .desktop entries (especially Meta+G) known to KDE without
     # needing the upstream installer.
-    home.activation.konveyorKSycoca = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      run ${pkgs.kdePackages.kservice}/bin/kbuildsycoca6
-    '';
+    home.activation.konveyorKSycoca =
+      lib.mkIf cfg.enableSycoca
+        (lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          run ${pkgs.kdePackages.kservice}/bin/kbuildsycoca6
+        '');
   };
 }

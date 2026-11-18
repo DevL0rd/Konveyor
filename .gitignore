@@ -5,3 +5,5 @@
 /.ccache/
 __pycache__/
 /report/
+/result
+/result-*
