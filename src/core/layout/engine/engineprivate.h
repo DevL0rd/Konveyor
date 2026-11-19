@@ -95,12 +95,29 @@ struct OverviewPress
     bool dragging = false;
 };
 
+// A camera move that plays instead of snapping the board to a revealed window.
+struct OverviewCameraPan
+{
+    OverviewCameraPan(const Anim::Clock &clock, const QPointF &from, const QPointF &to, const Config::AnimationParams &params)
+        : from(from)
+        , to(to)
+        , progress(clock, 0.0, 1.0, 0.0, params)
+    { }
+
+    QPointF position() const { return from + (to - from) * progress.valueWithoutOvershoot(); }
+
+    QPointF from;
+    QPointF to;
+    Anim::Animation progress;
+};
+
 struct OverviewRuntime
 {
     std::optional<Anim::Animation> progressAnimation;
     double progress = 0.0;
     QHash<QString, QPointF> cameras;
     QHash<QString, Anim::Animation> cameraYAnimations;
+    QHash<QString, OverviewCameraPan> cameraPans;
     QHash<QString, QMarginsF> reserved;
     std::optional<WindowId> selected;
     std::optional<WindowId> dragWindow;
@@ -160,6 +177,8 @@ struct Engine::Private
     void tickOverview();
     void seedOverviewCamera();
     void revealOverviewSelection();
+    void animateOverviewCamera(const QString &output, const QPointF &from, const QPointF &to);
+    void stopOverviewCameraPan(const QString &output);
     std::optional<WindowId> centeredOverviewWindow(const OverviewView &view) const;
     void updateOverviewDrop();
     void clearOverviewDrag();

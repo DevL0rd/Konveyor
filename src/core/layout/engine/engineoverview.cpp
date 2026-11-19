@@ -56,6 +56,7 @@ void Engine::overviewPan(const QString &output, const QPointF &delta)
     }
     const QRectF bounds = view->contentBounds.united(QRectF(view->camera, view->outputGeometry.size()));
     const QPointF moved = view->camera + delta;
+    d->stopOverviewCameraPan(output);
     d->overview.cameras.insert(output, clampOverviewCamera(bounds, view->outputGeometry.size(), moved));
 }
 
@@ -106,6 +107,7 @@ void Engine::overviewScroll(const QString &output, Qt::Orientation orientation, 
             return;
         }
         if (scrolled != &monitor->activeWorkspace()) {
+            d->stopOverviewCameraPan(output);
             d->overview.cameras.remove(output);
             d->overview.selected = scrolled->activeWindow();
             d->focusOverviewMonitor(output);
@@ -193,6 +195,7 @@ std::optional<double> Engine::Private::overviewCameraY(const QString &output) co
 void Engine::Private::settleOverviewAfterWorkspaceChange(
     const QString &output, const Monitor &monitor, bool workspaceChanged, bool panned, double beforeCameraY)
 {
+    stopOverviewCameraPan(output);
     overview.cameras.remove(output);
     const std::optional<OverviewView> afterView = (workspaceChanged && config.animations.enabled)
             || !monitor.activeWorkspace().activeWindow() || (workspaceChanged && monitor.activeWorkspace().overviewPanned())

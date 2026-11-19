@@ -125,6 +125,8 @@ void Engine::overviewBeginWindowDrag(WindowId id, const QString &output, const Q
     if (!target || target->rect.width() <= 0.0 || target->rect.height() <= 0.0) {
         return;
     }
+    // The drag owns the pointer now; a camera pan would drag the whole board under it.
+    d->stopOverviewCameraPan(output);
 
     d->overview.dragWindow = id;
     d->overview.dragOutput = output;
@@ -155,6 +157,7 @@ void Engine::overviewBeginWorkspaceDrag(const QString &output, int workspaceInde
     if (!monitor || workspaceIndex < 0 || static_cast<std::size_t>(workspaceIndex) >= monitor->workspaces().size()) {
         return;
     }
+    d->stopOverviewCameraPan(output);
     d->clearOverviewDrag();
     d->overview.reorderOutput = output;
     d->overview.reorderFrom = workspaceIndex;

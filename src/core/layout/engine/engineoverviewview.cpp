@@ -174,6 +174,14 @@ void Engine::Private::appendOverviewWindows(OverviewView &view, const Monitor &m
 
 void Engine::Private::applyOverviewCamera(OverviewView &view, const OverviewGeometryInput &input, const OverviewGeometry &geometry) const
 {
+    // A running pan moves between two camera positions that were valid when it
+    // started. Re-clamping in between would snap the board, because activating a
+    // window can change the active workspace and with it the clamp bounds.
+    const auto panIt = overview.cameraPans.constFind(view.output);
+    if (panIt != overview.cameraPans.constEnd()) {
+        view.camera = panIt->position();
+        return;
+    }
     const auto camIt = overview.cameras.constFind(view.output);
     if (camIt == overview.cameras.constEnd()) {
         view.camera = geometry.camera;

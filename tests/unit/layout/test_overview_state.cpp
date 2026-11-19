@@ -9,6 +9,31 @@
 
 using namespace LayoutTest;
 
+namespace
+{
+
+// Every window of the active card has to hand over to its live frame.
+void verifyPaintedMatchesLive(const Layout::OverviewView &view)
+{
+    const Layout::OverviewPaintView closing = Layout::overviewPaintView(view, {}, 0.001);
+    bool checked = false;
+    for (const Layout::OverviewWindow &window : view.windows) {
+        if (window.workspaceIndex != view.activeWorkspace + 1 || !window.normalRect) {
+            continue;
+        }
+        const auto painted = std::ranges::find(closing.windows, window.id, &Layout::OverviewPaintWindow::id);
+        QVERIFY(painted != closing.windows.end());
+        QVERIFY(std::abs(painted->rect.x() - window.normalRect->x()) < 1.0);
+        QVERIFY(std::abs(painted->rect.y() - window.normalRect->y()) < 1.0);
+        QVERIFY(std::abs(painted->rect.width() - window.normalRect->width()) < 1.0);
+        QVERIFY(std::abs(painted->rect.height() - window.normalRect->height()) < 1.0);
+        checked = true;
+    }
+    QVERIFY(checked);
+}
+
+}
+
 class TestOverviewState : public QObject
 {
     Q_OBJECT
@@ -25,6 +50,8 @@ private Q_SLOTS:
     void disablingTheConfigClosesTheOverview();
     void emptyOverviewIsHarmless();
     void closeZoomLandsOnTheLiveLayoutAfterTheCameraMoved();
+    void selectionPansTheCameraInsteadOfSnapping();
+    void activatingDuringARevealPanStillLandsOnTheLiveLayout();
 };
 
 void TestOverviewState::disabledAnimationsJumpStraightToOpenAndClosed()
@@ -246,22 +273,58 @@ void TestOverviewState::closeZoomLandsOnTheLiveLayoutAfterTheCameraMoved()
 
     const Layout::OverviewView view = fixture.engine().overviewViews().first();
     QVERIFY(view.camera != cameraBefore);
-    const Layout::OverviewPaintView closing = Layout::overviewPaintView(view, {}, 0.001);
-    QVERIFY(!closing.windows.isEmpty());
-    bool checked = false;
-    for (const Layout::OverviewWindow &window : view.windows) {
-        if (window.workspaceIndex != view.activeWorkspace + 1 || !window.normalRect) {
-            continue;
-        }
-        const auto painted = std::ranges::find(closing.windows, window.id, &Layout::OverviewPaintWindow::id);
-        QVERIFY(painted != closing.windows.end());
-        QVERIFY(std::abs(painted->rect.x() - window.normalRect->x()) < 1.0);
-        QVERIFY(std::abs(painted->rect.y() - window.normalRect->y()) < 1.0);
-        QVERIFY(std::abs(painted->rect.width() - window.normalRect->width()) < 1.0);
-        QVERIFY(std::abs(painted->rect.height() - window.normalRect->height()) < 1.0);
-        checked = true;
-    }
-    QVERIFY(checked);
+    verifyPaintedMatchesLive(view);
+}
+
+void TestOverviewState::selectionPansTheCameraInsteadOfSnapping()
+{
+    Fixture fixture {overviewConfig(true)};
+    const Layout::WindowId a = fixture.add(QStringLiteral("a"));
+    addBelow(fixture, QStringLiteral("c"));
+    openOverview(fixture);
+    fixture.advanceInSteps(220, 10);
+    fixture.engine().overviewPan(QStringLiteral("DP-1"), QPointF(0, 1e6));
+    const Layout::OverviewView bottom = fixture.engine().overviewViews().first();
+    QVERIFY(bottom.camera.y() > 0.0);
+
+    fixture.engine().overviewSelectWindow(a);
+    const Layout::OverviewView start = fixture.engine().overviewViews().first();
+    QCOMPARE(start.camera, bottom.camera);
+    QVERIFY(fixture.engine().isAnimating());
+
+    fixture.advanceInSteps(100, 10);
+    const Layout::OverviewView middle = fixture.engine().overviewViews().first();
+    QVERIFY(middle.camera.y() < bottom.camera.y());
+
+    fixture.advanceInSteps(200, 10);
+    const Layout::OverviewView end = fixture.engine().overviewViews().first();
+    QVERIFY(end.camera.y() < middle.camera.y());
+    QVERIFY(!fixture.engine().isAnimating());
+    const auto window = windowFor(end, a);
+    QVERIFY(window);
+    QVERIFY(QRectF(end.camera, end.outputGeometry.size()).contains(window->rect.center()));
+}
+
+void TestOverviewState::activatingDuringARevealPanStillLandsOnTheLiveLayout()
+{
+    Fixture fixture {overviewConfig(true)};
+    const Layout::WindowId a = fixture.add(QStringLiteral("a"));
+    fixture.add(QStringLiteral("b"));
+    addBelow(fixture, QStringLiteral("c"));
+    openOverview(fixture);
+    fixture.advanceInSteps(220, 10);
+    fixture.engine().overviewPan(QStringLiteral("DP-1"), QPointF(0, 1e6));
+    const QPointF cameraBefore = fixture.engine().overviewViews().first().camera;
+
+    fixture.engine().overviewSelectWindow(a);
+    QCOMPARE(fixture.engine().overviewViews().first().camera, cameraBefore);
+    QVERIFY(fixture.engine().overviewActivateSelected());
+    fixture.advanceInSteps(60, 20);
+
+    const Layout::OverviewView view = fixture.engine().overviewViews().first();
+    QVERIFY(view.camera != cameraBefore);
+    QVERIFY(fixture.engine().overviewProgress() < 1.0);
+    verifyPaintedMatchesLive(view);
 }
 
 QTEST_MAIN(TestOverviewState)

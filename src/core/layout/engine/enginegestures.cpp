@@ -73,6 +73,7 @@ void Engine::Private::overviewAfterWorkspaceSwipe(WorkspaceId id)
         if (std::ranges::none_of(workspaces, [id](const Workspace &workspace) { return workspace.id() == id; })) {
             continue;
         }
+        stopOverviewCameraPan(monitor.outputName());
         overview.cameras.remove(monitor.outputName());
         if (const std::optional<OverviewView> view = overviewView(monitor.outputName())) {
             overview.selected = centeredOverviewWindow(*view);
@@ -256,6 +257,7 @@ bool Engine::Private::switchOverviewWorkspace(Monitor &monitor, const OverviewVi
     if (monitor.activeWorkspaceIndex() == beforeIndex) {
         return false;
     }
+    stopOverviewCameraPan(view.output);
     overview.cameras.remove(view.output);
     restartOverviewCameraY(view.output, overviewView(view.output), beforeCameraY);
     updateOverviewDrop();

@@ -58,7 +58,7 @@ void Engine::Private::revealOverviewSelection()
             const QRectF local = window.rect.translated(-view.outputGeometry.topLeft());
             const QRectF target = local.translated(view.camera);
             const QRectF bounds = view.contentBounds.united(QRectF(view.camera, view.outputGeometry.size()));
-            overview.cameras.insert(view.output, overviewRevealCamera(bounds, view.outputGeometry.size(), view.camera, target));
+            animateOverviewCamera(view.output, view.camera, overviewRevealCamera(bounds, view.outputGeometry.size(), view.camera, target));
             return;
         }
     }

@@ -294,6 +294,7 @@ void Engine::Private::setOverviewState(bool open)
     }
     if (!config.overview.enabled) {
         overview.progressAnimation.reset();
+        overview.cameraPans.clear();
         overview.progress = open ? 1.0 : 0.0;
         return;
     }
@@ -301,6 +302,10 @@ void Engine::Private::setOverviewState(bool open)
         seedOverviewCamera();
     }
     startOverviewAnimation(open);
+    if (!open && !overview.progressAnimation) {
+        // The close is instant, so there is nothing left for a camera pan to feed.
+        overview.cameraPans.clear();
+    }
 }
 
 void Engine::tickAnimations()
@@ -322,8 +327,8 @@ void Engine::tickAnimations()
 bool Engine::isAnimating() const
 {
     const bool dragAnimating = d->windowDrag && d->windowDrag->tile && d->windowDrag->tile->isAnimating();
-    return d->edgeScrolling || d->overview.progressAnimation.has_value() || !d->overview.cameraYAnimations.isEmpty() || dragAnimating
-        || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
+    return d->edgeScrolling || d->overview.progressAnimation.has_value() || !d->overview.cameraYAnimations.isEmpty()
+        || !d->overview.cameraPans.isEmpty() || dragAnimating || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
 }
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area)
