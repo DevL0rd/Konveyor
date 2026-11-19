@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "layout/monitor/monitor.h"
 
 #include <QHash>
@@ -13,6 +15,12 @@ namespace Konveyor::Layout
 {
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area);
+
+inline const OverviewView *viewAt(const QList<OverviewView> &views, const QString &output)
+{
+    const auto found = std::ranges::find(views, output, &OverviewView::output);
+    return found == views.end() ? nullptr : &*found;
+}
 
 struct DragOrigin
 {
@@ -65,6 +73,66 @@ struct WorkspaceRenderContext
     int index = 0;
     bool onActive = false;
     bool visible = true;
+    // Ring opacity override while a workspace transition runs; negative means none.
+    double ringOpacity = -1.0;
+};
+
+struct OverviewDrop
+{
+    WorkspaceId workspace = 0;
+    // Pointer position inside the target workspace, in workspace-local logical units.
+    QPointF local;
+};
+
+struct OverviewPress
+{
+    WindowId window = 0;
+    QString output;
+    // Zero-based card index, or -1 when the press landed on a window.
+    int workspaceIndex = -1;
+    int cardIndex = -1;
+    QPointF origin;
+    bool dragging = false;
+};
+
+// A camera move that plays instead of snapping the board to a revealed window.
+struct OverviewCameraPan
+{
+    OverviewCameraPan(const Anim::Clock &clock, const QPointF &from, const QPointF &to, const Config::AnimationParams &params)
+        : from(from)
+        , to(to)
+        , progress(clock, 0.0, 1.0, 0.0, params)
+    { }
+
+    QPointF position() const { return from + (to - from) * progress.valueWithoutOvershoot(); }
+
+    QPointF from;
+    QPointF to;
+    Anim::Animation progress;
+};
+
+struct OverviewRuntime
+{
+    std::optional<Anim::Animation> progressAnimation;
+    double progress = 0.0;
+    QHash<QString, QPointF> cameras;
+    QHash<QString, Anim::Animation> cameraYAnimations;
+    QHash<QString, OverviewCameraPan> cameraPans;
+    QHash<QString, QMarginsF> reserved;
+    std::optional<WindowId> selected;
+    std::optional<WindowId> dragWindow;
+    QString dragOutput;
+    QPointF dragPointerRatio;
+    QPointF dragPos;
+    std::optional<OverviewDrop> drop;
+    QString reorderOutput;
+    int reorderFrom = -1;
+    int reorderTo = -1;
+    std::optional<OverviewPress> press;
+    double verticalScrollAccum = 0.0;
+    double horizontalScrollAccum = 0.0;
+    std::optional<Anim::Duration> lastHorizontalEdgeStep;
+    std::optional<Anim::Duration> lastVerticalEdgeStep;
 };
 
 struct Engine::Private
@@ -92,6 +160,7 @@ struct Engine::Private
     QString switchGestureOutput;
     std::optional<WindowId> resizeWindow;
     bool overviewOpen = false;
+    OverviewRuntime overview;
     bool nativeDesktopPresentation = false;
     Anim::Duration startupTime;
     bool rulesAtStartup = true;
@@ -103,6 +172,16 @@ struct Engine::Private
     bool usesWorkspaceMotion(const Monitor &monitor) const;
     std::vector<double> workspaceRenderOffsets(const Monitor &monitor) const;
     void setOverviewState(bool open);
+    bool builtinOverviewOpen() const { return config.overview.enabled && overviewOpen; }
+    void startOverviewAnimation(bool open);
+    void tickOverview();
+    void seedOverviewCamera();
+    void revealOverviewSelection();
+    void animateOverviewCamera(const QString &output, const QPointF &from, const QPointF &to);
+    void stopOverviewCameraPan(const QString &output);
+    std::optional<WindowId> centeredOverviewWindow(const OverviewView &view) const;
+    void updateOverviewDrop();
+    void clearOverviewDrag();
 
     Monitor *activeMonitor();
     Workspace *activeWorkspace();
@@ -176,6 +255,29 @@ struct Engine::Private
     void moveAllWindowsToMonitor(std::size_t monitorIndex);
 
     void appendWorkspaceStates(QList<WindowState> &states, const Workspace &workspace, const WorkspaceRenderContext &context) const;
+    QList<WindowState> windowStates() const;
+    QList<OverviewView> overviewViews() const;
+    std::optional<OverviewView> overviewView(const QString &output) const;
+    OverviewView overviewView(const Monitor &monitor, const QHash<WorkspaceId, QList<WindowState>> &byWorkspace,
+        const std::optional<WindowState> &draggedState) const;
+    OverviewGeometryInput overviewGeometryInput(const Monitor &monitor, int activeWorkspace,
+        const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &origin, QList<QList<WindowId>> &ids,
+        const std::vector<std::size_t> &wsIndices) const;
+    void appendOverviewWindows(OverviewView &view, const Monitor &monitor, const OverviewGeometry &geometry,
+        const QList<QList<WindowId>> &ids, const QHash<WorkspaceId, QList<WindowState>> &byWorkspace, const QPointF &offset) const;
+    void applyOverviewCamera(OverviewView &view, const OverviewGeometryInput &input, const OverviewGeometry &geometry) const;
+    void applyOverviewDropState(
+        OverviewView &view, const Monitor &monitor, const OverviewGeometry &geometry, const std::vector<std::size_t> &wsIndices) const;
+    std::optional<QRectF> overviewDropHintRect(const Monitor &monitor, const QList<QRectF> &cards, int dropWorkspace, double scale) const;
+    void appendOverviewDragWindow(OverviewView &view, const WindowState &draggedState, double scale) const;
+    void settleOverviewAfterWorkspaceChange(
+        const QString &output, const Monitor &monitor, bool workspaceChanged, bool panned, double beforeCameraY);
+    bool stepOverviewVertical(Monitor &monitor, double units);
+    bool stepOverviewHorizontal(Workspace &workspace, double units);
+    Workspace *overviewWorkspaceUnderPointer(Monitor &monitor, const QString &output, const std::optional<QPointF> &pointer);
+    std::optional<double> overviewCameraY(const QString &output) const;
+    void restartOverviewCameraY(const QString &output, const std::optional<OverviewView> &afterView, double beforeCameraY);
+    void focusOverviewMonitor(const QString &output);
     std::optional<QRectF> dropHintRect(const Monitor &monitor) const;
     void appendMovedWindowState(QList<WindowState> &states) const;
 
@@ -183,6 +285,11 @@ struct Engine::Private
     void stopEdgeScroll();
     void finishResize();
     void edgeScrollAt(Monitor &monitor, QPointF local);
+    bool scrollOverviewWorkspacesAtEdge(
+        Monitor &monitor, const OverviewView &view, const QRectF &workArea, double edge, Anim::Duration now);
+    bool scrollOverviewColumnsAtEdge(Monitor &monitor, const QRectF &workArea, double edge, Anim::Duration now);
+    bool switchOverviewWorkspace(Monitor &monitor, const OverviewView &view, int step);
+    void overviewAfterWorkspaceSwipe(WorkspaceId id);
     void scrollDragEdges();
     void continueEdgeScroll();
     void moveDragToActiveOutput();

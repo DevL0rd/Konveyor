@@ -24,43 +24,16 @@ void setDragFade(KWin::Window *window, std::optional<double> fade)
 
 KonveyorEffect::KonveyorEffect()
 {
-    d = std::make_unique<Private>(makeHooks(), [this](const Config::Bind &bind) {
-        ++d->bindCount;
-        d->lastBindKey = Config::bindKeyLabel(bind);
-        d->lastBindAction = bind.action.name;
-        if (Config::bindActsOnPointerOutput(bind, d->config.config().input)) {
-            const QString output = outputNameAt(KWin::effects->cursorPos());
-            if (!output.isEmpty() && readEngine().focusedOutput() != output) {
-                changeEngine().focusOutput(output);
-            }
-        }
-        performAction(bind.action);
-    });
+    d = std::make_unique<Private>(makeHooks(), [this](const Config::Bind &bind) { handleBind(bind); });
     d->engine.setNativeDesktopPresentation(true);
-    d->flushTimer.setSingleShot(true);
-    d->flushTimer.setInterval(0);
-    connect(&d->flushTimer, &QTimer::timeout, this, &KonveyorEffect::flush);
-    d->animationTimer.setInterval(animationIntervalMs);
-    connect(&d->animationTimer, &QTimer::timeout, this, &KonveyorEffect::stepAnimations);
-    d->memorySaveTimer.setSingleShot(true);
-    d->memorySaveTimer.setInterval(memorySaveDelayMs);
-    connect(&d->memorySaveTimer, &QTimer::timeout, this, [this] { d->memoryStore.save(readEngine().windowMemory()); });
-    d->pointerFocusTimer.setSingleShot(true);
-    connect(&d->pointerFocusTimer, &QTimer::timeout, this, &KonveyorEffect::followPointerFocus);
-    d->edgeHoverTimer.setSingleShot(true);
-    connect(&d->edgeHoverTimer, &QTimer::timeout, this, &KonveyorEffect::switchColumnAtEdge);
-    d->peekTimer.setSingleShot(true);
-    connect(&d->peekTimer, &QTimer::timeout, this, [this] { runPeekStep(d->peekKey.delayPassed(!peekBlocked())); });
-    d->startupRulesTimer.setSingleShot(true);
-    d->startupRulesTimer.setTimerType(Qt::PreciseTimer);
-    connect(&d->startupRulesTimer, &QTimer::timeout, this, [this] { changeEngine().refreshRules(); });
-    d->startupRulesTimer.start(std::chrono::ceil<std::chrono::milliseconds>(readEngine().timeUntilStartupEnds()));
+    connectTimers();
     d->engine.setWindowMemory(d->memoryStore.load());
     connect(&d->config, &ConfigManager::configChanged, this, &KonveyorEffect::applyConfig);
     connect(&d->accent, &AccentColor::changed, this, &KonveyorEffect::scheduleFlush);
     connectRegistries();
     connectDesktopSync();
     connectOverviewSync();
+    connectKontrolPanelWindows();
     installInputFilter();
     startDBusService();
     d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
@@ -80,6 +53,14 @@ KonveyorEffect::KonveyorEffect()
 
 KonveyorEffect::~KonveyorEffect()
 {
+    if (KWin::effects && KWin::effects->isMouseInterception()) {
+        KWin::effects->stopMouseInterception(this);
+    }
+    if (KWin::effects && KWin::effects->loadedEffects().isEmpty()) {
+        // Compositor teardown, not a reload: the desktop manager is going away too.
+        d->desktops.setRestoreOnDestruct(false);
+    }
+    d->visibility.release();
     LayoutHandoff::give(d->engine, d->windows, d->hiddenPlacements);
     disconnect(&d->windows, nullptr, this, nullptr);
     disconnect(&d->desktops, nullptr, this, nullptr);
@@ -114,12 +95,12 @@ bool KonveyorEffect::placedBefore(KWin::Window *first, KWin::Window *second) con
 
 bool KonveyorEffect::isActive() const
 {
-    return d->animating || d->draggedOpacity || d->decorations.paintsBorders() || hasSpill();
+    return d->animating || d->draggedOpacity || d->decorations.paintsBorders() || hasSpill() || overviewPaintActive();
 }
 
 bool KonveyorEffect::blocksDirectScanout() const
 {
-    return d->animating;
+    return d->animating || overviewPaintActive();
 }
 
 std::optional<QRectF> KonveyorEffect::spillHome(KWin::Window *window) const
@@ -171,8 +152,12 @@ const Layout::Engine &KonveyorEffect::readEngine() const
 
 void KonveyorEffect::stepAnimations()
 {
+    const bool wasOverview = overviewPaintActive();
     changeEngine().tickAnimations();
     flush();
+    if (wasOverview || overviewPaintActive()) {
+        KWin::effects->addRepaintFull();
+    }
     if (!d->animating) {
         d->animationTimer.stop();
     }
@@ -199,6 +184,7 @@ void KonveyorEffect::flush()
     }
     d->fullscreenGuard.update(states);
     d->applier.apply(states);
+    updateWindowVisibility(states);
     acknowledgeSettledModeChanges(states);
     updateDecorations(states);
     updateDropHint(states);
@@ -206,6 +192,11 @@ void KonveyorEffect::flush()
     d->fullscreenShade.update(states);
     applyFocusRequest();
     d->plasmaShell.update(states, d->outputs.orderedNames());
+    const bool overviewVisible = overviewPaintActive();
+    if (overviewVisible != d->overviewVisible) {
+        d->overviewVisible = overviewVisible;
+        KWin::effects->addRepaintFull();
+    }
     d->animating = stepPeek() || readEngine().isAnimating();
     if (d->animating && !d->animationTimer.isActive()) {
         d->animationTimer.start();
@@ -259,6 +250,10 @@ void KonveyorEffect::updateDecorations(const QList<Layout::WindowState> &states)
 
 void KonveyorEffect::updateDropHint(const QList<Layout::WindowState> &states)
 {
+    if (overviewPaintActive() || readEngine().isOverviewOpen()) {
+        d->decorations.hideDropHint();
+        return;
+    }
     const std::optional<Layout::WindowId> moving = readEngine().movingWindow();
     const QList<Layout::OutputState> outputs = readEngine().outputStates();
     const auto hinted = std::ranges::find_if(outputs, [](const Layout::OutputState &output) { return output.dropHint.has_value(); });
@@ -276,6 +271,13 @@ void KonveyorEffect::updateDropHint(const QList<Layout::WindowState> &states)
 
 void KonveyorEffect::updateDraggedOpacity(const QList<Layout::WindowState> &states)
 {
+    if (overviewPaintActive() || readEngine().isOverviewOpen()) {
+        if (d->draggedOpacity) {
+            setDragFade(d->windows.windowOf(d->draggedOpacity->first), std::nullopt);
+            d->draggedOpacity.reset();
+        }
+        return;
+    }
     const std::optional<Layout::WindowId> moving = readEngine().movingWindow();
     const auto state = std::ranges::find_if(states, [&moving](const Layout::WindowState &each) { return each.id == moving; });
     const std::optional<std::pair<Layout::WindowId, double>> wanted
@@ -356,7 +358,10 @@ Layout::Hooks KonveyorEffect::makeHooks()
         }
     };
     hooks.spawn = [](const QString &command) { QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), command}); };
-    hooks.runWidgetTool = [](const QString &name, const QStringList &arguments) {
+    hooks.runWidgetTool = [this](const QString &name, const QStringList &arguments) {
+        if (name == QLatin1String("kontrol-panel") && readEngine().isOverviewOpen() && !d->config.config().overview.allowKontrolPanel) {
+            return;
+        }
         if (const auto started = Tools::startWidgetTool(name, arguments); !started) {
             qWarning().noquote() << "konveyor:" << started.error();
             sendNotification(QStringLiteral("Konveyor: could not open %1").arg(name), started.error());

@@ -137,6 +137,14 @@ bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
     m_modifiers.sync(event->modifiers);
     const std::optional<Config::MouseButton> button = buttonOf(event->button);
     const bool pressed = event->state == KWin::PointerButtonState::Pressed;
+    if (m_handlers.overviewButton(event->position, event->button, pressed) || m_swallowedButtons.contains(event->button)) {
+        if (pressed) {
+            m_swallowedButtons.insert(event->button);
+        } else {
+            m_swallowedButtons.remove(event->button);
+        }
+        return true;
+    }
     if (m_handlers.peekPointer(pressed)) {
         event->modifiers = Qt::NoModifier;
         event->modifiersRelevantForShortcuts = Qt::NoModifier;
@@ -163,12 +171,19 @@ bool InputFilter::pointerButton(KWin::PointerButtonEvent *event)
 bool InputFilter::pointerMotion(KWin::PointerMotionEvent *event)
 {
     m_modifiers.sync(event->modifiers);
+    if (m_handlers.overviewMotion(event->position)) {
+        return true;
+    }
     m_handlers.pointerMoved(event->position, event->timestamp.count() / 1000);
     return false;
 }
 
 bool InputFilter::pointerAxis(KWin::PointerAxisEvent *event)
 {
+    if (m_handlers.overviewAxis(event->position, event->orientation, event->delta, event->deltaV120,
+            event->source == KWin::PointerAxisSource::Finger, event->modifiersRelevantForGlobalShortcuts)) {
+        return true;
+    }
     if (m_handlers.peekPointer(true)) {
         event->modifiers = Qt::NoModifier;
         event->modifiersRelevantForGlobalShortcuts = Qt::NoModifier;
@@ -185,6 +200,10 @@ bool InputFilter::keyboardKey(KWin::KeyboardKeyEvent *event)
     }
     if (event->state == KWin::KeyboardKeyState::Released) {
         return m_swallowedKeys.remove(event->nativeScanCode);
+    }
+    if (m_handlers.overviewKey(event->key, true, event->modifiers)) {
+        m_swallowedKeys.insert(event->nativeScanCode);
+        return true;
     }
     if (triggersBind(event)) {
         m_swallowedKeys.insert(event->nativeScanCode);

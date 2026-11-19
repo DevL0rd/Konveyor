@@ -11,6 +11,13 @@
 namespace Konveyor::Config
 {
 
+enum class FocusRingTransition
+{
+    Ride,
+    Crossfade,
+    Delayed
+};
+
 struct Layout
 {
     double gaps = 16;
@@ -35,6 +42,7 @@ struct Layout
     QList<PresetSize> presetWindowHeights;
     Struts struts;
     Border focusRing;
+    FocusRingTransition focusRingTransition = FocusRingTransition::Ride;
     Border border;
     EventEffects eventEffects;
     TabIndicator tabIndicator;
@@ -67,6 +75,7 @@ struct LayoutPart
     std::optional<QList<PresetSize>> presetWindowHeights;
     std::optional<Struts> struts;
     std::optional<BorderRule> focusRing;
+    std::optional<FocusRingTransition> focusRingTransition;
     std::optional<BorderRule> border;
     std::optional<EventEffects> eventEffects;
     std::optional<TabIndicatorPart> tabIndicator;

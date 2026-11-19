@@ -78,6 +78,7 @@ void addSimpleHandlers(NodeTable &table, LoadContext &context)
             [&config](const Kdl::Node &child) { decodePeekDesktop(child, config.experiments.peekDesktop); });
         decodeChildren(node, inner);
     });
+    table.insert(QStringLiteral("overview"), [&config](const Kdl::Node &node) { decodeOverview(node, config.overview); });
     table.insert(QStringLiteral("config-notification"), [&config](const Kdl::Node &node) {
         expectOnlyChildren(node);
         NodeTable inner;

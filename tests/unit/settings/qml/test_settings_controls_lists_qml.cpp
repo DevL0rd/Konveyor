@@ -144,6 +144,12 @@ void TestSettingsControlsListsQml::controls_data()
     addControl("defaults back",
         {"ShortcutsPage", "^Restore default shortcuts?", "accepted", "[]", "binds/Mod+C", R"({"children":["center-column"]})",
             "binds {\n}\n"});
+    addControl("overview shortcut set",
+        {"OverviewPage", "Open the overview | *", R"(clicked | keyName="Mod+F9";save)", "[] | []", "binds/Mod+F9",
+            R"({"children":["toggle-overview"]})"});
+    addControl("overview shortcut cleared",
+        {"OverviewPage", "Open the overview", "clicked@Clear the overview shortcut", "[]", "binds/Mod+F1", "null",
+            "binds {\n    Mod+F1 { toggle-overview; }\n}\n"});
 }
 
 QTEST_MAIN(TestSettingsControlsListsQml)

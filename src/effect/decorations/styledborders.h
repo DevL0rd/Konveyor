@@ -37,6 +37,7 @@ struct ShownBorder
     double outerReach = 0.0;
     double innerReach = 0.0;
     Config::CornerRadius radius;
+    double opacity = 1.0;
     bool paintedLive = false;
     bool sleeping = false;
     std::vector<Render::LayerMotion> motions;
@@ -64,6 +65,7 @@ public:
         double inset = 0.0;
         double width = 0.0;
         Config::CornerRadius radius;
+        double opacity = 1.0;
     };
 
     struct PaintRequest

@@ -52,7 +52,22 @@ void Engine::setNativeDesktopPresentation(bool enabled)
 
 bool Engine::Private::usesWorkspaceMotion(const Monitor &monitor) const
 {
-    return !nativeDesktopPresentation || monitor.isWorkspaceGesture();
+    return !nativeDesktopPresentation || monitor.isWorkspaceTransitioning();
+}
+
+double workspaceRingOpacity(Config::FocusRingTransition mode, double distance)
+{
+    switch (mode) {
+    case Config::FocusRingTransition::Ride:
+        return 1.0;
+    case Config::FocusRingTransition::Crossfade: {
+        const double t = std::clamp(1.0 - distance, 0.0, 1.0);
+        return t * t * (3.0 - 2.0 * t);
+    }
+    case Config::FocusRingTransition::Delayed:
+        return 0.0;
+    }
+    return 1.0;
 }
 
 std::vector<double> Engine::Private::workspaceRenderOffsets(const Monitor &monitor) const
@@ -68,6 +83,9 @@ void Engine::setConfig(const Config::Config &config)
     }
     const QList<Config::NamedWorkspace> previousNamed = d->config.workspaces;
     d->config = config;
+    if (!d->config.overview.enabled && d->overviewOpen) {
+        d->setOverviewState(false);
+    }
     d->forgetRemovedWorkspaceNames(previousNamed);
     d->applyOptions();
     d->applyNamedWorkspaceLayouts();
@@ -213,14 +231,25 @@ std::optional<QString> Engine::focusedOutput() const
 
 void Engine::focusWorkspace(const QString &output, int index)
 {
-    qCInfo(lcKonveyor) << "konveyor: focusing workspace" << index << "on" << output;
+    qCInfo(lcKonveyor) << "konveyor: adopting workspace" << index << "on" << output;
     const auto idx = d->monitorIndexByName(output);
     if (!idx || index < 1) {
         return;
     }
-    d->monitors[*idx].switchWorkspace(static_cast<std::size_t>(index - 1));
+    d->monitors[*idx].adoptWorkspace(static_cast<std::size_t>(index - 1));
     d->activeMonitorIndex = *idx;
     d->refresh();
+}
+
+bool Engine::isWorkspaceTransitioning() const
+{
+    return std::ranges::any_of(d->monitors, &Monitor::isWorkspaceTransitioning);
+}
+
+bool Engine::isWorkspaceTransitioning(const QString &output) const
+{
+    const auto monitor = std::ranges::find(d->monitors, output, &Monitor::outputName);
+    return monitor != d->monitors.end() && monitor->isWorkspaceTransitioning();
 }
 
 bool Engine::isOverviewOpen() const
@@ -233,6 +262,9 @@ void Engine::setOverviewOpen(bool open)
     if (d->overviewOpen == open) {
         return;
     }
+    if (!open) {
+        overviewCancelDrag();
+    }
     d->setOverviewState(open);
     if (d->hooks.setOverviewOpen) {
         d->hooks.setOverviewOpen(open);
@@ -244,6 +276,35 @@ void Engine::Private::setOverviewState(bool open)
     overviewOpen = open;
     for (Monitor &monitor : monitors) {
         monitor.overviewOpen = open;
+        for (Workspace &workspace : monitor.workspaces()) {
+            workspace.setOverviewOpen(open);
+        }
+    }
+    if (!open) {
+        overview.selected.reset();
+        overview.dragWindow.reset();
+        overview.reorderFrom = -1;
+        overview.reorderTo = -1;
+        overview.reorderOutput.clear();
+        overview.drop.reset();
+        overview.press.reset();
+        overview.cameraYAnimations.clear();
+        overview.verticalScrollAccum = 0.0;
+        overview.horizontalScrollAccum = 0.0;
+    }
+    if (!config.overview.enabled) {
+        overview.progressAnimation.reset();
+        overview.cameraPans.clear();
+        overview.progress = open ? 1.0 : 0.0;
+        return;
+    }
+    if (open) {
+        seedOverviewCamera();
+    }
+    startOverviewAnimation(open);
+    if (!open && !overview.progressAnimation) {
+        // The close is instant, so there is nothing left for a camera pan to feed.
+        overview.cameraPans.clear();
     }
 }
 
@@ -259,13 +320,15 @@ void Engine::tickAnimations()
     if (d->windowDrag && d->windowDrag->tile) {
         d->windowDrag->tile->tickAnimations();
     }
+    d->tickOverview();
     d->refresh();
 }
 
 bool Engine::isAnimating() const
 {
     const bool dragAnimating = d->windowDrag && d->windowDrag->tile && d->windowDrag->tile->isAnimating();
-    return d->edgeScrolling || dragAnimating || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
+    return d->edgeScrolling || d->overview.progressAnimation.has_value() || !d->overview.cameraYAnimations.isEmpty()
+        || !d->overview.cameraPans.isEmpty() || dragAnimating || std::ranges::any_of(d->monitors, &Monitor::isAnimating);
 }
 
 QString monitorProfileName(const Config::Config &config, const OutputArea &area)

@@ -87,6 +87,7 @@ private:
         QPointF position;
         QRectF innerRect;
         double thickness = 0.0;
+        double opacity = 1.0;
         int z = 1;
         bool visible = false;
         bool filled = false;
