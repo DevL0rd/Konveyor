@@ -85,14 +85,11 @@ void TestOverviewDrag::windowDropOnBlankCardCreatesTheWorkspace()
 
 void TestOverviewDrag::windowDragAcrossOutputsMovesTheWindow()
 {
-    Config::Config config = overviewConfig();
-    Fixture fixture(config);
-    fixture.addOutput(QStringLiteral("HDMI-A-1"), QRectF(1920, 0, 1280, 720));
-    fixture.engine().focusOutput(QStringLiteral("HDMI-A-1"));
-    const auto there = fixture.add(QStringLiteral("there"));
-    const Layout::WorkspaceId target = fixture.state(there).workspace;
-    fixture.engine().focusOutput(QStringLiteral("DP-1"));
-    const auto here = fixture.add(QStringLiteral("here"));
+    TwoOutputs outputs;
+    Fixture &fixture = outputs.fixture;
+    const auto one = outputs.addOneOnEach();
+    const auto here = one.near;
+    const Layout::WorkspaceId target = one.farWorkspace;
     fixture.add(QStringLiteral("other"));
     fixture.engine().setOverviewOpen(true);
 
@@ -107,7 +104,8 @@ void TestOverviewDrag::windowDragAcrossOutputsMovesTheWindow()
     fixture.engine().overviewBeginWindowDrag(here, QStringLiteral("DP-1"), source->rect.center());
     fixture.engine().overviewUpdateDrag(external->workspaceRects.first().center());
 
-    const Layout::OverviewView *during = viewFor(fixture.engine().overviewViews(), QStringLiteral("HDMI-A-1"));
+    const QList<Layout::OverviewView> duringViews = fixture.engine().overviewViews();
+    const Layout::OverviewView *during = viewFor(duringViews, QStringLiteral("HDMI-A-1"));
     QVERIFY(during);
     QCOMPARE(during->dropWorkspace, 0);
     QCOMPARE(during->draggedWindow, std::optional(here));

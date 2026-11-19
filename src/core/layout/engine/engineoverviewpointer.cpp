@@ -75,9 +75,8 @@ void Engine::overviewPointerPressed(const QPointF &globalPos)
         return;
     }
     if (const std::optional<int> card = cardAtPoint(*view, globalPos)) {
-        press.workspaceIndex = (!view->workspaceIndices.isEmpty() && *card < view->workspaceIndices.size())
-            ? view->workspaceIndices[*card]
-            : *card;
+        press.workspaceIndex
+            = (!view->workspaceIndices.isEmpty() && *card < view->workspaceIndices.size()) ? view->workspaceIndices[*card] : *card;
         press.cardIndex = *card;
         d->overview.press = press;
         return;

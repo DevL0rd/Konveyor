@@ -9,30 +9,29 @@ namespace Konveyor::Layout
 namespace
 {
 
-constexpr double kEdgeRatio = 0.012;
-constexpr double kEdgeMinimum = 3.0;
-constexpr double kEdgeMaximum = 10.0;
-
 QRectF workArea(const OverviewView &view)
 {
     return view.outputGeometry.adjusted(view.reserved.left(), view.reserved.top(), -view.reserved.right(), -view.reserved.bottom());
 }
 
+QPointF edgeCenter(OverviewSide side, const QRectF &area, double margin)
+{
+    switch (side) {
+    case OverviewSide::Left:
+        return QPointF(area.left() + margin, area.center().y());
+    case OverviewSide::Right:
+        return QPointF(area.right() - margin, area.center().y());
+    case OverviewSide::Top:
+        return QPointF(area.center().x(), area.top() + margin);
+    case OverviewSide::Bottom:
+        return QPointF(area.center().x(), area.bottom() - margin);
+    }
+    return QPointF();
+}
+
 QRectF edgeRect(OverviewSide side, const QRectF &area, double span, double margin)
 {
-    const QPointF center = [&]() {
-        switch (side) {
-        case OverviewSide::Left:
-            return QPointF(area.left() + margin, area.center().y());
-        case OverviewSide::Right:
-            return QPointF(area.right() - margin, area.center().y());
-        case OverviewSide::Top:
-            return QPointF(area.center().x(), area.top() + margin);
-        case OverviewSide::Bottom:
-            return QPointF(area.center().x(), area.bottom() - margin);
-        }
-        return QPointF();
-    }();
+    const QPointF center = edgeCenter(side, area, margin);
     return QRectF(center.x() - span, center.y() - span, span * 2.0, span * 2.0);
 }
 
@@ -102,8 +101,8 @@ QList<OverviewPaintEdge> overviewPaintEdges(const OverviewView &view, Config::Ov
     return edges;
 }
 
-OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNormalFrames &normalFrames, double progress,
-    Config::OverviewIndicators indicators)
+OverviewPaintView overviewPaintView(
+    const OverviewView &view, const OverviewNormalFrames &normalFrames, double progress, Config::OverviewIndicators indicators)
 {
     OverviewPaintView paint;
     paint.blend = overviewPaintBlend(progress);
@@ -120,8 +119,8 @@ OverviewPaintView overviewPaintView(const OverviewView &view, const OverviewNorm
         card.hovered = card.index == view.dropWorkspace;
         card.dragged = card.index == view.draggedWorkspace;
         const int realIdx = index < view.workspaceIndices.size() ? view.workspaceIndices.at(index) : static_cast<int>(index);
-        card.empty = std::ranges::none_of(
-            view.windows, [realIdx](const OverviewWindow &window) { return window.workspaceIndex == realIdx + 1; });
+        card.empty
+            = std::ranges::none_of(view.windows, [realIdx](const OverviewWindow &window) { return window.workspaceIndex == realIdx + 1; });
         card.opacity = cardOpacity(card) * paint.blend;
         paint.cards.append(card);
     }

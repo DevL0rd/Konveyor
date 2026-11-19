@@ -10,13 +10,23 @@
 namespace Konveyor
 {
 
+namespace
+{
+
+constexpr unsigned kOverviewScreenMask = static_cast<unsigned>(KWin::Effect::PAINT_SCREEN_TRANSFORMED)
+    | static_cast<unsigned>(KWin::Effect::PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS);
+constexpr unsigned kAllWindowsMask
+    = static_cast<unsigned>(KWin::Effect::PAINT_WINDOW_OPAQUE) | static_cast<unsigned>(KWin::Effect::PAINT_WINDOW_TRANSLUCENT);
+
+}
+
 void KonveyorEffect::prePaintWindow(KWin::RenderView *view, KWin::EffectWindow *w, KWin::WindowPrePaintData &data)
 {
     const bool overviewWindow = overviewPaintActive() && d->windows.idOf(w->window());
     if (spillHome(w->window()) || isDragged(w->window()) || overviewWindow) {
         data.setTranslucent();
         if (overviewWindow) {
-            data.mask |= PAINT_WINDOW_TRANSFORMED;
+            data.setTransformed();
         }
     }
     KWin::Effect::prePaintWindow(view, w, data);
@@ -56,7 +66,7 @@ PaintWindowResult KonveyorEffect::paintWindow(const KWin::RenderTarget &renderTa
 void KonveyorEffect::prePaintScreen(KWin::ScreenPrePaintData &data)
 {
     if (overviewPaintActive()) {
-        data.mask |= PAINT_SCREEN_TRANSFORMED | PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS;
+        data.mask = static_cast<int>(static_cast<unsigned>(data.mask) | kOverviewScreenMask);
     }
     KWin::Effect::prePaintScreen(data);
 }
@@ -75,20 +85,7 @@ bool KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
     if (!KWin::Effect::paintScreen(renderTarget, viewport, mask, deviceRegion, screen)) {
         return false;
     }
-    paintOverview(renderTarget, viewport, deviceRegion, *view, KWin::effects->clientArea(KWin::MaximizeArea, screen));
-    if (d->config.config().overview.allowKontrolPanel && !d->kontrolPanelWindows.isEmpty()) {
-        d->drawingKontrolPanel = true;
-        const auto resetDrawing = qScopeGuard([this] { d->drawingKontrolPanel = false; });
-        for (KWin::Window *panelWindow : std::as_const(d->kontrolPanelWindows)) {
-            if (KWin::EffectWindow *effectWindow = KWin::effects->findWindow(panelWindow->internalId())) {
-                KWin::WindowPaintData data;
-                constexpr int maskAll = PAINT_WINDOW_OPAQUE | PAINT_WINDOW_TRANSLUCENT;
-                const auto ok = KWin::effects->drawWindow(renderTarget, viewport, effectWindow, maskAll, deviceRegion, data);
-                Q_UNUSED(ok);
-            }
-        }
-    }
-    paintOverviewCursor(renderTarget, viewport, deviceRegion, *view);
+    paintOverviewPass(renderTarget, viewport, deviceRegion, screen, *view);
     return true;
 }
 #else
@@ -103,19 +100,7 @@ void KonveyorEffect::paintScreen(const KWin::RenderTarget &renderTarget, const K
     if (!view) {
         return;
     }
-    paintOverview(renderTarget, viewport, deviceRegion, *view, KWin::effects->clientArea(KWin::MaximizeArea, screen));
-    if (d->config.config().overview.allowKontrolPanel && !d->kontrolPanelWindows.isEmpty()) {
-        d->drawingKontrolPanel = true;
-        const auto resetDrawing = qScopeGuard([this] { d->drawingKontrolPanel = false; });
-        for (KWin::Window *panelWindow : std::as_const(d->kontrolPanelWindows)) {
-            if (KWin::EffectWindow *effectWindow = KWin::effects->findWindow(panelWindow->internalId())) {
-                KWin::WindowPaintData data;
-                constexpr int maskAll = PAINT_WINDOW_OPAQUE | PAINT_WINDOW_TRANSLUCENT;
-                KWin::effects->drawWindow(renderTarget, viewport, effectWindow, maskAll, deviceRegion, data);
-            }
-        }
-    }
-    paintOverviewCursor(renderTarget, viewport, deviceRegion, *view);
+    paintOverviewPass(renderTarget, viewport, deviceRegion, screen, *view);
 }
 #endif
 
@@ -128,4 +113,26 @@ void KonveyorEffect::postPaintScreen()
     }
 }
 
+void KonveyorEffect::paintOverviewPass(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport,
+    const KWin::Region &deviceRegion, KWin::LogicalOutput *screen, const Layout::OverviewView &view)
+{
+    paintOverview(renderTarget, viewport, deviceRegion, view, KWin::effects->clientArea(KWin::MaximizeArea, screen));
+    if (d->config.config().overview.allowKontrolPanel && !d->kontrolPanelWindows.isEmpty()) {
+        d->drawingKontrolPanel = true;
+        const auto resetDrawing = qScopeGuard([this] { d->drawingKontrolPanel = false; });
+        for (KWin::Window *panelWindow : std::as_const(d->kontrolPanelWindows)) {
+            if (KWin::EffectWindow *effectWindow = KWin::effects->findWindow(panelWindow->internalId())) {
+                KWin::WindowPaintData data;
+#ifdef KONVEYOR_KWIN_PAINTSCREEN_BOOL
+                const bool ok = KWin::effects->drawWindow(
+                    renderTarget, viewport, effectWindow, static_cast<int>(kAllWindowsMask), deviceRegion, data);
+                Q_UNUSED(ok);
+#else
+                KWin::effects->drawWindow(renderTarget, viewport, effectWindow, static_cast<int>(kAllWindowsMask), deviceRegion, data);
+#endif
+            }
+        }
+    }
+    paintOverviewCursor(renderTarget, viewport, deviceRegion, view);
+}
 }

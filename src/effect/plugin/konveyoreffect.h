@@ -61,6 +61,9 @@ public:
     bool blocksDirectScanout() const override;
 
 private:
+    void handleBind(const Config::Bind &bind);
+    void connectTimers();
+    void connectKontrolPanelWindows();
     void installInputFilter();
     void installGestureFilters();
     void startDBusService();
@@ -106,6 +109,8 @@ private:
     bool holdsToDecide(Layout::WindowId id, int phase);
     void decidePendingTouchMove(qint64 timestampMs);
     void showKdeOverview(bool open);
+    void showBuiltinOverview(bool open);
+    void showKdeOverviewEffect(bool open);
     void connectOverviewSync();
     bool overviewPaintActive() const;
     bool overviewInputActive() const;
@@ -116,8 +121,10 @@ private:
     bool handleOverviewKey(int key, bool pressed, Qt::KeyboardModifiers modifiers);
     void paintOverview(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &deviceRegion,
         const Layout::OverviewView &view, const QRectF &workArea);
-    void paintOverviewCursor(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport,
-        const KWin::Region &deviceRegion, const Layout::OverviewView &view);
+    void paintOverviewCursor(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &deviceRegion,
+        const Layout::OverviewView &view);
+    void paintOverviewPass(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &deviceRegion,
+        KWin::LogicalOutput *screen, const Layout::OverviewView &view);
     void updateWindowVisibility(const QList<Layout::WindowState> &states);
     void followActiveWindow();
     void followActiveWindowAfterClose();

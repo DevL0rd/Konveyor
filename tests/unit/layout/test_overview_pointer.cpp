@@ -1,60 +1,8 @@
-#include "helpers.h"
+#include "overviewhelpers.h"
 
 #include <QTest>
 
 using namespace LayoutTest;
-
-namespace
-{
-
-Config::Config overviewConfig()
-{
-    Config::Config config = instantConfig();
-    config.overview.enabled = true;
-    return config;
-}
-
-const Layout::OverviewView *viewFor(const QList<Layout::OverviewView> &views, const QString &output)
-{
-    for (const Layout::OverviewView &view : views) {
-        if (view.output == output) {
-            return &view;
-        }
-    }
-    return nullptr;
-}
-
-std::optional<Layout::OverviewWindow> windowFor(const Layout::OverviewView &view, Layout::WindowId id)
-{
-    for (const Layout::OverviewWindow &window : view.windows) {
-        if (window.id == id) {
-            return window;
-        }
-    }
-    return std::nullopt;
-}
-
-struct Scene
-{
-    Fixture fixture {overviewConfig()};
-    Layout::WindowId a = fixture.add(QStringLiteral("a"));
-    Layout::WindowId b = fixture.add(QStringLiteral("b"));
-    Layout::WindowId c = addBelow(QStringLiteral("c"));
-
-    Layout::WindowId addBelow(const QString &appId)
-    {
-        fixture.perform(QStringLiteral("focus-workspace-down"));
-        return fixture.add(appId);
-    }
-
-    void open()
-    {
-        fixture.perform(QStringLiteral("focus-workspace-up"));
-        fixture.engine().setOverviewOpen(true);
-    }
-};
-
-}
 
 class TestOverviewPointer : public QObject
 {
@@ -98,7 +46,7 @@ void TestOverviewPointer::panDeltaScalesTouchpadDeltas()
 void TestOverviewPointer::pressOnWindowSelectsAndReleaseActivates()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
     const auto window = windowFor(view, scene.a);
     QVERIFY(window);
@@ -117,7 +65,7 @@ void TestOverviewPointer::pressOnWindowSelectsAndReleaseActivates()
 void TestOverviewPointer::clickWithoutTravelActivatesInsteadOfDragging()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
     const auto window = windowFor(view, scene.b);
     QVERIFY(window);
@@ -136,7 +84,7 @@ void TestOverviewPointer::clickWithoutTravelActivatesInsteadOfDragging()
 void TestOverviewPointer::pressOnCardSwitchesWorkspace()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
     QCOMPARE(view.workspaceRects.size(), 2);
 
@@ -154,7 +102,7 @@ void TestOverviewPointer::pressOnCardSwitchesWorkspace()
 void TestOverviewPointer::pressOnTheBackdropClosesTheOverview()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
     const QPointF backdrop = view.outputGeometry.bottomRight() - QPointF(1, 1);
     for (const QRectF &card : view.workspaceRects) {
@@ -171,7 +119,7 @@ void TestOverviewPointer::travelStartsAWindowDragAndDropMovesIt()
 {
     Scene scene;
     const Layout::WorkspaceId target = scene.fixture.state(scene.c).workspace;
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
     const auto source = windowFor(view, scene.b);
     QVERIFY(source);
@@ -194,7 +142,7 @@ void TestOverviewPointer::travelStartsAWindowDragAndDropMovesIt()
 void TestOverviewPointer::cardTravelReordersWorkspaces()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     QCOMPARE(scene.fixture.state(scene.a).workspaceIndex, 1);
     QCOMPARE(scene.fixture.state(scene.c).workspaceIndex, 2);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
@@ -215,7 +163,7 @@ void TestOverviewPointer::cardTravelReordersWorkspaces()
 void TestOverviewPointer::motionWithoutPressIsIgnored()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     QVERIFY(!scene.fixture.engine().overviewPointerMoved(QPointF(10, 10)));
     QVERIFY(!scene.fixture.engine().overviewPointerActive());
     scene.fixture.engine().overviewPointerReleased();
@@ -237,16 +185,13 @@ void TestOverviewPointer::pointerDoesNothingWhenClosed()
 
 void TestOverviewPointer::pressUsesTheOutputUnderThePointer()
 {
-    Config::Config config = overviewConfig();
-    Fixture fixture(config);
-    fixture.addOutput(QStringLiteral("HDMI-A-1"), QRectF(1920, 0, 1280, 720));
-    fixture.engine().focusOutput(QStringLiteral("HDMI-A-1"));
-    const auto there = fixture.add(QStringLiteral("there"));
-    fixture.engine().focusOutput(QStringLiteral("DP-1"));
-    fixture.add(QStringLiteral("here"));
+    TwoOutputs outputs;
+    Fixture &fixture = outputs.fixture;
+    const auto there = outputs.addOneOnEach().far;
     fixture.engine().setOverviewOpen(true);
 
-    const Layout::OverviewView *external = viewFor(fixture.engine().overviewViews(), QStringLiteral("HDMI-A-1"));
+    const QList<Layout::OverviewView> views = fixture.engine().overviewViews();
+    const Layout::OverviewView *external = viewFor(views, QStringLiteral("HDMI-A-1"));
     QVERIFY(external);
     const auto window = windowFor(*external, there);
     QVERIFY(window);
@@ -264,16 +209,16 @@ void TestOverviewPointer::pressUsesTheOutputUnderThePointer()
 void TestOverviewPointer::verticalScrollStepsWorkspacesAndSelectsCenteredWindow()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView before = scene.fixture.engine().overviewViews().first();
     QCOMPARE(before.activeWorkspace, 0);
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 120, false);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, {15.0, 120}, false);
     const Layout::OverviewView down = scene.fixture.engine().overviewViews().first();
     QCOMPARE(down.activeWorkspace, 1);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.c));
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, -15.0, -120, false);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, {-15.0, -120}, false);
     const Layout::OverviewView up = scene.fixture.engine().overviewViews().first();
     QCOMPARE(up.activeWorkspace, 0);
     QVERIFY(scene.fixture.engine().overviewSelectedWindow().has_value());
@@ -283,14 +228,14 @@ void TestOverviewPointer::verticalScrollStepsWorkspacesAndSelectsCenteredWindow(
 void TestOverviewPointer::horizontalScrollMovesColumnsAndUpdatesSelection()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     scene.fixture.engine().overviewSelectWindow(scene.b);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.b));
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, -15.0, -120, false);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, {-15.0, -120}, false);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.a));
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, 15.0, 120, false);
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, {15.0, 120}, false);
     QCOMPARE(scene.fixture.engine().overviewSelectedWindow(), std::optional(scene.b));
     VERIFY_INVARIANTS(scene.fixture);
 }
@@ -301,23 +246,11 @@ void TestOverviewPointer::horizontalScrollTargetsTheWorkspaceUnderThePointer()
     {
         Fixture fixture {overviewConfig()};
         Layout::WindowId top = fixture.add(QStringLiteral("top"));
-        Layout::WindowId left = addBelow(QStringLiteral("left"));
+        Layout::WindowId left = addBelow(fixture, QStringLiteral("left"));
         Layout::WindowId right = fixture.add(QStringLiteral("right"));
-
-        Layout::WindowId addBelow(const QString &appId)
-        {
-            fixture.perform(QStringLiteral("focus-workspace-down"));
-            return fixture.add(appId);
-        }
-
-        void open()
-        {
-            fixture.perform(QStringLiteral("focus-workspace-up"));
-            fixture.engine().setOverviewOpen(true);
-        }
     } scene;
 
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
     QCOMPARE(view.workspaceRects.size(), 2);
     QCOMPARE(view.activeWorkspace, 0);
@@ -325,8 +258,7 @@ void TestOverviewPointer::horizontalScrollTargetsTheWorkspaceUnderThePointer()
     QVERIFY(hovered);
     QCOMPARE(hovered->workspaceIndex, 2);
 
-    scene.fixture.engine().overviewScroll(
-        QStringLiteral("DP-1"), Qt::Horizontal, -15.0, -120, false, false, hovered->rect.center());
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Horizontal, {-15.0, -120}, false, false, hovered->rect.center());
 
     const Layout::OverviewView after = scene.fixture.engine().overviewViews().first();
     QCOMPARE(after.activeWorkspace, 0);
@@ -337,15 +269,15 @@ void TestOverviewPointer::horizontalScrollTargetsTheWorkspaceUnderThePointer()
 void TestOverviewPointer::touchpadScrollAccumulatesSmallDeltas()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     QCOMPARE(scene.fixture.engine().overviewViews().first().activeWorkspace, 0);
 
     for (int step = 0; step < 9; ++step) {
-        scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 0, false, true, QPointF());
+        scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, {15.0, 0}, false, true, QPointF());
     }
     QCOMPARE(scene.fixture.engine().overviewViews().first().activeWorkspace, 0);
 
-    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, 15.0, 0, false, true, QPointF());
+    scene.fixture.engine().overviewScroll(QStringLiteral("DP-1"), Qt::Vertical, {15.0, 0}, false, true, QPointF());
     QCOMPARE(scene.fixture.engine().overviewViews().first().activeWorkspace, 1);
     VERIFY_INVARIANTS(scene.fixture);
 }
@@ -353,7 +285,7 @@ void TestOverviewPointer::touchpadScrollAccumulatesSmallDeltas()
 void TestOverviewPointer::hoverSelectsWindowAndToggleExitFocusesSelection()
 {
     Scene scene;
-    scene.open();
+    openOverview(scene.fixture);
     const Layout::OverviewView view = scene.fixture.engine().overviewViews().first();
     const auto winA = windowFor(view, scene.a);
     QVERIFY(winA);

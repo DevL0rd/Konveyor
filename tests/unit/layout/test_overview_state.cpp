@@ -129,8 +129,10 @@ void TestOverviewState::selectionIsSeededFromFocusAndCleared()
 {
     FocusedPair pair;
     QCOMPARE(pair.fixture.focused(), std::optional(pair.b));
-    pair.fixture.engine().setOverviewOpen(true);
-    QCOMPARE(pair.fixture.engine().overviewSelectedWindow(), std::optional(pair.b));
+
+    const std::optional<Layout::WindowId> seeded = pair.openOverviewSelection();
+    QCOMPARE(seeded, std::optional(pair.b));
+    QCOMPARE(pair.fixture.engine().overviewSelectedWindow(), seeded);
 
     pair.fixture.engine().overviewSelectWindow(pair.a);
     QCOMPARE(pair.fixture.engine().overviewSelectedWindow(), std::optional(pair.a));

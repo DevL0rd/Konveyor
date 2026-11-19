@@ -133,8 +133,8 @@ void TestOverviewViews::selectionFollowsFocus()
     FocusedPair pair;
     QCOMPARE(pair.fixture.focused(), std::optional(pair.b));
 
-    pair.fixture.engine().setOverviewOpen(true);
-    QCOMPARE(pair.fixture.engine().overviewSelectedWindow(), std::optional(pair.b));
+    const std::optional<Layout::WindowId> seeded = pair.openOverviewSelection();
+    QVERIFY(seeded == std::optional(pair.b));
     for (const Layout::OverviewWindow &window : pair.fixture.engine().overviewViews()[0].windows) {
         QCOMPARE(window.selected, window.id == pair.b);
         QCOMPARE(window.focused, window.id == pair.b);
@@ -166,7 +166,8 @@ void TestOverviewViews::panOnlyMovesItsOwnOutput()
     QCOMPARE(viewFor(after, QStringLiteral("HDMI-A-1"))->camera, externalCamera);
 
     fixture.engine().overviewPan(QStringLiteral("DP-1"), QPointF(0, 1e6));
-    const Layout::OverviewView *clamped = viewFor(fixture.engine().overviewViews(), QStringLiteral("DP-1"));
+    const QList<Layout::OverviewView> clampedViews = fixture.engine().overviewViews();
+    const Layout::OverviewView *clamped = viewFor(clampedViews, QStringLiteral("DP-1"));
     QCOMPARE(clamped->camera.y(), clamped->contentBounds.bottom() - 1080);
     QCOMPARE(clamped->camera.x(), laptopAfter->camera.x());
 }

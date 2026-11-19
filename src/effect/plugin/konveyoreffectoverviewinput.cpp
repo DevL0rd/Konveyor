@@ -64,7 +64,7 @@ bool KonveyorEffect::handleOverviewAxis(
         return true;
     }
     const bool shift = modifiers.testFlag(Qt::ShiftModifier);
-    changeEngine().overviewScroll(output, orientation, delta, deltaV120, shift, finger, position);
+    changeEngine().overviewScroll(output, orientation, {delta, deltaV120}, shift, finger, position);
     KWin::effects->addRepaintFull();
     return true;
 }

@@ -367,27 +367,6 @@ QList<OutputState> Engine::outputStates() const
     return states;
 }
 
-std::optional<QRectF> Engine::Private::dropHintRect(const Monitor &monitor) const
-{
-    if (!monitor.dropHint || !monitor.options()->layout.insertHint.enabled) {
-        return std::nullopt;
-    }
-    const DropHint &hint = *monitor.dropHint;
-    if (!hint.workspace.existing) {
-        return std::nullopt;
-    }
-    const auto idx = monitor.indexOfWorkspace(hint.workspace.id);
-    if (!idx) {
-        return std::nullopt;
-    }
-    const auto area = monitor.workspaces()[*idx].dropSlotRect(hint.position);
-    if (!area) {
-        return std::nullopt;
-    }
-    const std::vector<double> offsets = workspaceRenderOffsets(monitor);
-    return area->translated(originOf(monitor.outputName()) + QPointF(0.0, offsets[*idx]));
-}
-
 std::optional<WindowId> Engine::focusedWindow() const
 {
     return d->focused;

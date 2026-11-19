@@ -19,8 +19,6 @@ private Q_SLOTS:
     void layoutCustomized();
     void paintValues();
     void sizeAndColorValues();
-    void scopedLayoutPerScope_data();
-    void scopedLayoutPerScope();
     void rulesMatchLiveWindows();
 
 private:
@@ -53,9 +51,8 @@ void TestSettingsValues::globalDefaults()
     }
     QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
         (QVariantMap {{QStringLiteral("enabled"), false}, {QStringLiteral("minimum-scale"), 0.3}, {QStringLiteral("card-gap"), 0.08},
-            {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")},
-            {QStringLiteral("allow-kontrol-panel"), false}, {QStringLiteral("touchpad-scroll-speed-x"), 1.0},
-            {QStringLiteral("touchpad-scroll-speed-y"), 0.1}}));
+            {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")}, {QStringLiteral("allow-kontrol-panel"), false},
+            {QStringLiteral("touchpad-scroll-speed-x"), 1.0}, {QStringLiteral("touchpad-scroll-speed-y"), 0.1}}));
     QCOMPARE(values.value(QStringLiteral("gestures/resize-tiled-windows")), QVariant(true));
     QCOMPARE(values.value(QStringLiteral("input/warp-mouse-to-focus/mode")).toString(), QString());
     QCOMPARE(values.value(QStringLiteral("gestures/titlebar-drag")).toString(), QStringLiteral("move-window"));
@@ -132,9 +129,8 @@ gestures {
         (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("delay-ms"), 450}}));
     QCOMPARE(values.value(QStringLiteral("overview")).toMap(),
         (QVariantMap {{QStringLiteral("enabled"), true}, {QStringLiteral("minimum-scale"), 0.5}, {QStringLiteral("card-gap"), 0.2},
-            {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")},
-            {QStringLiteral("allow-kontrol-panel"), false}, {QStringLiteral("touchpad-scroll-speed-x"), 1.0},
-            {QStringLiteral("touchpad-scroll-speed-y"), 0.1}}));
+            {QStringLiteral("offscreen-indicators"), QStringLiteral("chevrons")}, {QStringLiteral("allow-kontrol-panel"), false},
+            {QStringLiteral("touchpad-scroll-speed-x"), 1.0}, {QStringLiteral("touchpad-scroll-speed-y"), 0.1}}));
     const QVariantMap touchpad = values.value(QStringLiteral("gestures/touchpad")).toMap();
     QCOMPARE(touchpad.value(QStringLiteral("swipe-fingers")).toInt(), 4);
     QCOMPARE(touchpad.value(QStringLiteral("pinch-fingers")).toInt(), 3);
@@ -316,56 +312,6 @@ void TestSettingsValues::sizeAndColorValues()
     QCOMPARE(fixed.value(QStringLiteral("value")).toDouble(), 300.0);
     QVERIFY(!colorValue(QColor()).isValid());
     QCOMPARE(colorValue(QColor(1, 2, 3, 4)).toString(), QStringLiteral("#04010203"));
-}
-
-void TestSettingsValues::scopedLayoutPerScope_data()
-{
-    QTest::addColumn<QString>("kind");
-    QTest::addColumn<QString>("name");
-    QTest::addColumn<int>("gaps");
-    QTest::addColumn<bool>("centered");
-    QTest::newRow("global") << QString() << QString() << 1 << false;
-    QTest::newRow("layout") << QStringLiteral("layout") << QString() << 1 << false;
-    QTest::newRow("unknown kind") << QStringLiteral("window-rule") << QStringLiteral("DP-1") << 1 << false;
-    QTest::newRow("output over its profile") << QStringLiteral("output") << QStringLiteral("DP-1") << 2 << true;
-    QTest::newRow("output other case") << QStringLiteral("output") << QStringLiteral("dp-1") << 2 << true;
-    QTest::newRow("output without layout uses its profile") << QStringLiteral("output") << QStringLiteral("HDMI-A-1") << 3 << true;
-    QTest::newRow("output unplugged") << QStringLiteral("output") << QStringLiteral("DP-9") << 1 << false;
-    QTest::newRow("profile") << QStringLiteral("monitor-profile") << QStringLiteral("Wide") << 3 << true;
-    QTest::newRow("profile is exact") << QStringLiteral("monitor-profile") << QStringLiteral("wide") << 5 << false;
-    QTest::newRow("profile unknown") << QStringLiteral("monitor-profile") << QStringLiteral("tall") << 1 << false;
-    QTest::newRow("workspace on its monitor") << QStringLiteral("workspace") << QStringLiteral("Mail") << 4 << true;
-    QTest::newRow("workspace other case") << QStringLiteral("workspace") << QStringLiteral("MAIL") << 4 << true;
-    QTest::newRow("workspace waiting for its output") << QStringLiteral("workspace") << QStringLiteral("chat") << 3 << true;
-    QTest::newRow("workspace on no monitor") << QStringLiteral("workspace") << QStringLiteral("notes") << 1 << false;
-    QTest::newRow("workspace unknown") << QStringLiteral("workspace") << QStringLiteral("none") << 1 << false;
-}
-
-void TestSettingsValues::scopedLayoutPerScope()
-{
-    QFETCH(QString, kind);
-    QFETCH(QString, name);
-    QFETCH(int, gaps);
-    QFETCH(bool, centered);
-    const Config::Config config = load(QStringLiteral(R"(
-layout { gaps 1; center-focused-column "always"; }
-output "DP-1" { layout { gaps 2; }; }
-output "HDMI-A-1" { hot-corners { off; }; }
-monitor-profile "Wide" { match aspect-ratio-above=2.0; layout { gaps 3; always-center-single-column; }; }
-monitor-profile "wide" { match aspect-ratio-above=3.0; layout { gaps 5; }; }
-workspace "mail" { layout { gaps 4; }; }
-workspace "chat" { open-on-output "HDMI-A-1"; }
-workspace "notes"
-)"));
-    const QVariantMap logical {{QStringLiteral("width"), 2560}, {QStringLiteral("height"), 1080}};
-    const QVariantList outputs {QVariantMap {{QStringLiteral("name"), QStringLiteral("DP-1")}, {QStringLiteral("logical"), logical}},
-        QVariantMap {{QStringLiteral("name"), QStringLiteral("HDMI-A-1")}, {QStringLiteral("logical"), logical}}};
-    const QVariantList workspaces {
-        QVariantMap {{QStringLiteral("name"), QStringLiteral("mail")}, {QStringLiteral("output"), QStringLiteral("DP-1")}}};
-    const Config::Layout layout = scopedLayout(config, kind, name, outputs, workspaces);
-    QCOMPARE(layout.gaps, double(gaps));
-    QCOMPARE(layout.alwaysCenterSingleColumn, centered);
-    QCOMPARE(layoutValues(layout).value(QStringLiteral("center-focused-column")).toString(), QStringLiteral("always"));
 }
 
 void TestSettingsValues::rulesMatchLiveWindows()

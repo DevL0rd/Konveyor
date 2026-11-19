@@ -24,66 +24,16 @@ void setDragFade(KWin::Window *window, std::optional<double> fade)
 
 KonveyorEffect::KonveyorEffect()
 {
-    d = std::make_unique<Private>(makeHooks(), [this](const Config::Bind &bind) {
-        ++d->bindCount;
-        d->lastBindKey = Config::bindKeyLabel(bind);
-        d->lastBindAction = bind.action.name;
-        if (Config::bindActsOnPointerOutput(bind, d->config.config().input)) {
-            const QString output = outputNameAt(KWin::effects->cursorPos());
-            if (!output.isEmpty() && readEngine().focusedOutput() != output) {
-                changeEngine().focusOutput(output);
-            }
-        }
-        performAction(bind.action);
-    });
+    d = std::make_unique<Private>(makeHooks(), [this](const Config::Bind &bind) { handleBind(bind); });
     d->engine.setNativeDesktopPresentation(true);
-    d->flushTimer.setSingleShot(true);
-    d->flushTimer.setInterval(0);
-    connect(&d->flushTimer, &QTimer::timeout, this, &KonveyorEffect::flush);
-    d->animationTimer.setInterval(animationIntervalMs);
-    connect(&d->animationTimer, &QTimer::timeout, this, &KonveyorEffect::stepAnimations);
-    d->memorySaveTimer.setSingleShot(true);
-    d->memorySaveTimer.setInterval(memorySaveDelayMs);
-    connect(&d->memorySaveTimer, &QTimer::timeout, this, [this] { d->memoryStore.save(readEngine().windowMemory()); });
-    d->pointerFocusTimer.setSingleShot(true);
-    connect(&d->pointerFocusTimer, &QTimer::timeout, this, &KonveyorEffect::followPointerFocus);
-    d->edgeHoverTimer.setSingleShot(true);
-    connect(&d->edgeHoverTimer, &QTimer::timeout, this, &KonveyorEffect::switchColumnAtEdge);
-    d->peekTimer.setSingleShot(true);
-    connect(&d->peekTimer, &QTimer::timeout, this, [this] { runPeekStep(d->peekKey.delayPassed(!peekBlocked())); });
-    d->startupRulesTimer.setSingleShot(true);
-    d->startupRulesTimer.setTimerType(Qt::PreciseTimer);
-    connect(&d->startupRulesTimer, &QTimer::timeout, this, [this] { changeEngine().refreshRules(); });
-    d->startupRulesTimer.start(std::chrono::ceil<std::chrono::milliseconds>(readEngine().timeUntilStartupEnds()));
+    connectTimers();
     d->engine.setWindowMemory(d->memoryStore.load());
     connect(&d->config, &ConfigManager::configChanged, this, &KonveyorEffect::applyConfig);
     connect(&d->accent, &AccentColor::changed, this, &KonveyorEffect::scheduleFlush);
     connectRegistries();
     connectDesktopSync();
     connectOverviewSync();
-    connect(KWin::workspace(), &KWin::Workspace::windowAdded, this, [this](KWin::Window *window) {
-        if (!window || window->resourceClass() != QLatin1String("konveyor-kontrol-panel")) {
-            return;
-        }
-        if (readEngine().isOverviewOpen() && !d->config.config().overview.allowKontrolPanel) {
-            window->closeWindow();
-            return;
-        }
-        if (!d->kontrolPanelWindows.contains(window)) {
-            d->kontrolPanelWindows.append(window);
-        }
-        if (KWin::effects && KWin::effects->isMouseInterception()) {
-            KWin::effects->stopMouseInterception(this);
-        }
-    });
-    connect(KWin::effects, &KWin::EffectsHandler::windowDeleted, this, [this](KWin::EffectWindow *window) {
-        d->visibility.forget(window);
-        if (window && d->kontrolPanelWindows.removeAll(window->window()) > 0) {
-            if (d->kontrolPanelWindows.isEmpty() && overviewInputActive() && KWin::effects && !KWin::effects->isMouseInterception()) {
-                KWin::effects->startMouseInterception(this, Qt::ArrowCursor);
-            }
-        }
-    });
+    connectKontrolPanelWindows();
     installInputFilter();
     startDBusService();
     d->windows.setWantsWindow([this](const Layout::WindowProperties &properties) { return readEngine().wantsWindow(properties); });
@@ -409,8 +359,7 @@ Layout::Hooks KonveyorEffect::makeHooks()
     };
     hooks.spawn = [](const QString &command) { QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), command}); };
     hooks.runWidgetTool = [this](const QString &name, const QStringList &arguments) {
-        if (name == QLatin1String("kontrol-panel") && readEngine().isOverviewOpen()
-            && !d->config.config().overview.allowKontrolPanel) {
+        if (name == QLatin1String("kontrol-panel") && readEngine().isOverviewOpen() && !d->config.config().overview.allowKontrolPanel) {
             return;
         }
         if (const auto started = Tools::startWidgetTool(name, arguments); !started) {

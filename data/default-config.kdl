@@ -382,25 +382,19 @@ binds {
 // Needs a desktop containment that reads the hideDesktopWidgets key; without one this does nothing.
 hide-desktop-widgets
 
-// Konveyor extension: how far a sound must rise above its recent average to count as a beat for effects that react
-// to a window's audio, from 1 to 4. Lower fires more often.
+// Konveyor extension: how far a sound must rise above its recent average to count as a beat for effects that react to a window's audio, from 1 to 4. Lower fires more often.
 audio-beat-threshold 1.4
 
-// Konveyor extension: uncomment to stretch Plasma panels to the full screen width while a window on that monitor
-// is maximized to the edges, and put them back after. The panel's previous width mode is kept in the panel's own
-// settings, so a panel you change in the meantime is left the way you set it.
+// Konveyor extension: uncomment to stretch Plasma panels to the full width while a window on that monitor is maximized
+// to the edges, then put them back; a panel you change in the meantime keeps its own width mode.
 // fill-panels-on-maximize
 
 // Konveyor extension: uncomment to stop windows from being minimized. This adds a KWin window rule that forces
 // minimize off, which also hides the minimize button on KDE title bars. The rule is removed when Konveyor is disabled.
 // disable-minimize
 
-// Konveyor experiment: uncomment to hold Meta on its own and fade every other window on that screen, so files can be
-// dragged to and from the desktop. The focused window stays and slides aside when the pointer leaves it.
+// Konveyor experiment: uncomment to hold Meta alone and fade every other window on that screen (the focused one slides aside), so files can be dragged to and from the desktop.
 // experiments { peek-desktop { on; delay-ms 300; } }
 
-// Konveyor extension: uncomment to replace KDE's overview with Konveyor's Niri-style overview. Every workspace on every
-// monitor is drawn in place, the wheel pans both ways (Shift+wheel for horizontal), and windows can be dragged between
-// workspaces. minimum-scale is the smallest a window may get; card-gap is the gap between workspace cards as a fraction
-// of the output height. touchpad-scroll-speed-x/y tune two-finger panning per axis without changing the wheel.
+// Konveyor extension: uncomment to replace KDE's overview with Konveyor's in-place Niri-style one; see docs/configuration.md for the options.
 // overview { enabled true; minimum-scale 0.3; card-gap 0.08; touchpad-scroll-speed-x 1.0; touchpad-scroll-speed-y 0.1; }

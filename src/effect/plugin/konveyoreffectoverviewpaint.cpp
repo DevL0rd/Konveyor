@@ -59,17 +59,9 @@ QColor withAlpha(QColor color, double alpha)
     return color;
 }
 
-void fillRects(const QList<QRectF> &rects, const QColor &color, const KWin::RenderTarget &renderTarget,
+void renderTriangles(const QList<QVector2D> &vertices, const QColor &color, const KWin::RenderTarget &renderTarget,
     const KWin::RenderViewport &viewport, const KWin::Region &scissor)
 {
-    if (rects.isEmpty() || color.alphaF() <= 0.0 || scissor.isEmpty()) {
-        return;
-    }
-    QList<QVector2D> vertices;
-    vertices.reserve(rects.size() * 6);
-    for (const QRectF &rect : rects) {
-        appendRect(vertices, rect, viewport.scale());
-    }
     KWin::ShaderBinder binder(KWin::ShaderTrait::UniformColor | KWin::ShaderTrait::TransformColorspace);
     KWin::GLShader *shader = binder.shader();
     shader->setUniform(KWin::GLShader::Mat4Uniform::ModelViewProjectionMatrix, viewport.projectionMatrix());
@@ -84,6 +76,20 @@ void fillRects(const QList<QRectF> &rects, const QColor &color, const KWin::Rend
     glDisable(GL_BLEND);
 }
 
+void fillRects(const QList<QRectF> &rects, const QColor &color, const KWin::RenderTarget &renderTarget,
+    const KWin::RenderViewport &viewport, const KWin::Region &scissor)
+{
+    if (rects.isEmpty() || color.alphaF() <= 0.0 || scissor.isEmpty()) {
+        return;
+    }
+    QList<QVector2D> vertices;
+    vertices.reserve(rects.size() * 6);
+    for (const QRectF &rect : rects) {
+        appendRect(vertices, rect, viewport.scale());
+    }
+    renderTriangles(vertices, color, renderTarget, viewport, scissor);
+}
+
 void appendOutline(QList<QRectF> &rects, const QRectF &rect, double thickness)
 {
     if (rect.isEmpty() || thickness <= 0.0) {
@@ -96,9 +102,18 @@ void appendOutline(QList<QRectF> &rects, const QRectF &rect, double thickness)
     rects.append(QRectF(rect.right() - inner, rect.top() + inner, inner, std::max(0.0, rect.height() - 2.0 * inner)));
 }
 
-void drawThumbnail(const WindowRegistry &windows, bool &drawingThumbnail, const Layout::OverviewPaintWindow &painted,
-    const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, const KWin::Region &scissor, const QRectF &workArea)
+struct ThumbnailTarget
 {
+    const KWin::RenderTarget &renderTarget;
+    const KWin::RenderViewport &viewport;
+    const KWin::Region &scissor;
+    const QRectF &workArea;
+};
+
+void drawThumbnail(
+    const WindowRegistry &windows, bool &drawingThumbnail, const Layout::OverviewPaintWindow &painted, const ThumbnailTarget &target)
+{
+    const auto &[renderTarget, viewport, scissor, workArea] = target;
     if (painted.opacity <= 0.0 || !painted.rect.intersects(workArea)) {
         return;
     }
@@ -193,18 +208,7 @@ void fillChevrons(const QList<Layout::OverviewPaintEdge> &edges, const QColor &c
     for (const Layout::OverviewPaintEdge &edge : edges) {
         appendChevron(vertices, edge, viewport.scale());
     }
-    KWin::ShaderBinder binder(KWin::ShaderTrait::UniformColor | KWin::ShaderTrait::TransformColorspace);
-    KWin::GLShader *shader = binder.shader();
-    shader->setUniform(KWin::GLShader::Mat4Uniform::ModelViewProjectionMatrix, viewport.projectionMatrix());
-    shader->setColorspaceUniforms(KWin::ColorDescription::sRGB, renderTarget.colorDescription(), KWin::RenderingIntent::Perceptual);
-    shader->setUniform(KWin::GLShader::ColorUniform::Color, color);
-    KWin::GLVertexBuffer *buffer = KWin::GLVertexBuffer::streamingBuffer();
-    buffer->reset();
-    buffer->setVertices(vertices);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    buffer->render(scissor, GL_TRIANGLES, true);
-    glDisable(GL_BLEND);
+    renderTriangles(vertices, color, renderTarget, viewport, scissor);
 }
 
 QList<QRectF> selectedOutlineRects(const Layout::OverviewPaintView &paint, double thickness)
@@ -291,49 +295,62 @@ void KonveyorEffect::paintOverview(const KWin::RenderTarget &renderTarget, const
         fillRects(hintOutlines, withAlpha(focusRingColor, 0.85 * paint.blend), renderTarget, viewport, scissor);
     }
     for (const Layout::OverviewPaintWindow &window : paint.windows) {
-        drawThumbnail(d->windows, d->drawingOverviewThumbnail, window, renderTarget, viewport, scissor, workArea);
+        drawThumbnail(d->windows, d->drawingOverviewThumbnail, window, {renderTarget, viewport, scissor, workArea});
     }
     fillRects(selectedOutlineRects(paint, windowThickness), withAlpha(focusRingColor, Layout::kOverviewOutlineAlpha * paint.blend),
         renderTarget, viewport, scissor);
     fillChevrons(paint.edges, withAlpha(Qt::white, kEdgeAlpha * paint.blend), renderTarget, viewport, scissor);
 }
 
+namespace
+{
+
+void drawCursorQuad(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport, KWin::GLTexture *texture,
+    const QRectF &cursorRect, const KWin::Region &cursorScissor)
+{
+    QMatrix4x4 mvp = viewport.projectionMatrix();
+    mvp.translate(cursorRect.x() * viewport.scale(), cursorRect.y() * viewport.scale());
+    KWin::ShaderBinder binder(KWin::ShaderTrait::MapTexture | KWin::ShaderTrait::TransformColorspace);
+    KWin::GLShader *shader = binder.shader();
+    shader->setUniform(KWin::GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
+    shader->setColorspaceUniforms(KWin::ColorDescription::sRGB, renderTarget.colorDescription(), KWin::RenderingIntent::Perceptual);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    texture->render(cursorScissor, cursorRect.size() * viewport.scale(), true);
+    glDisable(GL_BLEND);
+}
+
+}
+
 void KonveyorEffect::paintOverviewCursor(const KWin::RenderTarget &renderTarget, const KWin::RenderViewport &viewport,
     const KWin::Region &deviceRegion, const Layout::OverviewView &view)
 {
-    if (KWin::Cursor *cursor = KWin::Cursors::self() ? KWin::Cursors::self()->currentCursor() : nullptr) {
-        if (KWin::CursorSource *source = cursor->source(); source && !source->isBlank()) {
-            const QRectF cursorRect(cursor->pos() - cursor->hotspot(), source->size());
-            if (cursorRect.intersects(view.outputGeometry)) {
-                if (auto *shapeSource = qobject_cast<KWin::ShapeCursorSource *>(source)) {
-                    const QImage image = shapeSource->image();
-                    if (!image.isNull()) {
-                        if (!d->overviewCursorTexture || d->overviewCursorCacheKey != image.cacheKey()) {
-                            d->overviewCursorTexture = KWin::GLTexture::upload(image);
-                            d->overviewCursorCacheKey = image.cacheKey();
-                        }
-                        if (d->overviewCursorTexture) {
-                            const KWin::Region cursorScissor = deviceClip(renderTarget, viewport, deviceRegion, view.outputGeometry);
-                            if (!cursorScissor.isEmpty()) {
-                                QMatrix4x4 mvp = viewport.projectionMatrix();
-                                mvp.translate(cursorRect.x() * viewport.scale(), cursorRect.y() * viewport.scale());
-                                KWin::ShaderBinder binder(
-                                    KWin::ShaderTrait::MapTexture | KWin::ShaderTrait::TransformColorspace);
-                                KWin::GLShader *shader = binder.shader();
-                                shader->setUniform(KWin::GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
-                                shader->setColorspaceUniforms(
-                                    KWin::ColorDescription::sRGB, renderTarget.colorDescription(), KWin::RenderingIntent::Perceptual);
-                                glEnable(GL_BLEND);
-                                glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-                                d->overviewCursorTexture->render(cursorScissor, cursorRect.size() * viewport.scale(), true);
-                                glDisable(GL_BLEND);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    KWin::Cursor *cursor = KWin::Cursors::self() ? KWin::Cursors::self()->currentCursor() : nullptr;
+    KWin::CursorSource *source = cursor ? cursor->source() : nullptr;
+    if (!cursor || !source || source->isBlank()) {
+        return;
     }
+    const QRectF cursorRect(cursor->pos() - cursor->hotspot(), source->size());
+    if (!cursorRect.intersects(view.outputGeometry)) {
+        return;
+    }
+    auto *shapeSource = qobject_cast<KWin::ShapeCursorSource *>(source);
+    if (!shapeSource) {
+        return;
+    }
+    const QImage image = shapeSource->image();
+    if (image.isNull()) {
+        return;
+    }
+    if (!d->overviewCursorTexture || d->overviewCursorCacheKey != image.cacheKey()) {
+        d->overviewCursorTexture = KWin::GLTexture::upload(image);
+        d->overviewCursorCacheKey = image.cacheKey();
+    }
+    const KWin::Region cursorScissor = deviceClip(renderTarget, viewport, deviceRegion, view.outputGeometry);
+    if (!d->overviewCursorTexture || cursorScissor.isEmpty()) {
+        return;
+    }
+    drawCursorQuad(renderTarget, viewport, d->overviewCursorTexture.get(), cursorRect, cursorScissor);
 }
 
 }

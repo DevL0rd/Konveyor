@@ -34,28 +34,30 @@ inline std::optional<Layout::OverviewWindow> windowFor(const Layout::OverviewVie
     return std::nullopt;
 }
 
+// Adds a window on a fresh workspace below the current one.
+inline Layout::WindowId addBelow(Fixture &fixture, const QString &appId)
+{
+    fixture.perform(QStringLiteral("focus-workspace-down"));
+    return fixture.add(appId);
+}
+
+// Returns to the top workspace and opens the overview there.
+inline void openOverview(Fixture &fixture)
+{
+    fixture.perform(QStringLiteral("focus-workspace-up"));
+    fixture.engine().setOverviewOpen(true);
+}
+
 struct Scene
 {
     Fixture fixture {overviewConfig()};
     Layout::WindowId a = fixture.add(QStringLiteral("a"));
     Layout::WindowId b = fixture.add(QStringLiteral("b"));
-    Layout::WindowId c = addBelow(QStringLiteral("c"));
-
-    Layout::WindowId addBelow(const QString &appId)
-    {
-        fixture.perform(QStringLiteral("focus-workspace-down"));
-        return fixture.add(appId);
-    }
-
-    void open()
-    {
-        fixture.perform(QStringLiteral("focus-workspace-up"));
-        fixture.engine().setOverviewOpen(true);
-    }
+    Layout::WindowId c = addBelow(fixture, QStringLiteral("c"));
 
     Layout::OverviewView openView()
     {
-        open();
+        openOverview(fixture);
         return fixture.engine().overviewViews().first();
     }
 
@@ -98,6 +100,13 @@ struct FocusedPair
     Fixture fixture {overviewConfig()};
     Layout::WindowId a = fixture.add(QStringLiteral("a"));
     Layout::WindowId b = fixture.add(QStringLiteral("b"));
+
+    // Opens the overview and returns the window the selection was seeded with.
+    std::optional<Layout::WindowId> openOverviewSelection()
+    {
+        fixture.engine().setOverviewOpen(true);
+        return fixture.engine().overviewSelectedWindow();
+    }
 };
 
 struct TwoOutputs
@@ -114,6 +123,26 @@ struct TwoOutputs
         fixture.addClient(makeWindow(QStringLiteral("b")), Client(), Layout::ActivationPolicy::Focus, QStringLiteral("HDMI-A-1"));
         fixture.engine().setOverviewOpen(true);
         return fixture.engine().overviewViews();
+    }
+
+    struct OneOnEach
+    {
+        Layout::WindowId far = 0;
+        Layout::WindowId near = 0;
+        Layout::WorkspaceId farWorkspace = 0;
+    };
+
+    // Puts one window on the external output and one on the laptop, and leaves
+    // the laptop focused.
+    OneOnEach addOneOnEach()
+    {
+        fixture.engine().focusOutput(QStringLiteral("HDMI-A-1"));
+        OneOnEach windows;
+        windows.far = fixture.add(QStringLiteral("there"));
+        windows.farWorkspace = fixture.state(windows.far).workspace;
+        fixture.engine().focusOutput(QStringLiteral("DP-1"));
+        windows.near = fixture.add(QStringLiteral("here"));
+        return windows;
     }
 
     Fixture fixture;

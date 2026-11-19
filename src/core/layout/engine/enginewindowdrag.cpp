@@ -189,22 +189,6 @@ void Engine::Private::moveDragToActiveOutput()
     updateDropHint();
 }
 
-void Engine::Private::placeDragPointerOnFloatingTile()
-{
-    WindowDrag &move = *windowDrag;
-    const Monitor *monitor = monitorOf(move.window);
-    Workspace *workspace = workspaceOf(move.window);
-    const Tile *tile = workspace ? workspace->tileFor(move.window) : nullptr;
-    const auto tilePos = workspace ? workspace->tileRenderPosition(move.window) : std::nullopt;
-    if (!monitor || !tile || !tilePos) {
-        return;
-    }
-    const QSizeF size = tile->windowSize();
-    move.output = monitor->outputName();
-    move.pointerPos
-        = *tilePos + tile->windowOffset() + QPointF(move.pointerRatio.x() * size.width(), move.pointerRatio.y() * size.height());
-}
-
 void Engine::Private::setDragFloating(bool floating)
 {
     if (windowDrag && !windowDrag->moving) {

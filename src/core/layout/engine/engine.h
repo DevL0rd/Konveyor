@@ -221,6 +221,15 @@ struct OverviewWindow
     bool operator==(const OverviewWindow &) const = default;
 };
 
+struct OverviewScrollAmount
+{
+    // Pixel delta from a touchpad, or the wheel's 120-based delta when set.
+    double pixels = 0.0;
+    qint32 v120 = 0;
+
+    double units() const { return v120 != 0 ? static_cast<double>(v120) : pixels * 8.0; }
+};
+
 struct OverviewView
 {
     QString output;
@@ -347,7 +356,7 @@ public:
     std::optional<OverviewView> overviewView(const QString &output) const;
     void setOverviewReserved(const QString &output, const QMarginsF &reserved);
     void overviewPan(const QString &output, const QPointF &delta);
-    void overviewScroll(const QString &output, Qt::Orientation orientation, double delta, qint32 deltaV120, bool shift,
+    void overviewScroll(const QString &output, Qt::Orientation orientation, const OverviewScrollAmount &amount, bool shift,
         bool finger = false, std::optional<QPointF> pointer = std::nullopt);
     void overviewNavigate(OverviewDirection direction);
     std::optional<WindowId> overviewSelectedWindow() const;

@@ -8,12 +8,6 @@ namespace Konveyor::Layout
 namespace
 {
 
-const OverviewView *viewAt(const QList<OverviewView> &views, const QString &output)
-{
-    const auto found = std::ranges::find(views, output, &OverviewView::output);
-    return found == views.end() ? nullptr : &*found;
-}
-
 QList<QRectF> localCards(const OverviewView &view)
 {
     QList<QRectF> cards;
@@ -22,6 +16,32 @@ QList<QRectF> localCards(const OverviewView &view)
         cards.append(card.translated(-view.outputGeometry.topLeft()));
     }
     return cards;
+}
+
+int dropCardIndex(const OverviewView &view, const Monitor &monitor, const QPointF &local)
+{
+    const QList<QRectF> cards = localCards(view);
+    int card = overviewCardIndexAt(cards, local).value_or(-1);
+    if (card < 0) {
+        card = overviewNearestCardIndex(cards, local);
+    }
+    if (card < 0) {
+        return -1;
+    }
+    const auto limit = view.workspaceIndices.isEmpty() ? static_cast<int>(monitor.workspaces().size()) : view.workspaceIndices.size();
+    return card < limit && card < view.workspaceRects.size() ? card : -1;
+}
+
+std::optional<int> dropWorkspaceIndex(const OverviewView &view, const Monitor &monitor, int card)
+{
+    if (card < 0) {
+        return std::nullopt;
+    }
+    const int index = view.workspaceIndices.isEmpty() ? card : view.workspaceIndices.value(card, -1);
+    if (index < 0 || static_cast<std::size_t>(index) >= monitor.workspaces().size()) {
+        return std::nullopt;
+    }
+    return index;
 }
 
 void reorderWorkspace(std::vector<Monitor> &monitors, const QString &output, int from, int to)
@@ -73,22 +93,14 @@ void Engine::Private::updateOverviewDrop()
     }
 
     const QPointF local = overview.dragPos - view->outputGeometry.topLeft();
-    const QList<QRectF> cards = localCards(*view);
-    int card = overviewCardIndexAt(cards, local).value_or(-1);
-    if (card < 0) {
-        card = overviewNearestCardIndex(cards, local);
-    }
-    if (card < 0 || (view->workspaceIndices.isEmpty() && static_cast<std::size_t>(card) >= monitor->workspaces().size())
-        || (!view->workspaceIndices.isEmpty() && card >= view->workspaceIndices.size())) {
-        return;
-    }
-    const int realWorkspace = !view->workspaceIndices.isEmpty() ? view->workspaceIndices[card] : card;
-    if (realWorkspace < 0 || static_cast<std::size_t>(realWorkspace) >= monitor->workspaces().size()) {
+    const int card = dropCardIndex(*view, *monitor, local);
+    const std::optional<int> realWorkspace = dropWorkspaceIndex(*view, *monitor, card);
+    if (!realWorkspace) {
         return;
     }
 
-    overview.drop
-        = OverviewDrop {monitor->workspaces()[realWorkspace].id(), (overview.dragPos - view->workspaceRects[card].topLeft()) / view->scale};
+    overview.drop = OverviewDrop {
+        monitor->workspaces()[*realWorkspace].id(), (overview.dragPos - view->workspaceRects.at(card).topLeft()) / view->scale};
     windowDrag->pointerPos = overview.drop->local;
     windowDrag->output = overview.dragOutput;
     windowDrag->lastPointer = overview.dragPos;

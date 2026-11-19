@@ -104,8 +104,7 @@ QVariantMap globalValues(const Config::Config &config)
                 {QStringLiteral("delay-ms"), config.experiments.peekDesktop.delayMs}}},
         {QStringLiteral("overview"),
             QVariantMap {{QStringLiteral("enabled"), config.overview.enabled},
-                {QStringLiteral("minimum-scale"), config.overview.minimumScale},
-                {QStringLiteral("card-gap"), config.overview.cardGap},
+                {QStringLiteral("minimum-scale"), config.overview.minimumScale}, {QStringLiteral("card-gap"), config.overview.cardGap},
                 {QStringLiteral("offscreen-indicators"),
                     config.overview.offscreenIndicators == Config::OverviewIndicators::Chevrons ? QStringLiteral("chevrons")
                                                                                                 : QStringLiteral("off")},
