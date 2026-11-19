@@ -50,7 +50,8 @@ private Q_SLOTS:
     void draggedWindowStaysOpaque();
     void edgesFollowOffscreenSides();
     void edgesSkipAnEmptyWorkArea();
-    void zoomsWindowsFromOutputCenter();
+    void zoomsWindowsAroundTheActiveCard();
+    void zoomLandsOnTheLiveFrameWhenTheCardIsOffset();
 };
 
 void TestOverviewPaint::blendClampsProgress()
@@ -175,20 +176,44 @@ void TestOverviewPaint::edgesSkipAnEmptyWorkArea()
     QVERIFY(Layout::overviewPaintEdges(view).isEmpty());
 }
 
-void TestOverviewPaint::zoomsWindowsFromOutputCenter()
+void TestOverviewPaint::zoomsWindowsAroundTheActiveCard()
 {
     Layout::OverviewView view = sampleView();
     view.outputGeometry = QRectF(0, 0, 1000, 600);
     view.scale = 0.5;
-    Layout::OverviewWindow win = window(1, QRectF(300, 200, 400, 200), 1);
+    Layout::OverviewWindow win = window(1, QRectF(300, 200, 400, 200), 2);
     win.normalRect = QRectF(100, 100, 800, 400);
     view.windows = {win};
 
     const Layout::OverviewPaintView half = Layout::overviewPaintView(view, {}, 0.5);
     QCOMPARE(half.windows.size(), 1);
-    // At progress 0.5, scale = 0.75, zoom factor = 0.75 / 0.5 = 1.5 around center (500, 300).
-    QCOMPARE(half.windows[0].rect, QRectF(200, 150, 600, 300));
+    // At progress 0.5 the zoom factor is 0.75 / 0.5 = 1.5 around the active card (20, 280), scaled by 1 / 0.5.
+    QCOMPARE(half.windows[0].rect, QRectF(430, 20, 600, 300));
     QCOMPARE(half.windows[0].opacity, 1.0);
+}
+
+void TestOverviewPaint::zoomLandsOnTheLiveFrameWhenTheCardIsOffset()
+{
+    Layout::OverviewView view = sampleView();
+    view.outputGeometry = QRectF(0, 0, 1000, 600);
+    view.scale = 0.5;
+    // The active card sits at the bottom of the screen, the way a panned or clamped camera leaves it.
+    view.activeWorkspace = 0;
+    view.workspaceRects = {QRectF(0, 360, 500, 300), QRectF(0, 780, 500, 300)};
+    Layout::OverviewWindow win = window(1, QRectF(150, 460, 200, 100), 1);
+    win.normalRect = QRectF(300, 200, 400, 200);
+    view.windows = {win};
+
+    const Layout::OverviewPaintView half = Layout::overviewPaintView(view, {}, 0.5);
+    // Halfway between the live frame and the card-window frame.
+    QCOMPARE(half.windows[0].rect, QRectF(225, 330, 300, 150));
+
+    const Layout::OverviewPaintView closing = Layout::overviewPaintView(view, {}, 0.001);
+    const QRectF live = *win.normalRect;
+    QVERIFY(std::abs(closing.windows[0].rect.x() - live.x()) < 1.0);
+    QVERIFY(std::abs(closing.windows[0].rect.y() - live.y()) < 1.0);
+    QVERIFY(std::abs(closing.windows[0].rect.width() - live.width()) < 1.0);
+    QVERIFY(std::abs(closing.windows[0].rect.height() - live.height()) < 1.0);
 }
 
 QTEST_MAIN(TestOverviewPaint)

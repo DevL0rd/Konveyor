@@ -54,6 +54,22 @@ QRectF zoomRect(const QRectF &rect, const QPointF &pivot, double factor)
     return QRectF(pivot + (rect.topLeft() - pivot) * factor, rect.size() * factor);
 }
 
+// The zoom has to land on what the output shows once the overview is closed,
+// and the active card holds exactly that. Scaling around the output centre does
+// it while the camera keeps that card centred, but a panned or clamped camera
+// puts the card elsewhere, so anchor the zoom on the card itself instead.
+QPointF zoomAnchor(const OverviewView &view)
+{
+    const QRectF &output = view.outputGeometry;
+    const int active = view.activeWorkspace;
+    if (view.scale <= 0.0 || view.scale >= 1.0 || active < 0 || active >= view.workspaceRects.size()) {
+        return output.center();
+    }
+    const QRectF card = view.workspaceRects.at(active);
+    const double remaining = 1.0 - view.scale;
+    return QPointF((card.left() - output.left() * view.scale) / remaining, (card.top() - output.top() * view.scale) / remaining);
+}
+
 }
 
 double overviewPaintBlend(double progress)
@@ -126,7 +142,7 @@ OverviewPaintView overviewPaintView(
     }
 
     const double zoom = view.scale > 0.0 ? (1.0 + (view.scale - 1.0) * paint.blend) / view.scale : 1.0;
-    const QPointF pivot = view.outputGeometry.center();
+    const QPointF pivot = zoomAnchor(view);
 
     for (const OverviewWindow &window : view.windows) {
         OverviewPaintWindow painted;

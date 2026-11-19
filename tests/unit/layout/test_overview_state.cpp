@@ -1,6 +1,11 @@
 #include "overviewhelpers.h"
 
+#include <layout/overview/overviewpaint.h>
+
 #include <QTest>
+
+#include <algorithm>
+#include <cmath>
 
 using namespace LayoutTest;
 
@@ -19,6 +24,7 @@ private Q_SLOTS:
     void camerasSeedOnEachOutputsActiveWorkspace();
     void disablingTheConfigClosesTheOverview();
     void emptyOverviewIsHarmless();
+    void closeZoomLandsOnTheLiveLayoutAfterTheCameraMoved();
 };
 
 void TestOverviewState::disabledAnimationsJumpStraightToOpenAndClosed()
@@ -226,6 +232,36 @@ void TestOverviewState::emptyOverviewIsHarmless()
     fixture.engine().overviewBeginWorkspaceDrag(QStringLiteral("DP-1"), 99);
     fixture.engine().overviewEndDrag();
     VERIFY_INVARIANTS(fixture);
+}
+
+void TestOverviewState::closeZoomLandsOnTheLiveLayoutAfterTheCameraMoved()
+{
+    Fixture fixture {overviewConfig(true)};
+    fixture.add(QStringLiteral("a"));
+    addBelow(fixture, QStringLiteral("c"));
+    openOverview(fixture);
+    fixture.advanceInSteps(220, 10);
+    const QPointF cameraBefore = fixture.engine().overviewViews().first().camera;
+    fixture.engine().overviewPan(QStringLiteral("DP-1"), QPointF(400, 400));
+
+    const Layout::OverviewView view = fixture.engine().overviewViews().first();
+    QVERIFY(view.camera != cameraBefore);
+    const Layout::OverviewPaintView closing = Layout::overviewPaintView(view, {}, 0.001);
+    QVERIFY(!closing.windows.isEmpty());
+    bool checked = false;
+    for (const Layout::OverviewWindow &window : view.windows) {
+        if (window.workspaceIndex != view.activeWorkspace + 1 || !window.normalRect) {
+            continue;
+        }
+        const auto painted = std::ranges::find(closing.windows, window.id, &Layout::OverviewPaintWindow::id);
+        QVERIFY(painted != closing.windows.end());
+        QVERIFY(std::abs(painted->rect.x() - window.normalRect->x()) < 1.0);
+        QVERIFY(std::abs(painted->rect.y() - window.normalRect->y()) < 1.0);
+        QVERIFY(std::abs(painted->rect.width() - window.normalRect->width()) < 1.0);
+        QVERIFY(std::abs(painted->rect.height() - window.normalRect->height()) < 1.0);
+        checked = true;
+    }
+    QVERIFY(checked);
 }
 
 QTEST_MAIN(TestOverviewState)
