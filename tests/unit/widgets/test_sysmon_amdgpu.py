@@ -125,6 +125,22 @@ class TestSysmonAmdgpu(CollectorTest):
         (self.home / ("root" + dev + "gpu_metrics")).write_bytes(b"\x08")
         self.assertFalse(self.module.amd_gpu("AMD Ryzen w/ Radeon 860M")["shared"])
 
+    def test_raven_and_picasso_are_apus_though_they_have_no_gpu_metrics(self):
+        for device in ("0x15dd", "0x15d8"):
+            self.module._amd["card"] = None
+            dev = self.card(vram=(1 << 28, 1 << 30))
+            self.fake.write(dev + "device", device + "\n")
+            (self.home / ("root" + dev + "gpu_metrics")).unlink()  # smu10 answers EOPNOTSUPP
+            gpu = self.module.amd_gpu("AMD Ryzen 5 PRO 2400G with Radeon Vega Graphics")
+            self.assertEqual((gpu["shared"], gpu["vram_used"], gpu["vram_total"]),
+                             (True, (1 << 28) + (1 << 30), (1 << 30) + (8 << 30)))
+
+    def test_another_card_without_gpu_metrics_is_not_an_apu(self):
+        dev = self.card()
+        self.fake.write(dev + "device", "0x73bf\n")
+        (self.home / ("root" + dev + "gpu_metrics")).unlink()
+        self.assertFalse(self.module.amd_gpu()["shared"])
+
     def test_the_name_comes_from_the_hardware_database_without_brackets(self):
         dev = self.card()
         self.fake.write(dev + "uevent", "PCI_SLOT_NAME=0000:03:00.0\n")

@@ -6,10 +6,11 @@ import time
 from sysmon_sysfs import awake, hwdb_name, pci_slot, read
 
 _amd = {"card": None}
-# Raven and Picasso (SMU10). Their SMU firmware answers the kernel's busy query
-# with a value the kernel clamps to 100, so gpu_busy_percent reads 100 even at
-# idle. Their load is measured from the engine time in fdinfo instead.
-_BOGUS_BUSY = {0x15DD, 0x15D8}
+# Raven/Raven2 and Picasso (SMU10). Their SMU firmware answers the kernel's
+# busy query with a value the kernel clamps to 100, so gpu_busy_percent reads
+# 100 even at idle; their load is measured from the engine time in fdinfo
+# instead. SMU10 also has no gpu_metrics, so they are known as APUs by this ID.
+_SMU10 = {0x15DD, 0x15D8}
 _ENGINES = ("gfx", "compute")
 
 
@@ -21,9 +22,9 @@ def _find_card():
         return None
     dev = max(cards, key=lambda d: read(os.path.join(d, "mem_info_vram_total")) or 0)
     name = read(os.path.join(dev, "product_name"), str) or "AMD " + (hwdb_name(dev) or "GPU")
-    slot = pci_slot(dev) if read(os.path.join(dev, "device"), lambda text: int(text, 16)) in _BOGUS_BUSY else None
-    return {"dev": dev, "name": name, "hwmon": None, "apu": False, "clock_max": 0, "probed": False,
-            "slot": slot, "engines": None}
+    smu10 = read(os.path.join(dev, "device"), lambda text: int(text, 16)) in _SMU10
+    return {"dev": dev, "name": name, "hwmon": None, "apu": smu10, "clock_max": 0, "probed": False,
+            "slot": pci_slot(dev) if smu10 else None, "engines": None}
 
 
 def _engine_time(slot):
@@ -72,14 +73,15 @@ def _fdinfo_load(card):
 def _probe(card, cpu_model):
     """gpu_metrics and pp_dpm_sclk wake a suspended card, so they are read only
     once it is awake. gpu_metrics format revision 1 is the discrete-GPU layout;
-    APUs use 2 and up. The CPU model names an APU exactly ("... w/ Radeon
+    APUs use 2 and up. APUs without gpu_metrics at all are already known by
+    PCI ID from _find_card. The CPU model names an APU exactly ("... w/ Radeon
     860M"); udev only knows the die ("Radeon 840M / 860M Graphics")."""
     dev = card["dev"]
     try:
         with open(os.path.join(dev, "gpu_metrics"), "rb") as f:
-            card["apu"] = f.read(3)[2] >= 2
+            card["apu"] = card["apu"] or f.read(3)[2] >= 2
     except (OSError, IndexError):
-        card["apu"] = False
+        pass
     sclk = read(os.path.join(dev, "pp_dpm_sclk"), lambda text: [int(m) for m in re.findall(r"(\d+)\s*mhz", text, re.I)])
     card["clock_max"] = max(sclk or [0])
     if " w/ " in cpu_model and card["apu"]:
