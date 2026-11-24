@@ -1,10 +1,16 @@
 import glob
 import os
 import re
+import time
 
-from sysmon_sysfs import awake, hwdb_name, read
+from sysmon_sysfs import awake, hwdb_name, pci_slot, read
 
 _amd = {"card": None}
+# Raven and Picasso (SMU10). Their SMU firmware answers the kernel's busy query
+# with a value the kernel clamps to 100, so gpu_busy_percent reads 100 even at
+# idle. Their load is measured from the engine time in fdinfo instead.
+_BOGUS_BUSY = {0x15DD, 0x15D8}
+_ENGINES = ("gfx", "compute")
 
 
 def _find_card():
@@ -15,7 +21,52 @@ def _find_card():
         return None
     dev = max(cards, key=lambda d: read(os.path.join(d, "mem_info_vram_total")) or 0)
     name = read(os.path.join(dev, "product_name"), str) or "AMD " + (hwdb_name(dev) or "GPU")
-    return {"dev": dev, "name": name, "hwmon": None, "apu": False, "clock_max": 0, "probed": False}
+    slot = pci_slot(dev) if read(os.path.join(dev, "device"), lambda text: int(text, 16)) in _BOGUS_BUSY else None
+    return {"dev": dev, "name": name, "hwmon": None, "apu": False, "clock_max": 0, "probed": False,
+            "slot": slot, "engines": None}
+
+
+def _engine_time(slot):
+    """Busy nanoseconds per (DRM client, engine) on the card at PCI `slot`, from
+    the fdinfo of every DRM file this user can see. A client is counted once
+    however many file descriptors share it."""
+    times = {}
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        fds = "/proc/%s/fd/" % pid
+        try:
+            names = os.listdir(fds)
+        except OSError:
+            continue
+        for fd in names:
+            try:
+                if not os.readlink(fds + fd).startswith("/dev/dri/"):
+                    continue
+                with open("/proc/%s/fdinfo/%s" % (pid, fd)) as f:
+                    info = {key: value.strip() for key, _, value in (line.partition(":") for line in f)}
+            except OSError:
+                continue
+            if info.get("drm-pdev") != slot or "drm-client-id" not in info:
+                continue
+            for engine in _ENGINES:
+                ns = info.get("drm-engine-" + engine, "").split()
+                if ns and ns[0].isdigit():
+                    times[info["drm-client-id"], engine] = int(ns[0])
+    return times
+
+
+def _fdinfo_load(card):
+    """The busiest engine's share of the time since the last call, in percent;
+    0 on the first call. A client that appeared since then counts in full."""
+    now, times = time.monotonic(), _engine_time(card["slot"])
+    prev, card["engines"] = card["engines"], (now, times)
+    if prev is None or now <= prev[0]:
+        return 0
+    busy = {}
+    for (client, engine), ns in times.items():
+        busy[engine] = busy.get(engine, 0) + max(0, ns - prev[1].get((client, engine), 0))
+    return round(min(100, max(busy.values(), default=0) / ((now - prev[0]) * 1e7)))
 
 
 def _probe(card, cpu_model):
@@ -46,7 +97,8 @@ def amd_gpu(cpu_model=""):
     """AMD GPU stats from amdgpu sysfs, in read_gpu()'s shape. None without an
     amdgpu card. On an APU the memory bar covers VRAM + GTT, since most of what
     the GPU uses is system RAM mapped through GTT. A runtime-suspended card is
-    reported idle without touching any file that would wake it."""
+    reported idle without touching any file that would wake it. On Raven and
+    Picasso the load comes from fdinfo, as gpu_busy_percent is stuck at 100."""
     card = _amd["card"]
     if card is None or not os.path.exists(os.path.join(card["dev"], "gpu_busy_percent")):
         card = _amd["card"] = _find_card()
@@ -74,7 +126,8 @@ def amd_gpu(cpu_model=""):
     pwm, pwm_max = sensor("pwm1"), sensor("pwm1_max")
     return {
         "name": card["name"],
-        "util": (read(os.path.join(dev, "gpu_busy_percent")) or 0) if powered else 0,
+        "util": ((_fdinfo_load(card) if card["slot"] else read(os.path.join(dev, "gpu_busy_percent")) or 0)
+                 if powered else 0),
         "vram_used": used, "vram_total": total,
         "vram_pct": (used / total * 100) if total else 0,
         "temp": sensor("temp1_input", 1000) or 0,

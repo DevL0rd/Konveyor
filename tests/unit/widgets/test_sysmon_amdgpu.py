@@ -5,7 +5,7 @@ import sys
 import unittest
 from unittest import mock
 
-from collectorharness import WIDGETS, CollectorTest
+from collectorharness import WIDGETS, CollectorTest, FakeClock
 
 SCRIPT = WIDGETS / "system-monitor" / "bin" / "sysmon_amdgpu.py"
 sys.path.insert(0, str(SCRIPT.parent))
@@ -31,6 +31,23 @@ class TestSysmonAmdgpu(CollectorTest):
             self.fake.write(dev + name, "%s\n" % text)
         (self.home / ("root" + dev + "gpu_metrics")).write_bytes(bytes([0x08, 0x01, revision, 0]))
         return dev
+
+    def raven(self):
+        dev = self.card(revision=1)
+        self.fake.write(dev + "gpu_busy_percent", "100\n")
+        self.fake.write(dev + "device", "0x15dd\n")
+        self.fake.write(dev + "uevent", "PCI_SLOT_NAME=0000:0a:00.0\n")
+        return dev
+
+    def client(self, pid, fd, client_id, slot="0000:0a:00.0", target="/dev/dri/renderD128", **engines):
+        link = self.home / ("root/proc/%s/fd/%s" % (pid, fd))
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.unlink(missing_ok=True)
+        link.symlink_to(target)
+        lines = ["pos:\t0", "drm-driver:\tamdgpu", "drm-pdev:\t" + slot]
+        lines += ["drm-client-id:\t%s" % client_id] if client_id is not None else []
+        lines += ["drm-engine-%s:\t%s ns" % item for item in engines.items()]
+        self.fake.write("/proc/%s/fdinfo/%s" % (pid, fd), "\n".join(lines) + "\n")
 
     def opened(self):
         paths, real = [], builtins.open
@@ -117,6 +134,46 @@ class TestSysmonAmdgpu(CollectorTest):
     def test_an_unknown_card_is_named_generically(self):
         self.card()
         self.assertEqual(self.module.amd_gpu()["name"], "AMD GPU")
+
+    def test_raven_load_is_the_busiest_engine_share_of_fdinfo_time_not_the_stuck_busy_percent(self):
+        self.raven()
+        clock = FakeClock(until=1e9)
+        self.start(clock.patch(self.module))
+        self.client(100, 5, 1, gfx=1_000_000_000, compute=0)
+        self.client(100, 6, 1, gfx=1_000_000_000, compute=0)  # the same client on a second descriptor
+        self.client(200, 3, 7, slot="0000:03:00.0", gfx=0)  # another card
+        self.client(200, 4, None, gfx=0)  # not a DRM client
+        self.client(300, 1, 9, target="/home/user/notes.txt", gfx=0)
+        self.client(300, 2, 9, compute="lots")
+        self.fake.write("/proc/self/stat", "\n")
+        self.fake.write("/proc/400/status", "\n")  # a process whose descriptors can't be listed
+        self.assertEqual(self.module.amd_gpu()["util"], 0)
+        self.assertEqual(self.module.amd_gpu()["util"], 0)  # no time has passed
+        clock.mono += 2
+        self.client(100, 5, 1, gfx=1_300_000_000, compute=200_000_000)
+        self.client(100, 6, 1, gfx=1_300_000_000, compute=200_000_000)
+        self.client(500, 9, 12, gfx=100_000_000)  # a client started since the last sample
+        self.assertEqual(self.module.amd_gpu()["util"], 20)
+        clock.mono += 1
+        for fd in (5, 6):
+            self.client(100, fd, 1, gfx=9_000_000_000)
+        self.assertEqual(self.module.amd_gpu()["util"], 100)
+
+    def test_raven_without_drm_clients_or_fdinfo_reads_idle(self):
+        self.raven()
+        clock = FakeClock(until=1e9)
+        self.start(clock.patch(self.module))
+        link = self.home / "root/proc/100/fd/5"
+        link.parent.mkdir(parents=True)
+        link.symlink_to("/dev/dri/renderD128")  # its fdinfo is gone
+        self.module.amd_gpu()
+        clock.mono += 2
+        self.assertEqual(self.module.amd_gpu()["util"], 0)
+
+    def test_a_raven_card_without_a_pci_address_keeps_the_kernel_busy_percent(self):
+        dev = self.raven()
+        self.fake.write(dev + "uevent", "DRIVER=amdgpu\n")
+        self.assertEqual(self.module.amd_gpu()["util"], 100)
 
 
 if __name__ == "__main__":
