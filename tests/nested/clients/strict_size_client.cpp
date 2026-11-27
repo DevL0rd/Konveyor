@@ -21,9 +21,11 @@ struct Client
     xdg_toplevel *toplevel = nullptr;
     wl_buffer *buffer = nullptr;
     bool slow = false;
+    bool resizable = false;
     bool mapped = false;
     bool closed = false;
     bool strictState = false;
+    int tiledEdges = 0;
     int width = 500;
     int height = 400;
     int pendingWidth = 0;
@@ -32,8 +34,8 @@ struct Client
 
 void announce(const Client &client, const char *event, bool acknowledged)
 {
-    std::printf("%s pending=%dx%d size=%dx%d strict=%d acknowledged=%d\n", event, client.pendingWidth, client.pendingHeight, client.width,
-        client.height, client.strictState ? 1 : 0, acknowledged ? 1 : 0);
+    std::printf("%s pending=%dx%d size=%dx%d strict=%d tiled=%d acknowledged=%d\n", event, client.pendingWidth, client.pendingHeight,
+        client.width, client.height, client.strictState ? 1 : 0, client.tiledEdges, acknowledged ? 1 : 0);
     std::fflush(stdout);
 }
 
@@ -44,8 +46,10 @@ void present(Client &client)
     wl_surface_attach(client.surface, client.buffer, 0, 0);
     wl_surface_damage_buffer(client.surface, 0, 0, client.width, client.height);
     xdg_surface_set_window_geometry(client.xdgSurface, 0, 0, client.width, client.height);
-    xdg_toplevel_set_min_size(client.toplevel, client.width, client.height);
-    xdg_toplevel_set_max_size(client.toplevel, client.width, client.height);
+    if (!client.resizable) {
+        xdg_toplevel_set_min_size(client.toplevel, client.width, client.height);
+        xdg_toplevel_set_max_size(client.toplevel, client.width, client.height);
+    }
     wl_surface_commit(client.surface);
     if (previous) {
         wl_buffer_destroy(previous);
@@ -82,17 +86,21 @@ void toplevelConfigure(void *data, xdg_toplevel *, int32_t width, int32_t height
     client->pendingWidth = width;
     client->pendingHeight = height;
     client->strictState = false;
+    client->tiledEdges = 0;
     const auto *begin = static_cast<const uint32_t *>(states->data);
     for (const uint32_t *state = begin; state < begin + states->size / sizeof(uint32_t); ++state) {
         switch (*state) {
         case XDG_TOPLEVEL_STATE_MAXIMIZED:
         case XDG_TOPLEVEL_STATE_FULLSCREEN:
         case XDG_TOPLEVEL_STATE_RESIZING:
+            client->strictState = true;
+            break;
         case XDG_TOPLEVEL_STATE_TILED_LEFT:
         case XDG_TOPLEVEL_STATE_TILED_RIGHT:
         case XDG_TOPLEVEL_STATE_TILED_TOP:
         case XDG_TOPLEVEL_STATE_TILED_BOTTOM:
             client->strictState = true;
+            ++client->tiledEdges;
             break;
         default:
             break;
@@ -160,6 +168,7 @@ int main(int argc, char **argv)
     }
     Client client;
     client.slow = argc > 3 && std::string(argv[3]) == "slow";
+    client.resizable = argc > 3 && std::string(argv[3]) == "resizable";
     if (argc > 4) {
         std::sscanf(argv[4], "%dx%d", &client.width, &client.height);
     }

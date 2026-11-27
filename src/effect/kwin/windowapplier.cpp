@@ -86,14 +86,14 @@ constexpr KWin::XdgToplevelInterface::States TiledEdges {KWin::XdgToplevelInterf
     | KWin::XdgToplevelInterface::State::TiledRight | KWin::XdgToplevelInterface::State::TiledTop
     | KWin::XdgToplevelInterface::State::TiledBottom};
 
-void setStrictSize(KWin::Window *window, bool strict)
+void setTiledEdges(KWin::Window *window, bool tiled)
 {
     KWin::XdgToplevelWindow *toplevel = KWin::waylandServer()->findXdgToplevelWindow(window->surface());
     if (!toplevel) {
         return;
     }
     KWin::XdgToplevelInterface::States &states = toplevel->*nextStates();
-    const KWin::XdgToplevelInterface::States wanted = strict ? (states | TiledEdges) : (states & ~TiledEdges);
+    const KWin::XdgToplevelInterface::States wanted = tiled ? (states | TiledEdges) : (states & ~TiledEdges);
     if (wanted != states) {
         states = wanted;
         (toplevel->*configureScheduler())();
@@ -111,6 +111,11 @@ WindowApplier::~WindowApplier()
     for (const QPointer<KWin::Window> &window : std::as_const(m_parked)) {
         if (window) {
             setExemptFromConfinement(window, false);
+        }
+    }
+    for (const QPointer<KWin::Window> &window : std::as_const(m_tiledStates)) {
+        if (window) {
+            setTiledEdges(window, false);
         }
     }
 }
@@ -141,7 +146,7 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
             }
         }
         applySizingMode(window, state);
-        setStrictSize(window, keepsStrictSize(window, state, frame));
+        setTiledState(state.id, window, keepsTiledState(window, state, frame));
         applyGeometry(window, frame, requestedSize, !state.isFloating,
             state.isForceResizable || window->isResizable() || m_strictUntilSettled.contains(state.id),
             state.requestedSizingMode == Layout::WindowMode::Fullscreen);
@@ -150,21 +155,30 @@ void WindowApplier::apply(const QList<Layout::WindowState> &states)
     applyStacking(states);
 }
 
-bool WindowApplier::keepsStrictSize(KWin::Window *window, const Layout::WindowState &state, const QRectF &frame)
+bool WindowApplier::keepsTiledState(KWin::Window *window, const Layout::WindowState &state, const QRectF &frame)
 {
     const bool tiled = !state.isFloating && state.requestedSizingMode != Layout::WindowMode::Fullscreen && !window->isRequestedFullScreen();
     if (tiled && state.isForceResizable && !window->isResizable()) {
         m_strictUntilSettled.insert(state.id);
         return true;
     }
-    if (!m_strictUntilSettled.contains(state.id)) {
-        return false;
-    }
-    if (!tiled || isSameSize(window->frameGeometry().size(), frame.size())) {
+    if (m_strictUntilSettled.contains(state.id)) {
+        if (tiled && !isSameSize(window->frameGeometry().size(), frame.size())) {
+            return true;
+        }
         m_strictUntilSettled.remove(state.id);
-        return false;
     }
-    return true;
+    return tiled && window->isResizable();
+}
+
+void WindowApplier::setTiledState(Layout::WindowId id, KWin::Window *window, bool tiled)
+{
+    if (tiled) {
+        m_tiledStates.insert(id, window);
+    } else {
+        m_tiledStates.remove(id);
+    }
+    setTiledEdges(window, tiled);
 }
 
 bool WindowApplier::consumeInFlightSize(Layout::WindowId id, const QSizeF &size)
@@ -225,6 +239,9 @@ void WindowApplier::forget(Layout::WindowId id)
     m_loggedTargets.remove(id);
     if (const QPointer<KWin::Window> window = m_parked.take(id)) {
         setExemptFromConfinement(window, false);
+    }
+    if (const QPointer<KWin::Window> window = m_tiledStates.take(id)) {
+        setTiledEdges(window, false);
     }
 }
 

@@ -51,6 +51,13 @@ class Client:
     def saw_strict_state(self):
         return "strict=1" in self.log.read_text()
 
+    def last_tiled_edges(self):
+        lines = [line for line in self.log.read_text().splitlines() if " tiled=" in line and not line.startswith("CHOSE")]
+        return int(lines[-1].split(" tiled=")[1].split()[0]) if lines else None
+
+    def acknowledged_tiled(self):
+        return any(" tiled=4 acknowledged=1" in line for line in self.log.read_text().splitlines())
+
     def forced_off(self):
         if not OVERRIDE.exists():
             return False
@@ -125,6 +132,27 @@ def unforced_window_keeps_its_size_and_follows_its_own_choice(checks, x11):
     client.resize(640, 480)
     checks.expect(wait_for(lambda: client.size() == (640.0, 480.0) and client.layout() == (640.0, 480.0), 10),
                   f"a fixed window that resizes itself while unforced is followed ({client.size()} vs {client.layout()})")
+    client.stop()
+
+
+def resizable_client_that_ignores_plain_sizes_is_tiled(checks):
+    client = Client(False, "resizable")
+    checks.expect(client.follows_layout(), f"a resizable window that ignores stateless sizes follows the layout ({client.size()} vs {client.layout()})")
+    checks.expect(client.acknowledged_tiled(), "it acknowledged a configure carrying all four tiled edges")
+    activate(client.title)
+    checks.equal(konveyor_action("toggle-window-floating"), "", "it floats")
+    checks.expect(wait_for(lambda: client.last_tiled_edges() == 0, 10), f"a floating window loses the tiled edges ({client.last_tiled_edges()})")
+    checks.equal(konveyor_action("toggle-window-floating"), "", "it tiles again")
+    checks.expect(wait_for(lambda: client.last_tiled_edges() == 4, 10), f"back in the layout it gets the tiled edges again ({client.last_tiled_edges()})")
+    checks.expect(client.follows_layout(), f"and follows the layout again ({client.size()} vs {client.layout()})")
+    konveyor_action("fullscreen-window")
+    checks.expect(wait_for(lambda: (window_state(client.title) or "").startswith("true|"), 10), "it can go fullscreen")
+    checks.expect(wait_for(lambda: client.last_tiled_edges() == 0 and client.size() == (1920.0, 1080.0), 10),
+                  f"fullscreen drops the tiled edges and covers the output ({client.last_tiled_edges()}, {client.size()})")
+    konveyor_action("fullscreen-window")
+    checks.expect(wait_for(lambda: (window_state(client.title) or "").startswith("false|"), 10), "and leave fullscreen")
+    checks.expect(wait_for(lambda: client.last_tiled_edges() == 4, 10), f"leaving fullscreen restores the tiled edges ({client.last_tiled_edges()})")
+    checks.expect(client.follows_layout(), f"back on the layout size ({client.size()} vs {client.layout()})")
     client.stop()
 
 
@@ -209,7 +237,7 @@ def scenario(function, x11):
 
 
 if __name__ == "__main__":
-    wayland_only = (ordinary_client_is_untouched,)
+    wayland_only = (resizable_client_that_ignores_plain_sizes_is_tiled, ordinary_client_is_untouched)
     shared = (forced_window_takes_the_layout_size, force_off_returns_to_declared_size, self_resize_while_forced_becomes_native,
               rapid_cycling_with_a_slow_client, unforced_window_keeps_its_size_and_follows_its_own_choice, fullscreen_still_works,
               native_size_is_remembered_per_app, own_choice_updates_the_stored_size, unforced_reopen_takes_the_declared_size)

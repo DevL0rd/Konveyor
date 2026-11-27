@@ -35,7 +35,8 @@ public:
     static QRectF frameFor(const Layout::WindowState &state);
 
 private:
-    bool keepsStrictSize(KWin::Window *window, const Layout::WindowState &state, const QRectF &frame);
+    bool keepsTiledState(KWin::Window *window, const Layout::WindowState &state, const QRectF &frame);
+    void setTiledState(Layout::WindowId id, KWin::Window *window, bool tiled);
     static QRectF placedFrame(const Layout::WindowState &state);
     void applyGeometry(KWin::Window *window, const QRectF &frame, const std::optional<QSizeF> &requestedSize, bool tiled, bool allowResize,
         bool fullscreenPresentation) const;
@@ -67,6 +68,7 @@ private:
     QHash<Layout::WindowId, double> m_overriddenOpacity;
     QHash<Layout::WindowId, LoggedTarget> m_loggedTargets;
     QHash<Layout::WindowId, QPointer<KWin::Window>> m_parked;
+    QHash<Layout::WindowId, QPointer<KWin::Window>> m_tiledStates;
     bool m_applying = false;
 };
 
