@@ -20,25 +20,25 @@
 
       forAllSystems = f:
         nixpkgs.lib.genAttrs supportedSystems (
-          system:
-          f {
-            inherit system;
-            pkgs = import nixpkgs {
-              inherit system;
-              config.allowUnfree = true;
-            };
-          }
+          system: f { inherit system; pkgs = nixpkgs.legacyPackages.${system}; }
         );
 
-      # A locked flake always has `rev`; path flakes (common in development)
-      # can have `rev = null`, so fall back to `shortRev` and finally "dev".
-      pluginSuffix =
-        if (self.rev or null) != null then
-          builtins.substring 0 7 self.rev
-        else if (self.shortRev or null) != null then
-          self.shortRev
-        else
-          "dev";
+      sourceRevision =
+        self.shortRev or self.dirtyShortRev
+          or (throw "Konveyor needs a git revision to name its KWin plugins uniquely; use a git checkout or a locked flake input");
+
+      pluginSuffix = nixpkgs.lib.replaceStrings [ "-" ] [ "_" ] sourceRevision;
+
+      cmakeVersion =
+        let
+          line = nixpkgs.lib.findFirst
+            (l: builtins.match "project\\(konveyor VERSION [0-9.]+ .*" l != null)
+            (throw "CMakeLists.txt has no project(konveyor VERSION ...) line")
+            (nixpkgs.lib.splitString "\n" (builtins.readFile ./CMakeLists.txt));
+        in
+        builtins.head (builtins.match "project\\(konveyor VERSION ([0-9.]+) .*" line);
+
+      version = "${cmakeVersion}-unstable-${builtins.substring 0 8 self.lastModifiedDate}-${sourceRevision}";
 
       makeKonveyor = { pkgs, ... }:
         let
@@ -50,7 +50,7 @@
         in
         pkgs.callPackage ./pkg {
           src = self;
-          inherit plasmaShared;
+          inherit plasmaShared version;
           pluginId = "konveyor_effect_${pluginSuffix}";
           telemetryPluginId = "process_monitor_telemetry_${pluginSuffix}";
         };
@@ -64,26 +64,24 @@
           inherit konveyor;
         };
 
-      nixosModule = { pkgs, ... }: {
+      nixosModule = { lib, pkgs, ... }: {
         imports = [ ./modules/nixos/konveyor.nix ];
-        _module.args.konveyorPackage =
-          self.packages.${pkgs.stdenv.hostPlatform.system}.konveyor;
+        programs.konveyor.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.konveyor;
       };
 
-      homeManagerModule = { pkgs, ... }: {
+      homeManagerModule = { lib, pkgs, ... }: {
         imports = [
           plasma-manager.homeModules.plasma-manager
           ./modules/home-manager/konveyor.nix
         ];
-        _module.args.konveyorPackage =
-          self.packages.${pkgs.stdenv.hostPlatform.system}.konveyor;
+        programs.konveyor.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.konveyor;
       };
     in
     {
       packages = forAllSystems packagesFor;
 
       overlays.default = final: prev: {
-        konveyor = self.packages.${prev.system}.konveyor;
+        konveyor = self.packages.${prev.stdenv.hostPlatform.system}.konveyor;
       };
 
       nixosModules = {
@@ -91,25 +89,13 @@
         konveyor = nixosModule;
       };
 
-      homeManagerModules = {
-        default = homeManagerModule;
-        konveyor = homeManagerModule;
-      };
-
-      # Alias used by some home-manager setups.
       homeModules = {
         default = homeManagerModule;
         konveyor = homeManagerModule;
       };
 
-      checks = forAllSystems ({ system, pkgs }: {
-        konveyor-passthru = pkgs.runCommand "konveyor-passthru-check" { } ''
-          plugin="${self.packages.${system}.konveyor.passthru.pluginId}"
-          telemetry="${self.packages.${system}.konveyor.passthru.telemetryPluginId}"
-          test "$plugin" = "konveyor_effect_${pluginSuffix}"
-          test "$telemetry" = "process_monitor_telemetry_${pluginSuffix}"
-          printf '%s\n%s\n' "$plugin" "$telemetry" > "$out"
-        '';
+      checks = forAllSystems ({ system, ... }: {
+        konveyor = self.packages.${system}.konveyor;
       });
     };
 }

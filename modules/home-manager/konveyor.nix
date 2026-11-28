@@ -1,4 +1,4 @@
-{ lib, pkgs, config, konveyorPackage ? null, ... }@args:
+{ lib, pkgs, config, ... }@args:
 
 let
   cfg = config.programs.konveyor;
@@ -10,6 +10,7 @@ let
 
   konveyor = cfg.package;
   widgets = "${konveyor}/share/konveyor/widgets";
+  sourceWidgets = "${konveyor.src}/widgets";
   pluginId = konveyor.passthru.pluginId;
   telemetryPluginId = konveyor.passthru.telemetryPluginId;
   konveyorPanel = "${widgets}/portals/kontrol-panel";
@@ -23,8 +24,8 @@ let
     else
       "${konveyor}/share/konveyor/default-config.kdl";
 
-  routerExample = builtins.fromJSON (builtins.readFile "${widgets}/router-monitor/config.example.json");
-  portalExample = builtins.fromJSON (builtins.readFile "${widgets}/portals/config.example.json");
+  routerExample = builtins.fromJSON (builtins.readFile "${sourceWidgets}/router-monitor/config.example.json");
+  portalExample = builtins.fromJSON (builtins.readFile "${sourceWidgets}/portals/config.example.json");
 
   # Mutable seeds: these files hold credentials/router details, so they are
   # created once and then owned by the widget settings UI rather than
@@ -48,7 +49,9 @@ let
     [General]
   '';
 
-  plasmoidDirs = [
+  kontrolPanelOnly = cfg.kontrolPanelOnly;
+
+  plasmoidDirs = lib.optionals (!kontrolPanelOnly) [
     "system-monitor/plasmoids/org.devl0rd.sysmon"
     "system-monitor/plasmoids/org.devl0rd.sysmon.overlay"
     "system-monitor/plasmoids/org.devl0rd.sysmon.panel"
@@ -77,7 +80,7 @@ let
     map (
       dir:
       let
-        metadata = builtins.fromJSON (builtins.readFile "${widgets}/${dir}/metadata.json");
+        metadata = builtins.fromJSON (builtins.readFile "${sourceWidgets}/${dir}/metadata.json");
       in
       {
         name = metadata.KPlugin.Id;
@@ -86,7 +89,14 @@ let
     ) plasmoidDirs
   );
 
-  commandPaths = [
+  kontrolPanelCommandPaths = [
+    "portals/bin/portal-games"
+    "portals/bin/portal-packages"
+    "portals/bin/portal-launcher"
+    "portals/bin/portal-friends"
+  ];
+
+  widgetCommandPaths = [
     "system-monitor/bin/sysmon-collect"
     "process-monitor/bin/procmon-collect"
     "router-monitor/bin/routermon-collect"
@@ -94,10 +104,6 @@ let
     "router-monitor/bin/routermon-config"
     "router-monitor/bin/routermon-speedtest"
     "system-log/bin/logmon-collect"
-    "portals/bin/portal-games"
-    "portals/bin/portal-packages"
-    "portals/bin/portal-launcher"
-    "portals/bin/portal-friends"
     "service/monitor-overlay"
     "screen-rotate/bin/linux-plasma-screen-rotate"
   ];
@@ -107,6 +113,8 @@ let
       ".local/share/plasma/plasmoids/${id}".source = path;
     }
   ) plasmoids;
+
+  commandPaths = kontrolPanelCommandPaths ++ lib.optionals (!kontrolPanelOnly) widgetCommandPaths;
 
   commandFiles = lib.listToAttrs (
     map (
@@ -139,10 +147,34 @@ in
     };
 
     package = lib.mkOption {
-      type = lib.types.nullOr lib.types.package;
-      default = konveyorPackage;
+      type = lib.types.package;
       defaultText = lib.literalExpression "inputs.konveyor.packages.<system>.konveyor";
-      description = "The Konveyor package whose widgets and binaries are wired up.";
+      description = ''
+        The Konveyor package whose widgets and binaries are wired up. The flake
+        module sets it to the flake's own package.
+      '';
+    };
+
+    kontrolPanelOnly = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Install only the Kontrol Panel, like `widgets/install.sh
+        --kontrol-panel-only`: its service, helper commands and friends
+        collector, without the widgets, the other collectors, the Games
+        shortcut or the desktop-widget hider.
+      '';
+    };
+
+    hideDesktopWidgets = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Replace Plasma's `org.kde.desktopcontainment` with a copy patched, at
+        build time, against the pinned Plasma so desktop widgets can hide while
+        windows cover the desktop. The widget installer does the same by
+        default. Ignored with `kontrolPanelOnly`.
+      '';
     };
 
     configKdl = lib.mkOption {
@@ -202,20 +234,7 @@ in
     };
   };
 
-  config = lib.mkIf (cfg.enable && cfg.package != null) {
-    assertions = [
-      {
-        assertion =
-          (cfg.package.passthru or { }) ? pluginId
-          && (cfg.package.passthru or { }) ? telemetryPluginId;
-        message = ''
-          The Konveyor package must expose passthru.pluginId and
-          passthru.telemetryPluginId. Use the package from this flake or
-          provide one with the same passthru values.
-        '';
-      }
-    ];
-
+  config = lib.mkIf cfg.enable {
     home.packages =
       with pkgs;
       [
@@ -259,15 +278,24 @@ in
       "services/org.devl0rd.portal.launcher.games.desktop"._launch = "Meta+G";
     };
 
-    xdg.configFile = lib.mkIf cfg.manageConfig {
-      "konveyor/config.kdl".source = defaultConfigSource;
-    };
+    xdg.configFile =
+      lib.optionalAttrs cfg.manageConfig {
+        "konveyor/config.kdl".source = defaultConfigSource;
+      }
+      // lib.optionalAttrs (!kontrolPanelOnly) {
+        "environment.d/konveyor-widgets.conf".text = ''
+          QML_XHR_ALLOW_FILE_READ=1
+        '';
+        "systemd/user/plasma-plasmashell.service.d/konveyor-widgets.conf".text = ''
+          [Service]
+          Environment=QML_XHR_ALLOW_FILE_READ=1
+        '';
+      };
 
-    # Home Manager's user units use the systemd section layout (Unit/Service/
-    # Install), not NixOS' description/serviceConfig shorthand. Widgets read
-    # their collectors' snapshots via QML XHR; QML_XHR_ALLOW_FILE_READ is set
-    # globally by the NixOS module and repeated here so collectors also work
-    # in a Plasma session started outside PAM.
+    # Widgets run inside plasmashell and read their collectors' snapshots with
+    # QML XHR, so plasmashell needs QML_XHR_ALLOW_FILE_READ, as the widget
+    # installer's configure_file_access sets it. The Kontrol Panel service
+    # sets it on its own unit.
     systemd.user.services = lib.mkIf cfg.enableServices {
       konveyor-widgets = {
         Unit = {
@@ -276,11 +304,10 @@ in
         };
         Service = {
           Type = "simple";
-          ExecStart = "${widgets}/service/konveyor-widgets";
+          ExecStart = "${widgets}/service/konveyor-widgets${lib.optionalString kontrolPanelOnly " portals"}";
           Restart = "always";
           RestartSec = 3;
           Nice = 19;
-          Environment = [ "QML_XHR_ALLOW_FILE_READ=1" ];
         };
         Install = {
           WantedBy = [ "default.target" ];
@@ -334,6 +361,7 @@ in
         NoDisplay=true
         X-KDE-Wayland-Interfaces=org_kde_plasma_window_management
       '';
+    } // lib.optionalAttrs (!kontrolPanelOnly) {
       "applications/org.devl0rd.portal.launcher.games.desktop".text = ''
         [Desktop Entry]
         Type=Application
@@ -347,27 +375,24 @@ in
       '';
     };
 
-    home.file = plasmoidFiles // commandFiles // {
-      # Patched Plasma desktop containment (desktop-widget hider).
+    home.file = plasmoidFiles // commandFiles // lib.optionalAttrs (cfg.hideDesktopWidgets && !kontrolPanelOnly) {
       ".local/share/plasma/plasmoids/org.kde.desktopcontainment".source =
         "${konveyor}/share/konveyor/desktop-containment/org.kde.desktopcontainment";
     };
 
     home.activation.konveyorSeedConfigs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       run ${pkgs.coreutils}/bin/mkdir -p \
-        "$HOME/.config/Linux-System-Monitor" \
-        "$HOME/.config/Linux-Process-Mon" \
-        "$HOME/.config/Linux-Router-Monitor" \
+        ${lib.optionalString (!kontrolPanelOnly) ''"$HOME/.config/Linux-System-Monitor" "$HOME/.config/Linux-Process-Mon" "$HOME/.config/Linux-Router-Monitor"''} \
         "$HOME/.config/Plasma-App-Portal" \
         "$HOME/.config/konveyor"
 
       ${lib.optionalString (!cfg.manageConfig) (seedFile ".config/konveyor/config.kdl" 644 defaultConfigSource)}
-      ${seedFile ".config/Linux-System-Monitor/config.json" 644 "${widgets}/system-monitor/config.example.json"}
-      ${seedFile ".config/Linux-Process-Mon/config.json" 644 "${widgets}/process-monitor/config.example.json"}
-      ${seedFile ".config/Linux-Router-Monitor/config.json" 600 routerSeed}
+      ${lib.optionalString (!kontrolPanelOnly) (seedFile ".config/Linux-System-Monitor/config.json" 644 "${widgets}/system-monitor/config.example.json")}
+      ${lib.optionalString (!kontrolPanelOnly) (seedFile ".config/Linux-Process-Mon/config.json" 644 "${widgets}/process-monitor/config.example.json")}
+      ${lib.optionalString (!kontrolPanelOnly) (seedFile ".config/Linux-Router-Monitor/config.json" 600 routerSeed)}
       ${seedFile ".config/Plasma-App-Portal/config.json" 600 portalSeed}
       ${seedFile ".config/konveyor/kontrolpanelrc" 644 kontrolPanelSeed}
-      ${seedFile ".config/konveyor/taskbarrc" 644 taskbarSeed}
+      ${lib.optionalString (!kontrolPanelOnly) (seedFile ".config/konveyor/taskbarrc" 644 taskbarSeed)}
     '';
 
     # Make the new .desktop entries (especially Meta+G) known to KDE without
