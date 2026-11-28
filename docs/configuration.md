@@ -211,6 +211,20 @@ Besides keys, binds take `MouseLeft`, `MouseRight`, `MouseMiddle`, `MouseBack`, 
 
 Mouse and wheel binds and the workspace keys (`focus-workspace`, `focus-workspace-up`/`down`/`previous`) act on the monitor under the pointer. Other key binds act on the focused window's monitor. `input { focus-keys-follow-mouse; }` sends the column and window focus keys (`focus-column-*` and `focus-window-*`, except `focus-window-previous`) to the monitor under the pointer too, so Meta+Left and Meta+Right walk that monitor's row. Settings → Mouse → **Focus shortcuts act on the screen under the pointer** turns it on.
 
+`input { warp-mouse-to-focus; }` moves the pointer along when a layout focus request (such as the focus keys) activates a window, so it is not left behind where you are no longer looking. It is off by default and does nothing while the pointer is on the window that took focus, except in `center-xy-always`. The `mode` property chooses where the pointer goes:
+
+- No mode (the default once the node is there): when the pointer is outside the focused window, it moves to the nearest point inside it, keeping its other coordinate where that already fits. Inside the window it stays put.
+- `mode="center-xy"`: when the pointer is outside the focused window, it jumps to the centre of the window. Inside the window it stays put.
+- `mode="center-xy-always"`: the pointer jumps to the centre of the focused window every time, even when it was already inside.
+
+```kdl
+input {
+    warp-mouse-to-focus mode="center-xy"
+}
+```
+
+Settings → Mouse → **Move the pointer with keyboard focus** has the four choices: **Leave it** (the node is absent), **Nudge inside** (no mode), **Center if outside** (`center-xy`) and **Always center** (`center-xy-always`).
+
 `gestures { edge-switch-columns { on; } }` switches columns with the mouse alone: rest the pointer against the left or right edge of a screen and, after `delay-ms` (300 by default), that screen focuses the next column that way, like `focus-column-left` and `focus-column-right`, so it also goes around the row while `wrap-columns` is on. It moves one column each time the pointer reaches the edge; move away and come back for the next one. The corners stay with hot corners and KDE's screen edge actions, the stretch beside a top or bottom panel does not count, and it does nothing while a button is held or a window or file is being dragged (dragging keeps its own edge scrolling), while a fullscreen window is focused, while the overview is open or while the screen is locked. `monitor-edges "outer"` (the default) only uses the outer edges of the whole desktop; `monitor-edges "all"` also uses the edges where two monitors meet, which switch when the pointer stops right on the border. It is off by default (`off` in the shipped config); Settings → Mouse → **Switch columns at the screen edges** turns it on, with **Wait at the edge** and **Edges between monitors** below it.
 
 ## Placing new windows
