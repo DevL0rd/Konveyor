@@ -314,6 +314,18 @@ void Engine::setFloatingFrame(WindowId id, const QRectF &frame)
     d->refresh();
 }
 
+void Engine::moveFloatingWindowToOutput(WindowId id, const QString &output)
+{
+    const auto target = d->monitorIndexByName(output);
+    const auto source = d->monitorIndexOf(id);
+    Workspace *workspace = d->workspaceOf(id);
+    if (!target || !source || *target == *source || !workspace || !workspace->isFloating(id)) {
+        return;
+    }
+    d->moveWindowToMonitor(id, *target, true, std::nullopt);
+    d->refresh();
+}
+
 void Engine::activateWindow(WindowId id)
 {
     qCInfo(lcKonveyor) << "konveyor: layout activating window" << id;

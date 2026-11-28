@@ -100,6 +100,9 @@ void KonveyorEffect::onInteractive(Layout::WindowId id, bool isMove, int phase)
 
 void KonveyorEffect::followFloatingWindow(Layout::WindowId id, KWin::Window *window, bool isMove, int phase)
 {
+    if (isMove && phase == interactivePhaseEnd) {
+        changeEngine().moveFloatingWindowToOutput(id, outputNameOf(window));
+    }
     if (phase == interactivePhaseEnd || (isMove && phase == interactivePhaseStep)) {
         changeEngine().setFloatingFrame(id, window->moveResizeGeometry());
     }

@@ -248,6 +248,7 @@ public:
     void windowSizeCommitted(WindowId id, const QSizeF &frameSize);
     void setWindowNativeSize(WindowId id, const QSizeF &frameSize);
     void setFloatingFrame(WindowId id, const QRectF &frame);
+    void moveFloatingWindowToOutput(WindowId id, const QString &output);
     void activateWindow(WindowId id);
     void setLayoutFocused(bool focused);
     void setWindowFullscreen(WindowId id, bool fullscreen);
