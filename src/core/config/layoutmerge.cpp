@@ -148,6 +148,9 @@ Layout mergedLayout(Layout base, const LayoutPart &part)
     if (part.focusRing) {
         mergeBorder(base.focusRing, *part.focusRing);
     }
+    if (part.focusRingTransition) {
+        base.focusRingTransition = *part.focusRingTransition;
+    }
     if (part.border) {
         mergeBorder(base.border, *part.border);
     }
