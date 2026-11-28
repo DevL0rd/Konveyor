@@ -60,11 +60,6 @@ std::optional<QSizeF> nonZeroSize(QSize size)
     return QSizeF(size);
 }
 
-}
-
-namespace
-{
-
 int stackingOrder(const Column &column, std::size_t tile)
 {
     if (!column.isTabbed() || tile < column.activeTileIndex) {
@@ -153,6 +148,7 @@ WindowState buildWindowState(
     const bool coversOutput = state.sizingMode == WindowMode::Fullscreen || state.requestedSizingMode == WindowMode::Fullscreen;
     const bool ringShown = window.isActivated() || window.isUrgent() || drawsOnInactiveWindows(tile.focusRingConfig());
     state.focusRing = decorationFor(tile.focusRingConfig(), ringShown && !coversOutput, window.isUrgent(), window.isActivated());
+    state.activeFocusRing = decorationFor(tile.focusRingConfig(), !coversOutput, window.isUrgent(), true);
     state.border
         = decorationFor(tile.borderConfig(), tile.borderThickness().has_value() && !coversOutput, window.isUrgent(), window.isActivated());
     state.eventEffects = workspace.options()->layout.eventEffects;
@@ -171,17 +167,15 @@ WindowState buildMovedWindowState(const Tile &tile, const Workspace &workspace, 
 
 }
 
-QList<WindowState> Engine::windowStates() const
+QList<WindowState> Engine::Private::windowStates() const
 {
     QList<WindowState> states;
-    for (std::size_t monitorIndex = 0; monitorIndex < d->monitors.size(); ++monitorIndex) {
-        const Monitor &monitor = d->monitors[monitorIndex];
-        const std::vector<double> renderOffsets = d->workspaceRenderOffsets(monitor);
-        const bool workspaceMotion = d->usesWorkspaceMotion(monitor);
+    for (const Monitor &monitor : monitors) {
+        const std::vector<double> renderOffsets = workspaceRenderOffsets(monitor);
+        const bool workspaceMotion = usesWorkspaceMotion(monitor);
         const double heightWithGap = monitor.workspaceHeightWithGap();
-        const QPointF origin = d->originOf(monitor.outputName());
+        const QPointF origin = originOf(monitor.outputName());
         const double viewHeight = monitor.area().viewSize.height();
-
         for (std::size_t idx = 0; idx < monitor.workspaces().size(); ++idx) {
             const Workspace &workspace = monitor.workspaces()[idx];
             WorkspaceRenderContext context;
@@ -193,11 +187,19 @@ QList<WindowState> Engine::windowStates() const
             context.index = static_cast<int>(idx) + 1;
             context.onActive = idx == monitor.activeWorkspaceIndex();
             context.visible = context.onActive || (workspaceMotion && context.renderY > -viewHeight && context.renderY < viewHeight);
-            d->appendWorkspaceStates(states, workspace, context);
+            const double distance = qAbs(monitor.transitionProgress() - static_cast<double>(idx));
+            const bool riding = monitor.isWorkspaceTransitioning() && distance < 1.0;
+            context.ringOpacity = riding ? workspaceRingOpacity(monitor.options()->layout.focusRingTransition, distance) : -1.0;
+            appendWorkspaceStates(states, workspace, context);
         }
     }
-    d->appendMovedWindowState(states);
+    appendMovedWindowState(states);
     return states;
+}
+
+QList<WindowState> Engine::windowStates() const
+{
+    return d->windowStates();
 }
 
 void Engine::Private::appendMovedWindowState(QList<WindowState> &states) const
@@ -295,6 +297,10 @@ void Engine::Private::appendWorkspaceStates(
         const Tile &tile = *ref.tile;
         WindowState state = buildWindowState(tile, workspace, context, ref.pos, targets.value(tile.id(), ref.pos));
         state.visible = context.visible && ref.visible;
+        if (context.ringOpacity >= 0.0 && workspace.activeWindow() == state.id) {
+            state.focusRing = state.activeFocusRing;
+            state.focusRing.opacity = context.ringOpacity;
+        }
         const TileIndex index = indices.value(tile.id());
         state.columnIndex = index.column;
         state.tileIndex = index.tile;
@@ -359,27 +365,6 @@ QList<OutputState> Engine::outputStates() const
         states.append(state);
     }
     return states;
-}
-
-std::optional<QRectF> Engine::Private::dropHintRect(const Monitor &monitor) const
-{
-    if (!monitor.dropHint || !monitor.options()->layout.insertHint.enabled) {
-        return std::nullopt;
-    }
-    const DropHint &hint = *monitor.dropHint;
-    if (!hint.workspace.existing) {
-        return std::nullopt;
-    }
-    const auto idx = monitor.indexOfWorkspace(hint.workspace.id);
-    if (!idx) {
-        return std::nullopt;
-    }
-    const auto area = monitor.workspaces()[*idx].dropSlotRect(hint.position);
-    if (!area) {
-        return std::nullopt;
-    }
-    const std::vector<double> offsets = workspaceRenderOffsets(monitor);
-    return area->translated(originOf(monitor.outputName()) + QPointF(0.0, offsets[*idx]));
 }
 
 std::optional<WindowId> Engine::focusedWindow() const

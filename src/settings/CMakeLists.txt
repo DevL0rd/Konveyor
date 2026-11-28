@@ -102,6 +102,7 @@ ecm_target_qml_sources(konveyor_settings PATH catalog/index SOURCES
     qml/catalog/index/MonitorsIndex.js
     qml/catalog/index/MotionIndex.js
     qml/catalog/index/MouseIndex.js
+    qml/catalog/index/OverviewIndex.js
     qml/catalog/index/TouchIndex.js
     qml/catalog/index/PlasmaIndex.js
     qml/catalog/index/TaskbarIndex.js
@@ -194,6 +195,7 @@ ecm_target_qml_sources(konveyor_settings PATH pages SOURCES
     qml/pages/MotionPage.qml
     qml/pages/MousePage.qml
     qml/pages/OutputOverridePage.qml
+    qml/pages/OverviewPage.qml
     qml/pages/PlasmaPage.qml
     qml/pages/RuleEditorPage.qml
     qml/pages/RulesPage.qml

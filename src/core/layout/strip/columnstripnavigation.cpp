@@ -33,6 +33,28 @@ bool ColumnStrip::focusRight(bool wrap)
     return target.has_value();
 }
 
+bool ColumnStrip::panView(double delta)
+{
+    if (m_columns.empty() || delta == 0.0) {
+        return false;
+    }
+    const double currentPos = scrollPosition();
+    const double viewWidth = m_area.workingArea.width();
+    const double minPos = 0.0;
+    const std::size_t last = m_columns.size() - 1;
+    const double totalWidth = columnOffset(last) + m_columns[last].width() - m_area.workingArea.x();
+    const double maxPos = std::max(minPos, totalWidth - viewWidth);
+    const double nextPos = std::clamp(currentPos + delta, minPos, maxPos);
+    const double activeX = columnOffset(m_activeColumnIndex);
+    const double nextOffset = nextPos - activeX;
+    if (qFuzzyCompare(nextOffset, m_scroll.current())) {
+        return false;
+    }
+    m_overviewPanned = true;
+    m_scroll.setIdle(nextOffset);
+    return true;
+}
+
 void ColumnStrip::focusColumnFirst()
 {
     activateColumn(0);

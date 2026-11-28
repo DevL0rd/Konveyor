@@ -19,6 +19,7 @@ Kirigami.Dialog {
     property int cooldown: 0
     property string cheatsheetTitle
     property bool hideFromCheatsheet: false
+    property string fixedAction: ""
 
     readonly property var action: actionNode ? Actions.byId(actionNode.name) : null
     readonly property var clash: keyName.length ? binds.find(bind => bind.name !== originalKey
@@ -40,8 +41,12 @@ Kirigami.Dialog {
     function openFor(bind) {
         originalKey = bind ? bind.name : "";
         keyName = originalKey;
-        const node = bind && bind.children && bind.children.length ? bind.children[0] : null;
-        actionNode = node ? { name: node.name, args: node.args || [], props: node.props || {} } : null;
+        if (dialog.fixedAction.length) {
+            actionNode = { name: dialog.fixedAction, args: [], props: {} };
+        } else {
+            const node = bind && bind.children && bind.children.length ? bind.children[0] : null;
+            actionNode = node ? { name: node.name, args: node.args || [], props: node.props || {} } : null;
+        }
         const props = bind ? bind.props || {} : {};
         repeat = props.repeat !== false;
         cooldown = props["cooldown-ms"] || 0;
@@ -80,7 +85,9 @@ Kirigami.Dialog {
     }
 
     parent: QQC2.Overlay.overlay
-    title: originalKey.length ? "Edit shortcut" : "Add shortcut"
+    title: dialog.fixedAction.length
+        ? (originalKey.length ? "Change shortcut" : "Set shortcut")
+        : (originalKey.length ? "Edit shortcut" : "Add shortcut")
     preferredWidth: Kirigami.Units.gridUnit * 38
     maximumHeight: Kirigami.Units.gridUnit * 40
     padding: Kirigami.Units.largeSpacing * 2
@@ -155,22 +162,26 @@ Kirigami.Dialog {
 
         Kirigami.Separator {
             Layout.fillWidth: true
+            visible: dialog.fixedAction.length === 0
         }
 
         Kirigami.Heading {
             level: 4
             text: "Action"
+            visible: dialog.fixedAction.length === 0
         }
 
         ActionPicker {
             id: picker
             Layout.fillWidth: true
+            visible: dialog.fixedAction.length === 0
             current: dialog.actionNode ? dialog.actionNode.name : ""
             onPicked: actionId => dialog.actionNode = { name: actionId, args: [], props: {} }
         }
 
         ActionArguments {
             Layout.fillWidth: true
+            visible: dialog.fixedAction.length === 0
             action: dialog.action
             args: dialog.actionNode ? dialog.actionNode.args || [] : []
             props: dialog.actionNode ? dialog.actionNode.props || {} : {}

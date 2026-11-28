@@ -96,7 +96,8 @@ void TestSettingsPagesQml::loadsWithoutWarnings()
     };
     const QStringList ids {QStringLiteral("layout"), QStringLiteral("appearance"), QStringLiteral("motion"), QStringLiteral("mouse"),
         QStringLiteral("touch"), QStringLiteral("shortcuts"), QStringLiteral("rules"), QStringLiteral("monitors"),
-        QStringLiteral("workspaces"), QStringLiteral("taskbar"), QStringLiteral("plasma"), QStringLiteral("experiments")};
+        QStringLiteral("workspaces"), QStringLiteral("overview"), QStringLiteral("taskbar"), QStringLiteral("plasma"),
+        QStringLiteral("experiments")};
     const QString pagesSource = SettingsHome::read(m_home.sourcePath(QStringLiteral("catalog/Pages.js")));
     QCOMPARE(pagesSource.count(QStringLiteral("{ id: \"")), ids.size());
     for (const QString &id : ids) {

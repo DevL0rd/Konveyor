@@ -68,6 +68,11 @@ void KonveyorEffect::installInputFilter()
         },
         [this](int key, bool pressed, Qt::KeyboardModifiers modifiers) { return handlePeekKey(key, pressed, modifiers); },
         [this](bool used) { return handlePeekPointer(used); },
+        [this](const QPointF &position, Qt::Orientation orientation, qreal delta, qint32 deltaV120, bool finger,
+            Qt::KeyboardModifiers modifiers) { return handleOverviewAxis(position, orientation, delta, deltaV120, finger, modifiers); },
+        [this](const QPointF &position, Qt::MouseButton button, bool pressed) { return handleOverviewButton(position, button, pressed); },
+        [this](const QPointF &position) { return handleOverviewMotion(position); },
+        [this](int key, bool pressed, Qt::KeyboardModifiers modifiers) { return handleOverviewKey(key, pressed, modifiers); },
     });
     d->axisInput = std::make_unique<AxisFilter>(pointerBind);
     d->dragMotion = std::make_unique<DragMotionFilter>([this](const QPointF &position, qint64 timestampMs) {
@@ -236,6 +241,9 @@ void KonveyorEffect::connectDragAndDrop()
     connect(KWin::waylandServer(), &KWin::WaylandServer::lockStateChanged, this, [this] {
         if (KWin::waylandServer()->isScreenLocked()) {
             runPeekStep(d->peekKey.reset());
+            if (readEngine().isOverviewOpen()) {
+                changeEngine().setOverviewOpen(false);
+            }
         }
     });
 }
@@ -251,6 +259,20 @@ void KonveyorEffect::connectOutputs()
 
 void KonveyorEffect::connectDesktopSync()
 {
+    d->desktops.setCurrentDesktopChangeGuard([this](const QString &output, const DesktopSync::CurrentDesktopChange &change) {
+        KWin::Effect *previous = KWin::effects->activeFullScreenEffect();
+        const bool suppress = readEngine().isWorkspaceTransitioning(output) && previous == nullptr;
+        if (suppress) {
+            d->slideSuppression = true;
+            KWin::effects->setActiveFullScreenEffect(this);
+        }
+        change();
+        if (suppress) {
+            d->slideSuppression = false;
+            KWin::effects->setActiveFullScreenEffect(previous);
+            KWin::effects->addRepaintFull();
+        }
+    });
     connect(&d->desktops, &DesktopSync::workspaceActivatedByUser, this, [this](const QString &output, int index) {
         qCInfo(lcKonveyor) << "konveyor: KDE switched to desktop" << index << "on" << output;
         changeEngine().focusWorkspace(output, index);

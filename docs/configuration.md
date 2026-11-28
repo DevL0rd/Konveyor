@@ -46,6 +46,14 @@ output "DP-2" {
 
 The default config ships two: `Default-Style` for the focused window's ring and `Default-Attention-Style` for windows that want attention, on a 2 pixel wide `focus-ring`. Existing configs that still have the old default ring (width 4, accent color, no style) get the same setup once; anything you changed is kept.
 
+`focus-ring-transition` sets what happens to the focused window's ring while the workspaces move. The ring follows the live visible workspace, so keyboard switches and touchpad and edge-scroll gestures behave the same, and a swipe pulled back brings the ring back with it. `"ride"` (the default) keeps each ring on its window as it moves. `"crossfade"` fades the old ring out as the new one fades in, following the switch in both directions. `"delayed"` shows no focused ring until the motion stops, then the new window's ring appears. It changes only the focus ring, never `border`. It follows the usual `layout`, `monitor-profile`, `output` and `workspace` levels.
+
+```kdl
+layout {
+    focus-ring-transition "crossfade"
+}
+```
+
 Settings → Appearance edits all of this without touching the file by hand: styles, their layers and colors, ready-made starting points, and which style the focus ring and border use for each state, including per-monitor and profile overrides. Window rule styles are set in the file.
 
 ```kdl
@@ -305,6 +313,25 @@ KDE and libinput have no multi-finger tap gesture, so Konveyor reads the touchpa
 The finger counts Konveyor uses take over the KDE gestures with the same count: by default the 3- and 4-finger swipes that switch virtual desktops and KDE's 4-finger swipe up for Overview. The pinch opens KDE's own Overview, as do Konveyor's hot corners and the `toggle-overview` action. Set a window or row swipe to `"off"` to give that gesture back to KDE. One-finger touch is left to apps: tapping focuses, and dragging a title bar scrolls the row or moves the window like the mouse does.
 
 If a config file has a mistake, Konveyor keeps running with the last good one and tells you what is wrong.
+
+## Overview
+
+Konveyor can replace KDE's overview with its own Niri-style one. It paints every workspace on every monitor in the order they are stacked, with the real windows at their real places, and lets you pan in both directions and drag windows between workspaces. Panels stay visible, and empty workspaces at the bottom (and top, with `empty-workspace-above-first`) are shown as blank cards.
+
+```kdl
+overview {
+    enabled true
+    // Smallest a window may get when the workspace stack is tall. 0.1 to 1.
+    minimum-scale 0.3
+    // Gap between workspace cards, as a fraction of the output height. 0 to 0.5.
+    card-gap 0.08
+    // How far two-finger touchpad swipes pan, per axis. 0.05 to 2. The mouse wheel keeps its own speed.
+    touchpad-scroll-speed-x 1.0
+    touchpad-scroll-speed-y 0.1
+}
+```
+
+The overview is off by default, so `toggle-overview`, the pinch and the hot corners keep opening KDE's overview. With `enabled true`, they open Konveyor's instead. The wheel pans vertically, Shift+wheel pans horizontally, and two fingers on a touchpad pan in both directions; `touchpad-scroll-speed-x` and `touchpad-scroll-speed-y` tune how far a swipe goes on each axis. Drag a window to another card to move it there, drag a card by its top strip to reorder workspaces, and use the arrow keys plus Enter to choose a window. Escape closes. Settings → Overview turns it on, sets the touchpad speeds, and picks the shortcut that opens the overview.
 
 ## Scripting
 

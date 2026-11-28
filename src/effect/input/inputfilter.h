@@ -26,6 +26,10 @@ struct InputHandlers
     std::function<void(bool, bool)> modifiersHeld;
     std::function<bool(int, bool, Qt::KeyboardModifiers)> peekKey;
     std::function<bool(bool)> peekPointer;
+    std::function<bool(const QPointF &, Qt::Orientation, qreal, qint32, bool, Qt::KeyboardModifiers)> overviewAxis;
+    std::function<bool(const QPointF &, Qt::MouseButton, bool)> overviewButton;
+    std::function<bool(const QPointF &)> overviewMotion;
+    std::function<bool(int, bool, Qt::KeyboardModifiers)> overviewKey;
 };
 
 class InputFilter : public KWin::InputEventFilter

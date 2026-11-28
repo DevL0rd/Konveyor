@@ -3,6 +3,7 @@
 .import "index/AppearanceIndex.js" as AppearanceIndex
 .import "index/MotionIndex.js" as MotionIndex
 .import "index/MouseIndex.js" as MouseIndex
+.import "index/OverviewIndex.js" as OverviewIndex
 .import "index/TouchIndex.js" as TouchIndex
 .import "index/ShortcutsIndex.js" as ShortcutsIndex
 .import "index/RulesIndex.js" as RulesIndex
@@ -14,7 +15,8 @@
 
 const entries = [].concat(
     LayoutIndex.entries, AppearanceIndex.entries, MotionIndex.entries, MouseIndex.entries, TouchIndex.entries, ShortcutsIndex.entries,
-    RulesIndex.entries, MonitorsIndex.entries, WorkspacesIndex.entries, TaskbarIndex.entries, PlasmaIndex.entries, ExperimentsIndex.entries);
+    RulesIndex.entries, MonitorsIndex.entries, WorkspacesIndex.entries, OverviewIndex.entries, TaskbarIndex.entries,
+    PlasmaIndex.entries, ExperimentsIndex.entries);
 
 function search(query) {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);

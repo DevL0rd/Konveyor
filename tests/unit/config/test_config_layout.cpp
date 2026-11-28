@@ -15,6 +15,7 @@ private Q_SLOTS:
     void emptyBorderSectionEnablesBorder();
     void borderOffKeepsBorderDisabled();
     void parsesTabIndicatorAndInsertHint();
+    void parsesFocusRingTransition();
     void parsesStrutsPartially();
     void rejectsOutOfRangeValues_data();
     void rejectsOutOfRangeValues();
@@ -105,6 +106,21 @@ void TestConfigLayout::borderOffKeepsBorderDisabled()
 
     const Config ring = parsed(QStringLiteral("layout { focus-ring { off; }; }"));
     QCOMPARE(ring.layout.focusRing.enabled, false);
+}
+
+void TestConfigLayout::parsesFocusRingTransition()
+{
+    QCOMPARE(parsed(QStringLiteral("layout {}")).layout.focusRingTransition, FocusRingTransition::Ride);
+    QCOMPARE(parsed(QStringLiteral("layout { focus-ring-transition \"ride\"; }")).layout.focusRingTransition, FocusRingTransition::Ride);
+    QCOMPARE(parsed(QStringLiteral("layout { focus-ring-transition \"crossfade\"; }")).layout.focusRingTransition,
+        FocusRingTransition::Crossfade);
+    QCOMPARE(
+        parsed(QStringLiteral("layout { focus-ring-transition \"delayed\"; }")).layout.focusRingTransition, FocusRingTransition::Delayed);
+    const LoadError error = mustFail(QStringLiteral("layout { focus-ring-transition \"spin\"; }"));
+    QVERIFY2(error.message.contains(QStringLiteral("expected one of")), qPrintable(error.message));
+    QVERIFY2(error.message.contains(QStringLiteral("ride")) && error.message.contains(QStringLiteral("crossfade"))
+            && error.message.contains(QStringLiteral("delayed")),
+        qPrintable(error.message));
 }
 
 void TestConfigLayout::parsesTabIndicatorAndInsertHint()

@@ -38,6 +38,12 @@ const QStringList &columnDisplays()
     return displays;
 }
 
+const QStringList &focusRingTransitions()
+{
+    static const QStringList transitions {QStringLiteral("ride"), QStringLiteral("crossfade"), QStringLiteral("delayed")};
+    return transitions;
+}
+
 PresetSize decodePresetSize(const Kdl::Node &node)
 {
     if (node.name == QLatin1String("proportion")) {
@@ -96,6 +102,9 @@ void addLayoutSizingHandlers(NodeTable &table, LayoutPart &part)
 void addLayoutAppearanceHandlers(NodeTable &table, LayoutPart &part)
 {
     table.insert(QStringLiteral("focus-ring"), [&part](const Kdl::Node &node) { part.focusRing = decodeBorderRule(node); });
+    table.insert(QStringLiteral("focus-ring-transition"), [&part](const Kdl::Node &node) {
+        part.focusRingTransition = static_cast<FocusRingTransition>(keywordArgument(node, focusRingTransitions()));
+    });
     table.insert(QStringLiteral("border"), [&part](const Kdl::Node &node) { part.border = decodeBorderRule(node); });
     table.insert(QStringLiteral("event-effects"), [&part](const Kdl::Node &node) { part.eventEffects = decodeEventEffects(node); });
     table.insert(QStringLiteral("tab-indicator"), [&part](const Kdl::Node &node) { part.tabIndicator = decodeTabIndicatorPart(node); });

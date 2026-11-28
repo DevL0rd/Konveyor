@@ -2,6 +2,7 @@
 
 #include "config/types/binds.h"
 #include "config/types/borderstyle.h"
+#include "config/types/overview.h"
 
 #include <QList>
 #include <QString>
@@ -35,6 +36,7 @@ struct Config
     bool disableMinimize = false;
     double audioBeatThreshold = 1.4;
     Experiments experiments;
+    Overview overview;
     QList<OutputConfig> outputs;
     QList<MonitorProfile> monitorProfiles;
     QList<NamedWorkspace> workspaces;

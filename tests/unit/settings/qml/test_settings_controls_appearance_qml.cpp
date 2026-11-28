@@ -27,6 +27,9 @@ void TestSettingsControlsAppearanceQml::controls_data()
         {"AppearancePage", "Show border", "switched", "[true]", "layout/border",
             R"({"children":["width","active-color","inactive-color","urgent-color","on"]})"});
     addControl("ring width", {"AppearancePage", "Thickness", "edited", "[6.4]", "layout/focus-ring/width", R"({"args":[6]})"});
+    addControl("ring transition",
+        {"AppearancePage", "Moving between workspaces", "chosen", R"(["crossfade"])", "layout/focus-ring-transition",
+            R"({"args":["crossfade"]})"});
     addControl("border width", {"AppearancePage", "Thickness", "edited", "[2]", "layout/border/width", R"({"args":[2]})", nullptr, 1});
     addControl(
         "ring gradient", {"AppearancePage", "Focused window", "chosen", R"(["gradient"])", "layout/focus-ring/active-gradient", gradient});
@@ -161,6 +164,18 @@ void TestSettingsControlsAppearanceQml::controls_data()
     addControl("five tap",
         {"TouchPage", "Tap with 5 fingers", "chosen", R"(["cycle-width"])", "gestures/touchpad/five-finger-tap",
             R"({"args":["cycle-width"]})"});
+    addControl("overview on",
+        {"OverviewPage", "Use Konveyor's overview instead of KDE's", "switched", "[true]", "overview/enabled", R"({"args":[]})"});
+    addControl("overview off",
+        {"OverviewPage", "Use Konveyor's overview instead of KDE's", "switched", "[false]", "overview/enabled", "null",
+            "overview { enabled; }\n"});
+    addControl(
+        "overview scale", {"OverviewPage", "Smallest window scale", "edited", "[0.46]", "overview/minimum-scale", R"({"args":[0.46]})"});
+    addControl("overview gap", {"OverviewPage", "Space between workspaces", "edited", "[0.22]", "overview/card-gap", R"({"args":[0.22]})"});
+    addControl("overview touchpad speed x",
+        {"OverviewPage", "Touchpad speed across", "edited", "[0.35]", "overview/touchpad-scroll-speed-x", R"({"args":[0.35]})"});
+    addControl("overview touchpad speed y",
+        {"OverviewPage", "Touchpad speed up and down", "edited", "[0.35]", "overview/touchpad-scroll-speed-y", R"({"args":[0.35]})"});
 }
 
 QTEST_MAIN(TestSettingsControlsAppearanceQml)
