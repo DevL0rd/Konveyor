@@ -159,6 +159,11 @@ void KonveyorEffect::connectWindowLifecycle()
         }
     });
     connect(&d->windows, &WindowRegistry::activeWindowChanged, this, &KonveyorEffect::onActiveWindowChanged);
+    connect(KWin::workspace(), &KWin::Workspace::stackingOrderChanged, this, [this] {
+        if (!d->applier.isApplying()) {
+            d->applier.restack(readEngine().windowStates());
+        }
+    });
 }
 
 void KonveyorEffect::connectWindowState()

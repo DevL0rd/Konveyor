@@ -2,6 +2,9 @@
 
 #include "xdg-toplevel-tag-v1-client-protocol.h"
 
+#include <cstdlib>
+#include <vector>
+
 namespace
 {
 
@@ -10,6 +13,7 @@ struct Overlay
     wl_display *display = nullptr;
     XdgGlobals globals;
     xdg_toplevel_tag_manager_v1 *tags = nullptr;
+    std::vector<wl_output *> outputs;
     wl_surface *surface = nullptr;
     wl_buffer *buffer = nullptr;
     int width = 600;
@@ -19,6 +23,10 @@ struct Overlay
 
 void bindTagManager(void *data, wl_registry *registry, uint32_t name, const char *interface, uint32_t)
 {
+    if (std::strcmp(interface, wl_output_interface.name) == 0) {
+        static_cast<Overlay *>(data)->outputs.push_back(
+            static_cast<wl_output *>(wl_registry_bind(registry, name, &wl_output_interface, 1)));
+    }
     if (std::strcmp(interface, xdg_toplevel_tag_manager_v1_interface.name) == 0) {
         static_cast<Overlay *>(data)->tags
             = static_cast<xdg_toplevel_tag_manager_v1 *>(wl_registry_bind(registry, name, &xdg_toplevel_tag_manager_v1_interface, 1));
@@ -66,7 +74,7 @@ constexpr xdg_toplevel_listener toplevelListener {toplevelConfigure, toplevelClo
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
+    if (argc != 3 && argc != 4) {
         return 2;
     }
     Overlay overlay;
@@ -87,7 +95,15 @@ int main(int argc, char **argv)
     xdg_toplevel_set_title(toplevel, argv[1]);
     xdg_toplevel_set_app_id(toplevel, "konveyor-tagged-overlay-test");
     xdg_toplevel_tag_manager_v1_set_toplevel_tag(overlay.tags, toplevel, argv[2]);
-    xdg_toplevel_set_fullscreen(toplevel, nullptr);
+    wl_output *output = nullptr;
+    if (argc == 4) {
+        const std::size_t index = std::strtoul(argv[3], nullptr, 10);
+        if (index >= overlay.outputs.size()) {
+            return 5;
+        }
+        output = overlay.outputs[index];
+    }
+    xdg_toplevel_set_fullscreen(toplevel, output);
     wl_surface_commit(overlay.surface);
     while (!overlay.closed && wl_display_dispatch(overlay.display) >= 0) { }
     return 0;

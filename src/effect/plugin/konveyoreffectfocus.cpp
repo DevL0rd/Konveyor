@@ -105,6 +105,9 @@ void KonveyorEffect::followActiveOutput(const QString &name)
     if (d->windows.idOf(active)) {
         return;
     }
+    if (active) {
+        changeEngine().setLayoutFocused(false);
+    }
     changeEngine().focusOutput(name);
 }
 

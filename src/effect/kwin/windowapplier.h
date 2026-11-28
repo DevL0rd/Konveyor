@@ -27,6 +27,7 @@ public:
     ~WindowApplier();
 
     void apply(const QList<Layout::WindowState> &states);
+    void restack(const QList<Layout::WindowState> &states);
     bool isApplying() const;
     bool isEchoOfAppliedSize(Layout::WindowId id, const QSizeF &size) const;
     bool consumeInFlightSize(Layout::WindowId id, const QSizeF &size);

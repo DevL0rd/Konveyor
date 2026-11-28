@@ -19,6 +19,7 @@
 #include <QScopedValueRollback>
 
 #include <algorithm>
+#include <tuple>
 #include <utility>
 
 namespace Konveyor
@@ -362,25 +363,36 @@ void WindowApplier::applySizingMode(KWin::Window *window, const Layout::WindowSt
     }
 }
 
+void WindowApplier::restack(const QList<Layout::WindowState> &states)
+{
+    const QScopedValueRollback guard(m_applying, true);
+    applyStacking(states);
+}
+
 void WindowApplier::applyStacking(const QList<Layout::WindowState> &states)
 {
     QList<const Layout::WindowState *> ordered;
     for (const Layout::WindowState &state : states) {
         ordered.append(&state);
     }
-    std::ranges::stable_sort(ordered, {}, &Layout::WindowState::stackingIndex);
+    std::ranges::stable_sort(ordered, [](const Layout::WindowState *a, const Layout::WindowState *b) {
+        return std::tie(a->output, a->workspace, a->stackingIndex) < std::tie(b->output, b->workspace, b->stackingIndex);
+    });
     qsizetype lowerGroupTop = -1;
     qsizetype currentGroupTop = -1;
-    std::optional<int> currentIndex;
+    const Layout::WindowState *previous = nullptr;
     for (const Layout::WindowState *state : ordered) {
         KWin::Window *window = m_windows.windowOf(state->id);
         if (!window) {
             continue;
         }
-        if (currentIndex != state->stackingIndex) {
+        if (!previous || previous->output != state->output || previous->workspace != state->workspace) {
+            lowerGroupTop = -1;
+            currentGroupTop = -1;
+        } else if (previous->stackingIndex != state->stackingIndex) {
             lowerGroupTop = std::max(lowerGroupTop, currentGroupTop);
-            currentIndex = state->stackingIndex;
         }
+        previous = state;
         if (KWin::workspace()->stackingOrder().indexOf(window) < lowerGroupTop) {
             KWin::workspace()->raiseWindow(window);
         }
