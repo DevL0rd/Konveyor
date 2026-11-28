@@ -57,12 +57,13 @@ build_inputs() {
 mkdir -p "$KONVEYOR_STATE_DIR"
 exec 9>"$KONVEYOR_REBUILD_LOCK"
 flock 9
+exec > >(tee "$KONVEYOR_REBUILD_LOG") 2>&1
 
 if [[ ! -d $source_dir ]]; then
     if [[ -d $home ]]; then
         log "source checkout $source_dir is gone, removing Konveyor's system update hook"
         remove_system_updates
-        rm -f "$KONVEYOR_BUILT_FOR" "$KONVEYOR_BUILD_FAILED" "$KONVEYOR_REBUILD_LOCK"
+        rm -f "$KONVEYOR_BUILT_FOR" "$KONVEYOR_BUILD_FAILED" "$KONVEYOR_REBUILD_LOCK" "$KONVEYOR_REBUILD_LOG"
         rmdir --ignore-fail-on-non-empty "$KONVEYOR_STATE_DIR"
     else
         log "source checkout $source_dir is gone but the home of $owner is missing, skipping"
@@ -86,6 +87,7 @@ if $pulled || [[ $(system_fingerprint) != "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/nu
     inputs=$(build_inputs)
     if [[ $inputs == "$(cat "$KONVEYOR_BUILD_FAILED" 2>/dev/null)" ]]; then
         log "last build failed for these inputs, skipping; run ./install.sh to retry"
+        KONVEYOR_OWNER="$owner" notify_build_skipped "$source_dir"
         exit 0
     fi
     $pulled && SOURCE_DIR="$source_dir" copy_updater "$SUPPORT"
@@ -94,6 +96,7 @@ if $pulled || [[ $(system_fingerprint) != "$(cat "$KONVEYOR_BUILT_FOR" 2>/dev/nu
     if [[ $status -ne 0 ]]; then
         printf '%s\n' "$inputs" >"$KONVEYOR_BUILD_FAILED"
         log "the build failed; it won't be tried again until Konveyor or the system changes, or you run ./install.sh"
+        KONVEYOR_OWNER="$owner" notify_build_failed "$source_dir"
     fi
     exit "$status"
 fi

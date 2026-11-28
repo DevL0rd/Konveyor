@@ -151,6 +151,43 @@ class TestRebuild(HarnessTest):
         self.assertIn("last build failed for these inputs, skipping; run ./install.sh to retry", self.rebuild())
         self.assertEqual(self.attempts(), 1)
 
+    def critical_notifications(self):
+        notifications = [call for call in self.harness.calls("gdbus") if "org.freedesktop.Notifications.Notify" in call]
+        for call in notifications:
+            self.assertEqual(call[call.index("dialog-error") + 3:], ["[]", "{'urgency': <byte 2>}", "0"])
+        return [(call[call.index("dialog-error") + 1], call[call.index("dialog-error") + 2]) for call in notifications]
+
+    def test_a_failed_build_notifies_critically_with_the_log_and_the_retry(self):
+        (self.state / "built-for").write_text("kwin=6.6.0\n")
+        self.failing_installer()
+        self.rebuild(1)
+        (title, body), = self.critical_notifications()
+        self.assertEqual(title, "Konveyor rebuild failed")
+        self.assertIn(str(self.state / "rebuild.log"), body)
+        self.assertIn(f"run ./install.sh in {self.harness.source}", body)
+        self.assertIn("the build failed", (self.state / "rebuild.log").read_text())
+
+    def test_a_skipped_rebuild_after_a_failure_notifies_again(self):
+        (self.state / "built-for").write_text("kwin=6.6.0\n")
+        self.failing_installer()
+        self.rebuild(1)
+        self.rebuild()
+        titles = [title for title, _ in self.critical_notifications()]
+        self.assertEqual(titles, ["Konveyor rebuild failed", "Konveyor rebuild skipped"])
+        self.assertEqual(self.attempts(), 1)
+
+    def test_a_successful_rebuild_sends_no_failure_notification(self):
+        (self.state / "built-for").write_text("kwin=6.6.0\n")
+        self.rebuild()
+        self.assertEqual(self.critical_notifications(), [])
+
+    def test_a_notification_that_cannot_be_sent_is_logged_with_its_reason(self):
+        (self.state / "built-for").write_text("kwin=6.6.0\n")
+        self.failing_installer()
+        self.harness.environment["STUB_GDBUS_ERROR"] = "no notification service on the bus"
+        log = self.rebuild(1)
+        self.assertIn('could not send the "Konveyor rebuild failed" desktop notification: no notification service on the bus', log)
+
     def test_a_failed_build_is_retried_when_the_inputs_change(self):
         (self.state / "built-for").write_text("kwin=6.6.0\n")
         self.failing_installer()

@@ -84,6 +84,9 @@ def gdbus(arguments):
         return kwin(method, values)
     if destination == "org.kde.plasmashell":
         return plasma(values)
+    if destination == "org.freedesktop.Notifications" and os.environ.get("STUB_GDBUS_ERROR"):
+        print(os.environ["STUB_GDBUS_ERROR"], file=sys.stderr)
+        return 1
     return 0
 
 
