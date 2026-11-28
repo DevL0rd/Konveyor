@@ -6,10 +6,6 @@ import time
 from sysmon_sysfs import awake, hwdb_name, pci_slot, read
 
 _amd = {"card": None}
-# Raven/Raven2 and Picasso (SMU10). Their SMU firmware answers the kernel's
-# busy query with a value the kernel clamps to 100, so gpu_busy_percent reads
-# 100 even at idle; their load is measured from the engine time in fdinfo
-# instead. SMU10 also has no gpu_metrics, so they are known as APUs by this ID.
 _SMU10 = {0x15DD, 0x15D8}
 _ENGINES = ("gfx", "compute")
 
@@ -23,8 +19,11 @@ def _find_card():
     dev = max(cards, key=lambda d: read(os.path.join(d, "mem_info_vram_total")) or 0)
     name = read(os.path.join(dev, "product_name"), str) or "AMD " + (hwdb_name(dev) or "GPU")
     smu10 = read(os.path.join(dev, "device"), lambda text: int(text, 16)) in _SMU10
+    slot = pci_slot(dev) if smu10 else None
+    if smu10 and slot is None:
+        raise RuntimeError("PCI_SLOT_NAME is missing from %s, which the fdinfo load of a Raven or Picasso card needs" % os.path.join(dev, "uevent"))
     return {"dev": dev, "name": name, "hwmon": None, "apu": smu10, "clock_max": 0, "probed": False,
-            "slot": pci_slot(dev) if smu10 else None, "engines": None}
+            "slot": slot, "engines": None}
 
 
 def _engine_time(slot):
@@ -100,7 +99,8 @@ def amd_gpu(cpu_model=""):
     amdgpu card. On an APU the memory bar covers VRAM + GTT, since most of what
     the GPU uses is system RAM mapped through GTT. A runtime-suspended card is
     reported idle without touching any file that would wake it. On Raven and
-    Picasso the load comes from fdinfo, as gpu_busy_percent is stuck at 100."""
+    Picasso the load comes from fdinfo, as gpu_busy_percent is stuck at 100.
+    Raises RuntimeError when such a card has no PCI_SLOT_NAME in its uevent."""
     card = _amd["card"]
     if card is None or not os.path.exists(os.path.join(card["dev"], "gpu_busy_percent")):
         card = _amd["card"] = _find_card()

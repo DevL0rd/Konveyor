@@ -130,7 +130,9 @@ class TestSysmonAmdgpu(CollectorTest):
             self.module._amd["card"] = None
             dev = self.card(vram=(1 << 28, 1 << 30))
             self.fake.write(dev + "device", device + "\n")
-            (self.home / ("root" + dev + "gpu_metrics")).unlink()  # smu10 answers EOPNOTSUPP
+            self.fake.write(dev + "uevent", "PCI_SLOT_NAME=0000:0a:00.0\n")
+            self.fake.write("/proc/1/status", "\n")
+            (self.home / ("root" + dev + "gpu_metrics")).unlink()
             gpu = self.module.amd_gpu("AMD Ryzen 5 PRO 2400G with Radeon Vega Graphics")
             self.assertEqual((gpu["shared"], gpu["vram_used"], gpu["vram_total"]),
                              (True, (1 << 28) + (1 << 30), (1 << 30) + (8 << 30)))
@@ -156,19 +158,19 @@ class TestSysmonAmdgpu(CollectorTest):
         clock = FakeClock(until=1e9)
         self.start(clock.patch(self.module))
         self.client(100, 5, 1, gfx=1_000_000_000, compute=0)
-        self.client(100, 6, 1, gfx=1_000_000_000, compute=0)  # the same client on a second descriptor
-        self.client(200, 3, 7, slot="0000:03:00.0", gfx=0)  # another card
-        self.client(200, 4, None, gfx=0)  # not a DRM client
+        self.client(100, 6, 1, gfx=1_000_000_000, compute=0)
+        self.client(200, 3, 7, slot="0000:03:00.0", gfx=0)
+        self.client(200, 4, None, gfx=0)
         self.client(300, 1, 9, target="/home/user/notes.txt", gfx=0)
         self.client(300, 2, 9, compute="lots")
         self.fake.write("/proc/self/stat", "\n")
-        self.fake.write("/proc/400/status", "\n")  # a process whose descriptors can't be listed
+        self.fake.write("/proc/400/status", "\n")
         self.assertEqual(self.module.amd_gpu()["util"], 0)
-        self.assertEqual(self.module.amd_gpu()["util"], 0)  # no time has passed
+        self.assertEqual(self.module.amd_gpu()["util"], 0)
         clock.mono += 2
         self.client(100, 5, 1, gfx=1_300_000_000, compute=200_000_000)
         self.client(100, 6, 1, gfx=1_300_000_000, compute=200_000_000)
-        self.client(500, 9, 12, gfx=100_000_000)  # a client started since the last sample
+        self.client(500, 9, 12, gfx=100_000_000)
         self.assertEqual(self.module.amd_gpu()["util"], 20)
         clock.mono += 1
         for fd in (5, 6):
@@ -181,15 +183,16 @@ class TestSysmonAmdgpu(CollectorTest):
         self.start(clock.patch(self.module))
         link = self.home / "root/proc/100/fd/5"
         link.parent.mkdir(parents=True)
-        link.symlink_to("/dev/dri/renderD128")  # its fdinfo is gone
+        link.symlink_to("/dev/dri/renderD128")
         self.module.amd_gpu()
         clock.mono += 2
         self.assertEqual(self.module.amd_gpu()["util"], 0)
 
-    def test_a_raven_card_without_a_pci_address_keeps_the_kernel_busy_percent(self):
+    def test_a_raven_card_without_a_pci_address_fails_naming_the_missing_value(self):
         dev = self.raven()
         self.fake.write(dev + "uevent", "DRIVER=amdgpu\n")
-        self.assertEqual(self.module.amd_gpu()["util"], 100)
+        with self.assertRaisesRegex(RuntimeError, "PCI_SLOT_NAME"):
+            self.module.amd_gpu()
 
 
 if __name__ == "__main__":
