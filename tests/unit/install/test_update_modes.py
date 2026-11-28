@@ -37,7 +37,9 @@ class TestFinishUpdate(UpdateTest):
         self.assertEqual(self.harness.config("kwinrc")[("Plugins",)]["konveyor_effect_1Enabled"], "true")
         self.assertNotIn("process_monitor_telemetry_1Enabled", self.harness.config("kwinrc")[("Plugins",)])
         self.assertFalse((self.state / "update-pending").exists())
-        self.assertFalse((self.harness.home / ".local" / "share" / "konveyor" / "widgets").exists())
+        self.assertTrue((self.harness.home / ".config" / "systemd" / "user" / "konveyor-kontrol-panel.service").exists())
+        self.assertFalse((self.harness.home / ".local" / "bin" / "sysmon-collect").exists())
+        self.assertFalse((self.harness.home / ".local" / "share" / "plasma" / "plasmoids").exists())
         self.assertEqual(self.notifications(self.harness.calls()), ["Konveyor updated"])
 
     def test_finishing_updates_the_widgets_without_restarting_plasma(self):
@@ -58,6 +60,14 @@ class TestFinishUpdate(UpdateTest):
 
 
 class TestSystemUpdate(UpdateTest):
+    def record_widget_installer(self):
+        recorder = self.harness.source / "widgets" / "install.sh"
+        recorder.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >>{self.harness.root / "widget-installs"}\n')
+        recorder.chmod(0o755)
+
+    def widget_installs(self):
+        return (self.harness.root / "widget-installs").read_text().splitlines()
+
     def system_update(self, **environment):
         return self.harness.install("--system-update", root=True, env={"KONVEYOR_SOURCE_DIR": str(self.harness.source), **environment})
 
@@ -70,9 +80,11 @@ class TestSystemUpdate(UpdateTest):
 
     def test_it_rebuilds_and_finishes_in_the_running_session(self):
         self.options("false")
+        self.record_widget_installer()
         self.harness.start_session()
         result = self.system_update(KONVEYOR_OWNER="tester")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.widget_installs(), ["--kontrol-panel-only"])
         calls = self.harness.calls()
         builds = [call for call in calls if call[0] == "runuser" and "cmake" in call]
         self.assertEqual([call[call.index("cmake") + 1] for call in builds], ["-S", "--build"])
@@ -86,6 +98,7 @@ class TestSystemUpdate(UpdateTest):
 
     def test_an_install_without_widgets_gets_no_frame_telemetry_plugin_from_an_update(self):
         self.options("false")
+        self.record_widget_installer()
         self.harness.start_session()
         self.assertSucceeded(self.system_update(KONVEYOR_OWNER="tester"))
         plugins = self.harness.prefix / "lib" / "plugins" / "kwin" / "effects" / "plugins"

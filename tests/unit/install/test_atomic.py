@@ -144,7 +144,7 @@ class TestSessionPaths(AtomicTest):
         self.assertEqual((updater / "install-prefix").read_text(), f"{self.harness.home}/.local\n")
         unit = (self.harness.home / ".config" / "systemd" / "user" / "konveyor-login-update.service").read_text()
         self.assertIn(f"Environment=KONVEYOR_SOURCE_DIR={self.harness.home}/.local/share/konveyor/source\n", unit)
-        self.assertEqual(self.harness.stub_state("systemd")["enabled"], ["konveyor-login-update.service"])
+        self.assertEqual(self.harness.stub_state("systemd")["enabled"], ["konveyor-kontrol-panel.service", "konveyor-login-update.service", "konveyor-widgets.service"])
         self.assertEqual(self.harness.calls("sudo"), [])
 
 

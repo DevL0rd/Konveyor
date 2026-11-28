@@ -39,21 +39,25 @@ WIDGETS_DIR="$WIDGETS_RUNTIME_DIR"
 source "$WIDGETS_DIR/lib.sh"
 
 RESTART_PLASMA=true
+KONTROL_PANEL_ONLY=false
 
 usage() {
     cat <<EOF
-Usage: widgets/install.sh [--no-restart]
+Usage: widgets/install.sh [--no-restart] [--kontrol-panel-only]
 
 Installs the Konveyor widgets, their collector service and helper commands.
 Run it again at any time to update them.
 
-  --no-restart  Leave Plasma running; the new widgets load on its next start
+  --no-restart          Leave Plasma running; the new widgets load on its next start
+  --kontrol-panel-only  Install only the Kontrol Panel: its service, shortcuts, helper commands and
+                        friends collector, without the widgets and without restarting Plasma
 EOF
 }
 
 for argument in "$@"; do
     case "$argument" in
     --no-restart) RESTART_PLASMA=false ;;
+    --kontrol-panel-only) KONTROL_PANEL_ONLY=true ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown option: $argument" ;;
     esac
@@ -62,9 +66,12 @@ done
 [[ $EUID -ne 0 ]] || die "run the widget installer as your normal user"
 [[ -e $SHARED_DIR/FileWatcher.qml ]] || die "widgets/shared/common is empty; run: git submodule update --init --recursive"
 
+REQUIRED_COMMANDS=(python3 kpackagetool6 kwriteconfig6 systemctl journalctl busctl gdbus kscreen-doctor jq ssh curl)
+$KONTROL_PANEL_ONLY && REQUIRED_COMMANDS=(python3 systemctl busctl)
+
 check_commands() {
     local missing=()
-    for command_name in python3 kpackagetool6 kwriteconfig6 systemctl journalctl busctl gdbus kscreen-doctor jq ssh curl; do
+    for command_name in "${REQUIRED_COMMANDS[@]}"; do
         command -v "$command_name" >/dev/null || missing+=("$command_name")
     done
     if ((${#missing[@]})); then
@@ -85,10 +92,6 @@ link_commands() {
     link_command router-monitor/bin/routermon-config
     link_command router-monitor/bin/routermon-speedtest
     link_command system-log/bin/logmon-collect
-    link_command portals/bin/portal-games
-    link_command portals/bin/portal-packages
-    link_command portals/bin/portal-launcher
-    link_command portals/bin/portal-friends
     link_command service/monitor-overlay
     install -m755 "$WIDGETS_DIR/screen-rotate/bin/linux-plasma-screen-rotate" "$BIN_DIR/linux-plasma-screen-rotate"
 }
@@ -97,24 +100,34 @@ create_configs() {
     seed_config system-monitor "Linux-System-Monitor"
     seed_config process-monitor "Linux-Process-Mon"
     seed_config router-monitor "Linux-Router-Monitor" "set your router host, user and AdGuard Home login there"
-    seed_config portals "Plasma-App-Portal" "paste your free Steam Web API key there (https://steamcommunity.com/dev/apikey)"
-    chmod 0600 "$CONFIG_HOME/Linux-Router-Monitor/config.json" "$CONFIG_HOME/Plasma-App-Portal/config.json"
+    chmod 0600 "$CONFIG_HOME/Linux-Router-Monitor/config.json"
+}
+
+install_kontrol_panel_alone() {
+    check_commands
+    prepare_kontrol_panel
+    install_collector_service portals
+    install_kontrol_panel
+    say "The Kontrol Panel is installed; the other Konveyor widgets are not"
 }
 
 main() {
+    if $KONTROL_PANEL_ONLY; then
+        install_kontrol_panel_alone
+        return
+    fi
     check_commands
     remove_keyboard_toggle
     link_commands
     create_configs
+    prepare_kontrol_panel
     push_router_collector
     configure_file_access
     install_collector_service
     install_plasmoids
     install_games_shortcut
     "$WIDGETS_DIR/desktop-hider/desktop-containment" install
-    python3 "$WIDGETS_DIR/service/panel-launcher" migrate "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc" "$KONTROL_PANEL_CONFIG"
-    take_launcher_keys
-    install_kontrol_panel_service
+    install_kontrol_panel
     if $RESTART_PLASMA; then
         take_over_launcher_and_restart
     else

@@ -21,6 +21,7 @@ KONTROL_PANEL_DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/$KONTRO
 KONTROL_PANEL_PROGRAM_DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/konveyor-kontrol-panel.desktop"
 PLASMA_LAUNCHER_ACTION=(plasmashell "activate application launcher" plasmashell "Activate Application Launcher")
 KONTROL_PANEL_KEYS=(16777250 150994992)
+KONTROL_PANEL_COMMANDS=(portals/bin/portal-launcher portals/bin/portal-games portals/bin/portal-packages portals/bin/portal-friends)
 LAUNCHER_KEYS_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/konveyor/launcher-keys"
 GAMES_ACTION=("$GAMES_DESKTOP_ID" _launch "Kontrol Panel: Games" "Kontrol Panel: Games")
 GRID_VIEW_ACTION=(kwin "Grid View" KWin "Toggle Grid View")
@@ -78,7 +79,7 @@ configure_file_access() {
 }
 
 install_collector_service() {
-    say "Installing $SERVICE (every widget collector in one process)"
+    say "Installing $SERVICE (${*:-every widget collector} in one process)"
     local unit
     for unit in "${LEGACY_SERVICES[@]}"; do
         if [[ -f $USER_UNITS/$unit ]]; then
@@ -96,7 +97,7 @@ After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 $WIDGETS_DIR/service/konveyor-widgets
+ExecStart=/usr/bin/python3 $WIDGETS_DIR/service/konveyor-widgets${*:+ $*}
 Restart=always
 RestartSec=3
 Nice=19
@@ -202,6 +203,16 @@ remove_kontrol_panel_service() {
     systemctl --user daemon-reload
 }
 
+prepare_kontrol_panel() {
+    local command_path
+    mkdir -p "$BIN_DIR"
+    for command_path in "${KONTROL_PANEL_COMMANDS[@]}"; do
+        link_command "$command_path"
+    done
+    seed_config portals "Plasma-App-Portal" "paste your free Steam Web API key there (https://steamcommunity.com/dev/apikey)"
+    chmod 0600 "$CONFIG_HOME/Plasma-App-Portal/config.json"
+}
+
 kglobalaccel() {
     busctl --user call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel "$@"
 }
@@ -237,6 +248,21 @@ take_launcher_keys() {
 restore_launcher_keys() {
     kglobalaccel unregister ss konveyor-kontrol-panel toggle >/dev/null 2>&1 || true
     give_back_foreign_keys "$LAUNCHER_KEYS_STATE" "${PLASMA_LAUNCHER_ACTION[@]}"
+}
+
+install_kontrol_panel() {
+    python3 "$WIDGETS_DIR/service/panel-launcher" migrate "$CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc" "$KONTROL_PANEL_CONFIG"
+    take_launcher_keys
+    install_kontrol_panel_service
+}
+
+remove_kontrol_panel() {
+    remove_kontrol_panel_service
+    restore_launcher_keys
+    local command_path
+    for command_path in "${KONTROL_PANEL_COMMANDS[@]}"; do
+        rm -f "$BIN_DIR/$(basename "$command_path")"
+    done
 }
 
 install_plasmoid() {

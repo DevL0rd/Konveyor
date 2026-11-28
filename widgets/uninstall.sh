@@ -27,8 +27,20 @@ PLASMOIDS=(
     dev.devl0rd.screenrotate org.devl0rd.taskbar
 )
 COMMANDS=(sysmon-collect procmon-collect routermon-collect routermon-ctl routermon-config routermon-speedtest logmon-collect
-    portal-games portal-packages portal-launcher portal-friends monitor-overlay linux-plasma-screen-rotate)
+    monitor-overlay linux-plasma-screen-rotate)
 RUNTIME_DIRS=(Linux-System-Monitor Linux-Process-Mon Linux-Router-Monitor Linux-Log-Monitor Plasma-App-Portal Konveyor-Monitor-Overlay)
+
+KEEP_KONTROL_PANEL=false
+for argument in "$@"; do
+    case "$argument" in
+    --keep-kontrol-panel) KEEP_KONTROL_PANEL=true ;;
+    -h | --help)
+        printf 'Usage: widgets/uninstall.sh [--keep-kontrol-panel]\n\nRemoves the Konveyor widgets, the Kontrol Panel and their commands.\n\n  --keep-kontrol-panel  Leave the Kontrol Panel, its shortcuts and its commands installed\n'
+        exit 0
+        ;;
+    *) die "unknown option: $argument" ;;
+    esac
+done
 
 [[ $EUID -ne 0 ]] || die "run the widget uninstaller as your normal user"
 
@@ -47,8 +59,7 @@ main() {
 
     remove_router_collector
     remove_games_shortcut
-    remove_kontrol_panel_service
-    restore_launcher_keys
+    $KEEP_KONTROL_PANEL || remove_kontrol_panel
 
     say "Removing widget commands and snapshots"
     local item

@@ -16,7 +16,8 @@ Usage: ./uninstall.sh [--purge] [--keep-widgets]
 Disables Konveyor in KWin, removes every installed file and uninstalls the Konveyor widgets.
 
   --purge         Also delete your config at ~/.config/konveyor
-  --keep-widgets  Leave the Konveyor widgets and their collector service installed
+  --keep-widgets  Leave the Konveyor widgets and their collector service installed; without the
+                  widgets the Kontrol Panel is removed with Konveyor
 EOF
 }
 
@@ -181,6 +182,7 @@ purge_config() {
 
 main() {
     parse_arguments "$@"
+    widgets_installed || WIDGETS=true
     [[ $EUID -ne 0 ]] || die "run uninstall.sh as your normal user; it asks for sudo when needed"
     KONVEYOR_PLUGIN_DIR=$(konveyor_plugin_dir)
     disable_in_kwin

@@ -124,6 +124,15 @@ class TestUninstall(HarnessTest):
         self.assertEqual(self.harness.config("kwinrc")[("Plugins",)]["process_monitor_telemetry_1700000000Enabled"], "true")
         self.assertNotIn("konveyor_effect_1700000000Enabled", self.harness.config("kwinrc")[("Plugins",)])
 
+    def test_keep_widgets_without_widgets_removes_the_kontrol_panel_with_konveyor(self):
+        self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))
+        self.assertSucceeded(self.harness.uninstall("--keep-widgets"))
+        home = self.harness.home
+        self.assertFalse((home / ".config" / "systemd" / "user" / "konveyor-kontrol-panel.service").exists())
+        self.assertFalse((home / ".local" / "share" / "konveyor").exists())
+        self.assertFalse((home / ".local" / "bin" / "portal-launcher").exists())
+        self.assertEqual(self.harness.shortcut("plasmashell", "activate application launcher"), ["Meta", "Alt+F1"])
+
     def test_purge_deletes_the_config_and_the_default_keeps_it(self):
         config = self.harness.home / ".config" / "konveyor" / "config.kdl"
         self.harness.write(config, "layout {}\n")

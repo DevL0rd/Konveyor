@@ -28,10 +28,31 @@ class TestInstallOptions(HarnessTest):
                                           "konveyor_effect_1700000000Enabled": "true"})
         self.assertEqual(self.harness.stub_state("kwin")["loaded"], ["konveyor_effect_1700000000"])
         self.assertIn("Konveyor is live now", result.stdout)
-        self.assertIn("Settings: open System Settings", result.stdout)
+        self.assertIn("Settings: press Meta+K", result.stdout)
         self.assertEqual((self.harness.home / STATE / "install-options").read_text(), f"widgets=false\nprefix={self.harness.prefix}\n")
-        self.assertFalse((self.harness.home / ".local" / "share" / "konveyor" / "widgets").exists())
-        self.assertEqual(self.harness.calls("busctl"), [])
+
+    def test_no_widgets_installs_the_kontrol_panel_and_none_of_the_other_widgets(self):
+        self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))
+        home = self.harness.home
+        units = home / ".config" / "systemd" / "user"
+        self.assertTrue((units / "konveyor-kontrol-panel.service").exists())
+        self.assertIn(f"{home}/.local/share/konveyor/widgets/portals/kontrol-panel", (units / "konveyor-kontrol-panel.service").read_text())
+        self.assertTrue((home / ".local" / "share" / "dbus-1" / "services" / "org.devl0rd.KontrolPanel.service").exists())
+        self.assertTrue((home / ".local" / "share" / "applications" / "org.devl0rd.KontrolPanel.desktop").exists())
+        self.assertTrue((home / ".local" / "share" / "konveyor" / "widgets" / "portals" / "kontrol-panel" / "Main.qml").exists())
+        self.assertTrue((home / ".local" / "share" / "konveyor" / "widgets" / "portals" / "kontrol-panel" / "lib" / "FileWatcher.qml").exists())
+        self.assertIn("portals", (units / "konveyor-widgets.service").read_text().split("ExecStart=")[1].splitlines()[0].split())
+        self.assertEqual(self.harness.stub_state("systemd")["enabled"],
+                         ["konveyor-kontrol-panel.service", "konveyor-update.service", "konveyor-widgets.service"])
+        for command in ("portal-launcher", "portal-games", "portal-packages", "portal-friends"):
+            self.assertTrue((home / ".local" / "bin" / command).is_symlink(), command)
+        for other in ("sysmon-collect", "procmon-collect", "routermon-collect", "logmon-collect", "monitor-overlay"):
+            self.assertFalse((home / ".local" / "bin" / other).exists(), other)
+        self.assertFalse((home / ".local" / "share" / "plasma" / "plasmoids").exists())
+        self.assertFalse((home / ".local" / "share" / "applications" / "org.devl0rd.portal.launcher.games.desktop").exists())
+        self.assertEqual(self.harness.shortcut("konveyor-kontrol-panel", "toggle"), ["Meta", "Alt+F1"])
+        self.assertEqual(self.harness.shortcut("plasmashell", "activate application launcher"), [])
+        self.assertNotIn(["systemctl", "--user", "stop", "plasma-plasmashell.service"], self.harness.calls("systemctl"))
 
     def test_switching_to_no_widgets_removes_the_widgets_and_turns_the_telemetry_off(self):
         self.assertSucceeded(self.harness.install("--skip-deps"))
@@ -41,11 +62,16 @@ class TestInstallOptions(HarnessTest):
         self.assertNotIn("process_monitor_telemetry_1700000000Enabled", self.plugins())
         self.assertEqual(self.harness.stub_state("kwin")["loaded"], ["konveyor_effect_1700000000"])
         self.assertIn("Removing the Konveyor widgets because of --no-widgets", result.stdout)
-        share = self.harness.home / ".local" / "share"
-        self.assertFalse((share / "konveyor" / "widgets").exists())
-        self.assertFalse((share / "plasma" / "plasmoids").exists())
-        self.assertFalse((self.harness.home / ".config" / "systemd" / "user" / "konveyor-widgets.service").exists())
-        self.assertEqual(self.harness.stub_state("systemd")["enabled"], ["konveyor-update.service"])
+        home = self.harness.home
+        self.assertFalse((home / ".local" / "share" / "plasma" / "plasmoids").exists())
+        for command in ("sysmon-collect", "procmon-collect", "routermon-collect", "logmon-collect", "monitor-overlay", "linux-plasma-screen-rotate"):
+            self.assertFalse((home / ".local" / "bin" / command).exists(), command)
+        self.assertTrue((home / ".local" / "bin" / "portal-launcher").is_symlink())
+        self.assertTrue((home / ".config" / "systemd" / "user" / "konveyor-kontrol-panel.service").exists())
+        self.assertTrue((home / ".local" / "share" / "konveyor" / "widgets" / "portals" / "kontrol-panel" / "Main.qml").exists())
+        self.assertIn("portals", (home / ".config" / "systemd" / "user" / "konveyor-widgets.service").read_text().split("ExecStart=")[1].splitlines()[0].split())
+        self.assertEqual(self.harness.shortcut("konveyor-kontrol-panel", "toggle"), ["Meta", "Alt+F1"])
+        self.assertEqual(self.harness.shortcut("org.devl0rd.portal.launcher.games.desktop", "_launch"), None)
         result = self.assertSucceeded(self.harness.install("--skip-deps", "--no-widgets"))
         self.assertNotIn("Removing the Konveyor widgets", result.stdout)
 

@@ -22,11 +22,18 @@ def start(widget, arguments, flags):
 
 
 def main():
+    names = sys.argv[1:]
+    known = [widget for widget, _, _ in COLLECTORS]
+    unknown = [name for name in names if name not in known]
+    if unknown:
+        sys.stderr.write(f"konveyor-widgets: unknown collectors: {' '.join(unknown)}\n")
+        return 2
+    selected = [collector for collector in COLLECTORS if not names or collector[0] in names]
     overlay = os.path.join(ROOT, "service", "monitor-overlay")
     if os.path.isfile(overlay):
         subprocess.run([sys.executable, overlay, "hide"], check=False)
     running = {}
-    for widget, arguments, flags in COLLECTORS:
+    for widget, arguments, flags in selected:
         if os.path.isfile(os.path.join(ROOT, widget, arguments[0])):
             running[start(widget, arguments, flags).pid] = (widget, arguments, flags, time.monotonic())
     if not running:

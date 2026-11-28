@@ -38,6 +38,10 @@ KONVEYOR_GIT_ENV=(GIT_TERMINAL_PROMPT=0 GIT_ASKPASS= GIT_SSH_COMMAND="ssh -o Bat
 KONVEYOR_CONFLICTING_SCRIPTS=(karousel krohnkite kzones polonium bismuth devl0rd-hide-desktop-widgets)
 KONVEYOR_DISABLED_SCRIPTS="$HOME/.local/state/konveyor/disabled-scripts"
 
+widgets_installed() {
+    [[ -L $HOME/.local/bin/sysmon-collect ]]
+}
+
 say() {
     printf '\033[1;34m==>\033[0m %s\n' "$*"
 }

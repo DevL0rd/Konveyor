@@ -22,13 +22,14 @@ usage() {
     cat <<EOF
 Usage: ./install.sh [--skip-deps] [--no-pull] [--no-widgets] [--aur]
 
-Builds and installs Konveyor, enables it in KWin, installs the Konveyor widgets and keeps a git
+Builds and installs Konveyor, enables it in KWin, installs the Kontrol Panel and the Konveyor widgets and keeps a git
 checkout updated: every system update pulls new commits and reinstalls, and KWin, Qt or Plasma
 updates rebuild it. Run it again at any time to update.
 
   --skip-deps   Do not install build and widget dependencies with the system package manager
   --no-pull     Do not update the source checkout with git pull
-  --no-widgets  Install only the window manager; removes the Konveyor widgets if installed
+  --no-widgets  Install the window manager and the Kontrol Panel but not the other Konveyor widgets;
+                removes those widgets if installed
   --aur         Installed by a package (also KONVEYOR_AUR=true); the package manager handles
                 updates, so no update hook is registered
 EOF
@@ -227,6 +228,8 @@ finish_update() {
     activate
     if $WIDGETS; then
         PATH="$KONVEYOR_PREFIX/bin:$PATH" "$SOURCE_DIR/widgets/install.sh" --no-restart
+    else
+        install_kontrol_panel_alone
     fi
     rm -f "$UPDATE_PENDING"
     notify_owner "Konveyor updated" "Konveyor $(git -C "$SOURCE_DIR" describe --always --tags 2>/dev/null) is installed. Restart Plasma or log out and back in to load the updated widgets."
@@ -257,11 +260,15 @@ system_update() {
 }
 
 remove_widgets() {
-    [[ -d $WIDGETS_RUNTIME_DIR ]] || return 0
+    widgets_installed || return 0
     say "Removing the Konveyor widgets because of --no-widgets"
     local widget_uninstaller="$WIDGETS_RUNTIME_DIR/uninstall.sh"
     [[ -x $widget_uninstaller ]] || widget_uninstaller="$SOURCE_DIR/widgets/uninstall.sh"
-    "$widget_uninstaller"
+    "$widget_uninstaller" --keep-kontrol-panel
+}
+
+install_kontrol_panel_alone() {
+    PATH="$KONVEYOR_PREFIX/bin:$PATH" "$SOURCE_DIR/widgets/install.sh" --kontrol-panel-only
 }
 
 main() {
@@ -294,7 +301,8 @@ main() {
         say "Settings: press Meta+K and open Settings in the Kontrol Panel, or open System Settings > Window Management > Konveyor"
     else
         remove_widgets
-        say "Settings: open System Settings > Window Management > Konveyor"
+        install_kontrol_panel_alone
+        say "Settings: press Meta+K and open Settings in the Kontrol Panel, or open System Settings > Window Management > Konveyor"
     fi
     say "Config file: ~/.config/konveyor/config.kdl (created on first start)"
 }
