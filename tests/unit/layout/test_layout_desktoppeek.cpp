@@ -170,28 +170,40 @@ private Q_SLOTS:
         QCOMPARE(key.dragEnded(), Step::None);
     }
 
-    void leavingAWindowPushesItAwayOnce()
+    void leavingAWindowPushesItAwayAndEnteringItAgainDoesToo()
     {
         PeekAside aside;
         aside.begin(true);
         QCOMPARE(aside.pointerAt(QPointF(800, 500), Wide, WorkArea), std::nullopt);
         QCOMPARE(aside.pointerAt(QPointF(8, 500), Wide, WorkArea), PeekSide::Right);
-        QCOMPARE(aside.pointerAt(QPointF(800, 500), Wide, WorkArea), std::nullopt);
-        QCOMPARE(aside.pointerAt(QPointF(1700, 500), Wide, WorkArea), std::nullopt);
-        QCOMPARE(aside.pointerAt(QPointF(8, 500), Wide, WorkArea), std::nullopt);
+        QCOMPARE(aside.pointerAt(QPointF(8, 600), Wide, WorkArea), std::nullopt);
+        QCOMPARE(aside.pointerAt(QPointF(1400, 500), Narrow, WorkArea), std::nullopt);
+        QCOMPARE(aside.pointerAt(QPointF(1000, 500), Narrow, WorkArea), PeekSide::Left);
+        QCOMPARE(aside.pointerAt(QPointF(1300, 500), Narrow, WorkArea), std::nullopt);
+        QCOMPARE(aside.pointerAt(QPointF(100, 500), Narrow, WorkArea), std::nullopt);
+        QCOMPARE(aside.pointerAt(QPointF(900, 500), Narrow, WorkArea), PeekSide::Right);
 
         aside.begin(true);
         QCOMPARE(aside.pointerAt(QPointF(1600, 500), Wide, WorkArea), PeekSide::Left);
     }
 
-    void startingOutsideWaitsForTheWindowToBeEntered()
+    void aMovedWindowIsJudgedAtItsNewPlace()
+    {
+        PeekAside aside;
+        aside.begin(true);
+        QCOMPARE(aside.pointerAt(QPointF(1600, 500), Wide, WorkArea), PeekSide::Left);
+        aside.frameChanged(QPointF(1600, 500), Narrow);
+        QCOMPARE(aside.pointerAt(QPointF(900, 500), Narrow, WorkArea), PeekSide::Right);
+    }
+
+    void startingOutsideDodgesWhenTheWindowIsEntered()
     {
         PeekAside aside;
         aside.begin(false);
         QCOMPARE(aside.pointerAt(QPointF(100, 500), Narrow, WorkArea), std::nullopt);
+        QCOMPARE(aside.pointerAt(QPointF(900, 500), Narrow, WorkArea), PeekSide::Right);
         QCOMPARE(aside.pointerAt(QPointF(1500, 500), Narrow, WorkArea), std::nullopt);
-        QCOMPARE(aside.pointerAt(QPointF(900, 500), Narrow, WorkArea), std::nullopt);
-        QCOMPARE(aside.pointerAt(QPointF(1500, 500), Narrow, WorkArea), PeekSide::Left);
+        QCOMPARE(aside.pointerAt(QPointF(1000, 500), Narrow, WorkArea), PeekSide::Left);
     }
 
     void leavingThroughTheTopOrBottomUsesThePointersHalf()

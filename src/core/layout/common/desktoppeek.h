@@ -53,6 +53,7 @@ class PeekAside
 {
 public:
     void begin(bool pointerInside);
+    void frameChanged(QPointF pointer, const QRectF &frame);
     std::optional<PeekSide> pointerAt(QPointF pointer, const QRectF &frame, const QRectF &workArea);
 
 private:

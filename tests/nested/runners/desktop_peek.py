@@ -118,9 +118,7 @@ def hold_and_slide(checks):
         time.sleep(SETTLE)
         image = shot("aside")
         checks.expect(not shows_client(image, (200, 540)) and shows_client(image, body(aside)), "the desktop shows where B was and B sits aside")
-        held.send(f"move:{aside[0] + 100}:540", "move:2:540", f"move:{aside[0] + 100}:540")
-        time.sleep(SETTLE)
-        checks.equal(placed("B"), aside, "B moves once per peek, even when the pointer crosses it again")
+        dodge_back_and_forth(checks, held, layout, aside, "in the first peek")
         held.send((SUPER, 0))
     checks.expect(wait_for(lambda: placed("B") == layout, 5), f"releasing Meta puts B back ({placed('B')} vs {layout})")
     time.sleep(SETTLE)
@@ -130,6 +128,47 @@ def hold_and_slide(checks):
     checks.equal(launcher_count(), launched, "releasing Meta after a peek does not fire the launcher shortcut")
     chord([SUPER])
     checks.expect(wait_for(lambda: launcher_count() == launched + 1, 5), "the next quick tap fires the launcher again")
+
+
+def dodge_back_and_forth(checks, held, layout, aside, when):
+    half = aside[2]
+    left = (16, layout[1], half, layout[3])
+    held.send("move:2:540")
+    time.sleep(SETTLE)
+    held.send(f"move:{aside[0] + 100}:540")
+    checks.expect(wait_for(lambda: placed("B") == left, 5), f"pointer reaching B at its new place slides it to the other side {when} ({placed('B')} vs {left})")
+    time.sleep(SETTLE)
+    held.send(f"move:{left[0] + 100}:540")
+    checks.expect(wait_for(lambda: placed("B") == aside, 5), f"pointer reaching B again slides it back {when} ({placed('B')} vs {aside})")
+    time.sleep(SETTLE)
+    held.send(f"move:{aside[0] + 100}:540")
+    checks.expect(wait_for(lambda: placed("B") == left, 5), f"pointer reaching B a third time slides it away again {when} ({placed('B')} vs {left})")
+    time.sleep(SETTLE)
+    held.send("move:2:540", f"move:{aside[0] + 100}:540")
+    time.sleep(SETTLE)
+    checks.equal(placed("B"), left, f"B stays out of the way while the pointer is outside it {when}")
+    held.send(f"move:{left[0] + 100}:540")
+    checks.expect(wait_for(lambda: placed("B") == aside, 5), f"B keeps dodging {when} ({placed('B')} vs {aside})")
+    time.sleep(SETTLE)
+
+
+def dodge_in_next_peek(checks):
+    layout = placed("B")
+    half = round((1920 - 3 * 16) / 2)
+    aside = (1920 - 16 - half, layout[1], half, layout[3])
+    peeks = peek_count()
+    move(*center(layout))
+    with Held() as held:
+        held.send((SUPER, 1))
+        checks.expect(wait_for(lambda: peek_count() == peeks + 1, 3), "holding Meta alone starts another peek")
+        time.sleep(SETTLE)
+        held.send("move:2:540")
+        checks.expect(wait_for(lambda: placed("B") == aside, 5), f"the next peek slides B aside again ({placed('B')} vs {aside})")
+        time.sleep(SETTLE)
+        dodge_back_and_forth(checks, held, layout, aside, "in the next peek")
+        held.send((SUPER, 0))
+    checks.expect(wait_for(lambda: placed("B") == layout, 5), f"releasing Meta puts B back ({placed('B')} vs {layout})")
+    time.sleep(SETTLE)
 
 
 def shortcut_during_delay(checks):
@@ -199,4 +238,4 @@ def drag_during_peek(checks):
 
 
 if __name__ == "__main__":
-    Checks().run(setup, tap, hold_and_slide, shortcut_during_delay, click_during_delay, fullscreen, drag_during_peek)
+    Checks().run(setup, tap, hold_and_slide, dodge_in_next_peek, shortcut_during_delay, click_during_delay, fullscreen, drag_during_peek)

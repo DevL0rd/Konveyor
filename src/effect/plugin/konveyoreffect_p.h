@@ -113,6 +113,7 @@ struct DesktopPeek
     QList<PeekedWindow> faded;
     Layout::PeekAside aside;
     std::optional<QRectF> asideFrame;
+    QPointF slideFrom;
     std::optional<Anim::Animation> fade;
     std::optional<Anim::Animation> slide;
     bool restoring = false;

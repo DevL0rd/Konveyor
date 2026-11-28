@@ -124,11 +124,21 @@ void PeekAside::begin(bool pointerInside)
     m_moved = false;
 }
 
+void PeekAside::frameChanged(QPointF pointer, const QRectF &frame)
+{
+    m_inside = frame.contains(pointer);
+}
+
 std::optional<PeekSide> PeekAside::pointerAt(QPointF pointer, const QRectF &frame, const QRectF &workArea)
 {
     const bool inside = frame.contains(pointer);
+    const bool entered = !m_inside && inside;
     const bool left = m_inside && !inside;
     m_inside = inside;
+    if (entered) {
+        m_moved = true;
+        return pointer.x() < workArea.center().x() ? PeekSide::Right : PeekSide::Left;
+    }
     if (m_moved || !left) {
         return std::nullopt;
     }

@@ -52,6 +52,11 @@ Anim::Animation fadeTo(const Anim::Clock &clock, const std::optional<Anim::Anima
     return Anim::Animation::ease(clock, from, to, 0.0, peekFadeDuration, Anim::Curve(Config::EasingCurve::EaseOutCubic));
 }
 
+QPointF slidePosition(const DesktopPeek &peek, const QPointF &target)
+{
+    return peek.slideFrom + ((target - peek.slideFrom) * peek.slide->value());
+}
+
 }
 
 bool KonveyorEffect::handlePeekKey(int key, bool pressed, Qt::KeyboardModifiers modifiers)
@@ -143,8 +148,9 @@ void KonveyorEffect::endPeek()
         setKeptVisible(faded, false);
     }
     peek.fade = fadeTo(d->clock, peek.fade, 1.0);
-    if (peek.slide) {
-        peek.slide = Anim::Animation(d->clock, peek.slide->value(), 0.0, 0.0, d->config.config().animations.windowMovement);
+    if (peek.slide && peek.asideFrame) {
+        peek.slideFrom = slidePosition(peek, peek.asideFrame->topLeft());
+        peek.slide = Anim::Animation(d->clock, 0.0, 1.0, 0.0, d->config.config().animations.windowMovement);
     }
     const KWin::Window *active = KWin::workspace()->activeWindow();
     if (peek.kept && (!active || active->isDesktop())) {
@@ -156,7 +162,7 @@ void KonveyorEffect::endPeek()
 
 void KonveyorEffect::trackPeekPointer(const QPointF &position)
 {
-    if (!d->peek || d->peek->restoring || !d->peek->kept || d->peek->asideFrame || KWin::waylandServer()->seat()->isDragPointer()) {
+    if (!d->peek || d->peek->restoring || !d->peek->kept) {
         return;
     }
     DesktopPeek &peek = *d->peek;
@@ -165,12 +171,15 @@ void KonveyorEffect::trackPeekPointer(const QPointF &position)
     if (output == outputs.end()) {
         return;
     }
-    const QRectF frame = peek.kept->frameGeometry();
+    const QRectF kept = peek.kept->frameGeometry();
+    const QRectF frame = peek.asideFrame ? *peek.asideFrame : kept;
     const std::optional<Layout::PeekSide> side = peek.aside.pointerAt(position, frame, output->workArea);
-    if (!side) {
+    if (!side || KWin::waylandServer()->seat()->isDragPointer()) {
         return;
     }
+    peek.slideFrom = peek.slide ? slidePosition(peek, peek.asideFrame->topLeft()) : frame.topLeft();
     peek.asideFrame = Layout::peekFrame(frame, output->workArea, *side, peek.kept->minSize().width(), d->config.config().layout.gaps);
+    peek.aside.frameChanged(position, *peek.asideFrame);
     peek.slide = Anim::Animation(d->clock, 0.0, 1.0, 0.0, d->config.config().animations.windowMovement);
     scheduleFlush();
 }
@@ -187,8 +196,7 @@ void KonveyorEffect::placePeekedWindow(QList<Layout::WindowState> &states) const
     }
     const QRectF layout = WindowApplier::frameFor(*state);
     const QRectF &aside = *d->peek->asideFrame;
-    const double progress = d->peek->slide->value();
-    const QPointF position = layout.topLeft() + ((aside.topLeft() - layout.topLeft()) * progress);
+    const QPointF position = slidePosition(*d->peek, d->peek->restoring ? layout.topLeft() : aside.topLeft());
     const QRectF placed(position, d->peek->restoring ? layout.size() : aside.size());
     const QPointF shift = placed.topLeft() - layout.topLeft();
     state->renderFrame = placed;

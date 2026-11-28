@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hold Meta with the peek-desktop experiment on: a tap still fires a modifier-only shortcut, a hold fades the other windows, the focused one slides aside once and comes back, and Meta shortcuts, clicks and fullscreen windows are left alone."""
+"""Hold Meta with the peek-desktop experiment on: a tap still fires a modifier-only shortcut, a hold fades the other windows, the focused one slides aside whenever the pointer leaves or reaches it, in every peek, and comes back, and Meta shortcuts, clicks and fullscreen windows are left alone."""
 import sys
 from pathlib import Path
 
