@@ -46,13 +46,14 @@ class FakeRoot:
 
     def patches(self):
         real_open, real_os_open, real_listdir, real_stat, real_glob = builtins.open, os.open, os.listdir, os.stat, glob.glob
-        real_exists = os.path.exists
+        real_exists, real_readlink = os.path.exists, os.readlink
         return [
             mock.patch("builtins.open", lambda path, *a, **k: real_open(self.map(path), *a, **k)),
             mock.patch("os.open", lambda path, *a, **k: real_os_open(self.map(path), *a, **k)),
             mock.patch("os.listdir", lambda path=".": real_listdir(self.map(path))),
             mock.patch("os.stat", lambda path, *a, **k: real_stat(self.map(path), *a, **k)),
             mock.patch("os.path.exists", lambda path: real_exists(self.map(path))),
+            mock.patch("os.readlink", lambda path, *a, **k: real_readlink(self.map(path), *a, **k)),
             mock.patch("glob.glob", lambda pattern, *a, **k: [self.unmap(p) for p in real_glob(self.map(pattern), *a, **k)]),
         ]
 
